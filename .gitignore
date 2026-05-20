@@ -18,6 +18,8 @@ vendor/
 
 # Go workspace file
 go.work
+docs/
+tmp
 
 # Environment files
 .env

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -29,8 +30,12 @@ type ShipmentServiceInterface interface {
 	GetShipmentByID(id uint) (*models.Shipment, error)
 	GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error)
 	UpdateShipmentStatus(id uint, status string) error
-	GetShippingProvider() ([]models.ShippingProviders, error)
+
 	DeleteShippingProvider(providerId uint) error
+	GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error)
+	GetShippingProviders() ([]models.ShippingProviders, error)
+	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
+	UpdateShippingProvider(providerId uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
 }
 
 type shipmentService struct {
@@ -229,10 +234,24 @@ func (s *shipmentService) getShipmentStatusNotificationMessage(status, trackingN
 	}
 }
 
-func (s *shipmentService) GetShippingProvider() ([]models.ShippingProviders, error) {
-	var methods []models.ShippingProviders
-	err := s.db.Where("is_active = ?", true).Order("price ASC").Find(&methods).Error
-	return methods, err
+// GetShippingProviders getting the all the services
+func (s *shipmentService) GetShippingProviders() ([]models.ShippingProviders, error) {
+	var providers []models.ShippingProviders
+	err := s.db.Where("is_active = ?", true).Order("price ASC").Find(&providers).Error
+	return providers, err
+}
+
+// GetShippingProviderByID find the provider with the given id
+func (s *shipmentService) GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error) {
+	var provider models.ShippingProviders
+	err := s.db.First(&provider, providerId).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("shipping provider not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return &provider, nil
 }
 
 // DeleteShippingProvider remove  provider with the given id
@@ -245,4 +264,54 @@ func (s *shipmentService) DeleteShippingProvider(providerId uint) error {
 		return utils.ErrNotFound("product not found")
 	}
 	return nil
+}
+
+// CreateShippingProvider creates a new shipping provider
+func (s *shipmentService) CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error) {
+	isActive := true
+	if req.IsActive != nil {
+		isActive = *req.IsActive
+	}
+
+	provider := models.ShippingProviders{
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+		IsActive:    isActive,
+	}
+	err := s.db.Create(&provider).Error
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return &provider, nil
+}
+
+// UpdateShippingProvider updates an existing shipping provider by ID
+func (s *shipmentService) UpdateShippingProvider(providerId uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error) {
+
+	var provider models.ShippingProviders
+	err := s.db.First(&provider, providerId).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("shipping provider not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	if req.Name != nil {
+		provider.Name = *req.Name
+	}
+	if req.Description != nil {
+		provider.Description = *req.Description
+	}
+	if req.Price != nil {
+		provider.Price = *req.Price
+	}
+	if req.IsActive != nil {
+		provider.IsActive = *req.IsActive
+	}
+	err = s.db.Save(&provider).Error
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return &provider, nil
 }

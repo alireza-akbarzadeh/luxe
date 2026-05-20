@@ -7,18 +7,29 @@ import (
 )
 
 func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
-	// User shipment endpoints (authenticated)
-	public.GET("/shipping-providers", ctrl.Shipment.GetShippingProvider)
+	// Public (or user) shipping provider endpoints – no authentication required
+	public.GET("/shipping-providers", ctrl.Shipment.GetShippingProviders)
+	public.GET("/shipping-providers/:id", ctrl.Shipment.GetShippingProviderByID)
 
+	// Authenticated user shipment endpoints
 	protected.GET("/shipments/:id", ctrl.Shipment.GetShipment)
 	protected.GET("/shipments", ctrl.Shipment.GetShipmentsByOrder)
 
-	// Admin shipment endpoints (require admin role)
-	admin := protected.Group("/shipments")
-	admin.Use(middleware.RequireRole("admin"))
+	// Admin endpoints for shipments
+	adminShipments := protected.Group("/shipments")
+	adminShipments.Use(middleware.RequireRole("admin"))
 	{
-		admin.POST("/", ctrl.Shipment.CreateShipment)
-		admin.DELETE("/", ctrl.Shipment.DeleteShippingProvider)
-		admin.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
+		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
+		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
+		// No DELETE /shipments – that doesn't make sense; shipments are usually not deleted.
+	}
+
+	// Admin endpoints for shipping providers (CRUD)
+	adminProviders := protected.Group("/shipping-providers")
+	adminProviders.Use(middleware.RequireRole("admin"))
+	{
+		adminProviders.POST("/", ctrl.Shipment.CreateShippingProvider)
+		adminProviders.PUT("/:id", ctrl.Shipment.UpdateShippingProvider)
+		adminProviders.DELETE("/:id", ctrl.Shipment.DeleteShippingProvider)
 	}
 }

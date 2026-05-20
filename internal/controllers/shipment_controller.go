@@ -1,9 +1,11 @@
 package controllers
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
@@ -189,7 +191,6 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ErrorResponse(c, 400, err.Error())
 		return
 	}
 
@@ -201,21 +202,21 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 	utils.SuccessResponse(c, "shipment status updated successfully", nil)
 }
 
-// GetShippingProvider godoc
+// GetShippingProviders godoc
 // @Summary      Get active shipping providers
 // @Description  Returns all active shipping providers (public)
 // @Tags         Shipping
 // @Accept       json
 // @Produce      json
-// @Success      200 {object} utils.Response{data=[]models.ShippingMethod}
+// @Success      200 {object} utils.Response{data=[]models.ShippingProviders}
 // @Router       /shipping-providers [get]
-func (ctrl *ShipmentController) GetShippingProvider(c *gin.Context) {
-	methods, err := ctrl.shipmentService.GetShippingProvider()
+func (ctrl *ShipmentController) GetShippingProviders(c *gin.Context) {
+	providers, err := ctrl.shipmentService.GetShippingProviders()
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping methods")
+		utils.HandleAppError(c, err, "failed to fetch shipping providers")
 		return
 	}
-	utils.SuccessResponse(c, "shipping methods retrieved", methods)
+	utils.SuccessResponse(c, "shipping providers retrieved", providers)
 }
 
 // DeleteShippingProvider godoc
@@ -230,6 +231,7 @@ func (ctrl *ShipmentController) GetShippingProvider(c *gin.Context) {
 // @Failure      404  {object}  utils.Response
 // @Router       /shipping-providers/{id} [delete]
 func (ctrl *ShipmentController) DeleteShippingProvider(c *gin.Context) {
+	// Parse the ID from the URL parameter
 	idParam := c.Param("id")
 	providerIdUint64, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -237,8 +239,10 @@ func (ctrl *ShipmentController) DeleteShippingProvider(c *gin.Context) {
 		return
 	}
 
+	// Convert to uint (service expects uint)
 	providerId := uint(providerIdUint64)
 
+	// Call the service
 	err = ctrl.shipmentService.DeleteShippingProvider(providerId)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to delete shipping provider")
@@ -247,4 +251,86 @@ func (ctrl *ShipmentController) DeleteShippingProvider(c *gin.Context) {
 
 	// Success response
 	utils.SuccessResponse(c, "successfully removed", nil)
+}
+
+// GetShippingProviderByID godoc
+// @Summary      Get a shipping provider by ID
+// @Description  Returns a single shipping provider
+// @Tags         Shipping Providers
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Provider ID"
+// @Success      200  {object}  utils.Response{data=models.ShippingProviders}
+// @Failure      400  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /shipping-providers/{id} [get]
+func (ctrl *ShipmentController) GetShippingProviderByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid provider id")
+	}
+	var provider *models.ShippingProviders
+	provider, err = ctrl.shipmentService.GetShippingProviderByID(uint(id))
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, provider)
+}
+
+// CreateShippingProvider godoc
+// @Summary      Create a new shipping provider
+// @Description  Adds a new shipping provider to the system
+// @Tags         Shipping Providers
+// @Accept       json
+// @Produce      json
+// @Param        request body     dto.CreateShippingProviderRequest true "Provider details"
+// @Success      201     {object}  utils.Response{data=models.ShippingProviders}
+// @Failure      400     {object}  utils.Response
+// @Failure      409     {object}  utils.Response
+// @Failure      500     {object}  utils.Response
+// @Router       /shipping-providers [post]
+func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
+
+	var req dto.CreateShippingProviderRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	privders, err := ctrl.shipmentService.CreateShippingProvider(req)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to create shipping provider")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgCreateSuccess, privders)
+}
+
+// UpdateShippingProvider godoc
+// @Summary      Update an existing shipping provider
+// @Description  Updates fields of a shipping provider (partial update allowed)
+// @Tags         Shipping Providers
+// @Accept       json
+// @Produce      json
+// @Param        id      path      int                                 true  "Provider ID"
+// @Param        request body      dto.UpdateShippingProviderRequest true "Fields to update"
+// @Success      200     {object}  utils.Response{data=models.ShippingProviders}
+// @Failure      400     {object}  utils.Response
+// @Failure      404     {object}  utils.Response
+// @Failure      500     {object}  utils.Response
+// @Router       /shipping-providers/{id} [put]
+func (ctrl *ShipmentController) UpdateShippingProvider(c *gin.Context) {
+	providerId, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid shipment id")
+	}
+	var req dto.UpdateShippingProviderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return
+	}
+	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(providerId))
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, provider)
 }
