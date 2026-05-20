@@ -53,3 +53,31 @@ Bring `go-shopping` from a working backend project to a production-ready, mainta
 2. `M2` — Production readiness: graceful shutdown, config validation, health probes.
 3. `M3` — Feature readiness: checkout resiliency, inventory safety, admin pages.
 4. `M4` — Observability and deployment: metrics, logging, CI/CD.
+
+
+testing strategy
+shopping-platform/
+├── cmd/
+│   └── api/
+│       └── main.go
+├── internal/
+│   ├── controllers/
+│   │   ├── auth.go
+│   │   └── auth_test.go     // ✅ test for auth.go
+│   ├── services/
+│   │   ├── auth_service.go
+│   │   └── auth_service_test.go // ✅ test for auth_service.go
+│   ├── models/
+│   │   ├── user.go
+│   │   └── user_test.go     // ✅ test for user.go
+│   ├── dto/
+│   │   ├── product.go
+│   │   └── product_test.go  // ✅ test for product.go
+│   └── middleware/
+│       ├── auth.go
+│       └── auth_test.go     // ✅ test for auth.go
+├── tests/                    // 🧪 Reserved for integration & E2E tests
+│   ├── integration/
+│   └── e2e/
+├── go.mod
+└── go.sum
