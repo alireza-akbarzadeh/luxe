@@ -2,7 +2,6 @@
 package controllers
 
 import (
-	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"gorm.io/gorm"
 )
@@ -27,7 +26,7 @@ type Container struct {
 }
 
 // NewContainer initializes all controllers with their dependencies.
-func NewContainer(db *gorm.DB, cfg *config.Config, svc *services.Services) *Container {
+func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 	return &Container{
 		Health:   NewHealthController(db),
 		Auth:     NewAuthController(svc.Auth),
