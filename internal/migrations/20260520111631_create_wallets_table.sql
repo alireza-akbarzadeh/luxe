@@ -15,6 +15,6 @@ CREATE INDEX idx_wallets_user_id ON wallets(user_id);
 -- +goose StatementEnd
 
 -- +goose Down
--- +goose StatementBegin
+-- +goose StatementBegin 
 DROP TABLE IF EXISTS wallets;
 -- +goose StatementEnd

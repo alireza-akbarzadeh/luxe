@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"net/http"
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,307 +18,294 @@ func NewMenuController(menuService services.UserMenuServicesInterface) *MenuCont
 	return &MenuController{menuService: menuService}
 }
 
-// GetAllGroups godoc
+// GetAllGroups returns all menu groups.
 // @Summary      Get all menu groups
 // @Description  Retrieves all menu groups ordered by display_order
-// @Tags         Menu Groups
+// @Tags         Admin Menu Groups
 // @Produce      json
-// @Success      200  {array}   models.MenuGroup
-// @Failure      500  {object}  dto.MessageResponse
-// @Router       /admin/menu/groups [get]
 // @Security     BearerAuth
-
+// @Success      200 {object} utils.Response{data=[]models.MenuGroup}
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/groups [get]
 func (ctrl *MenuController) GetAllGroups(c *gin.Context) {
 	groups, err := ctrl.menuService.GetAllGroups()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to fetch menu groups")
 		return
 	}
-	c.JSON(http.StatusOK, groups)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, groups)
 }
 
-// GetGroupByID godoc
+// GetGroupByID returns a single menu group by ID.
 // @Summary      Get group by ID
 // @Description  Returns a single menu group by its ID
-// @Tags         Menu Groups
+// @Tags         Admin Menu Groups
 // @Produce      json
 // @Param        id   path      int  true  "Group ID"
-// @Success      200  {object}  models.MenuGroup
-// @Failure      400  {object}  dto.MessageResponse
-// @Failure      404  {object}  dto.MessageResponse
-// @Failure      500  {object}  dto.MessageResponse
-// @Router       /admin/menu/groups/{id} [get]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=models.MenuGroup}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/groups/{id} [get]
 func (ctrl *MenuController) GetGroupByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group id"})
+		utils.ErrorResponse(c, 400, "invalid group id")
 		return
 	}
 	group, err := ctrl.menuService.GetGroupByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to fetch group")
 		return
 	}
 	if group == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "group not found"})
+		utils.NotFoundResponse(c, "group not found")
 		return
 	}
-	c.JSON(http.StatusOK, group)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, group)
 }
 
-// CreateGroup godoc
+// CreateGroup creates a new menu group.
 // @Summary      Create a new menu group
 // @Description  Creates a menu group (e.g., "Overview", "Users & Access")
-// @Tags         Menu Groups
+// @Tags         Admin Menu Groups
 // @Accept       json
 // @Produce      json
-// @Param        request body      dto.CreateMenuGroupRequest true "Group data"
-// @Success      201     {object}  models.MenuGroup
-// @Failure      400     {object}  dto.MessageResponse
-// @Failure      500     {object}  dto.MessageResponse
-// @Router       /admin/menu/groups [post]
+// @Param        request body dto.CreateMenuGroupRequest true "Group data"
 // @Security     BearerAuth
+// @Success      201 {object} utils.Response{data=models.MenuGroup}
+// @Failure      400 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/groups [post]
 func (ctrl *MenuController) CreateGroup(c *gin.Context) {
 	var req dto.CreateMenuGroupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !utils.BindAndValidate(c, &req, nil) { // no validator needed, but can add if needed
 		return
 	}
 	group, err := ctrl.menuService.CreateGroup(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to create group")
 		return
 	}
-	c.JSON(http.StatusCreated, group)
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, group)
 }
 
-// UpdateGroup godoc
+// UpdateGroup updates an existing menu group.
 // @Summary      Update an existing menu group
 // @Description  Updates group name or display order
-// @Tags         Menu Groups
+// @Tags         Admin Menu Groups
 // @Accept       json
 // @Produce      json
 // @Param        id       path      int                        true "Group ID"
 // @Param        request  body      dto.UpdateMenuGroupRequest true "Updated group data"
-// @Success      200      {object}  models.MenuGroup
-// @Failure      400      {object}  dto.MessageResponse
-// @Failure      404      {object}  dto.MessageResponse
-// @Failure      500      {object}  dto.MessageResponse
-// @Router       /admin/menu/groups/{id} [put]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=models.MenuGroup}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/groups/{id} [put]
 func (ctrl *MenuController) UpdateGroup(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group id"})
+		utils.ErrorResponse(c, 400, "invalid group id")
 		return
 	}
 	var req dto.UpdateMenuGroupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !utils.BindAndValidate(c, &req, nil) {
 		return
 	}
 	group, err := ctrl.menuService.UpdateGroup(uint(id), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to update group")
 		return
 	}
-	c.JSON(http.StatusOK, group)
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, group)
 }
 
-// DeleteGroup godoc
+// DeleteGroup deletes a menu group.
 // @Summary      Delete a menu group
 // @Description  Deletes a group and all its menu items (cascade)
-// @Tags         Menu Groups
+// @Tags         Admin Menu Groups
 // @Produce      json
 // @Param        id   path      int  true "Group ID"
-// @Success      204  "No Content"
-// @Failure      400  {object}  dto.MessageResponse
-// @Failure      500  {object}  dto.MessageResponse
-// @Router       /admin/menu/groups/{id} [delete]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/groups/{id} [delete]
 func (ctrl *MenuController) DeleteGroup(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group id"})
+		utils.ErrorResponse(c, 400, "invalid group id")
 		return
 	}
 	if err := ctrl.menuService.DeleteGroup(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to delete group")
 		return
 	}
-	c.JSON(http.StatusNoContent, nil)
+	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
 }
 
-// GetAllItems godoc
+// GetAllItems returns all menu items (flat or nested).
 // @Summary      Get all menu items
 // @Description  Returns flat or nested menu items (use ?flat=true for flat list)
-// @Tags         Menu Items
+// @Tags         Admin Menu Items
 // @Produce      json
 // @Param        flat  query   bool  false  "Return flat list" default(false)
-// @Success      200   {object}  dto.MenuListResponse
-// @Failure      500   {object}  dto.MessageResponse
-// @Router       /admin/menu/items [get]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.MenuListResponse}
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/items [get]
 func (ctrl *MenuController) GetAllItems(c *gin.Context) {
-	if ctrl.menuService == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "menu service not initialized"})
-		return
-	}
 	flat, _ := strconv.ParseBool(c.DefaultQuery("flat", "false"))
 	items, err := ctrl.menuService.GetAllItems(flat)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": dto.MessageResponse{
-			Success: false,
-			Message: err.Error(),
-		}})
+		utils.HandleAppError(c, err, "failed to fetch menu items")
 		return
 	}
 	resp := dto.MenuListResponse{
 		Items: items,
 		BaseResponse: dto.BaseResponse{
 			Success: true,
-			Code:    http.StatusOK,
+			Code:    200,
 			Message: constants.MsgFetchSuccess,
 		},
 	}
-	c.JSON(http.StatusOK, resp)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, resp)
 }
 
-// GetItemByID godoc
+// GetItemByID returns a single menu item.
 // @Summary      Get menu item by ID
 // @Description  Returns a single menu item by its ID
-// @Tags         Menu Items
+// @Tags         Admin Menu Items
 // @Produce      json
 // @Param        id   path      int  true "Item ID"
-// @Success      200  {object}  models.MenuItem
-// @Failure      400  {object}  dto.MessageResponse
-// @Failure      404  {object}  dto.MessageResponse
-// @Failure      500  {object}  dto.MessageResponse
-// @Router       /admin/menu/items/{id} [get]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=models.MenuItem}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/items/{id} [get]
 func (ctrl *MenuController) GetItemByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
 	item, err := ctrl.menuService.GetItemByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to fetch item")
 		return
 	}
 	if item == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+		utils.NotFoundResponse(c, "item not found")
 		return
 	}
-	c.JSON(http.StatusOK, item)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, item)
 }
 
-// CreateItem godoc
+// CreateItem creates a new menu item.
 // @Summary      Create a new menu item
 // @Description  Adds a new menu item (can be top-level or child of another item)
-// @Tags         Menu Items
+// @Tags         Admin Menu Items
 // @Accept       json
 // @Produce      json
-// @Param        request body      dto.CreateMenuItemRequest true "Menu item data"
-// @Success      201     {object}  models.MenuItem
-// @Failure      400     {object}  dto.MessageResponse
-// @Failure      500     {object}  dto.MessageResponse
-// @Router       /admin/menu/items [post]
+// @Param        request body dto.CreateMenuItemRequest true "Menu item data"
 // @Security     BearerAuth
+// @Success      201 {object} utils.Response{data=models.MenuItem}
+// @Failure      400 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/items [post]
 func (ctrl *MenuController) CreateItem(c *gin.Context) {
 	var req dto.CreateMenuItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !utils.BindAndValidate(c, &req, nil) {
 		return
 	}
 	item, err := ctrl.menuService.CreateItem(&req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to create item")
 		return
 	}
-	c.JSON(http.StatusCreated, item)
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, item)
 }
 
-// UpdateItem godoc
+// UpdateItem updates a menu item.
 // @Summary      Update an existing menu item
 // @Description  Updates menu item details including group, parent, label, href, etc.
-// @Tags         Menu Items
+// @Tags         Admin Menu Items
 // @Accept       json
 // @Produce      json
 // @Param        id       path      int                       true "Item ID"
 // @Param        request  body      dto.UpdateMenuItemRequest true "Updated item data"
-// @Success      200      {object}  models.MenuItem
-// @Failure      400      {object}  dto.MessageResponse
-// @Failure      404      {object}  dto.MessageResponse
-// @Failure      500      {object}  dto.MessageResponse
-// @Router       /admin/menu/items/{id} [put]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=models.MenuItem}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/items/{id} [put]
 func (ctrl *MenuController) UpdateItem(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
 	var req dto.UpdateMenuItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !utils.BindAndValidate(c, &req, nil) {
 		return
 	}
 	item, err := ctrl.menuService.UpdateItem(uint(id), &req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to update item")
 		return
 	}
-	c.JSON(http.StatusOK, item)
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, item)
 }
 
-// DeleteItem godoc
+// DeleteItem deletes a menu item.
 // @Summary      Delete a menu item
-// @Description  Deletes a menu item and all its children (cascade delete due to foreign key constraint)
-// @Tags         Menu Items
+// @Description  Deletes a menu item and all its children (cascade)
+// @Tags         Admin Menu Items
 // @Produce      json
 // @Param        id   path      int  true  "Menu item ID"
-// @Success      204  "No Content"
-// @Failure      400  {object}  dto.MessageResponse
-// @Failure      500  {object}  dto.MessageResponse
-// @Router       /admin/menu/items/{id} [delete]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/menu/items/{id} [delete]
 func (ctrl *MenuController) DeleteItem(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
 	if err := ctrl.menuService.DeleteItem(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to delete item")
 		return
 	}
-	c.JSON(http.StatusNoContent, nil)
+	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
 }
 
-// GetUserMenu godoc
+// GetUserMenu returns the sidebar menu for the current user.
 // @Summary      Get user sidebar menu
 // @Description  Returns the sidebar menu filtered by user's role and optional search term
 // @Tags         User Menu
 // @Produce      json
 // @Param        search  query   string  false  "Search by label or href"
-// @Success      200     {array}  dto.SidebarGroup
-// @Failure      500     {object}  dto.MessageResponse
-// @Router       /user/menu [get]
 // @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=[]dto.SidebarGroup}
+// @Failure      500 {object} utils.Response
+// @Router       /user/menu [get]
 func (ctrl *MenuController) GetUserMenu(c *gin.Context) {
-	// Extract user role from context (set by auth middleware)
 	userRole, exists := c.Get("user_role")
 	if !exists {
-		userRole = "guest" // default role
+		userRole = "guest"
 	}
 	search := c.Query("search")
 	menu, err := ctrl.menuService.GetUserMenu(c.Request.Context(), userRole.(string), search)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		utils.HandleAppError(c, err, "failed to fetch menu")
 		return
 	}
-	c.JSON(http.StatusOK, menu)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, menu)
 }

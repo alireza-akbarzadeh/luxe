@@ -51,5 +51,6 @@ func (r *Router) Setup() {
 		SetupMenuRoutes(protected, r.controllers)
 		SetupOrderRoutes(protected, r.controllers)
 		SetupShipmentRoutes(public, protected, r.controllers)
+		SetupWalletRoutes(protected, r.controllers)
 	}
 }

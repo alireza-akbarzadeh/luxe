@@ -23,6 +23,7 @@ type Container struct {
 	Review   *ReviewController
 	UserLike *UserLikeController
 	Account  *AccountController
+	Wallet   *WalletCotroller
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -43,5 +44,6 @@ func NewContainer(db *gorm.DB, cfg *config.Config, svc *services.Services) *Cont
 		Menu:     NewMenuController(svc.Menu),
 		Review:   NewReviewController(svc.Review),
 		UserLike: NewUserLikeController(svc.UserLike, svc.Product),
+		Wallet:   NewWallerController(svc.Wallet),
 	}
 }
