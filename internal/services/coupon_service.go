@@ -212,16 +212,26 @@ func (s *couponService) Delete(id uint) error {
 func (s *couponService) List(filters dto.CouponListFilters) ([]models.Coupon, int64, error) {
 	var coupons []models.Coupon
 	var total int64
+	now := time.Now()
 
 	query := s.db.Model(&models.Coupon{})
 
-	// Apply filters using concrete fields
+	// 1. Mandatory usability filters (Hide exhausted and expired coupons)
+	// Only show coupons that have usage left AND are within the valid date range
+	query = query.Where("used_count < usage_limit AND start_date <= ? AND end_date >= ?", now, now)
+
+	// 2. Optional user-provided filters
 	if filters.Code != "" {
 		query = query.Where("code LIKE ?", "%"+filters.Code+"%")
 	}
+
+	// Handle IsActive: Default to true if not provided, otherwise use user input
 	if filters.IsActive != nil {
 		query = query.Where("is_active = ?", *filters.IsActive)
+	} else {
+		query = query.Where("is_active = ?", true)
 	}
+
 	if filters.DiscountType != "" {
 		query = query.Where("discount_type = ?", filters.DiscountType)
 	}
@@ -232,15 +242,15 @@ func (s *couponService) List(filters dto.CouponListFilters) ([]models.Coupon, in
 		query = query.Where("end_date <= ?", filters.EndDate)
 	}
 
-	// Count total
+	// 3. Count total (must be done after all filters are applied)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
 
-	// Paginate with default fallback
+	// 4. Paginate
 	limit := filters.Limit
 	if limit <= 0 {
-		limit = 20 // sensible default
+		limit = 20
 	}
 	offset := filters.Offset
 
