@@ -1,4 +1,4 @@
-// Pakage main is the entry point of the shopping platform API. It initializes configuration, logger, database connection, services, controllers, routes, and starts the server. It also manages the lifecycle of background workers and cron jobs for asynchronous tasks and scheduled operations.
+// Package main is the entry point of the shopping platform API. It initializes configuration, logger, database connection, services, controllers, routes, and starts the server. It also manages the lifecycle of background workers and cron jobs for asynchronous tasks and scheduled operations.
 package main
 
 import (

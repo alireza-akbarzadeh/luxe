@@ -311,7 +311,7 @@ func (s *shipmentService) UpdateShippingProvider(providerId uint, req dto.Update
 	}
 	err = s.db.Save(&provider).Error
 	if err != nil {
-		return nil, utils.ErrInternal(err)
 	}
+	return nil, utils.ErrInternal(err)
 	return &provider, nil
 }
