@@ -25,7 +25,7 @@ type CheckoutRequest struct {
 	CardLast4      string `json:"card_last4,omitempty"`
 }
 
-func MappAddress(userID uint, req CheckoutRequest) models.Address {
+func MapAddress(userID uint, req CheckoutRequest) models.Address {
 	recipientName := req.FirstName + " " + req.LastName
 	return models.Address{
 		UserID:        userID,

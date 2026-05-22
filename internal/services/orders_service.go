@@ -37,7 +37,6 @@ func NewOrderService(db *gorm.DB, notificationSvc NotificationServiceInterface, 
 
 // Checkout converts the user's active cart into an order.
 func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.Order, error) {
-	// 1. Get active cart (same as before)
 	var cart models.Cart
 	err := s.db.Where("user_id = ? AND status = ?", userID, "active").
 		Preload("Items.Product").
@@ -52,18 +51,15 @@ func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.O
 		return nil, utils.ErrBadRequest("cart is empty")
 	}
 
-	// 2. Create or find shipping address
-	address := dto.MappAddress(userID, req)
+	address := dto.MapAddress(userID, req)
 	err = s.db.Where("user_id = ? AND address_line1 = ? AND postal_code = ?", userID, req.AddressLine1, req.Zip).
 		FirstOrCreate(&address, address).Error
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 
-	// 3. Start transaction (rest of the existing logic)
 	var order *models.Order
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		// 3.1 Calculate subtotal and validate stock
 		var subtotal float64
 		for _, item := range cart.Items {
 			if item.Product.Stock < item.Quantity {
@@ -72,7 +68,6 @@ func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.O
 			subtotal += item.Price * float64(item.Quantity)
 		}
 
-		// 3.2 Apply coupon if provided
 		var discount float64
 		var couponID *uint
 		if req.CouponCode != "" {
@@ -97,8 +92,7 @@ func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.O
 			TotalAmount:       totalAmount,
 			Currency:          "USD",
 			ShippingAddressID: &address.ID,
-			BillingAddressID:  &address.ID, // or separate billing if needed
-			// ShippingMethod, PaymentMethod could be stored in separate fields or JSON
+			BillingAddressID:  &address.ID,
 		}
 		if err := tx.Create(order).Error; err != nil {
 			return utils.ErrInternal(err)
@@ -121,16 +115,16 @@ func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.O
 			}
 		}
 
+		// 3.6 Apply coupon usage
+		if req.CouponCode != "" && couponID != nil {
+			if err := s.couponService.ApplyCoupon(tx, userID, order.ID, req.CouponCode, subtotal); err != nil {
+				return err
+			}
+		}
+
 		// 3.5 Mark cart as converted
 		if err := tx.Model(&cart).Update("status", "converted").Error; err != nil {
 			return utils.ErrInternal(err)
-		}
-
-		// 3.6 Apply coupon usage
-		if req.CouponCode != "" && couponID != nil {
-			if err := s.couponService.ApplyCoupon(userID, order.ID, req.CouponCode, subtotal); err != nil {
-				return err
-			}
 		}
 
 		return nil

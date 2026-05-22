@@ -18,7 +18,7 @@ type CouponServiceInterface interface {
 	Delete(id uint) error
 	List(dto.CouponListFilters) ([]models.Coupon, int64, error)
 	ValidateCoupon(code string, userID uint, orderTotal float64) (*models.Coupon, float64, error)
-	ApplyCoupon(userID uint, orderID uint, couponCode string, orderTotal float64) error
+	ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error
 }
 
 type couponService struct {
@@ -91,13 +91,13 @@ func (s *couponService) ValidateCoupon(code string, userID uint, orderTotal floa
 }
 
 // ApplyCoupon records usage and optionally updates order total (called during checkout)
-func (s *couponService) ApplyCoupon(userID uint, orderID uint, couponCode string, orderTotal float64) error {
+func (s *couponService) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error {
 	coupon, discount, err := s.ValidateCoupon(couponCode, userID, orderTotal)
 	if err != nil {
 		return err
 	}
+
 	// start transaction
-	tx := s.db.Begin()
 	// increment used_count
 	if err := tx.Model(coupon).Update("used_count", gorm.Expr("used_count + 1")).Error; err != nil {
 		tx.Rollback()
@@ -119,7 +119,7 @@ func (s *couponService) ApplyCoupon(userID uint, orderID uint, couponCode string
 		tx.Rollback()
 		return utils.ErrInternal(err)
 	}
-	return tx.Commit().Error
+	return nil
 }
 
 // GetByID retrieves a coupon by its ID.
