@@ -12,6 +12,7 @@ func SetupCouponRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Con
 	user := protected.Group("/coupons")
 	{
 		user.POST("/validate", ctrl.Coupon.Validate)
+		user.GET("/my", ctrl.Coupon.GetMyCoupons)
 	}
 
 	admin := protected.Group("/coupons")

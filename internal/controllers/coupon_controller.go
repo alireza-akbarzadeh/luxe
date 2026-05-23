@@ -230,3 +230,38 @@ func (cc *CouponController) List(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
+
+// GetMyCoupons returns available coupons for the authenticated user
+// @Summary      Get my available coupons
+// @Description  Retrieve all coupons that are valid and not yet used by the authenticated user
+// @Tags         Coupons
+// @Produce      json
+// @Security     BearerAuth
+// @Param        order_total query number false "Order total amount to filter by minimum order requirement"
+// @Success      200 {object} utils.Response{data=[]models.Coupon}
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /coupons/my [get]
+func (cc *CouponController) GetMyCoupons(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	orderTotal := 0.0
+	if orderTotalStr := c.Query("order_total"); orderTotalStr != "" {
+		parsed, err := strconv.ParseFloat(orderTotalStr, 64)
+		if err != nil {
+			utils.ErrorResponse(c, http.StatusBadRequest, "invalid order_total parameter")
+			return
+		}
+		orderTotal = parsed
+	}
+	coupons, err := cc.couponService.GetAvailableCouponsForUser(userID, orderTotal)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch available coupons")
+		return
+	}
+
+	utils.SuccessResponse(c, "available coupons retrieved successfully", coupons)
+}

@@ -15,24 +15,26 @@ import (
 
 type OrderController struct {
 	orderService services.OrderServiceInterface
+	checkoutSvc  services.CheckoutServiceInterface
 	validate     *validator.Validate
 }
 
-func NewOrderController(orderService services.OrderServiceInterface) *OrderController {
+func NewOrderController(orderService services.OrderServiceInterface, checkoutSvc services.CheckoutServiceInterface) *OrderController {
 	return &OrderController{
 		orderService: orderService,
+		checkoutSvc:  checkoutSvc,
 		validate:     validator.New(),
 	}
 }
 
 // Checkout creates an order from the current cart.
 // @Summary      Checkout
-// @Description  Converts the authenticated user's cart into an order. Requires shipping and payment information.
+// @Description  Converts the authenticated user's cart into an order, creates pending payment and shipment, and starts background fulfillment.
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body dto.CheckoutRequest true "Checkout details"
+// @Param        request body dto.CheckoutRequest true "Checkout details (address, payment info, optional shipping provider)"
 // @Success      201 {object} utils.Response{data=models.Order}
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
@@ -51,18 +53,19 @@ func (ctrl *OrderController) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Basic validation (optional – already done by validator tags)
+	// Validate struct (tags + custom logic)
 	if err := ctrl.validate.Struct(req); err != nil {
 		utils.ErrorResponse(c, 400, err.Error())
 		return
 	}
 
-	order, err := ctrl.orderService.Checkout(userID, req)
+	order, err := ctrl.checkoutSvc.Checkout(userID, req)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to create order")
 		return
 	}
 
+	// The response includes the order so the frontend can immediately join the WebSocket room.
 	utils.CreatedResponse(c, "order created successfully", order)
 }
 

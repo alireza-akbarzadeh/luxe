@@ -23,6 +23,20 @@ type CheckoutRequest struct {
 	SaveInfo       bool   `json:"save_info"`
 	Newsletter     bool   `json:"newsletter"`
 	CardLast4      string `json:"card_last4,omitempty"`
+
+	ShippingProviderID *uint  `json:"shipping_provider_id,omitempty"`
+	CardNumber         string `json:"card_number" validate:"required,len=16"`
+	ExpiryMonth        int    `json:"expiry_month" validate:"required,min=1,max=12"`
+	ExpiryYear         int    `json:"expiry_year" validate:"required,min=2025"`
+	CVV                string `json:"cvv" validate:"required,len=3"`
+}
+
+// CardInfo used internally (no JSON tags needed)
+type CardInfo struct {
+	CardNumber  string
+	ExpiryMonth int
+	ExpiryYear  int
+	CVV         string
 }
 
 func MapAddress(userID uint, req CheckoutRequest) models.Address {

@@ -13,24 +13,20 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// In production, implement proper origin checking
-		return true
+		return true // adjust for production
 	},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-// Handler handles WebSocket connections
 type Handler struct {
 	hub *Hub
 }
 
-// NewHandler creates a new WebSocket handler
 func NewHandler(hub *Hub) *Handler {
 	return &Handler{hub: hub}
 }
 
-// HandleConnection handles WebSocket upgrade and client management
 func (h *Handler) HandleConnection(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -45,7 +41,7 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 	}
 
 	client := &Client{
-		ID:     uint(time.Now().UnixNano()), // Simple ID generation
+		ID:     uint(time.Now().UnixNano()),
 		UserID: userID,
 		Conn:   conn,
 		Hub:    h.hub,
@@ -53,10 +49,8 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 		Rooms:  make(map[string]bool),
 	}
 
-	// Register client
 	h.hub.register <- client
 
-	// Send welcome message
 	welcomeMsg := Message{
 		Type:      EventUserOnline,
 		UserID:    userID,
@@ -67,7 +61,6 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 		client.Send <- data
 	}
 
-	// Start goroutines for reading and writing
 	go h.writePump(client)
 	go h.readPump(client)
 }

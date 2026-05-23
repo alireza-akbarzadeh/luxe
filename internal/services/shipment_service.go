@@ -10,6 +10,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
 
@@ -30,6 +31,8 @@ type ShipmentServiceInterface interface {
 	GetShipmentByID(id uint) (*models.Shipment, error)
 	GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error)
 	UpdateShipmentStatus(id uint, status string) error
+	CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error)
+	SimulateDeliveries() error
 
 	DeleteShippingProvider(providerId uint) error
 	GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error)
@@ -42,17 +45,58 @@ type shipmentService struct {
 	db                  *gorm.DB
 	workerPool          *tasks.WorkerPool
 	notificationService NotificationServiceInterface
+	wsHub               *websocket.Hub
 }
 
-func NewShipmentService(db *gorm.DB, workerPool *tasks.WorkerPool, notificationService NotificationServiceInterface) ShipmentServiceInterface {
+func NewShipmentService(
+	db *gorm.DB,
+	workerPool *tasks.WorkerPool,
+	notificationService NotificationServiceInterface,
+	wsHub *websocket.Hub,
+) ShipmentServiceInterface {
 	return &shipmentService{
 		db:                  db,
 		workerPool:          workerPool,
 		notificationService: notificationService,
+		wsHub:               wsHub,
 	}
 }
 
-// CreateShipment creates a shipment record and enqueues a background job.
+// ─── WebSocket + Notification helper ─────────────────────────────────────
+
+// broadcastShipmentUpdate pushes a real‑time update to both the user's
+// personal notification channel and the order‑specific WebSocket room.
+func (s *shipmentService) broadcastShipmentUpdate(
+	orderID, userID uint,
+	eventType string,
+	data map[string]interface{},
+) {
+	// 1. Send to the order room (frontend order‑tracking page listens here)
+	msg := websocket.Message{
+		Type:      eventType,
+		UserID:    userID,
+		Data:      data,
+		Timestamp: time.Now(),
+	}
+	roomID := fmt.Sprintf("order_%d", orderID)
+	s.wsHub.BroadcastToRoom(roomID, msg)
+
+	// 2. Also store a persistent notification (delivers via personal WS channel too)
+	title, _ := data["title"].(string)
+	message, _ := data["message"].(string)
+	go func() {
+		_ = s.notificationService.CreateNotification(
+			userID,
+			eventType,
+			title,
+			message,
+			data,
+		)
+	}()
+}
+
+// ─── CreateShipment (standalone, with its own background job) ────────────
+
 func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shipment, error) {
 	var order models.Order
 	if err := s.db.First(&order, req.OrderID).Error; err != nil {
@@ -80,7 +124,7 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 		return nil, utils.ErrInternal(err)
 	}
 
-	// Enqueue background job (e.g., call carrier API, generate label)
+	// Enqueue background job
 	job := tasks.Job{
 		ID:      fmt.Sprintf("shipment_%d", shipment.ID),
 		Payload: shipment.ID,
@@ -88,37 +132,29 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 	}
 	s.workerPool.Enqueue(job)
 
-	// Send real-time notification for shipment creation
-	go func() {
-		_ = s.notificationService.CreateNotification(
-			shipment.UserID,
-			"shipment_created",
-			"Shipment Created",
-			fmt.Sprintf("Your order shipment has been created and is being prepared for delivery."),
-			map[string]interface{}{
-				"shipment_id":     shipment.ID,
-				"order_id":        shipment.OrderID,
-				"carrier":         shipment.Carrier,
-				"tracking_number": shipment.TrackingNumber,
-				"status":          shipment.Status,
-			},
-		)
-	}()
+	// Broadcast creation event
+	s.broadcastShipmentUpdate(order.ID, order.UserID, "shipment_created", map[string]interface{}{
+		"title":           "Shipment Created",
+		"message":         "Your order shipment has been created and is being prepared for delivery.",
+		"shipment_id":     shipment.ID,
+		"order_id":        shipment.OrderID,
+		"carrier":         shipment.Carrier,
+		"tracking_number": shipment.TrackingNumber,
+		"status":          shipment.Status,
+	})
 
 	return shipment, nil
 }
 
-// processShipment is the job handler called by the worker pool.
+// processShipment is the background job handler (standalone flow only).
 func (s *shipmentService) processShipment(payload interface{}) error {
 	shipmentID, ok := payload.(uint)
 	if !ok {
 		return fmt.Errorf("invalid payload type")
 	}
 
-	// Simulate external carrier API call (label generation, tracking update)
-	time.Sleep(2 * time.Second)
+	time.Sleep(2 * time.Second) // simulate carrier API
 
-	// Get shipment before update
 	var shipment models.Shipment
 	if err := s.db.First(&shipment, shipmentID).Error; err != nil {
 		return err
@@ -126,7 +162,6 @@ func (s *shipmentService) processShipment(payload interface{}) error {
 
 	oldStatus := shipment.Status
 
-	// Update status to 'processing' (or 'shipped' after successful API call)
 	if err := s.db.Model(&models.Shipment{}).Where("id = ?", shipmentID).
 		Update("status", "processing").Error; err != nil {
 		return err
@@ -134,28 +169,54 @@ func (s *shipmentService) processShipment(payload interface{}) error {
 
 	utils.Log.Infof("Shipment %d processed in background", shipmentID)
 
-	// Send real-time notification for status change
-	go func() {
-		_ = s.notificationService.CreateNotification(
-			shipment.UserID,
-			"shipment_status_update",
-			"Shipment Processing",
-			fmt.Sprintf("Your shipment is now being processed and prepared for delivery."),
-			map[string]interface{}{
-				"shipment_id":     shipment.ID,
-				"order_id":        shipment.OrderID,
-				"carrier":         shipment.Carrier,
-				"tracking_number": shipment.TrackingNumber,
-				"old_status":      oldStatus,
-				"new_status":      "processing",
-			},
-		)
-	}()
+	// Broadcast status change
+	s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_status_update", map[string]interface{}{
+		"title":       "Shipment Processing",
+		"message":     "Your shipment is now being processed and prepared for delivery.",
+		"shipment_id": shipment.ID,
+		"order_id":    shipment.OrderID,
+		"carrier":     shipment.Carrier,
+		"old_status":  oldStatus,
+		"new_status":  "processing",
+	})
 
 	return nil
 }
 
-// GetShipmentByID retrieves a shipment by its ID.
+// ─── CreateShipmentRecord (used inside checkout transaction) ─────────────
+
+func (s *shipmentService) CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error) {
+	var order models.Order
+	// ✅ Use tx, not s.db
+	if err := tx.First(&order, req.OrderID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound(constants.ErrOrderNotFound)
+		}
+		return nil, utils.ErrInternal(err)
+	}
+
+	shipment := &models.Shipment{
+		OrderID:        req.OrderID,
+		UserID:         order.UserID,
+		Carrier:        req.Carrier,
+		TrackingNumber: req.TrackingNumber,
+		Status:         constants.ShipmentStatusPending,
+		AddressLine1:   req.AddressLine1,
+		AddressLine2:   req.AddressLine2,
+		City:           req.City,
+		State:          req.State,
+		PostalCode:     req.PostalCode,
+		Country:        req.Country,
+	}
+
+	if err := tx.Create(shipment).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return shipment, nil
+}
+
+// ─── Read helpers ────────────────────────────────────────────────────────
+
 func (s *shipmentService) GetShipmentByID(id uint) (*models.Shipment, error) {
 	var shipment models.Shipment
 	if err := s.db.First(&shipment, id).Error; err != nil {
@@ -167,7 +228,6 @@ func (s *shipmentService) GetShipmentByID(id uint) (*models.Shipment, error) {
 	return &shipment, nil
 }
 
-// GetShipmentsByOrderID returns all shipments associated with an order.
 func (s *shipmentService) GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error) {
 	var shipments []models.Shipment
 	if err := s.db.Where("order_id = ?", orderID).Find(&shipments).Error; err != nil {
@@ -176,7 +236,8 @@ func (s *shipmentService) GetShipmentsByOrderID(orderID uint) ([]models.Shipment
 	return shipments, nil
 }
 
-// UpdateShipmentStatus manually updates a shipment's status (admin only).
+// ─── UpdateShipmentStatus (admin manual update) ──────────────────────────
+
 func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 	var shipment models.Shipment
 	if err := s.db.First(&shipment, id).Error; err != nil {
@@ -187,7 +248,6 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 	}
 
 	oldStatus := shipment.Status
-	shipment.Status = status
 
 	result := s.db.Model(&models.Shipment{}).Where("id = ?", id).Update("status", status)
 	if result.Error != nil {
@@ -197,29 +257,22 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 		return utils.ErrNotFound(constants.ErrShipmentNotFound)
 	}
 
-	// Send real-time notification for status change
-	go func() {
-		title, message := s.getShipmentStatusNotificationMessage(status, shipment.TrackingNumber)
-		_ = s.notificationService.CreateNotification(
-			shipment.UserID,
-			"shipment_status_update",
-			title,
-			message,
-			map[string]interface{}{
-				"shipment_id":     shipment.ID,
-				"order_id":        shipment.OrderID,
-				"carrier":         shipment.Carrier,
-				"tracking_number": shipment.TrackingNumber,
-				"old_status":      oldStatus,
-				"new_status":      status,
-			},
-		)
-	}()
+	// Broadcast status change
+	title, message := s.getShipmentStatusNotificationMessage(status, shipment.TrackingNumber)
+	s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_status_update", map[string]interface{}{
+		"title":           title,
+		"message":         message,
+		"shipment_id":     shipment.ID,
+		"order_id":        shipment.OrderID,
+		"carrier":         shipment.Carrier,
+		"tracking_number": shipment.TrackingNumber,
+		"old_status":      oldStatus,
+		"new_status":      status,
+	})
 
 	return nil
 }
 
-// getShipmentStatusNotificationMessage returns appropriate title and message for shipment status
 func (s *shipmentService) getShipmentStatusNotificationMessage(status, trackingNumber string) (string, string) {
 	switch status {
 	case constants.ShipmentStatusShipped:
@@ -234,14 +287,14 @@ func (s *shipmentService) getShipmentStatusNotificationMessage(status, trackingN
 	}
 }
 
-// GetShippingProviders getting the all the services
+// ─── Shipping Providers CRUD ─────────────────────────────────────────────
+
 func (s *shipmentService) GetShippingProviders() ([]models.ShippingProviders, error) {
 	var providers []models.ShippingProviders
 	err := s.db.Where("is_active = ?", true).Order("price ASC").Find(&providers).Error
 	return providers, err
 }
 
-// GetShippingProviderByID find the provider with the given id
 func (s *shipmentService) GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error) {
 	var provider models.ShippingProviders
 	err := s.db.First(&provider, providerId).Error
@@ -254,19 +307,17 @@ func (s *shipmentService) GetShippingProviderByID(providerId uint) (*models.Ship
 	return &provider, nil
 }
 
-// DeleteShippingProvider remove  provider with the given id
 func (s *shipmentService) DeleteShippingProvider(providerId uint) error {
 	result := s.db.Delete(models.ShippingProviders{}, providerId)
 	if result.Error != nil {
 		return utils.ErrInternal(result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return utils.ErrNotFound("product not found")
+		return utils.ErrNotFound("shipping provider not found")
 	}
 	return nil
 }
 
-// CreateShippingProvider creates a new shipping provider
 func (s *shipmentService) CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error) {
 	isActive := true
 	if req.IsActive != nil {
@@ -279,19 +330,15 @@ func (s *shipmentService) CreateShippingProvider(req dto.CreateShippingProviderR
 		Price:       req.Price,
 		IsActive:    isActive,
 	}
-	err := s.db.Create(&provider).Error
-	if err != nil {
+	if err := s.db.Create(&provider).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	return &provider, nil
 }
 
-// UpdateShippingProvider updates an existing shipping provider by ID
 func (s *shipmentService) UpdateShippingProvider(providerId uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error) {
-
 	var provider models.ShippingProviders
-	err := s.db.First(&provider, providerId).Error
-	if err != nil {
+	if err := s.db.First(&provider, providerId).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("shipping provider not found")
 		}
@@ -309,9 +356,51 @@ func (s *shipmentService) UpdateShippingProvider(providerId uint, req dto.Update
 	if req.IsActive != nil {
 		provider.IsActive = *req.IsActive
 	}
-	err = s.db.Save(&provider).Error
-	if err != nil {
+	if err := s.db.Save(&provider).Error; err != nil {
+		return nil, utils.ErrInternal(err)
 	}
-	return nil, utils.ErrInternal(err)
 	return &provider, nil
+}
+
+// ─── Cron: Simulate deliveries ───────────────────────────────────────────
+
+// SimulateDeliveries marks shipped shipments as delivered after 24 hours.
+// Call this from a cron job (e.g., every 5 minutes).
+func (s *shipmentService) SimulateDeliveries() error {
+
+	cutoff := time.Now().Add(-5 * time.Minute)
+	var shipments []models.Shipment
+	if err := s.db.Where("status = ? AND shipped_at <= ?", constants.ShipmentStatusShipped, cutoff).
+		Find(&shipments).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+
+	for _, shipment := range shipments {
+		oldStatus := shipment.Status
+		shipment.Status = constants.ShipmentStatusDelivered
+
+		// Correct assignment: DeliveredAt expects *time.Time
+		now := time.Now()
+		shipment.DeliveredAt = &now
+
+		if err := s.db.Save(&shipment).Error; err != nil {
+			utils.Log.WithError(err).Errorf("Failed to mark shipment %d as delivered", shipment.ID)
+			continue
+		}
+
+		// Broadcast delivery event to the order room
+		s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_delivered", map[string]interface{}{
+			"title":           "Package Delivered",
+			"message":         "Your package has been delivered successfully!",
+			"shipment_id":     shipment.ID,
+			"order_id":        shipment.OrderID,
+			"tracking_number": shipment.TrackingNumber,
+			"carrier":         shipment.Carrier,
+			"old_status":      oldStatus,
+			"new_status":      shipment.Status,
+			"delivered_at":    shipment.DeliveredAt,
+		})
+	}
+
+	return nil
 }

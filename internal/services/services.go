@@ -25,6 +25,7 @@ type Services struct {
 	Review       ReviewServiceInterface
 	UserLike     UsertLikeServiceInterface
 	Wallet       WalletServiceInterface
+	Checkout     CheckoutServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
@@ -32,10 +33,19 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 
+	// 2. Services that depend on hub
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)
-	orderSvc := NewOrderService(db, notificationSvc, couponSvc)
 
+	// 3. New payment service (no hub needed)
+	paymentSvc := NewPaymentService(db)
+
+	// 4. Shipment service (now also receives the hub for delivery broadcasts)
+	shipmentSvc := NewShipmentService(db, workerPool, notificationSvc, wsHub)
+
+	// 5. Order service with all dependencies
+	orderSvc := NewOrderService(db, notificationSvc, wsHub)
+	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub)
 	// 5. Assemble all services
 	return &Services{
 		DB:           db,
@@ -48,8 +58,9 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Menu:         NewMenuService(db),
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
-		Shipment:     NewShipmentService(db, workerPool, notificationSvc),
+		Shipment:     NewShipmentService(db, workerPool, notificationSvc, wsHub),
 		Wallet:       NewWalletService(db),
+		Checkout:     checkoutSvc,
 		Order:        orderSvc,
 		Coupon:       couponSvc,
 		Notification: notificationSvc,

@@ -10,11 +10,12 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	JWT      JWTConfig
-	Log      LogConfig
-	Email    Email
+	Server                ServerConfig
+	Database              DatabaseConfig
+	JWT                   JWTConfig
+	Log                   LogConfig
+	Email                 Email
+	ShipmentDeliveryDelay time.Duration
 }
 type Email struct {
 	Host        string
@@ -55,6 +56,7 @@ func Load() (*Config, error) {
 	// Server defaults
 	viper.SetDefault("SERVER_PORT", "8080")
 	viper.SetDefault("GIN_MODE", "debug")
+	viper.SetDefault("SHIPMENT_DELIVERY_DELAY", "24h")
 
 	// Database defaults
 	viper.SetDefault("DB_HOST", "localhost")
@@ -88,6 +90,11 @@ func Load() (*Config, error) {
 		refreshExpiry = 168 * time.Hour
 	}
 
+	deliveryDelay, err := time.ParseDuration(viper.GetString("SHIPMENT_DELIVERY_DELAY"))
+	if err != nil {
+		deliveryDelay = 24 * time.Hour
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
 			Port: viper.GetString("SERVER_PORT"),
@@ -112,6 +119,7 @@ func Load() (*Config, error) {
 			From:        viper.GetString("EMAIL_FROM"),
 			FrontendURL: viper.GetString("FRONTEND_URL"),
 		},
+		ShipmentDeliveryDelay: deliveryDelay,
 	}
 
 	// Set global config (used by utils.GenerateToken etc.)

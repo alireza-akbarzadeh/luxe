@@ -9,11 +9,11 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
 
 type OrderServiceInterface interface {
-	Checkout(userID uint, req dto.CheckoutRequest) (*models.Order, error)
 	GetUserOrders(userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error)
 	GetOrderByID(orderID uint, userID uint) (*models.Order, error)
 	GetAllOrders(filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error)
@@ -24,137 +24,24 @@ type OrderServiceInterface interface {
 type orderService struct {
 	db                  *gorm.DB
 	notificationService NotificationServiceInterface
-	couponService       CouponServiceInterface
+	hub                 *websocket.Hub
 }
 
-func NewOrderService(db *gorm.DB, notificationSvc NotificationServiceInterface, couponSvc CouponServiceInterface) OrderServiceInterface {
+func NewOrderService(
+	db *gorm.DB,
+	notificationService NotificationServiceInterface,
+	hub *websocket.Hub,
+) OrderServiceInterface {
 	return &orderService{
 		db:                  db,
-		notificationService: notificationSvc,
-		couponService:       couponSvc,
+		notificationService: notificationService,
+		hub:                 hub,
 	}
 }
 
-// Checkout converts the user's active cart into an order.
-func (s *orderService) Checkout(userID uint, req dto.CheckoutRequest) (*models.Order, error) {
-	var cart models.Cart
-	err := s.db.Where("user_id = ? AND status = ?", userID, "active").
-		Preload("Items.Product").
-		First(&cart).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrBadRequest("cart is empty")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	if len(cart.Items) == 0 {
-		return nil, utils.ErrBadRequest("cart is empty")
-	}
-
-	address := dto.MapAddress(userID, req)
-	err = s.db.Where("user_id = ? AND address_line1 = ? AND postal_code = ?", userID, req.AddressLine1, req.Zip).
-		FirstOrCreate(&address, address).Error
-	if err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-
-	var order *models.Order
-	err = s.db.Transaction(func(tx *gorm.DB) error {
-		var subtotal float64
-		for _, item := range cart.Items {
-			if item.Product.Stock < item.Quantity {
-				return utils.ErrBadRequest(fmt.Sprintf("insufficient stock for product: %s", item.Product.Name))
-			}
-			subtotal += item.Price * float64(item.Quantity)
-		}
-
-		var discount float64
-		var couponID *uint
-		if req.CouponCode != "" {
-			coupon, disc, err := s.couponService.ValidateCoupon(req.CouponCode, userID, subtotal)
-			if err != nil {
-				return err
-			}
-			discount = disc
-			couponID = &coupon.ID
-		}
-
-		totalAmount := subtotal - discount
-		if totalAmount < 0 {
-			totalAmount = 0
-		}
-
-		// 3.3 Create order with address IDs
-		order = &models.Order{
-			UserID:            userID,
-			OrderNumber:       generateOrderNumber(userID),
-			Status:            constants.OrderStatusPending,
-			TotalAmount:       totalAmount,
-			Currency:          "USD",
-			ShippingAddressID: &address.ID,
-			BillingAddressID:  &address.ID,
-		}
-		if err := tx.Create(order).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-
-		// 3.4 Create order items and update stock (unchanged)
-		for _, item := range cart.Items {
-			orderItem := &models.OrderItem{
-				OrderID:   order.ID,
-				ProductID: item.ProductID,
-				Quantity:  item.Quantity,
-				Price:     item.Price,
-			}
-			if err := tx.Create(orderItem).Error; err != nil {
-				return utils.ErrInternal(err)
-			}
-			if err := tx.Model(&models.Product{}).Where("id = ?", item.ProductID).
-				UpdateColumn("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
-				return utils.ErrInternal(err)
-			}
-		}
-
-		// 3.6 Apply coupon usage
-		if req.CouponCode != "" && couponID != nil {
-			if err := s.couponService.ApplyCoupon(tx, userID, order.ID, req.CouponCode, subtotal); err != nil {
-				return err
-			}
-		}
-
-		// 3.5 Mark cart as converted
-		if err := tx.Model(&cart).Update("status", "converted").Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Reload order with preloads
-	s.db.Preload("Items.Product").Preload("User").First(order, order.ID)
-
-	// Send notification (async)
-	go func() {
-		_ = s.notificationService.CreateNotification(
-			userID,
-			"order_created",
-			"Order Placed Successfully",
-			fmt.Sprintf("Your order #%s has been placed and is being processed.", order.OrderNumber),
-			map[string]interface{}{
-				"order_id":     order.ID,
-				"order_number": order.OrderNumber,
-				"status":       order.Status,
-				"total_amount": order.TotalAmount,
-				"currency":     order.Currency,
-			},
-		)
-	}()
-
-	return order, nil
-}
+const (
+	DefaultShippingProvider = "standard"
+)
 
 // GetUserOrders returns all orders for a user (paginated).
 func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error) {
@@ -329,7 +216,7 @@ func (s *orderService) GetAllOrders(filters AdminOrderFilters, limit, offset int
 func (s *orderService) UpdateOverdueOrders() error {
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
 
-	// Find paid orders older than cutoff that are not yet delivered or cancelled
+	// Find paid orders older than cutoff that are not yet delivered or canceled
 	var orders []models.Order
 	err := s.db.Where("status = ? AND updated_at < ?", constants.OrderStatusPaid, cutoff).
 		Not("status IN (?)", []string{constants.OrderStatusDelivered, constants.OrderStatusCancelled, constants.OrderStatusRefunded}).

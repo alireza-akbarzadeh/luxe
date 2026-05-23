@@ -19,6 +19,7 @@ type CouponServiceInterface interface {
 	List(dto.CouponListFilters) ([]models.Coupon, int64, error)
 	ValidateCoupon(code string, userID uint, orderTotal float64) (*models.Coupon, float64, error)
 	ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error
+	GetAvailableCouponsForUser(userID uint, orderTotal float64) ([]models.Coupon, error)
 }
 
 type couponService struct {
@@ -306,4 +307,32 @@ func (s *couponService) RecordUsage(tx *gorm.DB, couponID, userID, orderID uint,
 		}
 	}
 	return nil
+}
+
+// GetAvailableCouponsForUser returns coupons that are valid and not yet used by the user
+func (s *couponService) GetAvailableCouponsForUser(userID uint, orderTotal float64) ([]models.Coupon, error) {
+	var coupons []models.Coupon
+	now := time.Now()
+
+	// Get all active, valid, and not exhausted coupons
+	query := s.db.Model(&models.Coupon{}).
+		Where("is_active = ? AND used_count < usage_limit AND start_date <= ? AND end_date >= ?",
+			true, now, now)
+
+	// Exclude coupons already used by this user
+	query = query.Where("id NOT IN (?)",
+		s.db.Model(&models.CouponUsage{}).
+			Select("coupon_id").
+			Where("user_id = ?", userID))
+
+	// Only show coupons that meet the minimum order amount
+	if orderTotal > 0 {
+		query = query.Where("minimum_order_amount <= ?", orderTotal)
+	}
+
+	if err := query.Order("discount_value DESC").Find(&coupons).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	return coupons, nil
 }
