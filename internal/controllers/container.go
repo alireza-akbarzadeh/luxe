@@ -34,7 +34,7 @@ func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 		Cart:     NewCartController(svc.Cart),
 		Product:  NewProductController(svc.Product, svc.UserLike),
 		Category: NewCategoryController(svc.Category),
-		Order:    NewOrderController(svc.Order),
+		Order:    NewOrderController(svc.Order, svc.Checkout),
 		Shipment: NewShipmentController(svc.Shipment),
 		Page:     NewPageController(),
 		Account:  NewAccountController(svc.Address, svc.UserLike, svc.Order, svc.User),
