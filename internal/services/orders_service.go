@@ -83,6 +83,7 @@ func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) 
 	// Pagination with ordering – uses indexes
 	if err := query.Limit(filters.Limit).Offset(filters.Offset).
 		Preload("Items.Product").
+		Preload("Payment").Preload("Shipment").
 		Order("created_at DESC").
 		Find(&orders).Error; err != nil {
 		return nil, 0, utils.ErrInternal(err)
@@ -108,14 +109,31 @@ func (s *orderService) UpdateOrderStatus(orderID uint, status string) error {
 		return utils.ErrInternal(err)
 	}
 
-	// Send real-time notification for status change
+	if s.hub != nil {
+		roomID := fmt.Sprintf("order_%d", orderID)
+		message := websocket.Message{
+			Type:   "order_status_update",
+			RoomID: roomID,
+			Data: map[string]interface{}{
+				"order_id":     order.ID,
+				"order_number": order.OrderNumber,
+				"old_status":   oldStatus,
+				"new_status":   status,
+				"updated_at":   order.UpdatedAt,
+			},
+			Timestamp: time.Now(),
+		}
+		s.hub.BroadcastToRoom(roomID, message)
+	}
+
+	// Keep existing notification (persistent)
 	go func() {
-		title, message := s.getOrderStatusNotificationMessage(status, order.OrderNumber)
+		title, msgText := s.getOrderStatusNotificationMessage(status, order.OrderNumber)
 		_ = s.notificationService.CreateNotification(
 			order.UserID,
 			"order_status_update",
 			title,
-			message,
+			msgText,
 			map[string]interface{}{
 				"order_id":     order.ID,
 				"order_number": order.OrderNumber,
@@ -152,6 +170,8 @@ func (s *orderService) GetOrderByID(orderID uint, userID uint) (*models.Order, e
 	var order models.Order
 	err := s.db.Where("id = ? AND user_id = ?", orderID, userID).
 		Preload("Items.Product").
+		Preload("Payment").
+		Preload("Shipment").
 		First(&order).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

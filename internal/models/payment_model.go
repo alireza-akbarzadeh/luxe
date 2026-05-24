@@ -26,3 +26,17 @@ type Payment struct {
 	Order Order `gorm:"foreignKey:OrderID" json:"-"`
 	User  User  `gorm:"foreignKey:UserID" json:"-"`
 }
+
+type PaymentProviders struct {
+	ID           uint `gorm:"primaryKey"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    *time.Time `gorm:"index"`
+	Name         string     `gorm:"unique;not null"`
+	DisplayName  string     `gorm:"not null"`
+	Description  string
+	IconURL      string
+	IsActive     bool `gorm:"default:true"`
+	SortOrder    int  `gorm:"default:0"`
+	RequiresCard bool `gorm:"default:false"`
+}

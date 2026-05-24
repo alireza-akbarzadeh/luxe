@@ -26,6 +26,7 @@ type Services struct {
 	UserLike     UsertLikeServiceInterface
 	Wallet       WalletServiceInterface
 	Checkout     CheckoutServiceInterface
+	Payment      PaymentServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
@@ -60,6 +61,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		UserLike:     NewUserLikeService(db),
 		Shipment:     NewShipmentService(db, workerPool, notificationSvc, wsHub),
 		Wallet:       NewWalletService(db),
+		Payment:      NewPaymentService(db),
 		Checkout:     checkoutSvc,
 		Order:        orderSvc,
 		Coupon:       couponSvc,

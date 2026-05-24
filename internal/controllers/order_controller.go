@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
@@ -39,7 +40,7 @@ func NewOrderController(orderService services.OrderServiceInterface, checkoutSvc
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /orders [post]
+// @Router       /checkout [post]
 func (ctrl *OrderController) Checkout(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
@@ -125,22 +126,20 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 func (ctrl *OrderController) GetOrder(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		utils.UnauthorizedResponse(c, "unauthorized")
 		return
 	}
-
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid order id")
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
 		return
 	}
-
 	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to fetch order")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgFetchSuccess, order)
+	utils.SuccessResponse(c, "order retrieved", order)
 }
 
 // ListAllOrders returns all orders with advanced filters (admin only).

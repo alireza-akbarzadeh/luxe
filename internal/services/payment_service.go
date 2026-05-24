@@ -15,6 +15,7 @@ import (
 type PaymentServiceInterface interface {
 	CreatePayment(tx *gorm.DB, req dto.PaymentRequest) (*models.Payment, error)
 	ProcessPayment(tx *gorm.DB, paymentID uint, cardInfo dto.CardInfo) error
+	GetPaymentProvider(isActive bool) ([]models.PaymentProviders, error)
 }
 
 type paymentService struct {
@@ -26,13 +27,16 @@ func NewPaymentService(db *gorm.DB) PaymentServiceInterface {
 }
 
 func (s *paymentService) CreatePayment(tx *gorm.DB, req dto.PaymentRequest) (*models.Payment, error) {
+	tempTxID := fmt.Sprintf("pending_%d_%d", req.OrderID, time.Now().UnixNano())
+
 	payment := &models.Payment{
-		OrderID:  req.OrderID,
-		UserID:   req.UserID,
-		Amount:   req.Amount,
-		Currency: req.Currency,
-		Method:   req.Method,
-		Status:   "pending",
+		OrderID:       req.OrderID,
+		UserID:        req.UserID,
+		Amount:        req.Amount,
+		Currency:      req.Currency,
+		Method:        req.Method,
+		TransactionID: tempTxID,
+		Status:        "pending",
 	}
 	if err := tx.Create(payment).Error; err != nil {
 		return nil, utils.ErrInternal(err)
@@ -41,7 +45,7 @@ func (s *paymentService) CreatePayment(tx *gorm.DB, req dto.PaymentRequest) (*mo
 }
 
 // ProcessPayment validates the card, updates the payment record, and returns nil on success.
-// On failure it sets the appropriate status and returns an error.
+// On failure, it sets the appropriate status and returns an error.
 func (s *paymentService) ProcessPayment(tx *gorm.DB, paymentID uint, cardInfo dto.CardInfo) error {
 	var payment models.Payment
 	if err := tx.First(&payment, paymentID).Error; err != nil {
@@ -95,4 +99,13 @@ func (s *paymentService) mockGateway(cardInfo dto.CardInfo) error {
 
 	// All good
 	return nil
+}
+
+// GetPaymentProvider get a list of payment providers
+func (s *paymentService) GetPaymentProvider(isActive bool) ([]models.PaymentProviders, error) {
+	var methods []models.PaymentProviders
+	err := s.db.Where("is_active = ?", isActive).
+		Order("sort_order ASC").
+		Find(&methods).Error
+	return methods, err
 }

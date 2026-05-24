@@ -9,7 +9,7 @@ import (
 
 func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	// User order endpoints (authenticated)
-	protected.POST(constants.RouteOrders, ctrl.Order.Checkout)
+	protected.POST("/checkout", ctrl.Order.Checkout)
 	protected.GET(constants.RouteOrders+constants.RouteOrdersMy, ctrl.Order.GetUserOrders)
 	protected.GET(constants.RouteOrders+"/:id", ctrl.Order.GetOrder)
 

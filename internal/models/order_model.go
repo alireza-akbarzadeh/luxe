@@ -27,10 +27,11 @@ type Order struct {
 	ShipmentID *uint `json:"shipment_id,omitempty"`
 
 	// Associations
-	User     User        `gorm:"foreignKey:UserID" json:"-"`
-	Items    []OrderItem `json:"items,omitempty"`
-	Payment  *Payment    `gorm:"foreignKey:PaymentID" json:"payment,omitempty"`
-	Shipment *Shipment   `gorm:"foreignKey:ShipmentID" json:"shipment,omitempty"`
+	User  User        `gorm:"foreignKey:UserID" json:"-"`
+	Items []OrderItem `json:"items,omitempty"`
+
+	Payment  *Payment  `gorm:"foreignKey:OrderID" json:"payment,omitempty"`
+	Shipment *Shipment `gorm:"foreignKey:OrderID" json:"shipment,omitempty"`
 }
 
 type OrderItem struct {
@@ -48,5 +49,3 @@ type OrderItem struct {
 	Order   Order   `gorm:"foreignKey:OrderID" json:"-"`
 	Product Product `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 }
-
-
