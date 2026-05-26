@@ -114,7 +114,8 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 		if len(item.Product.Images) > 0 {
 			image = item.Product.Images[0]
 		}
-
+		stock := item.Product.Stock
+		inStock := stock > 0
 		items[i] = dto.CartItemDetail{
 			ID:            item.ID,
 			ProductID:     item.ProductID,
@@ -129,6 +130,8 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 			SelectedColor: item.Color,
 			SelectedSize:  item.Size,
 			Discount:      discount,
+			Stock:         stock,
+			IsInStock:     inStock,
 		}
 	}
 

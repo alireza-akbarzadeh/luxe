@@ -13,7 +13,7 @@ type UsertLikeServiceInterface interface {
 	Unlike(userID, productID uint) error
 	IsLikedByUser(userID, productID uint) (bool, error)
 	GetUserLikedProductIDs(userID uint) ([]uint, error)
-	GetUserWishlist(userID uint, limit, offset int) ([]models.Product, int64, error)
+	GetUserWishlist(userID uint, limit, offset int, sortBy string) ([]models.Product, int64, error)
 }
 
 type productLikeService struct {
@@ -84,7 +84,7 @@ func (s *productLikeService) GetUserLikedProductIDs(userID uint) ([]uint, error)
 }
 
 // GetUserLikedProductIDs find product liked by users
-func (s *productLikeService) GetUserWishlist(userID uint, limit, offset int) ([]models.Product, int64, error) {
+func (s *productLikeService) GetUserWishlist(userID uint, limit, offset int, sortBy string) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64
 
@@ -92,13 +92,29 @@ func (s *productLikeService) GetUserWishlist(userID uint, limit, offset int) ([]
 		Where("user_id = ?", userID).
 		Select("product_id")
 
+	// Count doesn't require sorting
 	if err := s.db.Model(&models.Product{}).Where("id IN (?)", subQuery).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
+	// Determine the SQL ORDER BY clause based on the query parameter
+	var orderByClause string
+	switch sortBy {
+	case "price-asc":
+		orderByClause = "price ASC"
+	case "price-desc":
+		orderByClause = "price DESC"
+	case "name":
+		orderByClause = "name ASC"
+	default:
+		orderByClause = "id DESC"
+	}
+
 	err := s.db.Where("id IN (?)", subQuery).
+		Order(orderByClause).
 		Limit(limit).
 		Offset(offset).
 		Find(&products).Error
+
 	return products, total, err
 }

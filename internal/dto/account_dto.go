@@ -2,6 +2,8 @@ package dto
 
 import (
 	"time"
+
+	"gorm.io/datatypes"
 )
 
 type DefaultAddressDTO struct {
@@ -56,15 +58,18 @@ type OrderListResponseData struct {
 }
 
 type WishlistItemDTO struct {
-	ProductID       uint     `json:"product_id"`
-	ProductName     string   `json:"product_name"`
-	Price           float64  `json:"price"`
-	OldPrice        *float64 `json:"old_price,omitempty"`
-	DiscountPercent *int     `json:"discount_percent,omitempty"`
-	IsInStock       bool     `json:"is_in_stock"`
-	StockQuantity   int      `json:"stock_quantity"`
-	IsActive        bool     `json:"is_active"`
-	ImageURL        string   `json:"image_url"`
+	ProductID       uint           `json:"product_id"`
+	ProductName     string         `json:"product_name"`
+	Price           float64        `json:"price"`
+	OldPrice        *float64       `json:"old_price,omitempty"`
+	DiscountPercent *int           `json:"discount_percent,omitempty"`
+	IsInStock       bool           `json:"is_in_stock"`
+	StockQuantity   int            `json:"stock_quantity"`
+	IsActive        bool           `json:"is_active"`
+	ImageURL        string         `json:"image_url"`
+	Stock           int            `json:"stock"`
+	Color           datatypes.JSON `json:"color,omitempty"`
+	Size            datatypes.JSON `json:"size,omitempty"`
 }
 
 type WishlistResponseData struct {

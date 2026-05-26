@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -10,6 +11,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
+	"gorm.io/datatypes"
 )
 
 type AccountController struct {
@@ -190,12 +192,13 @@ func (ac *AccountController) GetUserOrderAccount(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        limit  query   int  false  "Items per page (default 10, max 50)"
-// @Param        offset query   int  false  "Pagination offset"
+// @Param        limit  query   int     false  "Items per page (default 10, max 50)"
+// @Param        offset query   int     false  "Pagination offset"
+// @Param        sort   query   string  false  "Sort order (name, price-asc, price-desc)"
 // @Success      200    {object} utils.Response{data=dto.WishlistResponseData}
 // @Failure      401    {object} utils.Response
 // @Router       /account/wishlist [get]
-func (ctrl *AccountController) GetUserWishlist(c *gin.Context) {
+func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
@@ -207,8 +210,10 @@ func (ctrl *AccountController) GetUserWishlist(c *gin.Context) {
 		limit = 50
 	}
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+	sortBy := c.Query("sort") // Reads ?sort=price-asc etc.
 
-	products, total, err := ctrl.likeService.GetUserWishlist(userID, limit, offset)
+	// Pass sortBy parameters straight to the service worker
+	products, total, err := ac.likeService.GetUserWishlist(userID, limit, offset, sortBy)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to fetch wishlist")
 		return
@@ -229,15 +234,29 @@ func (ctrl *AccountController) GetUserWishlist(c *gin.Context) {
 			discountPercent = &percent
 		}
 
+		colorJSON, err := json.Marshal(p.Colors)
+		if err != nil {
+			colorJSON = []byte("[]") // fallback to empty array if marshalling fails
+		}
+
+		sizeJSON, err := json.Marshal(p.Sizes)
+		if err != nil {
+			sizeJSON = []byte("[]") // fallback to empty array if marshalling fails
+		}
+
+		// 2. Map cleanly to your struct definition fields
 		items[i] = dto.WishlistItemDTO{
 			ProductID:       p.ID,
 			ProductName:     p.Name,
 			Price:           p.Price,
-			ImageURL:        imageURL,
+			OldPrice:        oldPrice,
 			DiscountPercent: discountPercent,
 			IsInStock:       p.Stock > 0,
 			StockQuantity:   p.Stock,
-			OldPrice:        oldPrice,
+			Stock:           p.Stock,
+			ImageURL:        imageURL,
+			Color:           datatypes.JSON(colorJSON),
+			Size:            datatypes.JSON(sizeJSON),
 		}
 	}
 
