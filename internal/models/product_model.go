@@ -39,6 +39,9 @@ type Product struct {
 	MetaDescription   string         `gorm:"type:text" json:"meta_description"`
 	Colors            datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"colors"`
 	Sizes             datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"sizes"`
+
+	StoreID uint   `gorm:"index"`
+	Store   *Store `gorm:"foreignKey:StoreID;references:ID"`
 }
 
 type ProductLike struct {

@@ -160,6 +160,12 @@ const docTemplate = `{
                         "description": "Pagination offset",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (name, price-asc, price-desc)",
+                        "name": "sort",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -543,6 +549,50 @@ const docTemplate = `{
             }
         },
         "/admin/menu/groups": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all menu groups ordered by display_order",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Menu Groups"
+                ],
+                "summary": "Get all menu groups",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.MenuGroup"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -557,7 +607,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Groups"
+                    "Admin Menu Groups"
                 ],
                 "summary": "Create a new menu group",
                 "parameters": [
@@ -575,19 +625,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuGroup"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuGroup"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -605,7 +667,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Groups"
+                    "Admin Menu Groups"
                 ],
                 "summary": "Get group by ID",
                 "parameters": [
@@ -621,25 +683,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuGroup"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuGroup"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -658,7 +732,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Groups"
+                    "Admin Menu Groups"
                 ],
                 "summary": "Update an existing menu group",
                 "parameters": [
@@ -683,25 +757,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuGroup"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuGroup"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -717,7 +803,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Groups"
+                    "Admin Menu Groups"
                 ],
                 "summary": "Delete a menu group",
                 "parameters": [
@@ -730,19 +816,22 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -760,7 +849,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Items"
+                    "Admin Menu Items"
                 ],
                 "summary": "Get all menu items",
                 "parameters": [
@@ -776,13 +865,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.MenuListResponse"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MenuListResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -801,7 +902,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Items"
+                    "Admin Menu Items"
                 ],
                 "summary": "Create a new menu item",
                 "parameters": [
@@ -819,19 +920,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuItem"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuItem"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -849,7 +962,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Items"
+                    "Admin Menu Items"
                 ],
                 "summary": "Get menu item by ID",
                 "parameters": [
@@ -865,25 +978,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuItem"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuItem"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -902,7 +1027,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Items"
+                    "Admin Menu Items"
                 ],
                 "summary": "Update an existing menu item",
                 "parameters": [
@@ -927,25 +1052,37 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.MenuItem"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.MenuItem"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -956,12 +1093,12 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Deletes a menu item and all its children (cascade delete due to foreign key constraint)",
+                "description": "Deletes a menu item and all its children (cascade)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Menu Items"
+                    "Admin Menu Items"
                 ],
                 "summary": "Delete a menu item",
                 "parameters": [
@@ -974,19 +1111,22 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "204": {
-                        "description": "No Content"
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -1144,6 +1284,126 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/wallet/adjust": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Increase or decrease any user's wallet balance. Requires admin role.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Wallet"
+                ],
+                "summary": "Admin adjust wallet",
+                "parameters": [
+                    {
+                        "description": "Adjustment data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminAdjustRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/change-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change current user's password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "description": "Password change request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChangePasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
                         }
                     }
                 }
@@ -2203,6 +2463,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Converts the authenticated user's cart into an order, creates pending payment and shipment, and starts background fulfillment.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Checkout",
+                "parameters": [
+                    {
+                        "description": "Checkout details (address, payment info, optional shipping provider)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CheckoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Order"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/coupons": {
             "get": {
                 "security": [
@@ -2358,6 +2687,66 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/coupons/my": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all coupons that are valid and not yet used by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Coupons"
+                ],
+                "summary": "Get my available coupons",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Order total amount to filter by minimum order requirement",
+                        "name": "order_total",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Coupon"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -2728,73 +3117,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Converts the authenticated user's cart into an order. Requires shipping and payment information.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Orders"
-                ],
-                "summary": "Checkout",
-                "parameters": [
-                    {
-                        "description": "Checkout details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CheckoutRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/utils.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/models.Order"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    }
-                }
             }
         },
         "/orders/my": {
@@ -3018,6 +3340,58 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/payment-providers": {
+            "get": {
+                "description": "Returns a list of available payment providers, optionally filtering by active status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Get payment providers",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Filter by active status (default: true)",
+                        "name": "is_active",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of payment providers",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.PaymentProviderResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch payment providers",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -4098,63 +4472,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/profile/change-password": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Change current user's password.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Change password",
-                "parameters": [
-                    {
-                        "description": "Password change request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.ChangePasswordRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/reviews": {
             "get": {
                 "description": "Returns paginated reviews for a specific product",
@@ -4542,12 +4859,784 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/models.ShippingMethod"
+                                                "$ref": "#/definitions/models.ShippingProviders"
                                             }
                                         }
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Adds a new shipping provider to the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipping Providers"
+                ],
+                "summary": "Create a new shipping provider",
+                "parameters": [
+                    {
+                        "description": "Provider details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateShippingProviderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ShippingProviders"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/shipping-providers/{id}": {
+            "get": {
+                "description": "Returns a single shipping provider",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipping Providers"
+                ],
+                "summary": "Get a shipping provider by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ShippingProviders"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Updates fields of a shipping provider (partial update allowed)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipping Providers"
+                ],
+                "summary": "Update an existing shipping provider",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Fields to update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateShippingProviderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.ShippingProviders"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Removes a shipping provider by its ID (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipping"
+                ],
+                "summary": "Delete a shipping provider",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Shipping provider ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stores": {
+            "get": {
+                "description": "Get stores with pagination, search, location, rating, category filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "List stores",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by location (partial match)",
+                        "name": "location",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum rating (0-5)",
+                        "name": "min_rating",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category slug",
+                        "name": "category_slug",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (rating, followers, newest)",
+                        "name": "sort_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "offset": {
+                                                    "type": "integer"
+                                                },
+                                                "stores": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/dto.StoreResponse"
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a new store (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Create store",
+                "parameters": [
+                    {
+                        "description": "Store details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateStoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update store details (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Update store",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Store ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated store data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateStoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft delete a store (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Delete store",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Store ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{slug}": {
+            "get": {
+                "description": "Fetch store details including categories and stats",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Get store by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{slug}/products": {
+            "get": {
+                "description": "List products belonging to a store with product filters \u0026 pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Get products of a store",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items to skip",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum rating",
+                        "name": "min_rating",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Digital products only",
+                        "name": "is_digital",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "New arrivals only",
+                        "name": "is_new",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (price_asc,price_desc,rating_desc,newest)",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "limit": {
+                                                    "type": "integer"
+                                                },
+                                                "offset": {
+                                                    "type": "integer"
+                                                },
+                                                "products": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/dto.ProductResponse"
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -4580,16 +5669,28 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.SidebarGroup"
-                            }
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.SidebarGroup"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/dto.MessageResponse"
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -4877,6 +5978,344 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/wallet": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the balance and paginated transaction history of the authenticated user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Get wallet details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page (default 20, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.WalletDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/wallet/deposit": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create a pending deposit transaction. In production, this would integrate with a payment gateway.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Deposit funds",
+                "parameters": [
+                    {
+                        "description": "Deposit amount",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DepositRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "transaction_id": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/wallet/deposit/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Cancels a deposit that is still in pending status.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Cancel pending deposit",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/wallet/transactions/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fetch details of a specific wallet transaction.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Get transaction details",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Transaction ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.TransactionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/wallet/withdraw": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Withdraw money from wallet. In production, this would require admin approval or integration with payout gateway.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Withdraw funds",
+                "parameters": [
+                    {
+                        "description": "Withdrawal amount",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.WithdrawRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "transaction_id": {
+                                                    "type": "integer"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -4922,6 +6361,25 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dto.AdminAdjustRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "description",
+                "user_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -4991,7 +6449,7 @@ const docTemplate = `{
                 "color": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "discount": {
@@ -5003,6 +6461,9 @@ const docTemplate = `{
                 "image": {
                     "description": "New fields",
                     "type": "string"
+                },
+                "is_in_stock": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -5016,6 +6477,9 @@ const docTemplate = `{
                 "product_id": {
                     "type": "integer"
                 },
+                "product_name": {
+                    "type": "string"
+                },
                 "quantity": {
                     "type": "integer"
                 },
@@ -5028,8 +6492,11 @@ const docTemplate = `{
                 "size": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
+                },
+                "stock": {
+                    "type": "integer"
                 },
                 "total": {
                     "type": "number"
@@ -5148,9 +6615,13 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "address_line1",
+                "card_number",
                 "city",
                 "country",
+                "cvv",
                 "email",
+                "expiry_month",
+                "expiry_year",
                 "first_name",
                 "last_name",
                 "phone",
@@ -5167,6 +6638,9 @@ const docTemplate = `{
                 "card_last4": {
                     "type": "string"
                 },
+                "card_number": {
+                    "type": "string"
+                },
                 "city": {
                     "type": "string"
                 },
@@ -5176,8 +6650,20 @@ const docTemplate = `{
                 "coupon_code": {
                     "type": "string"
                 },
+                "cvv": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
+                },
+                "expiry_month": {
+                    "type": "integer",
+                    "maximum": 12,
+                    "minimum": 1
+                },
+                "expiry_year": {
+                    "type": "integer",
+                    "minimum": 2025
                 },
                 "first_name": {
                     "type": "string"
@@ -5199,6 +6685,9 @@ const docTemplate = `{
                 },
                 "shipping_method": {
                     "type": "string"
+                },
+                "shipping_provider_id": {
+                    "type": "integer"
                 },
                 "state": {
                     "type": "string"
@@ -5554,6 +7043,9 @@ const docTemplate = `{
                     "type": "integer",
                     "minimum": 0
                 },
+                "store_id": {
+                    "type": "integer"
+                },
                 "weight": {
                     "type": "number",
                     "minimum": 0
@@ -5580,6 +7072,65 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.CreateShippingProviderRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                }
+            }
+        },
+        "dto.CreateStoreRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "banner_url": {
+                    "type": "string"
+                },
+                "category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "return_policy": {
+                    "type": "string"
+                },
+                "shipping_info": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -5655,6 +7206,21 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DepositRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "payment_method": {
+                    "description": "for future gateway integration",
                     "type": "string"
                 }
             }
@@ -5841,6 +7407,26 @@ const docTemplate = `{
                 },
                 "total_amount": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.PaymentProviderResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "icon_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "requires_card": {
+                    "type": "boolean"
                 }
             }
         },
@@ -6105,6 +7691,59 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.StoreResponse": {
+            "type": "object",
+            "properties": {
+                "banner_url": {
+                    "type": "string"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CategoryResponse"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "follower_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_verified": {
+                    "type": "boolean"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "return_policy": {
+                    "type": "string"
+                },
+                "review_count": {
+                    "type": "integer"
+                },
+                "shipping_info": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SuggestionsRequest": {
             "type": "object",
             "required": [
@@ -6122,6 +7761,38 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "dto.TransactionResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "balance_after": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "reference_id": {
+                    "type": "integer"
+                },
+                "reference_type": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
                 }
             }
         },
@@ -6357,6 +8028,9 @@ const docTemplate = `{
                     "type": "integer",
                     "minimum": 0
                 },
+                "store_id": {
+                    "type": "integer"
+                },
                 "weight": {
                     "type": "number",
                     "minimum": 0
@@ -6375,6 +8049,62 @@ const docTemplate = `{
                     "minimum": 1
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateShippingProviderRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                }
+            }
+        },
+        "dto.UpdateStoreRequest": {
+            "type": "object",
+            "properties": {
+                "banner_url": {
+                    "type": "string"
+                },
+                "category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "description": {
+                    "type": "string"
+                },
+                "is_verified": {
+                    "type": "boolean"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "return_policy": {
+                    "type": "string"
+                },
+                "shipping_info": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -6417,9 +8147,41 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.WalletDetailResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TransactionResponse"
+                    }
+                }
+            }
+        },
         "dto.WishlistItemDTO": {
             "type": "object",
             "properties": {
+                "color": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "discount_percent": {
                     "type": "integer"
                 },
@@ -6444,6 +8206,15 @@ const docTemplate = `{
                 "product_name": {
                     "type": "string"
                 },
+                "size": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "stock": {
+                    "type": "integer"
+                },
                 "stock_quantity": {
                     "type": "integer"
                 }
@@ -6466,6 +8237,20 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.WithdrawRequest": {
+            "type": "object",
+            "required": [
+                "amount"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "description": {
+                    "type": "string"
                 }
             }
         },
@@ -6981,6 +8766,12 @@ const docTemplate = `{
                     "type": "integer",
                     "minimum": 0
                 },
+                "store": {
+                    "$ref": "#/definitions/models.Store"
+                },
+                "storeID": {
+                    "type": "integer"
+                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -7089,7 +8880,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.ShippingMethod": {
+        "models.ShippingProviders": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -7109,6 +8900,192 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Store": {
+            "type": "object",
+            "properties": {
+                "bannerURL": {
+                    "type": "string"
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "followerCount": {
+                    "type": "integer"
+                },
+                "followers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.User"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isVerified": {
+                    "type": "boolean"
+                },
+                "joinedAt": {
+                    "type": "string"
+                },
+                "location": {
+                    "type": "string"
+                },
+                "logoURL": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Product"
+                    }
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "returnPolicy": {
+                    "type": "string"
+                },
+                "reviewCount": {
+                    "type": "integer"
+                },
+                "reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.StoreReview"
+                    }
+                },
+                "settings": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "shippingInfo": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "user": {
+                    "description": "Relationships",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/models.User"
+                        }
+                    ]
+                },
+                "userID": {
+                    "description": "owner (admin user)",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.StoreReview": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "rating": {
+                    "type": "integer"
+                },
+                "store": {
+                    "$ref": "#/definitions/models.Store"
+                },
+                "storeID": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "userID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.User": {
+            "type": "object",
+            "required": [
+                "email",
+                "first_name",
+                "last_name"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "email": {
+                    "description": "Account identity",
+                    "type": "string"
+                },
+                "email_verified_at": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "id": {
+                    "description": "Primary",
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "last_login_at": {
+                    "description": "Audit",
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 1
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
@@ -7138,12 +9115,15 @@ const docTemplate = `{
         },
         "services.UpdateCartItemRequest": {
             "type": "object",
-            "required": [
-                "quantity"
-            ],
             "properties": {
+                "color": {
+                    "type": "string"
+                },
                 "quantity": {
                     "type": "integer"
+                },
+                "size": {
+                    "type": "string"
                 }
             }
         },

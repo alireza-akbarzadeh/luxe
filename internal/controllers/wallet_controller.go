@@ -12,13 +12,13 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type WalletCotroller struct {
+type WalletController struct {
 	walletService services.WalletServiceInterface
 	validate      *validator.Validate
 }
 
-func NewWallerController(walletService services.WalletServiceInterface) *WalletCotroller {
-	return &WalletCotroller{
+func NewWallerController(walletService services.WalletServiceInterface) *WalletController {
+	return &WalletController{
 		walletService: walletService,
 		validate:      validator.New(),
 	}
@@ -37,7 +37,7 @@ func NewWallerController(walletService services.WalletServiceInterface) *WalletC
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
 // @Router       /wallet [get]
-func (ctrl *WalletCotroller) GetWallet(c *gin.Context) {
+func (ctrl *WalletController) GetWallet(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -99,7 +99,7 @@ func (ctrl *WalletCotroller) GetWallet(c *gin.Context) {
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
 // @Router       /wallet/deposit [post]
-func (ctrl *WalletCotroller) Deposit(c *gin.Context) {
+func (ctrl *WalletController) Deposit(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -120,7 +120,6 @@ func (ctrl *WalletCotroller) Deposit(c *gin.Context) {
 		"transaction_id": txID,
 		"status":         "completed",
 	})
-
 }
 
 // AdminAdjust adjusts a user's wallet balance (admin only).
@@ -137,7 +136,7 @@ func (ctrl *WalletCotroller) Deposit(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      500 {object} utils.Response
 // @Router       /admin/wallet/adjust [post]
-func (ctrl *WalletCotroller) AdminAdjust(c *gin.Context) {
+func (ctrl *WalletController) AdminAdjust(c *gin.Context) {
 	role, ok := middleware.GetUserRole(c)
 	if !ok || role != "admin" {
 		utils.ForbiddenResponse(c, constants.ErrorForbidden)
@@ -151,7 +150,6 @@ func (ctrl *WalletCotroller) AdminAdjust(c *gin.Context) {
 		utils.HandleAppError(c, err, "adjustment failed")
 	}
 	utils.SuccessResponse(c, "wallet adjusted successfully", nil)
-
 }
 
 // Withdraw requests a withdrawal from the wallet.
@@ -167,7 +165,7 @@ func (ctrl *WalletCotroller) AdminAdjust(c *gin.Context) {
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
 // @Router       /wallet/withdraw [post]
-func (ctrl *WalletCotroller) Withdraw(c *gin.Context) {
+func (ctrl *WalletController) Withdraw(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -198,7 +196,7 @@ func (ctrl *WalletCotroller) Withdraw(c *gin.Context) {
 // @Failure      401  {object}  utils.Response
 // @Failure      404  {object}  utils.Response
 // @Router       /wallet/transactions/{id} [get]
-func (ctrl *WalletCotroller) GetTransaction(c *gin.Context) {
+func (ctrl *WalletController) GetTransaction(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -241,7 +239,7 @@ func (ctrl *WalletCotroller) GetTransaction(c *gin.Context) {
 // @Failure      401  {object}  utils.Response
 // @Failure      404  {object}  utils.Response
 // @Router       /wallet/deposit/{id}/cancel [post]
-func (ctrl *WalletCotroller) CancelPendingDeposit(c *gin.Context) {
+func (ctrl *WalletController) CancelPendingDeposit(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)

@@ -3,7 +3,6 @@ package services
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -23,6 +22,7 @@ type ProductServiceInterface interface {
 	CheckLowStockAndAlert() error
 	GetRelated(productID uint, limit int) ([]*models.Product, error)
 	GetSuggestions(productIDs []uint, limit int) ([]*models.Product, error)
+	GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
 }
 
 type productService struct {
@@ -74,11 +74,17 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		Status:            req.Status,
 		MetaTitle:         req.MetaTitle,
 		MetaDescription:   req.MetaDescription,
-		IsNew:             time.Now().AddDate(0, 0, 30).After(time.Now()),
+		IsNew:             false,
 		Rating:            0.0,
 		ReviewsCount:      0,
 		Colors:            marshalStrings(req.Colors),
 		Sizes:             marshalStrings(req.Sizes),
+	}
+	if req.IsNew != nil {
+		product.IsNew = *req.IsNew
+	}
+	if req.StoreID != nil {
+		product.StoreID = *req.StoreID
 	}
 	if product.Status == "" {
 		product.Status = "draft"
@@ -99,7 +105,7 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 // GetByID Retrieve product by id
 func (s *productService) GetByID(id uint) (*models.Product, error) {
 	var product models.Product
-	if err := s.db.Preload("Category").First(&product, id).Error; err != nil {
+	if err := s.db.Preload("Category").Preload("Store").First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
@@ -111,7 +117,7 @@ func (s *productService) GetByID(id uint) (*models.Product, error) {
 // GetBySlug Retrieve product by slug
 func (s *productService) GetBySlug(slug string) (*models.Product, error) {
 	var product models.Product
-	if err := s.db.Preload("Category").Where("slug = ?", slug).First(&product).Error; err != nil {
+	if err := s.db.Preload("Category").Preload("Store").Where("slug = ?", slug).First(&product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
@@ -131,6 +137,9 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		product.Name = *req.Name
 		baseSlug := generateSlug(*req.Name)
 		product.Slug = s.UniqSlug(baseSlug, id)
+	}
+	if req.StoreID != nil {
+		product.StoreID = *req.StoreID
 	}
 	if req.Description != nil {
 		product.Description = *req.Description
@@ -233,6 +242,9 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 		// Case-insensitive partial match for product name
 		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Name+"%")
 	}
+	if filters.StoreID != nil && *filters.StoreID != 0 {
+		query = query.Where("store_id = ?", *filters.StoreID)
+	}
 	if filters.SKU != "" {
 		// Partial match for SKU (usually exact but can be partial)
 		query = query.Where("sku LIKE ?", "%"+filters.SKU+"%")
@@ -283,55 +295,72 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 }
 
 // BulkCreate create multiple product
+// BulkCreate create multiple product
 func (s *productService) BulkCreate(products []dto.CreateProductRequest) ([]*models.Product, error) {
 	if len(products) == 0 {
 		return nil, utils.ErrBadRequest("no products provided")
 	}
-	var createProducts []*models.Product
+	var createdProducts []*models.Product
 
 	err := s.db.Transaction(func(tx *gorm.DB) error {
-		for _, product := range products {
-			baseSlug := generateSlug(product.Name)
+		for _, p := range products {
+			baseSlug := generateSlug(p.Name)
 			slug := s.UniqSlug(baseSlug, 0)
+
+			// Build model from DTO
 			req := &models.Product{
-				Name:              product.Name,
+				Name:              p.Name,
 				Slug:              slug,
-				Description:       product.Description,
-				Price:             product.Price,
-				CompareAtPrice:    product.CompareAtPrice,
-				Cost:              product.Cost,
-				SKU:               product.SKU,
-				Barcode:           product.Barcode,
-				Stock:             product.Stock,
-				LowStockThreshold: product.LowStockThreshold,
-				Weight:            product.Weight,
-				IsDigital:         product.IsDigital,
-				CategoryID:        product.CategoryID,
-				Images:            product.Images,
-				Status:            product.Status,
-				MetaTitle:         product.MetaTitle,
-				MetaDescription:   product.MetaDescription,
-				Colors:            marshalStrings(product.Colors),
-				Sizes:             marshalStrings(product.Sizes),
-			}
-			if product.Status == "" {
-				product.Status = "draft"
-			}
-			if product.LowStockThreshold == 0 {
-				product.LowStockThreshold = 5
+				Description:       p.Description,
+				Price:             p.Price,
+				CompareAtPrice:    p.CompareAtPrice,
+				Cost:              p.Cost,
+				SKU:               p.SKU,
+				Barcode:           p.Barcode,
+				Stock:             p.Stock,
+				LowStockThreshold: p.LowStockThreshold,
+				Weight:            p.Weight,
+				IsDigital:         p.IsDigital,
+				CategoryID:        p.CategoryID,
+				Images:            p.Images,
+				Status:            p.Status,
+				MetaTitle:         p.MetaTitle,
+				MetaDescription:   p.MetaDescription,
+				Colors:            marshalStrings(p.Colors),
+				Sizes:             marshalStrings(p.Sizes),
+				IsNew:             false, // default
+				Rating:            0,
+				ReviewsCount:      0,
 			}
 
-			if err := tx.Create(product).Error; err != nil {
+			// Apply optional fields
+			if p.StoreID != nil {
+				req.StoreID = *p.StoreID
+			}
+			if p.IsNew != nil {
+				req.IsNew = *p.IsNew
+			}
+
+			// Set defaults on the MODEL, not on the DTO
+			if req.Status == "" {
+				req.Status = "draft"
+			}
+			if req.LowStockThreshold == 0 {
+				req.LowStockThreshold = 5
+			}
+
+			// Create the product
+			if err := tx.Create(req).Error; err != nil {
 				return err
 			}
-			createProducts = append(createProducts, req)
+			createdProducts = append(createdProducts, req)
 		}
 		return nil
 	})
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return createProducts, nil
+	return createdProducts, nil
 }
 
 // BulkDelete remove multiple product with the give ids
@@ -421,4 +450,9 @@ func (s *productService) GetSuggestions(productIDs []uint, limit int) ([]*models
 		Find(&suggestions).Error
 
 	return suggestions, err
+}
+
+func (s *productService) GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error) {
+	filters.StoreID = &storeID
+	return s.List(limit, offset, filters)
 }

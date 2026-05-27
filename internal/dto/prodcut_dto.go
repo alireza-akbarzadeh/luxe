@@ -33,6 +33,7 @@ type CreateProductRequest struct {
 	IsNew             *bool    `json:"is_new,omitempty"`
 	Colors            []string `json:"colors,omitempty"`
 	Sizes             []string `json:"sizes,omitempty"`
+	StoreID           *uint    `json:"store_id,omitempty"`
 }
 
 type UpdateProductRequest struct {
@@ -55,6 +56,7 @@ type UpdateProductRequest struct {
 	IsNew             *bool     `json:"is_new,omitempty"`
 	Colors            *[]string `json:"colors,omitempty"`
 	Sizes             *[]string `json:"sizes,omitempty"`
+	StoreID           *uint     `json:"store_id,omitempty"`
 }
 
 type BulkDeleteProductsRequest struct {
@@ -75,6 +77,7 @@ type ProductListFilters struct {
 	IsDigital  *bool   `form:"is_digital"`
 	IsNew      *bool   `form:"is_new"`
 	Sort       string  `form:"sort"`
+	StoreID    *uint   `json:"store_id,omitempty"`
 }
 
 // ─── Response DTOs ───────────────────────────────────────────────────────────
