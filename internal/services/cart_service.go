@@ -19,13 +19,15 @@ type AddItemRequest struct {
 }
 
 type UpdateCartItemRequest struct {
-	Quantity int `json:"quantity" validate:"required,gt=0"`
+	Quantity int    `json:"quantity" validate:"omitempty,gt=0"`
+	Color    string `json:"color"`
+	Size     string `json:"size"`
 }
 
 type CartServiceInterface interface {
 	GetOrCreateCart(userID uint) (*models.Cart, error)
 	AddItem(userID uint, req AddItemRequest) (*models.CartItem, error)
-	UpdateItemQuantity(userID uint, cartItemID uint, req UpdateCartItemRequest) error
+	UpdateCartItem(userID uint, cartItemID uint, req UpdateCartItemRequest) error
 	RemoveItem(userID uint, cartItemID uint) error
 	GetCart(userID uint) (*models.Cart, error)
 	ClearCart(userID uint) error
@@ -125,11 +127,7 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 }
 
 // UpdateItemQuantity modifies existing cart item quantity.
-func (s *cartService) UpdateItemQuantity(userID uint, cartItemID uint, req UpdateCartItemRequest) error {
-	if req.Quantity <= 0 {
-		return utils.ErrBadRequest("quantity must be positive")
-	}
-
+func (s *cartService) UpdateCartItem(userID uint, cartItemID uint, req UpdateCartItemRequest) error {
 	var cartItem models.CartItem
 	if err := s.db.Joins("JOIN carts ON carts.id = cart_items.cart_id").
 		Where("cart_items.id = ? AND carts.user_id = ? AND carts.status = ?", cartItemID, userID, constants.CartStatusActive).
@@ -140,16 +138,25 @@ func (s *cartService) UpdateItemQuantity(userID uint, cartItemID uint, req Updat
 		return utils.ErrInternal(err)
 	}
 
-	// Validate stock
-	var product models.Product
-	if err := s.db.First(&product, cartItem.ProductID).Error; err != nil {
-		return utils.ErrInternal(err)
-	}
-	if product.Stock < req.Quantity {
-		return utils.ErrBadRequest("insufficient stock")
+	// Update quantity if provided and positive
+	if req.Quantity > 0 {
+		// Validate stock
+		var product models.Product
+		if err := s.db.First(&product, cartItem.ProductID).Error; err != nil {
+			return utils.ErrInternal(err)
+		}
+		if product.Stock < req.Quantity {
+			return utils.ErrBadRequest("insufficient stock")
+		}
+		cartItem.Quantity = req.Quantity
 	}
 
-	cartItem.Quantity = req.Quantity
+	// Update color/size if provided (even empty string is allowed to clear)
+	if req.Color != "" || req.Size != "" {
+		cartItem.Color = req.Color
+		cartItem.Size = req.Size
+	}
+
 	if err := s.db.Save(&cartItem).Error; err != nil {
 		return utils.ErrInternal(err)
 	}

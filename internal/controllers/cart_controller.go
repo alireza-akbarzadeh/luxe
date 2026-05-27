@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -116,6 +117,20 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 		}
 		stock := item.Product.Stock
 		inStock := stock > 0
+		var colors []string
+		if len(item.Product.Colors) > 0 {
+			if err := json.Unmarshal(item.Product.Colors, &colors); err != nil {
+				// log error but continue with empty slice
+				colors = []string{}
+			}
+		}
+		var sizes []string
+		if len(item.Product.Sizes) > 0 {
+			if err := json.Unmarshal(item.Product.Sizes, &sizes); err != nil {
+				sizes = []string{}
+			}
+		}
+
 		items[i] = dto.CartItemDetail{
 			ID:            item.ID,
 			ProductID:     item.ProductID,
@@ -125,8 +140,8 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 			Total:         itemTotal,
 			Image:         image,
 			OriginalPrice: origPrice,
-			Color:         item.Product.Colors,
-			Size:          item.Product.Sizes,
+			Color:         colors,
+			Size:          sizes,
 			SelectedColor: item.Color,
 			SelectedSize:  item.Size,
 			Discount:      discount,
@@ -174,7 +189,7 @@ func (ctrl *CartController) UpdateItem(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	if err := ctrl.cartService.UpdateItemQuantity(userID, uint(itemID), req); err != nil {
+	if err := ctrl.cartService.UpdateCartItem(userID, uint(itemID), req); err != nil {
 		utils.HandleAppError(c, err, "failed to update item")
 		return
 	}

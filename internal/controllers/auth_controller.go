@@ -130,7 +130,7 @@ type RefreshRequest struct {
 // @Router       /auth/refresh [post]
 func (ctrl *AuthController) Refresh(c *gin.Context) {
 	var req RefreshRequest
-	if !utils.BindAndValidate(c, utils.ErrBadRequest("invalid request body"), ctrl.validate) {
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 

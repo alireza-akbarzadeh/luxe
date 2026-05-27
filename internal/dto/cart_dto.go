@@ -1,7 +1,5 @@
 package dto
 
-import "gorm.io/datatypes"
-
 type AddItemResponse struct {
 	BaseResponse
 	Data CartItemData `json:"data"`
@@ -39,11 +37,11 @@ type CartItemDetail struct {
 	SelectedColor string  `gorm:"size:50" json:"selected_color"`
 	SelectedSize  string  `gorm:"size:50" json:"selected_size"`
 	// New fields
-	Image         string         `json:"image,omitempty"`
-	OriginalPrice float64        `json:"original_price,omitempty"`
-	Color         datatypes.JSON `json:"color,omitempty"`
-	Size          datatypes.JSON `json:"size,omitempty"`
-	Discount      float64        `json:"discount"`
+	Image         string   `json:"image,omitempty"`
+	OriginalPrice float64  `json:"original_price,omitempty"`
+	Color         []string `json:"color,omitempty"`	
+	Size          []string `json:"size,omitempty"`
+	Discount      float64  `json:"discount"`
 
 	Stock       int    `json:"stock"`
 	IsInStock   bool   `json:"is_in_stock"`
