@@ -132,6 +132,7 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 			Discount:      discount,
 			Stock:         stock,
 			IsInStock:     inStock,
+			ProductName:   item.Product.Name,
 		}
 	}
 

@@ -45,6 +45,7 @@ type CartItemDetail struct {
 	Size          datatypes.JSON `json:"size,omitempty"`
 	Discount      float64        `json:"discount"`
 
-	Stock     int  `json:"stock"`
-	IsInStock bool `json:"is_in_stock"`
+	Stock       int    `json:"stock"`
+	IsInStock   bool   `json:"is_in_stock"`
+	ProductName string `json:"product_name"`
 }

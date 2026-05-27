@@ -129,20 +129,12 @@ type RefreshRequest struct {
 // @Failure      401 {object} dto.MessageResponse
 // @Router       /auth/refresh [post]
 func (ctrl *AuthController) Refresh(c *gin.Context) {
-	// 1. Read refresh token from cookie
-	refreshToken, err := c.Cookie("refresh_token")
-	if err != nil {
-		utils.HandleAppError(c, utils.ErrUnauthorized("missing or invalid refresh token"), "refresh token cookie not found")
+	var req RefreshRequest
+	if !utils.BindAndValidate(c, utils.ErrBadRequest("invalid request body"), ctrl.validate) {
 		return
 	}
 
-	// 2. Validate that the cookie is not empty
-	if refreshToken == "" {
-		utils.HandleAppError(c, utils.ErrUnauthorized("empty refresh token"), "refresh token cookie is empty")
-		return
-	}
-
-	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(refreshToken)
+	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(req.RefreshToken)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to refresh tokens")
 		return
@@ -220,7 +212,7 @@ func (ctrl *AuthController) Logout(c *gin.Context) {
 // @Failure      400 {object} dto.MessageResponse
 // @Failure      401 {object} dto.MessageResponse
 // @Failure      500 {object} dto.MessageResponse
-// @Router       /profile/change-password [post]
+// @Router       /auth/change-password [post]
 func (ctrl *AuthController) ChangePassword(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {

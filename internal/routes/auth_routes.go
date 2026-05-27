@@ -19,7 +19,7 @@ func SetupAuthRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Conta
 
 	authGroup.GET("/verify-email", ctrl.Auth.VerifyEmail)
 	// 2. Protected auth endpoints (require a valid JWT token)
-	protected.POST("/send-verification", ctrl.Auth.SendVerificationEmail)
-	protected.POST("/logout", ctrl.Auth.Logout)
-	protected.POST("/change-password", ctrl.Auth.ChangePassword)
+	authGroup.POST("/send-verification", ctrl.Auth.SendVerificationEmail)
+	authGroup.POST("/logout", ctrl.Auth.Logout)
+	authGroup.POST("/change-password", ctrl.Auth.ChangePassword)
 }
