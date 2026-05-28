@@ -173,10 +173,6 @@ func (s *categoryService) Delete(id uint) error {
 
 // List retrieve list for categories
 func (s *categoryService) List(filters dto.CategoryListFilters) ([]models.Category, int64, error) {
-	var categories []models.Category
-	var total int64
-
-	// Set defaults
 	if filters.Limit == 0 {
 		filters.Limit = 20
 	}
@@ -184,20 +180,43 @@ func (s *categoryService) List(filters dto.CategoryListFilters) ([]models.Catego
 		filters.Limit = 100
 	}
 
-	query := s.db.Model(&models.Category{})
-
+	// Base query for filtering (without product join)
+	baseQuery := s.db.Model(&models.Category{})
 	if filters.IsActive != nil {
-		query = query.Where("is_active = ?", *filters.IsActive)
+		baseQuery = baseQuery.Where("is_active = ?", *filters.IsActive)
 	}
 	if filters.ParentID != nil {
-		query = query.Where("parent_id = ?", *filters.ParentID)
+		baseQuery = baseQuery.Where("parent_id = ?", *filters.ParentID)
 	}
-	if err := query.Count(&total).Error; err != nil {
+
+	// Total count (before sorting and product join)
+	var total int64
+	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
-	if err := query.Limit(filters.Limit).Offset(filters.Offset).Preload("Parent").Preload("Children").Find(&categories).Error; err != nil {
+
+	// Fetch query with sorting and pagination
+	fetchQuery := baseQuery
+	switch filters.Sort {
+	case "popular":
+		fetchQuery = fetchQuery.Select("categories.*, COUNT(products.id) as product_count").
+			Joins("LEFT JOIN products ON products.category_id = categories.id").
+			Group("categories.id").
+			Order("product_count DESC")
+	case "name":
+		fetchQuery = fetchQuery.Order("name ASC")
+	default:
+		fetchQuery = fetchQuery.Order("id ASC")
+	}
+
+	var categories []models.Category
+	err := fetchQuery.Limit(filters.Limit).Offset(filters.Offset).
+		Preload("Parent").Preload("Children").
+		Find(&categories).Error
+	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
+
 	return categories, total, nil
 }
 

@@ -187,6 +187,7 @@ func (ctrl *CategoryController) GetOne(c *gin.Context) {
 // @Param        offset      query     int     false  "Offset (skip number of items)"  default(0)  minimum(0)
 // @Param        is_active   query     bool    false  "Filter by active status (true/false)"
 // @Param        parent_id   query     int     false  "Filter by parent category ID"
+// @Param        sort        query     string   false  "Sort order (popular, name)"
 // @Success      200         {object}  dto.CategoryListResponse
 // @Failure      400         {object}  utils.Response
 // @Failure      500         {object}  utils.Response

@@ -40,7 +40,7 @@ func (r *Router) Setup() {
 
 		SetupAuthRoutes(public, protected, r.controllers)
 		SetupAddressRoutes(protected, r.controllers)
-
+		SetupSearchRoutes(public, r.controllers)
 		SetupAccountRoutes(protected, r.controllers)
 		SetupProductRoutes(public, protected, r.controllers)
 		SetupPaymentRoutes(protected, r.controllers)
