@@ -6,6 +6,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -101,7 +102,15 @@ func (ctrl *StoreController) GetStore(c *gin.Context) {
 		utils.HandleAppError(c, err, "failed to fetch store")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(store))
+	resp := dto.ToStoreResponse(store)
+
+	if userID, ok := middleware.GetUserID(c); ok {
+		followed, err := ctrl.storeService.IsFollowing(userID, store.ID)
+		if err == nil {
+			resp.IsFollowed = &followed
+		}
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, resp)
 }
 
 // GetStoreProducts returns paginated products of a store (by slug).
@@ -113,6 +122,7 @@ func (ctrl *StoreController) GetStore(c *gin.Context) {
 // @Param        slug          path   string true  "Store slug"
 // @Param        limit         query  int    false "Items per page (default 20, max 100)"
 // @Param        offset        query  int    false "Number of items to skip"
+// @Param        name          query  string false "Search by product name (partial match)"
 // @Param        category_id   query  int    false "Filter by category ID"
 // @Param        min_price     query  number false "Minimum price"
 // @Param        max_price     query  number false "Maximum price"
@@ -261,4 +271,68 @@ func (ctrl *StoreController) DeleteStore(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
+}
+
+// FollowStore godoc
+// @Summary      Follow a store
+// @Description  Follow a store (authenticated)
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        slug path string true "Store slug"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /stores/{slug}/follow [post]
+func (ctrl *StoreController) FollowStore(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	slug := c.Param("slug")
+	store, err := ctrl.storeService.GetBySlug(slug)
+	if err != nil {
+		utils.HandleAppError(c, err, "store not found")
+		return
+	}
+	if err := ctrl.storeService.FollowStore(userID, store.ID); err != nil {
+		utils.HandleAppError(c, err, "failed to follow store")
+		return
+	}
+	utils.SuccessResponse(c, "followed store successfully", nil)
+}
+
+// UnfollowStore godoc
+// @Summary      Unfollow a store
+// @Description  Unfollow a store (authenticated)
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        slug path string true "Store slug"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /stores/{slug}/follow [delete]
+func (ctrl *StoreController) UnfollowStore(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	slug := c.Param("slug")
+	store, err := ctrl.storeService.GetBySlug(slug)
+	if err != nil {
+		utils.HandleAppError(c, err, "store not found")
+		return
+	}
+	if err := ctrl.storeService.UnfollowStore(userID, store.ID); err != nil {
+		utils.HandleAppError(c, err, "failed to unfollow store")
+		return
+	}
+	utils.SuccessResponse(c, "unfollowed store successfully", nil)
 }

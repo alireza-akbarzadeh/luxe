@@ -77,8 +77,8 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		IsNew:             false,
 		Rating:            0.0,
 		ReviewsCount:      0,
-		Colors:            marshalStrings(req.Colors),
-		Sizes:             marshalStrings(req.Sizes),
+		Colors:            req.Colors,
+		Sizes:             req.Sizes,
 	}
 	if req.IsNew != nil {
 		product.IsNew = *req.IsNew
@@ -195,10 +195,10 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		product.MetaDescription = *req.MetaDescription
 	}
 	if req.Colors != nil {
-		product.Colors = marshalStrings(*req.Colors)
+		product.Colors = *req.Colors
 	}
 	if req.Sizes != nil {
-		product.Sizes = marshalStrings(*req.Sizes)
+		product.Sizes = *req.Sizes
 	}
 
 	if err := s.db.Save(product).Error; err != nil {
@@ -326,8 +326,8 @@ func (s *productService) BulkCreate(products []dto.CreateProductRequest) ([]*mod
 				Status:            p.Status,
 				MetaTitle:         p.MetaTitle,
 				MetaDescription:   p.MetaDescription,
-				Colors:            marshalStrings(p.Colors),
-				Sizes:             marshalStrings(p.Sizes),
+				Colors:            p.Colors,
+				Sizes:             p.Sizes,
 				IsNew:             false, // default
 				Rating:            0,
 				ReviewsCount:      0,

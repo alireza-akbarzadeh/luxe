@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -11,7 +10,6 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
-	"gorm.io/datatypes"
 )
 
 type AccountController struct {
@@ -234,16 +232,6 @@ func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 			discountPercent = &percent
 		}
 
-		colorJSON, err := json.Marshal(p.Colors)
-		if err != nil {
-			colorJSON = []byte("[]") // fallback to empty array if marshalling fails
-		}
-
-		sizeJSON, err := json.Marshal(p.Sizes)
-		if err != nil {
-			sizeJSON = []byte("[]") // fallback to empty array if marshalling fails
-		}
-
 		// 2. Map cleanly to your struct definition fields
 		items[i] = dto.WishlistItemDTO{
 			ProductID:       p.ID,
@@ -255,8 +243,8 @@ func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 			StockQuantity:   p.Stock,
 			Stock:           p.Stock,
 			ImageURL:        imageURL,
-			Color:           datatypes.JSON(colorJSON),
-			Size:            datatypes.JSON(sizeJSON),
+			Color:           p.Colors,
+			Size:            p.Sizes,
 		}
 	}
 

@@ -19,6 +19,9 @@ type StoreServiceInterface interface {
 	Create(req dto.CreateStoreRequest) (*models.Store, error)
 	Update(id uint, req dto.UpdateStoreRequest) (*models.Store, error)
 	Delete(id uint) error
+	FollowStore(userID, storeID uint) error
+	UnfollowStore(userID, storeID uint) error
+	IsFollowing(userID, storeID uint) (bool, error)
 }
 
 type storeService struct {
@@ -243,4 +246,62 @@ func (s *storeService) uniqSlug(baseSlug string, excludeID uint) string {
 		counter++
 	}
 	return slug
+}
+
+// FollowStore adds a follower relationship and increments follower count.
+func (s *storeService) FollowStore(userID, storeID uint) error {
+	var count int64
+	if err := s.db.Model(&models.StoreFollower{}).
+		Where("user_id = ? AND store_id = ?", userID, storeID).
+		Count(&count).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+	if count > 0 {
+		return nil
+	}
+
+	follower := models.StoreFollower{
+		UserID:  userID,
+		StoreID: storeID,
+	}
+	if err := s.db.Create(&follower).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+
+	if err := s.db.Model(&models.Store{}).
+		Where("id = ?", storeID).
+		Update("follower_count", gorm.Expr("follower_count + 1")).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+	return nil
+}
+
+// UnfollowStore removes a follower and decrements follower count.
+func (s *storeService) UnfollowStore(userID, storeID uint) error {
+	result := s.db.Where("user_id = ? AND store_id = ?", userID, storeID).
+		Delete(&models.StoreFollower{})
+	if result.Error != nil {
+		return utils.ErrInternal(result.Error)
+	}
+	if result.RowsAffected > 0 {
+		// Decrement follower count
+		if err := s.db.Model(&models.Store{}).
+			Where("id = ?", storeID).
+			Update("follower_count", gorm.Expr("follower_count - 1")).Error; err != nil {
+			return utils.ErrInternal(err)
+		}
+	}
+	return nil
+}
+
+// IsFollowing checks if a user follows a store.
+func (s *storeService) IsFollowing(userID, storeID uint) (bool, error) {
+	var count int64
+	err := s.db.Model(&models.StoreFollower{}).
+		Where("user_id = ? AND store_id = ?", userID, storeID).
+		Count(&count).Error
+	if err != nil {
+		return false, utils.ErrInternal(err)
+	}
+	return count > 0, nil
 }

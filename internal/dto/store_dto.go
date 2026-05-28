@@ -57,6 +57,7 @@ type StoreResponse struct {
 	IsVerified    bool               `json:"is_verified"`
 	JoinedAt      time.Time          `json:"joined_at"`
 	Categories    []CategoryResponse `json:"categories,omitempty"`
+	IsFollowed    *bool              `json:"is_followed,omitempty"`
 }
 
 func ToStoreResponse(store *models.Store) StoreResponse {

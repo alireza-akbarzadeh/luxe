@@ -49,3 +49,11 @@ type StoreReview struct {
 	Store *Store `gorm:"foreignKey:StoreID"`
 	User  *User  `gorm:"foreignKey:UserID"`
 }
+
+type StoreFollower struct {
+	UserID    uint `gorm:"primaryKey"`
+	StoreID   uint `gorm:"primaryKey"`
+	CreatedAt time.Time
+	User      User  `gorm:"foreignKey:UserID"`
+	Store     Store `gorm:"foreignKey:StoreID"`
+}

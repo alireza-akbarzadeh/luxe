@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -117,19 +116,6 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 		}
 		stock := item.Product.Stock
 		inStock := stock > 0
-		var colors []string
-		if len(item.Product.Colors) > 0 {
-			if err := json.Unmarshal(item.Product.Colors, &colors); err != nil {
-				// log error but continue with empty slice
-				colors = []string{}
-			}
-		}
-		var sizes []string
-		if len(item.Product.Sizes) > 0 {
-			if err := json.Unmarshal(item.Product.Sizes, &sizes); err != nil {
-				sizes = []string{}
-			}
-		}
 
 		items[i] = dto.CartItemDetail{
 			ID:            item.ID,
@@ -140,8 +126,8 @@ func (ctrl *CartController) GetCart(c *gin.Context) {
 			Total:         itemTotal,
 			Image:         image,
 			OriginalPrice: origPrice,
-			Color:         colors,
-			Size:          sizes,
+			Color:         item.Product.Colors,
+			Size:          item.Product.Sizes,
 			SelectedColor: item.Color,
 			SelectedSize:  item.Size,
 			Discount:      discount,

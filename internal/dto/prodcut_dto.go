@@ -151,15 +151,15 @@ func ToProductResponse(p models.Product) ProductResponse {
 		MetaDescription:   p.MetaDescription,
 		CreatedAt:         p.CreatedAt,
 		UpdatedAt:         p.UpdatedAt,
-		Colors:            unmarshalJSONStrings(p.Colors),
-		Sizes:             unmarshalJSONStrings(p.Sizes),
+		Colors:            p.Colors,
+		Sizes:             p.Sizes,
 	}
 
 	if p.CategoryID != nil {
 		r.CategoryID = p.CategoryID
 	}
 
-	if p.Category.ID != 0 {
+	if p.Category != nil && p.Category.ID != 0 {
 		cat := CategoryResponse{
 			ID:          p.Category.ID,
 			Name:        p.Category.Name,
@@ -183,6 +183,7 @@ func ToProductResponses(products []*models.Product) []ProductResponse {
 		result = append(result, ToProductResponse(*p))
 	}
 	return result
+
 }
 
 // ─── Envelope types (what Swag and Orval see for success responses) ──────────

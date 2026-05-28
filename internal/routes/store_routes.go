@@ -7,6 +7,7 @@ import (
 )
 
 func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
+	// Public routes
 	stores := public.Group("/stores")
 	{
 		stores.GET("", ctrl.Store.ListStores)
@@ -14,7 +15,15 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Cont
 		stores.GET("/:slug/products", ctrl.Store.GetStoreProducts)
 	}
 
-	adminStores := protected.Group("/stores")
+	// Protected (authenticated) routes for follow/unfollow
+	protectedStores := protected.Group("/stores")
+	{
+		protectedStores.POST("/:slug/follow", ctrl.Store.FollowStore)
+		protectedStores.DELETE("/:slug/follow", ctrl.Store.UnfollowStore)
+	}
+
+	// Admin routes – use a separate prefix to avoid wildcard conflict
+	adminStores := protected.Group("/admin/stores")
 	adminStores.Use(middleware.RequireRole("admin"))
 	{
 		adminStores.POST("", ctrl.Store.CreateStore)

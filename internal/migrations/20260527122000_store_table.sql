@@ -99,3 +99,5 @@ DROP TABLE IF EXISTS store_followers;
 DROP TABLE IF EXISTS store_categories;
 DROP TABLE IF EXISTS stores;
 -- +goose StatementEnd
+
+

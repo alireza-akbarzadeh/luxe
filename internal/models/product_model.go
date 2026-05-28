@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -37,8 +36,8 @@ type Product struct {
 	IsDigital         bool           `gorm:"not null;default:false;index" json:"is_digital"`
 	MetaTitle         string         `gorm:"type:text" json:"meta_title"`
 	MetaDescription   string         `gorm:"type:text" json:"meta_description"`
-	Colors            datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"colors"`
-	Sizes             datatypes.JSON `gorm:"type:jsonb;default:'[]'" json:"sizes"`
+	Colors            []string       `gorm:"type:jsonb;default:'[]';serializer:json" json:"colors"`
+	Sizes             []string       `gorm:"type:jsonb;default:'[]';serializer:json" json:"sizes"`
 
 	StoreID uint   `gorm:"index"`
 	Store   *Store `gorm:"foreignKey:StoreID;references:ID"`
