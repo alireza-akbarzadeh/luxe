@@ -29,6 +29,19 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.AdminAdjustRequest:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - amount
+    - description
+    - user_id
+    type: object
   dto.BulkCategoryData:
     properties:
       categories:
@@ -72,7 +85,7 @@ definitions:
     properties:
       color:
         items:
-          type: integer
+          type: string
         type: array
       discount:
         type: number
@@ -81,6 +94,8 @@ definitions:
       image:
         description: New fields
         type: string
+      is_in_stock:
+        type: boolean
       name:
         type: string
       original_price:
@@ -89,6 +104,8 @@ definitions:
         type: number
       product_id:
         type: integer
+      product_name:
+        type: string
       quantity:
         type: integer
       selected_color:
@@ -97,8 +114,10 @@ definitions:
         type: string
       size:
         items:
-          type: integer
+          type: string
         type: array
+      stock:
+        type: integer
       total:
         type: number
     type: object
@@ -181,14 +200,25 @@ definitions:
         type: string
       card_last4:
         type: string
+      card_number:
+        type: string
       city:
         type: string
       country:
         type: string
       coupon_code:
         type: string
+      cvv:
+        type: string
       email:
         type: string
+      expiry_month:
+        maximum: 12
+        minimum: 1
+        type: integer
+      expiry_year:
+        minimum: 2025
+        type: integer
       first_name:
         type: string
       last_name:
@@ -203,15 +233,21 @@ definitions:
         type: boolean
       shipping_method:
         type: string
+      shipping_provider_id:
+        type: integer
       state:
         type: string
       zip:
         type: string
     required:
     - address_line1
+    - card_number
     - city
     - country
+    - cvv
     - email
+    - expiry_month
+    - expiry_year
     - first_name
     - last_name
     - phone
@@ -452,6 +488,8 @@ definitions:
       stock:
         minimum: 0
         type: integer
+      store_id:
+        type: integer
       weight:
         minimum: 0
         type: number
@@ -475,6 +513,45 @@ definitions:
     required:
     - product_id
     - rating
+    type: object
+  dto.CreateShippingProviderRequest:
+    properties:
+      description:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+    required:
+    - name
+    type: object
+  dto.CreateStoreRequest:
+    properties:
+      banner_url:
+        type: string
+      category_ids:
+        items:
+          type: integer
+        type: array
+      description:
+        type: string
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      return_policy:
+        type: string
+      shipping_info:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - name
     type: object
   dto.DashboardSummaryResponse:
     properties:
@@ -525,6 +602,16 @@ definitions:
         type: string
       state:
         type: string
+    type: object
+  dto.DepositRequest:
+    properties:
+      amount:
+        type: number
+      payment_method:
+        description: for future gateway integration
+        type: string
+    required:
+    - amount
     type: object
   dto.EmptyResponse:
     properties:
@@ -645,6 +732,19 @@ definitions:
         type: string
       total_amount:
         type: number
+    type: object
+  dto.PaymentProviderResponse:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      icon_url:
+        type: string
+      name:
+        type: string
+      requires_card:
+        type: boolean
     type: object
   dto.ProductResponse:
     properties:
@@ -820,6 +920,43 @@ definitions:
       label:
         type: string
     type: object
+  dto.StoreResponse:
+    properties:
+      banner_url:
+        type: string
+      categories:
+        items:
+          $ref: '#/definitions/dto.CategoryResponse'
+        type: array
+      description:
+        type: string
+      follower_count:
+        type: integer
+      id:
+        type: integer
+      is_followed:
+        type: boolean
+      is_verified:
+        type: boolean
+      joined_at:
+        type: string
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      rating:
+        type: number
+      return_policy:
+        type: string
+      review_count:
+        type: integer
+      shipping_info:
+        type: string
+      slug:
+        type: string
+    type: object
   dto.SuggestionsRequest:
     properties:
       limit:
@@ -833,6 +970,27 @@ definitions:
         type: array
     required:
     - product_ids
+    type: object
+  dto.TransactionResponse:
+    properties:
+      amount:
+        type: number
+      balance_after:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      reference_id:
+        type: integer
+      reference_type:
+        type: string
+      status:
+        type: string
+      type:
+        type: string
     type: object
   dto.UpdateAddressRequest:
     properties:
@@ -994,6 +1152,8 @@ definitions:
       stock:
         minimum: 0
         type: integer
+      store_id:
+        type: integer
       weight:
         minimum: 0
         type: number
@@ -1007,6 +1167,43 @@ definitions:
         minimum: 1
         type: integer
       title:
+        type: string
+    type: object
+  dto.UpdateShippingProviderRequest:
+    properties:
+      description:
+        type: string
+      is_active:
+        type: boolean
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+    type: object
+  dto.UpdateStoreRequest:
+    properties:
+      banner_url:
+        type: string
+      category_ids:
+        items:
+          type: integer
+        type: array
+      description:
+        type: string
+      is_verified:
+        type: boolean
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      return_policy:
+        type: string
+      shipping_info:
+        type: string
+      status:
         type: string
     type: object
   dto.UserResponse:
@@ -1034,8 +1231,29 @@ definitions:
     - code
     - order_total
     type: object
+  dto.WalletDetailResponse:
+    properties:
+      balance:
+        type: number
+      currency:
+        type: string
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      transactions:
+        items:
+          $ref: '#/definitions/dto.TransactionResponse'
+        type: array
+    type: object
   dto.WishlistItemDTO:
     properties:
+      color:
+        items:
+          type: string
+        type: array
       discount_percent:
         type: integer
       image_url:
@@ -1052,6 +1270,12 @@ definitions:
         type: integer
       product_name:
         type: string
+      size:
+        items:
+          type: string
+        type: array
+      stock:
+        type: integer
       stock_quantity:
         type: integer
     type: object
@@ -1067,6 +1291,15 @@ definitions:
         type: integer
       total:
         type: integer
+    type: object
+  dto.WithdrawRequest:
+    properties:
+      amount:
+        type: number
+      description:
+        type: string
+    required:
+    - amount
     type: object
   gorm.DeletedAt:
     properties:
@@ -1351,7 +1584,7 @@ definitions:
         type: integer
       colors:
         items:
-          type: integer
+          type: string
         type: array
       compare_at_price:
         type: number
@@ -1393,7 +1626,7 @@ definitions:
         type: integer
       sizes:
         items:
-          type: integer
+          type: string
         type: array
       sku:
         type: string
@@ -1407,6 +1640,10 @@ definitions:
         type: string
       stock:
         minimum: 0
+        type: integer
+      store:
+        $ref: '#/definitions/models.Store'
+      storeID:
         type: integer
       updated_at:
         type: string
@@ -1485,7 +1722,7 @@ definitions:
       user_id:
         type: integer
     type: object
-  models.ShippingMethod:
+  models.ShippingProviders:
     properties:
       created_at:
         type: string
@@ -1501,6 +1738,131 @@ definitions:
         type: number
       updated_at:
         type: string
+    type: object
+  models.Store:
+    properties:
+      bannerURL:
+        type: string
+      categories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      followerCount:
+        type: integer
+      followers:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+      id:
+        type: integer
+      isVerified:
+        type: boolean
+      joinedAt:
+        type: string
+      location:
+        type: string
+      logoURL:
+        type: string
+      name:
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/models.Product'
+        type: array
+      rating:
+        type: number
+      returnPolicy:
+        type: string
+      reviewCount:
+        type: integer
+      reviews:
+        items:
+          $ref: '#/definitions/models.StoreReview'
+        type: array
+      settings:
+        items:
+          type: integer
+        type: array
+      shippingInfo:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      updatedAt:
+        type: string
+      user:
+        allOf:
+        - $ref: '#/definitions/models.User'
+        description: Relationships
+      userID:
+        description: owner (admin user)
+        type: integer
+    type: object
+  models.StoreReview:
+    properties:
+      comment:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: integer
+      rating:
+        type: integer
+      store:
+        $ref: '#/definitions/models.Store'
+      storeID:
+        type: integer
+      updatedAt:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      userID:
+        type: integer
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      email:
+        description: Account identity
+        type: string
+      email_verified_at:
+        type: string
+      first_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      id:
+        description: Primary
+        type: integer
+      is_active:
+        type: boolean
+      last_login_at:
+        description: Audit
+        type: string
+      last_name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      phone:
+        type: string
+      role:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
     type: object
   services.AddItemRequest:
     properties:
@@ -1518,10 +1880,12 @@ definitions:
     type: object
   services.UpdateCartItemRequest:
     properties:
+      color:
+        type: string
       quantity:
         type: integer
-    required:
-    - quantity
+      size:
+        type: string
     type: object
   utils.Response:
     properties:
@@ -1625,6 +1989,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Sort order (name, price-asc, price-desc)
+        in: query
+        name: sort
+        type: string
       produces:
       - application/json
       responses:
@@ -1875,6 +2243,31 @@ paths:
       tags:
       - Addresses
   /admin/menu/groups:
+    get:
+      description: Retrieves all menu groups ordered by display_order
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.MenuGroup'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get all menu groups
+      tags:
+      - Admin Menu Groups
     post:
       consumes:
       - application/json
@@ -1892,20 +2285,25 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.MenuGroup'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuGroup'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Create a new menu group
       tags:
-      - Menu Groups
+      - Admin Menu Groups
   /admin/menu/groups/{id}:
     delete:
       description: Deletes a group and all its menu items (cascade)
@@ -1918,21 +2316,23 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Delete a menu group
       tags:
-      - Menu Groups
+      - Admin Menu Groups
     get:
       description: Returns a single menu group by its ID
       parameters:
@@ -1947,24 +2347,29 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.MenuGroup'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuGroup'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Get group by ID
       tags:
-      - Menu Groups
+      - Admin Menu Groups
     put:
       consumes:
       - application/json
@@ -1987,24 +2392,29 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.MenuGroup'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuGroup'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Update an existing menu group
       tags:
-      - Menu Groups
+      - Admin Menu Groups
   /admin/menu/items:
     get:
       description: Returns flat or nested menu items (use ?flat=true for flat list)
@@ -2020,16 +2430,21 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/dto.MenuListResponse'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.MenuListResponse'
+              type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Get all menu items
       tags:
-      - Menu Items
+      - Admin Menu Items
     post:
       consumes:
       - application/json
@@ -2047,24 +2462,28 @@ paths:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.MenuItem'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuItem'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Create a new menu item
       tags:
-      - Menu Items
+      - Admin Menu Items
   /admin/menu/items/{id}:
     delete:
-      description: Deletes a menu item and all its children (cascade delete due to
-        foreign key constraint)
+      description: Deletes a menu item and all its children (cascade)
       parameters:
       - description: Menu item ID
         in: path
@@ -2074,21 +2493,23 @@ paths:
       produces:
       - application/json
       responses:
-        "204":
-          description: No Content
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Delete a menu item
       tags:
-      - Menu Items
+      - Admin Menu Items
     get:
       description: Returns a single menu item by its ID
       parameters:
@@ -2103,24 +2524,29 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.MenuItem'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuItem'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Get menu item by ID
       tags:
-      - Menu Items
+      - Admin Menu Items
     put:
       consumes:
       - application/json
@@ -2144,24 +2570,29 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.MenuItem'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.MenuItem'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Update an existing menu item
       tags:
-      - Menu Items
+      - Admin Menu Items
   /admin/shipments:
     post:
       consumes:
@@ -2261,6 +2692,83 @@ paths:
       summary: Update shipment status (admin)
       tags:
       - Shipments
+  /admin/wallet/adjust:
+    post:
+      consumes:
+      - application/json
+      description: Increase or decrease any user's wallet balance. Requires admin
+        role.
+      parameters:
+      - description: Adjustment data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminAdjustRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin adjust wallet
+      tags:
+      - Admin Wallet
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change current user's password.
+      parameters:
+      - description: Password change request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - Authentication
   /auth/forgot-password:
     post:
       consumes:
@@ -2944,6 +3452,48 @@ paths:
       summary: Bulk create categories
       tags:
       - Categories
+  /checkout:
+    post:
+      consumes:
+      - application/json
+      description: Converts the authenticated user's cart into an order, creates pending
+        payment and shipment, and starts background fulfillment.
+      parameters:
+      - description: Checkout details (address, payment info, optional shipping provider)
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CheckoutRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Checkout
+      tags:
+      - Orders
   /coupons:
     get:
       consumes:
@@ -3153,6 +3703,42 @@ paths:
       summary: Update coupon
       tags:
       - Coupons
+  /coupons/my:
+    get:
+      description: Retrieve all coupons that are valid and not yet used by the authenticated
+        user
+      parameters:
+      - description: Order total amount to filter by minimum order requirement
+        in: query
+        name: order_total
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Coupon'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get my available coupons
+      tags:
+      - Coupons
   /coupons/validate:
     post:
       consumes:
@@ -3288,47 +3874,6 @@ paths:
       security:
       - BearerAuth: []
       summary: List all orders (admin)
-      tags:
-      - Orders
-    post:
-      consumes:
-      - application/json
-      description: Converts the authenticated user's cart into an order. Requires
-        shipping and payment information.
-      parameters:
-      - description: Checkout details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CheckoutRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/models.Order'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Checkout
       tags:
       - Orders
   /orders/{id}:
@@ -3472,6 +4017,38 @@ paths:
       summary: Get user's orders
       tags:
       - Orders
+  /payment-providers:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of available payment providers, optionally filtering
+        by active status.
+      parameters:
+      - description: 'Filter by active status (default: true)'
+        in: query
+        name: is_active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of payment providers
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PaymentProviderResponse'
+                  type: array
+              type: object
+        "500":
+          description: Failed to fetch payment providers
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get payment providers
+      tags:
+      - Payment
   /products:
     get:
       consumes:
@@ -4143,42 +4720,6 @@ paths:
       summary: Update user profile
       tags:
       - User
-  /profile/change-password:
-    post:
-      consumes:
-      - application/json
-      description: Change current user's password.
-      parameters:
-      - description: Password change request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.MessageResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.MessageResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/dto.MessageResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/dto.MessageResponse'
-      security:
-      - BearerAuth: []
-      summary: Change password
-      tags:
-      - Authentication
   /reviews:
     get:
       description: Returns paginated reviews for a specific product
@@ -4414,12 +4955,567 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/models.ShippingMethod'
+                    $ref: '#/definitions/models.ShippingProviders'
                   type: array
               type: object
       summary: Get active shipping providers
       tags:
       - Shipping
+    post:
+      consumes:
+      - application/json
+      description: Adds a new shipping provider to the system
+      parameters:
+      - description: Provider details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateShippingProviderRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ShippingProviders'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new shipping provider
+      tags:
+      - Shipping Providers
+  /shipping-providers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a shipping provider by its ID (admin only)
+      parameters:
+      - description: Shipping provider ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete a shipping provider
+      tags:
+      - Shipping
+    get:
+      consumes:
+      - application/json
+      description: Returns a single shipping provider
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ShippingProviders'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a shipping provider by ID
+      tags:
+      - Shipping Providers
+    put:
+      consumes:
+      - application/json
+      description: Updates fields of a shipping provider (partial update allowed)
+      parameters:
+      - description: Provider ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields to update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateShippingProviderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.ShippingProviders'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update an existing shipping provider
+      tags:
+      - Shipping Providers
+  /stores:
+    get:
+      consumes:
+      - application/json
+      description: Get stores with pagination, search, location, rating, category
+        filters
+      parameters:
+      - default: 20
+        description: Items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      - description: Search by name or description
+        in: query
+        name: search
+        type: string
+      - description: Filter by location (partial match)
+        in: query
+        name: location
+        type: string
+      - description: Minimum rating (0-5)
+        in: query
+        name: min_rating
+        type: number
+      - description: Filter by category slug
+        in: query
+        name: category_slug
+        type: string
+      - description: Sort order (rating, followers, newest)
+        in: query
+        name: sort_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    stores:
+                      items:
+                        $ref: '#/definitions/dto.StoreResponse'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List stores
+      tags:
+      - Stores
+    post:
+      consumes:
+      - application/json
+      description: Create a new store (admin only)
+      parameters:
+      - description: Store details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create store
+      tags:
+      - Stores
+  /stores/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a store (admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete store
+      tags:
+      - Stores
+    put:
+      consumes:
+      - application/json
+      description: Update store details (admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated store data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update store
+      tags:
+      - Stores
+  /stores/{slug}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch store details including categories and stats
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get store by slug
+      tags:
+      - Stores
+  /stores/{slug}/follow:
+    delete:
+      consumes:
+      - application/json
+      description: Unfollow a store (authenticated)
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Unfollow a store
+      tags:
+      - Stores
+    post:
+      consumes:
+      - application/json
+      description: Follow a store (authenticated)
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Follow a store
+      tags:
+      - Stores
+  /stores/{slug}/products:
+    get:
+      consumes:
+      - application/json
+      description: List products belonging to a store with product filters & pagination
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      - description: Search by product name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Minimum rating
+        in: query
+        name: min_rating
+        type: number
+      - description: Digital products only
+        in: query
+        name: is_digital
+        type: boolean
+      - description: New arrivals only
+        in: query
+        name: is_new
+        type: boolean
+      - description: Sort order (price_asc,price_desc,rating_desc,newest)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    products:
+                      items:
+                        $ref: '#/definitions/dto.ProductResponse'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get products of a store
+      tags:
+      - Stores
   /user/menu:
     get:
       description: Returns the sidebar menu filtered by user's role and optional search
@@ -4435,13 +5531,18 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.SidebarGroup'
-            type: array
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.SidebarGroup'
+                  type: array
+              type: object
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/dto.MessageResponse'
+            $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
       summary: Get user sidebar menu
@@ -4627,6 +5728,213 @@ paths:
       summary: Get user's liked product IDs
       tags:
       - Product Likes
+  /wallet:
+    get:
+      consumes:
+      - application/json
+      description: Returns the balance and paginated transaction history of the authenticated
+        user.
+      parameters:
+      - default: 20
+        description: Items per page (default 20, max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.WalletDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get wallet details
+      tags:
+      - Wallet
+  /wallet/deposit:
+    post:
+      consumes:
+      - application/json
+      description: Create a pending deposit transaction. In production, this would
+        integrate with a payment gateway.
+      parameters:
+      - description: Deposit amount
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DepositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    transaction_id:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Deposit funds
+      tags:
+      - Wallet
+  /wallet/deposit/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: Cancels a deposit that is still in pending status.
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel pending deposit
+      tags:
+      - Wallet
+  /wallet/transactions/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch details of a specific wallet transaction.
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TransactionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get transaction details
+      tags:
+      - Wallet
+  /wallet/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Withdraw money from wallet. In production, this would require admin
+        approval or integration with payout gateway.
+      parameters:
+      - description: Withdrawal amount
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WithdrawRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    transaction_id:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Withdraw funds
+      tags:
+      - Wallet
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and the JWT token.

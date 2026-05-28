@@ -5509,6 +5509,114 @@ const docTemplate = `{
                 }
             }
         },
+        "/stores/{slug}/follow": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Follow a store (authenticated)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Follow a store",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unfollow a store (authenticated)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Stores"
+                ],
+                "summary": "Unfollow a store",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/stores/{slug}/products": {
             "get": {
                 "description": "List products belonging to a store with product filters \u0026 pagination",
@@ -5540,6 +5648,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Number of items to skip",
                         "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by product name (partial match)",
+                        "name": "name",
                         "in": "query"
                     },
                     {
@@ -7712,6 +7826,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_followed": {
+                    "type": "boolean"
+                },
                 "is_verified": {
                     "type": "boolean"
                 },
@@ -8179,7 +8296,7 @@ const docTemplate = `{
                 "color": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "discount_percent": {
@@ -8209,7 +8326,7 @@ const docTemplate = `{
                 "size": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "stock": {
@@ -8683,7 +8800,7 @@ const docTemplate = `{
                 "colors": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "compare_at_price": {
@@ -8745,7 +8862,7 @@ const docTemplate = `{
                 "sizes": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "string"
                     }
                 },
                 "sku": {
