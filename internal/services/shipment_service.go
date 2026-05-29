@@ -15,15 +15,17 @@ import (
 )
 
 type CreateShipmentRequest struct {
-	OrderID        uint   `json:"order_id" validate:"required,gt=0"`
-	Carrier        string `json:"carrier" validate:"required"`
-	TrackingNumber string `json:"tracking_number,omitempty"`
-	AddressLine1   string `json:"address_line1" validate:"required"`
-	AddressLine2   string `json:"address_line2,omitempty"`
-	City           string `json:"city" validate:"required"`
-	State          string `json:"state,omitempty"`
-	PostalCode     string `json:"postal_code" validate:"required"`
-	Country        string `json:"country" validate:"required"`
+	OrderID        uint    `json:"order_id" validate:"required,gt=0"`
+	Carrier        string  `json:"carrier" validate:"required"`
+	TrackingNumber string  `json:"tracking_number,omitempty"`
+	AddressLine1   string  `json:"address_line1" validate:"required"`
+	AddressLine2   string  `json:"address_line2,omitempty"`
+	City           string  `json:"city" validate:"required"`
+	State          string  `json:"state,omitempty"`
+	PostalCode     string  `json:"postal_code" validate:"required"`
+	Country        string  `json:"country" validate:"required"`
+	ProviderID     *uint   `json:"provider_id,omitempty"`
+	ShippingPrice  float64 `json:"shipping_price" validate:"gte=0"`
 }
 
 type ShipmentServiceInterface interface {
@@ -34,11 +36,11 @@ type ShipmentServiceInterface interface {
 	CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error)
 	SimulateDeliveries() error
 
-	DeleteShippingProvider(providerId uint) error
-	GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error)
+	DeleteShippingProvider(providerID uint) error
+	GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error)
 	GetShippingProviders() ([]models.ShippingProviders, error)
 	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
-	UpdateShippingProvider(providerId uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
+	UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
 }
 
 type shipmentService struct {
@@ -118,6 +120,8 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 		State:          req.State,
 		PostalCode:     req.PostalCode,
 		Country:        req.Country,
+		ProviderID:     req.ProviderID,
+		ShippingPrice:  req.ShippingPrice,
 	}
 
 	if err := s.db.Create(shipment).Error; err != nil {
@@ -187,7 +191,6 @@ func (s *shipmentService) processShipment(payload interface{}) error {
 
 func (s *shipmentService) CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error) {
 	var order models.Order
-	// ✅ Use tx, not s.db
 	if err := tx.First(&order, req.OrderID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound(constants.ErrOrderNotFound)
@@ -207,6 +210,8 @@ func (s *shipmentService) CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRe
 		State:          req.State,
 		PostalCode:     req.PostalCode,
 		Country:        req.Country,
+		ProviderID:     req.ProviderID,
+		ShippingPrice:  req.ShippingPrice,
 	}
 
 	if err := tx.Create(shipment).Error; err != nil {
@@ -295,9 +300,9 @@ func (s *shipmentService) GetShippingProviders() ([]models.ShippingProviders, er
 	return providers, err
 }
 
-func (s *shipmentService) GetShippingProviderByID(providerId uint) (*models.ShippingProviders, error) {
+func (s *shipmentService) GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error) {
 	var provider models.ShippingProviders
-	err := s.db.First(&provider, providerId).Error
+	err := s.db.First(&provider, providerID).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("shipping provider not found")
@@ -307,8 +312,8 @@ func (s *shipmentService) GetShippingProviderByID(providerId uint) (*models.Ship
 	return &provider, nil
 }
 
-func (s *shipmentService) DeleteShippingProvider(providerId uint) error {
-	result := s.db.Delete(models.ShippingProviders{}, providerId)
+func (s *shipmentService) DeleteShippingProvider(providerID uint) error {
+	result := s.db.Delete(models.ShippingProviders{}, providerID)
 	if result.Error != nil {
 		return utils.ErrInternal(result.Error)
 	}
@@ -336,9 +341,9 @@ func (s *shipmentService) CreateShippingProvider(req dto.CreateShippingProviderR
 	return &provider, nil
 }
 
-func (s *shipmentService) UpdateShippingProvider(providerId uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error) {
+func (s *shipmentService) UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error) {
 	var provider models.ShippingProviders
-	if err := s.db.First(&provider, providerId).Error; err != nil {
+	if err := s.db.First(&provider, providerID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("shipping provider not found")
 		}

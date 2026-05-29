@@ -29,8 +29,12 @@ type Shipment struct {
 	PostalCode   string `gorm:"not null" json:"postal_code"`
 	Country      string `gorm:"not null" json:"country"`
 
-	Order Order `gorm:"foreignKey:OrderID" json:"-"`
-	User  User  `gorm:"foreignKey:UserID" json:"-"`
+	ProviderID    *uint   `gorm:"index" json:"provider_id,omitempty"`
+	ShippingPrice float64 `gorm:"type:decimal(10,2);not null;default:0" json:"shipping_price"`
+
+	Order    Order              `gorm:"foreignKey:OrderID" json:"-"`
+	User     User               `gorm:"foreignKey:UserID" json:"-"`
+	Provider *ShippingProviders `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
 }
 
 type ShippingProviders struct {
