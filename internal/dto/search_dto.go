@@ -7,13 +7,16 @@ type SearchRequest struct {
 	Limit        int     `form:"limit,default=20"`
 	Offset       int     `form:"offset,default=0"`
 	CategoryID   *uint   `form:"category_id"`
+	CategorySlug string  `form:"category_slug"`
+	StoreID      *uint   `form:"store_id"`
 	MinPrice     float64 `form:"min_price"`
 	MaxPrice     float64 `form:"max_price"`
 	MinRating    float64 `form:"min_rating"`
 	IsDigital    *bool   `form:"is_digital"`
 	IsNew        *bool   `form:"is_new"`
+	InStock      *bool   `form:"in_stock"`
+	OnSale       *bool   `form:"on_sale"`
 	Sort         string  `form:"sort"`
-	CategorySlug string  `form:"category_slug"`
 }
 
 type SearchResponse struct {

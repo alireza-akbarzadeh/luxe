@@ -26,17 +26,20 @@ func NewSearchController(ss services.SearchServiceInterface) *SearchController {
 // @Tags         Search
 // @Accept       json
 // @Produce      json
-// @Param        q            query string true  "Search query"
-// @Param        limit        query int    false "Items per page (default 10, max 50)"
-// @Param        offset       query int    false "Offset for pagination"
-// @Param        category_id  query int    false "Filter by category ID"
+// @Param        q             query string false "Search query (optional for filter-only browse)"
+// @Param        limit         query int    false "Items per page (default 10, max 50)"
+// @Param        offset        query int    false "Offset for pagination"
+// @Param        category_id   query int    false "Filter by category ID"
 // @Param        category_slug query string false "Filter by category slug"
-// @Param        min_price    query number false "Minimum price"
-// @Param        max_price    query number false "Maximum price"
-// @Param        min_rating   query number false "Minimum rating"
-// @Param        is_digital   query bool   false "Digital products only"
-// @Param        is_new       query bool   false "New arrivals only"
-// @Param        sort         query string false "Sort order (price_asc,price_desc,rating_desc,newest)"
+// @Param        store_id      query int    false "Filter by store ID"
+// @Param        min_price     query number false "Minimum price"
+// @Param        max_price     query number false "Maximum price"
+// @Param        min_rating    query number false "Minimum rating"
+// @Param        is_digital    query bool   false "Digital products only"
+// @Param        is_new        query bool   false "New arrivals only"
+// @Param        in_stock      query bool   false "In-stock products only"
+// @Param        on_sale       query bool   false "On-sale products only"
+// @Param        sort          query string false "Sort order (price_asc,price_desc,rating_desc,newest,popular)"
 // @Success      200 {object} utils.Response{data=dto.SearchResponse}
 // @Failure      400 {object} utils.Response
 // @Router       /search [get]
@@ -46,11 +49,6 @@ func (ctrl *SearchController) GlobalSearch(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid query parameters")
 		return
 	}
-	if req.Query == "" {
-		utils.ErrorResponse(c, http.StatusBadRequest, "query parameter 'q' is required")
-		return
-	}
-
 	// Enforce pagination limits
 	if req.Limit <= 0 {
 		req.Limit = 10
@@ -67,7 +65,9 @@ func (ctrl *SearchController) GlobalSearch(c *gin.Context) {
 	if userID, ok := middleware.GetUserID(c); ok {
 		userIDPtr = &userID
 	}
-	go ctrl.searchService.LogSearch(req.Query, userIDPtr)
+	if req.Query != "" {
+		go ctrl.searchService.LogSearch(req.Query, userIDPtr)
+	}
 
 	result, err := ctrl.searchService.GlobalSearch(req)
 	if err != nil {
