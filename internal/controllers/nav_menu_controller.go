@@ -27,7 +27,7 @@ func NewNavMenuController(service services.NavMenuServiceInterface) *NavMenuCont
 // @Tags Navigation
 // @Produce json
 // @Success 200 {object} utils.Response{data=[]dto.NavItemResponse}
-// @Router /api/nav-menus [get]
+// @Router /nav-menus [get]
 func (ctrl *NavMenuController) GetAll(c *gin.Context) {
 	menu, err := ctrl.service.GetAll(c.Request.Context())
 	if err != nil {
@@ -41,7 +41,7 @@ func (ctrl *NavMenuController) GetAll(c *gin.Context) {
 // @Tags Navigation
 // @Param id path int true "Menu ID"
 // @Success 200 {object} utils.Response{data=dto.NavItemResponse}
-// @Router /api/nav-menus/{id} [get]
+// @Router /nav-menus/{id} [get]
 func (ctrl *NavMenuController) GetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -61,7 +61,7 @@ func (ctrl *NavMenuController) GetByID(c *gin.Context) {
 // @Produce json
 // @Param body body dto.UpsertNavMenuRequest true "Menu data"
 // @Success 201 {object} utils.Response{data=dto.NavItemResponse}
-// @Router /api/nav-menus [post]
+// @Router /nav-menus [post]
 func (ctrl *NavMenuController) Create(c *gin.Context) {
 	var req dto.UpsertNavMenuRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -84,7 +84,7 @@ func (ctrl *NavMenuController) Create(c *gin.Context) {
 // @Produce json
 // @Param body body dto.UpsertNavMenuRequest true "Menu data"
 // @Success 200 {object} utils.Response{data=dto.NavItemResponse}
-// @Router /api/nav-menus/{id} [put]
+// @Router /nav-menus/{id} [put]
 func (ctrl *NavMenuController) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
@@ -108,7 +108,7 @@ func (ctrl *NavMenuController) Update(c *gin.Context) {
 // @Tags Navigation
 // @Param id path int true "Menu ID"
 // @Success 200 {object} utils.Response
-// @Router /api/nav-menus/{id} [delete]
+// @Router /nav-menus/{id} [delete]
 func (ctrl *NavMenuController) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 

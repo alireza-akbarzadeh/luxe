@@ -31,8 +31,7 @@ func (r *Router) Setup() {
 
 		// ✅ PUBLIC (guest + optional auth)
 		public := v1.Group(constants.RouteRoot)
-		public.Use(middleware.GuestAuthMiddleware(r.cfg)) // 👈 IMPORTANT
-
+		public.Use(middleware.GuestAuthMiddleware(r.cfg))
 		// 🔒 PROTECTED (must login)
 		protected := v1.Group(constants.RouteRoot)
 		protected.Use(middleware.AuthMiddleware(r.cfg))
