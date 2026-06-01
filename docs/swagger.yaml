@@ -254,6 +254,106 @@ definitions:
     - state
     - zip
     type: object
+  dto.Column:
+    properties:
+      links:
+        items:
+          $ref: '#/definitions/dto.Link'
+        type: array
+      title:
+        type: string
+    type: object
+  dto.CompareListResponse:
+    properties:
+      product_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  dto.CompareProductResponse:
+    properties:
+      barcode:
+        type: string
+      category:
+        $ref: '#/definitions/dto.CategoryResponse'
+      category_id:
+        type: integer
+      colors:
+        items:
+          type: string
+        type: array
+      compare_at_price:
+        type: number
+      cost:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      discount_percent:
+        type: number
+      id:
+        type: integer
+      images:
+        items:
+          type: string
+        type: array
+      is_digital:
+        type: boolean
+      is_new:
+        type: boolean
+      low_stock_threshold:
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      rating:
+        type: number
+      return_policy:
+        type: string
+      reviews_count:
+        type: integer
+      shipping_info:
+        type: string
+      sizes:
+        items:
+          type: string
+        type: array
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+      store_logo:
+        type: string
+      store_name:
+        type: string
+      store_slug:
+        type: string
+      updated_at:
+        type: string
+      weight:
+        type: number
+    type: object
+  dto.CompareRequest:
+    properties:
+      product_ids:
+        items:
+          type: integer
+        maxItems: 4
+        minItems: 2
+        type: array
+    required:
+    - product_ids
+    type: object
   dto.CouponData:
     properties:
       coupon:
@@ -622,12 +722,32 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.FeaturedItem:
+    properties:
+      badge:
+        type: string
+      description:
+        type: string
+      href:
+        type: string
+      image:
+        type: string
+      title:
+        type: string
+    type: object
   dto.ForgotPasswordRequest:
     properties:
       email:
         type: string
     required:
     - email
+    type: object
+  dto.Link:
+    properties:
+      href:
+        type: string
+      title:
+        type: string
     type: object
   dto.LoginRequest:
     properties:
@@ -676,6 +796,27 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  dto.NavItemResponse:
+    properties:
+      badge:
+        type: string
+      columns:
+        items:
+          $ref: '#/definitions/dto.Column'
+        type: array
+      featured:
+        items:
+          $ref: '#/definitions/dto.FeaturedItem'
+        type: array
+      href:
+        type: string
+      label:
+        type: string
+      type:
+        type: string
+      viewAll:
+        $ref: '#/definitions/dto.ViewAll'
     type: object
   dto.OrderDetailDTO:
     properties:
@@ -898,6 +1039,23 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.SearchResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/dto.CategoryResponse'
+        type: array
+      products:
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      stores:
+        items:
+          $ref: '#/definitions/dto.StoreResponse'
+        type: array
+      total:
+        type: integer
+    type: object
   dto.SidebarGroup:
     properties:
       group:
@@ -957,6 +1115,21 @@ definitions:
       slug:
         type: string
     type: object
+  dto.SuggestionItem:
+    properties:
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      slug:
+        type: string
+      type:
+        type: string
+    type: object
   dto.SuggestionsRequest:
     properties:
       limit:
@@ -967,6 +1140,23 @@ definitions:
         items:
           type: integer
         minItems: 1
+        type: array
+    required:
+    - product_ids
+    type: object
+  dto.SuggestionsResponse:
+    properties:
+      suggestions:
+        items:
+          $ref: '#/definitions/dto.SuggestionItem'
+        type: array
+    type: object
+  dto.SyncCompareRequest:
+    properties:
+      product_ids:
+        items:
+          type: integer
+        maxItems: 4
         type: array
     required:
     - product_ids
@@ -990,6 +1180,20 @@ definitions:
       status:
         type: string
       type:
+        type: string
+    type: object
+  dto.TrendingResponse:
+    properties:
+      trending:
+        items:
+          $ref: '#/definitions/dto.TrendingSearch'
+        type: array
+    type: object
+  dto.TrendingSearch:
+    properties:
+      count:
+        type: integer
+      query:
         type: string
     type: object
   dto.UpdateAddressRequest:
@@ -1206,6 +1410,35 @@ definitions:
       status:
         type: string
     type: object
+  dto.UpsertNavMenuRequest:
+    properties:
+      badge:
+        type: string
+      columns:
+        items:
+          $ref: '#/definitions/dto.Column'
+        type: array
+      featured:
+        items:
+          $ref: '#/definitions/dto.FeaturedItem'
+        type: array
+      href:
+        type: string
+      label:
+        type: string
+      order:
+        type: integer
+      type:
+        enum:
+        - mega
+        - link
+        type: string
+      viewAll:
+        $ref: '#/definitions/dto.ViewAll'
+    required:
+    - label
+    - type
+    type: object
   dto.UserResponse:
     properties:
       email:
@@ -1230,6 +1463,13 @@ definitions:
     required:
     - code
     - order_total
+    type: object
+  dto.ViewAll:
+    properties:
+      href:
+        type: string
+      label:
+        type: string
     type: object
   dto.WalletDetailResponse:
     properties:
@@ -1709,8 +1949,14 @@ definitions:
         type: integer
       postal_code:
         type: string
+      provider:
+        $ref: '#/definitions/models.ShippingProviders'
+      provider_id:
+        type: integer
       shipped_at:
         type: string
+      shipping_price:
+        type: number
       state:
         type: string
       status:
@@ -2733,6 +2979,116 @@ paths:
       summary: Admin adjust wallet
       tags:
       - Admin Wallet
+  /api/nav-menus:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.NavItemResponse'
+                  type: array
+              type: object
+      summary: Get all navigation menus
+      tags:
+      - Navigation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Menu data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpsertNavMenuRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Create navigation menu
+      tags:
+      - Navigation
+  /api/nav-menus/{id}:
+    delete:
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete navigation menu
+      tags:
+      - Navigation
+    get:
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Get one navigation menu
+      tags:
+      - Navigation
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Menu data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpsertNavMenuRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Update navigation menu
+      tags:
+      - Navigation
   /auth/change-password:
     post:
       consumes:
@@ -3178,6 +3534,10 @@ paths:
         in: query
         name: parent_id
         type: integer
+      - description: Sort order (popular, name)
+        in: query
+        name: sort
+        type: string
       produces:
       - application/json
       responses:
@@ -3494,6 +3854,105 @@ paths:
       summary: Checkout
       tags:
       - Orders
+  /compare:
+    get:
+      consumes:
+      - application/json
+      description: Returns the list of product IDs in the compare list (authenticated
+        or guest via session_id)
+      parameters:
+      - description: Session ID for guest users
+        in: query
+        name: session_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CompareListResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth (optional): []
+      summary: Get user's compare list
+      tags:
+      - Compare
+    post:
+      consumes:
+      - application/json
+      description: Get product details for comparison (2–4 products)
+      parameters:
+      - description: Product IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CompareRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.CompareProductResponse'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Compare products
+      tags:
+      - Compare
+    put:
+      consumes:
+      - application/json
+      description: Save the user's compare list (replaces existing)
+      parameters:
+      - description: Session ID for guest users
+        in: query
+        name: session_id
+        type: string
+      - description: Product IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SyncCompareRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth (optional): []
+      summary: Sync compare list
+      tags:
+      - Compare
   /coupons:
     get:
       consumes:
@@ -4851,6 +5310,146 @@ paths:
       summary: Update a review
       tags:
       - Reviews
+  /search:
+    get:
+      consumes:
+      - application/json
+      description: Search products, stores, and categories with advanced filters
+      parameters:
+      - description: Search query (optional for filter-only browse)
+        in: query
+        name: q
+        type: string
+      - description: Items per page (default 10, max 50)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Filter by category slug
+        in: query
+        name: category_slug
+        type: string
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Minimum rating
+        in: query
+        name: min_rating
+        type: number
+      - description: Digital products only
+        in: query
+        name: is_digital
+        type: boolean
+      - description: New arrivals only
+        in: query
+        name: is_new
+        type: boolean
+      - description: In-stock products only
+        in: query
+        name: in_stock
+        type: boolean
+      - description: On-sale products only
+        in: query
+        name: on_sale
+        type: boolean
+      - description: Sort order (price_asc,price_desc,rating_desc,newest,popular)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SearchResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Global search
+      tags:
+      - Search
+  /search/suggestions:
+    get:
+      consumes:
+      - application/json
+      description: Get autocomplete suggestions (products, stores, categories)
+      parameters:
+      - description: Partial query
+        in: query
+        name: q
+        required: true
+        type: string
+      - description: Max suggestions (default 8, max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SuggestionsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Search suggestions
+      tags:
+      - Search
+  /search/trending:
+    get:
+      consumes:
+      - application/json
+      description: Get most popular search queries from the last 7 days
+      parameters:
+      - description: Number of trending terms (default 10, max 20)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TrendingResponse'
+              type: object
+      summary: Trending searches
+      tags:
+      - Search
   /shipments:
     get:
       consumes:

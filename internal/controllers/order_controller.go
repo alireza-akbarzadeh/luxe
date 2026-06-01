@@ -110,38 +110,6 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 	utils.SuccessResponse(c, "orders retrieved successfully", data)
 }
 
-// GetOrder returns a specific order by ID.
-// @Summary      Get order by ID
-// @Description  Returns a single order for the authenticated user.
-// @Tags         Orders
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id   path      int  true  "Order ID"
-// @Success      200  {object}  utils.Response{data=models.Order}
-// @Failure      401  {object}  utils.Response
-// @Failure      404  {object}  utils.Response
-// @Failure      500  {object}  utils.Response
-// @Router       /orders/{id} [get]
-func (ctrl *OrderController) GetOrder(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, "unauthorized")
-		return
-	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
-		return
-	}
-	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
-	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch order")
-		return
-	}
-	utils.SuccessResponse(c, "order retrieved", order)
-}
-
 // ListAllOrders returns all orders with advanced filters (admin only).
 // @Summary      List all orders (admin)
 // @Description  Returns paginated list of all orders with filtering by status, date, amount, and user ID.
@@ -220,6 +188,38 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 		"offset": offset,
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
+}
+
+// GetOrder returns a specific order by ID.
+// @Summary      Get order by ID
+// @Description  Returns a single order for the authenticated user.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Order ID"
+// @Success      200  {object}  utils.Response{data=models.Order}
+// @Failure      401  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /orders/{id} [get]
+func (ctrl *OrderController) GetOrder(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
+		return
+	}
+	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch order")
+		return
+	}
+	utils.SuccessResponse(c, "order retrieved", order)
 }
 
 // UpdateOrderStatus updates an order's status (admin only).

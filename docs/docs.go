@@ -1352,6 +1352,193 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/nav-menus": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Get all navigation menus",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.NavItemResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Create navigation menu",
+                "parameters": [
+                    {
+                        "description": "Menu data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/nav-menus/{id}": {
+            "get": {
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Get one navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Update navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Menu data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Delete navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/change-password": {
             "post": {
                 "security": [
@@ -2054,6 +2241,12 @@ const docTemplate = `{
                         "description": "Filter by parent category ID",
                         "name": "parent_id",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (popular, name)",
+                        "name": "sort",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2525,6 +2718,168 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/compare": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth (optional)": []
+                    }
+                ],
+                "description": "Returns the list of product IDs in the compare list (authenticated or guest via session_id)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compare"
+                ],
+                "summary": "Get user's compare list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID for guest users",
+                        "name": "session_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CompareListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth (optional)": []
+                    }
+                ],
+                "description": "Save the user's compare list (replaces existing)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compare"
+                ],
+                "summary": "Sync compare list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Session ID for guest users",
+                        "name": "session_id",
+                        "in": "query"
+                    },
+                    {
+                        "description": "Product IDs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SyncCompareRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Get product details for comparison (2–4 products)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Compare"
+                ],
+                "summary": "Compare products",
+                "parameters": [
+                    {
+                        "description": "Product IDs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CompareRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.CompareProductResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -4689,6 +5044,232 @@ const docTemplate = `{
                 }
             }
         },
+        "/search": {
+            "get": {
+                "description": "Search products, stores, and categories with advanced filters",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Global search",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (optional for filter-only browse)",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 10, max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by category ID",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by category slug",
+                        "name": "category_slug",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by store ID",
+                        "name": "store_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum rating",
+                        "name": "min_rating",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Digital products only",
+                        "name": "is_digital",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "New arrivals only",
+                        "name": "is_new",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "In-stock products only",
+                        "name": "in_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "On-sale products only",
+                        "name": "on_sale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (price_asc,price_desc,rating_desc,newest,popular)",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SearchResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/suggestions": {
+            "get": {
+                "description": "Get autocomplete suggestions (products, stores, categories)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Search suggestions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Partial query",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max suggestions (default 8, max 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SuggestionsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/trending": {
+            "get": {
+                "description": "Get most popular search queries from the last 7 days",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Search"
+                ],
+                "summary": "Trending searches",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Number of trending terms (default 10, max 20)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.TrendingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/shipments": {
             "get": {
                 "security": [
@@ -6811,6 +7392,157 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Column": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Link"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CompareListResponse": {
+            "type": "object",
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.CompareProductResponse": {
+            "type": "object",
+            "properties": {
+                "barcode": {
+                    "type": "string"
+                },
+                "category": {
+                    "$ref": "#/definitions/dto.CategoryResponse"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "colors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "compare_at_price": {
+                    "type": "number"
+                },
+                "cost": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "discount_percent": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_digital": {
+                    "type": "boolean"
+                },
+                "is_new": {
+                    "type": "boolean"
+                },
+                "low_stock_threshold": {
+                    "type": "integer"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "return_policy": {
+                    "type": "string"
+                },
+                "reviews_count": {
+                    "type": "integer"
+                },
+                "shipping_info": {
+                    "type": "string"
+                },
+                "sizes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "store_logo": {
+                    "type": "string"
+                },
+                "store_name": {
+                    "type": "string"
+                },
+                "store_slug": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.CompareRequest": {
+            "type": "object",
+            "required": [
+                "product_ids"
+            ],
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "minItems": 2,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "dto.CouponData": {
             "type": "object",
             "properties": {
@@ -7353,6 +8085,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.FeaturedItem": {
+            "type": "object",
+            "properties": {
+                "badge": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "href": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ForgotPasswordRequest": {
             "type": "object",
             "required": [
@@ -7360,6 +8112,17 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.Link": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                },
+                "title": {
                     "type": "string"
                 }
             }
@@ -7435,6 +8198,38 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dto.NavItemResponse": {
+            "type": "object",
+            "properties": {
+                "badge": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Column"
+                    }
+                },
+                "featured": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FeaturedItem"
+                    }
+                },
+                "href": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "viewAll": {
+                    "$ref": "#/definitions/dto.ViewAll"
                 }
             }
         },
@@ -7771,6 +8566,32 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SearchResponse": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CategoryResponse"
+                    }
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductResponse"
+                    }
+                },
+                "stores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.StoreResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.SidebarGroup": {
             "type": "object",
             "properties": {
@@ -7861,6 +8682,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SuggestionItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SuggestionsRequest": {
             "type": "object",
             "required": [
@@ -7875,6 +8719,32 @@ const docTemplate = `{
                 "product_ids": {
                     "type": "array",
                     "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.SuggestionsResponse": {
+            "type": "object",
+            "properties": {
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SuggestionItem"
+                    }
+                }
+            }
+        },
+        "dto.SyncCompareRequest": {
+            "type": "object",
+            "required": [
+                "product_ids"
+            ],
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "maxItems": 4,
                     "items": {
                         "type": "integer"
                     }
@@ -7909,6 +8779,28 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.TrendingResponse": {
+            "type": "object",
+            "properties": {
+                "trending": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TrendingSearch"
+                    }
+                }
+            }
+        },
+        "dto.TrendingSearch": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "query": {
                     "type": "string"
                 }
             }
@@ -8226,6 +9118,49 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpsertNavMenuRequest": {
+            "type": "object",
+            "required": [
+                "label",
+                "type"
+            ],
+            "properties": {
+                "badge": {
+                    "type": "string"
+                },
+                "columns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.Column"
+                    }
+                },
+                "featured": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.FeaturedItem"
+                    }
+                },
+                "href": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "order": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "mega",
+                        "link"
+                    ]
+                },
+                "viewAll": {
+                    "$ref": "#/definitions/dto.ViewAll"
+                }
+            }
+        },
         "dto.UserResponse": {
             "type": "object",
             "properties": {
@@ -8261,6 +9196,17 @@ const docTemplate = `{
                 },
                 "order_total": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.ViewAll": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
                 }
             }
         },
@@ -8977,8 +9923,17 @@ const docTemplate = `{
                 "postal_code": {
                     "type": "string"
                 },
+                "provider": {
+                    "$ref": "#/definitions/models.ShippingProviders"
+                },
+                "provider_id": {
+                    "type": "integer"
+                },
                 "shipped_at": {
                     "type": "string"
+                },
+                "shipping_price": {
+                    "type": "number"
                 },
                 "state": {
                     "type": "string"
