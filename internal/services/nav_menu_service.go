@@ -29,7 +29,7 @@ func NewNavMenuService(db *gorm.DB) NavMenuServiceInterface {
 // GetAll menu menu items
 func (s *navMenuService) GetAll(ctx context.Context) ([]dto.NavItemResponse, error) {
 	var menus []models.NavMenu
-	if err := s.db.WithContext(ctx).Order("order").Find(&menus).Error; err != nil {
+	if err := s.db.WithContext(ctx).Order("\"order\"").Find(&menus).Error; err != nil {
 		return nil, err
 	}
 	result := make([]dto.NavItemResponse, 0, len(menus))

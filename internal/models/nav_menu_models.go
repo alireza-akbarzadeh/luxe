@@ -15,7 +15,7 @@ type NavMenu struct {
 	ViewAll   datatypes.JSON `gorm:"type:jsonb" json:"viewAll,omitempty"`
 	Columns   datatypes.JSON `gorm:"type:jsonb" json:"columns,omitempty"`
 	Featured  datatypes.JSON `gorm:"type:jsonb" json:"featured,omitempty"`
-	Order     int            `gorm:"default:0" json:"order"`
+	Order     int            `gorm:"column:\"order\""`
 	CreatedAt time.Time      `json:"createdAt"`
 	UpdatedAt time.Time      `json:"updatedAt"`
 }
