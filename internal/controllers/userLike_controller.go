@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -33,8 +34,8 @@ func NewUserLikeController(ls services.UsertLikeServiceInterface, productService
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id      path      int     true  "Product ID"
-// @Param        request body      object  true  "Toggle action" SchemaExample({"like":true})
-// @Success      200     {object}  utils.Response{data=object{liked=bool}}
+// @Param request body dto.ToggleLikeRequest true "Toggle action"
+// @Success 200 {object} utils.Response{data=dto.ToggleLikeResponse}
 // @Failure      400     {object}  utils.Response
 // @Failure      401     {object}  utils.Response
 // @Failure      404     {object}  utils.Response
@@ -79,7 +80,9 @@ func (ctrl *UserLikeController) ToggleLike(c *gin.Context) {
 	if liked {
 		message = "product liked successfully"
 	}
-	utils.SuccessResponse(c, message, gin.H{"liked": liked})
+	utils.SuccessResponse(c, message, dto.ToggleLikeResponse{
+		Liked: liked,
+	})
 }
 
 // IsLikedByUser checks if the current user has liked a specific product.

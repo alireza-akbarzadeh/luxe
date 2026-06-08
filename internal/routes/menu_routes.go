@@ -24,8 +24,9 @@ func SetupMenuRoutes(router *gin.RouterGroup, ctrl *controllers.Container) {
 	}
 
 	// User-facing menu (authenticated users)
-	userGroup := router.Group("/user")
+	userGroup := router.Group("/user/menu")
 	{
-		userGroup.GET("/menu", ctrl.Menu.GetUserMenu)
+		userGroup.GET("/structure", ctrl.Menu.GetUserMenuStructure)
+		userGroup.GET("/", ctrl.Menu.GetUserMenu)
 	}
 }

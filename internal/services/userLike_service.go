@@ -24,7 +24,7 @@ func NewUserLikeService(db *gorm.DB) UsertLikeServiceInterface {
 	return &productLikeService{db: db}
 }
 
-// Like prorduct service responsible for likeing the product
+// Like product service responsible for liking the product
 func (s *productLikeService) Like(userID, productID uint) error {
 	// Check if product exists
 	var product models.Product
@@ -52,7 +52,7 @@ func (s *productLikeService) Like(userID, productID uint) error {
 	return utils.ErrInternal(err)
 }
 
-// unlike product services responsible for unliking the product
+// Unlike product services responsible for unliking the product
 func (s *productLikeService) Unlike(userID, productID uint) error {
 	result := s.db.Where("user_id = ? AND product_id = ?", userID, productID).Delete(&models.ProductLike{})
 	if result.Error != nil {
@@ -83,7 +83,7 @@ func (s *productLikeService) GetUserLikedProductIDs(userID uint) ([]uint, error)
 	return ids, nil
 }
 
-// GetUserLikedProductIDs find product liked by users
+// GetUserWishlist find product liked by users
 func (s *productLikeService) GetUserWishlist(userID uint, limit, offset int, sortBy string) ([]models.Product, int64, error) {
 	var products []models.Product
 	var total int64

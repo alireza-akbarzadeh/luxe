@@ -27,6 +27,7 @@ type UserMenuServicesInterface interface {
 
 	// User-facing: returns filtered sidebar for given role and search term
 	GetUserMenu(ctx context.Context, userRole string, search string) ([]dto.SidebarGroup, error)
+	GetUserMenuStructure(ctx context.Context, userRole string, search string) ([]dto.MenuGroupResponse, error)
 }
 
 type userMenuService struct {
@@ -278,4 +279,88 @@ func (s *userMenuService) matchesSearch(label string, href *string, search strin
 		return true
 	}
 	return false
+}
+
+// GetUserMenuStructure It returns the same DTO as GetFullMenuStructure, but with permissions applied.
+func (s *userMenuService) GetUserMenuStructure(ctx context.Context, userRole string, search string) ([]dto.MenuGroupResponse, error) {
+	// 1. Fetch all groups ordered
+	var groups []models.MenuGroup
+	err := s.db.Order("display_order ASC").Find(&groups).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Fetch all items ordered (we'll filter later)
+	var allItems []models.MenuItem
+	err = s.db.Order("display_order ASC").Find(&allItems).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Build a tree for each group, but filter items by permission + search
+	itemsByGroup := make(map[uint][]models.MenuItem)
+	for _, item := range allItems {
+		itemsByGroup[item.GroupID] = append(itemsByGroup[item.GroupID], item)
+	}
+
+	// Helper: recursively filter and convert items
+	var filterAndBuild func(items []models.MenuItem, parentID *uint) []dto.MenuItemResponse
+	filterAndBuild = func(items []models.MenuItem, parentID *uint) []dto.MenuItemResponse {
+		var result []dto.MenuItemResponse
+		for _, item := range items {
+			// Check parent match
+			if (parentID == nil && item.ParentID != nil) ||
+				(parentID != nil && (item.ParentID == nil || *item.ParentID != *parentID)) {
+				continue
+			}
+
+			// Permission check
+			if item.Permission != nil && *item.Permission != userRole && userRole != "admin" {
+				continue
+			}
+
+			// Search match on current item
+			matchesSearch := search == "" || s.matchesSearch(item.Label, item.Href, search)
+
+			// Recursively build children (filtered)
+			children := filterAndBuild(items, &item.ID)
+			if search != "" && !matchesSearch && len(children) == 0 {
+				continue
+			}
+
+			resp := dto.MenuItemResponse{
+				ID:           item.ID,
+				GroupID:      item.GroupID,
+				ParentID:     item.ParentID,
+				Label:        item.Label,
+				Href:         item.Href,
+				Icon:         item.Icon,
+				Permission:   item.Permission,
+				DisplayOrder: item.DisplayOrder,
+				CreatedAt:    item.CreatedAt,
+				UpdatedAt:    item.UpdatedAt,
+				Children:     children,
+			}
+			result = append(result, resp)
+		}
+		return result
+	}
+
+	// 4. Assemble groups with their filtered items
+	var response []dto.MenuGroupResponse
+	for _, group := range groups {
+		groupItems := itemsByGroup[group.ID]
+		nestedItems := filterAndBuild(groupItems, nil)
+		if len(nestedItems) > 0 { // skip empty groups
+			response = append(response, dto.MenuGroupResponse{
+				ID:           group.ID,
+				Name:         group.Name,
+				DisplayOrder: group.DisplayOrder,
+				CreatedAt:    group.CreatedAt,
+				UpdatedAt:    group.UpdatedAt,
+				Items:        nestedItems,
+			})
+		}
+	}
+	return response, nil
 }

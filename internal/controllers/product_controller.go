@@ -179,7 +179,7 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 // @Param        is_digital  query bool   false "Digital products only"
 // @Param        is_new      query bool   false "New products only"
 // @Param        sort        query string false "Sort order" Enums(rating_desc,rating_asc,newest,reviews_desc,price_asc,price_desc)
-// @Success      200 {object} utils.Response{data=object{products=[]object{items=dto.ProductResponse,is_liked=bool},total=int,limit=int,offset=int}}
+// @Success 200 {object} utils.Response{data=object{products=[]dto.ProductWithLike,total=int,limit=int,offset=int}}
 // @Failure      400 {object} utils.Response
 // @Failure      500 {object} utils.Response
 // @Router       /products [get]

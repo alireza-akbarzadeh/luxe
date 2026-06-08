@@ -230,3 +230,11 @@ type SuggestionsRequest struct {
 	ProductIDs []uint `json:"product_ids" validate:"required,min=1,dive,gt=0"`
 	Limit      int    `json:"limit" validate:"omitempty,min=1,max=20"`
 }
+
+type ToggleLikeRequest struct {
+	Like bool `json:"like"`
+}
+
+type ToggleLikeResponse struct {
+	Liked bool `json:"liked"`
+}

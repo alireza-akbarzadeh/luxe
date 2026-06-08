@@ -309,3 +309,27 @@ func (ctrl *MenuController) GetUserMenu(c *gin.Context) {
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, menu)
 }
+
+// GetUserMenuStructure returns groups + nested items filtered by user role.
+// @Summary      Get user menu structure (grouped + nested)
+// @Description  Returns all menu groups and their items, nested and ordered, filtered by user's permissions.
+// @Tags         User Menu
+// @Produce      json
+// @Param        search  query   string  false  "Search by label or href"
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=[]dto.MenuGroupResponse}
+// @Failure      500 {object} utils.Response
+// @Router       /user/menu/structure [get]
+func (ctrl *MenuController) GetUserMenuStructure(c *gin.Context) {
+	userRole, exists := c.Get("user_role")
+	if !exists {
+		userRole = "guest"
+	}
+	search := c.Query("search")
+	structure, err := ctrl.menuService.GetUserMenuStructure(c.Request.Context(), userRole.(string), search)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch user menu structure")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, structure)
+}
