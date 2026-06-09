@@ -32,6 +32,7 @@ type Services struct {
 	Compare      CompareServiceInterface
 	NavMenu      NavMenuServiceInterface
 	Brand        BrandServiceInterface
+	Settings     SettingServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
@@ -72,6 +73,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Payment:      NewPaymentService(db),
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),
+		Settings:     NewSettingService(db),
 		Checkout:     checkoutSvc,
 		Order:        orderSvc,
 		Coupon:       couponSvc,

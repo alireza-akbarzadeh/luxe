@@ -29,6 +29,7 @@ type Container struct {
 	Compare  *CompareController
 	NavMenu  *NavMenuController
 	Brand    *BrandController
+	Settings *SettingController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -56,5 +57,6 @@ func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 		Payment:  NewPaymentMethodController(svc.Payment),
 		NavMenu:  NewNavMenuController(svc.NavMenu),
 		Brand:    NewBrandController(svc.Brand),
+		Settings: NewSettingController(svc.Settings),
 	}
 }
