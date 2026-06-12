@@ -37,7 +37,7 @@ func NewBrandController(brandService services.BrandServiceInterface) *BrandContr
 // @Success      201  {object}  utils.Response{data=dto.BrandResponse}  "Brand created"
 // @Failure      400  {object}  utils.Response  "Validation error"
 // @Failure      500  {object}  utils.Response  "Internal server error"
-// @Router       /api/v1/brands [post]
+// @Router       /brands [post]
 func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 	var req dto.CreateBrandRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
@@ -63,7 +63,7 @@ func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 // @Failure      400  {object}  utils.Response  "Invalid ID"
 // @Failure      404  {object}  utils.Response  "Brand not found"
 // @Failure      500  {object}  utils.Response  "Internal server error"
-// @Router       /api/v1/brands/{id} [get]
+// @Router       /brands/{id} [get]
 func (ctrl *BrandController) GetBrand(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -95,7 +95,7 @@ func (ctrl *BrandController) GetBrand(c *gin.Context) {
 // @Param        status  query     string  false  "Filter by status"
 // @Success      200     {object}  utils.Response{data=[]dto.BrandResponse}  "Brand list"
 // @Failure      500     {object}  utils.Response  "Internal server error"
-// @Router       /api/v1/brands [get]
+// @Router       /brands [get]
 func (ctrl *BrandController) ListBrands(c *gin.Context) {
 	var req dto.ListBrandsRequest
 	if !utils.BindAndValidateQuery(c, &req, ctrl.validate) {
@@ -127,7 +127,7 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 // @Failure      400      {object}  utils.Response  "Validation error"
 // @Failure      404      {object}  utils.Response  "Brand not found"
 // @Failure      500      {object}  utils.Response  "Internal server error"
-// @Router       /api/v1/brands/{id} [put]
+// @Router       /brands/{id} [put]
 func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -163,7 +163,7 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 // @Failure      400  {object}  utils.Response  "Invalid ID"
 // @Failure      404  {object}  utils.Response  "Brand not found"
 // @Failure      500  {object}  utils.Response  "Internal server error"
-// @Router       /api/v1/brands/{id} [delete]
+// @Router       /brands/{id} [delete]
 func (ctrl *BrandController) DeleteBrand(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {

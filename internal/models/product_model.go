@@ -41,6 +41,21 @@ type Product struct {
 
 	StoreID uint   `gorm:"index"`
 	Store   *Store `gorm:"foreignKey:StoreID;references:ID"`
+
+	BrandID    *uint              `gorm:"index" json:"brand_id,omitempty"`
+	Brand      *Brand             `gorm:"foreignKey:BrandID" json:"brand,omitempty"`
+	Attributes []ProductAttribute `gorm:"foreignKey:ProductID" json:"attributes,omitempty"`
+
+	// Inventory extras
+	TrackInventory    bool   `gorm:"not null;default:true" json:"track_inventory"`
+	WarehouseLocation string `gorm:"type:text" json:"warehouse_location,omitempty"`
+	AllowBackorder    bool   `gorm:"not null;default:false" json:"allow_backorder"`
+
+	// Publishing extras
+	Visibility  string         `gorm:"type:text;not null;default:'public';check:visibility IN ('public','private')" json:"visibility"`
+	Tags        pq.StringArray `gorm:"type:text[];default:'{}'" json:"tags"`
+	Channels    pq.StringArray `gorm:"type:text[];default:'{}'" json:"channels"`
+	PublishedAt *time.Time     `json:"published_at,omitempty"`
 }
 
 type ProductLike struct {
@@ -53,4 +68,15 @@ type ProductLike struct {
 
 	User    User    `gorm:"foreignKey:UserID" json:"-"`
 	Product Product `gorm:"foreignKey:ProductID" json:"-"`
+}
+
+type ProductAttribute struct {
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+
+	ProductID uint           `gorm:"not null;index" json:"product_id"`
+	Name      string         `gorm:"type:text;not null" json:"name" validate:"required,min=1,max=100"`
+	Values    pq.StringArray `gorm:"type:text[];not null" json:"values" validate:"required,min=1"`
 }

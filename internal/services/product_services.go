@@ -53,9 +53,22 @@ func (s *productService) UniqSlug(baseSlug string, excludeID uint) string {
 	return slug
 }
 
+// buildAttributes converts DTO attribute inputs into model attributes.
+func buildAttributes(inputs []dto.ProductAttributeInput) []models.ProductAttribute {
+	attrs := make([]models.ProductAttribute, 0, len(inputs))
+	for _, a := range inputs {
+		attrs = append(attrs, models.ProductAttribute{
+			Name:   a.Name,
+			Values: a.Values,
+		})
+	}
+	return attrs
+}
+
 func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, error) {
 	baseSlug := generateSlug(req.Name)
 	slug := s.UniqSlug(baseSlug, 0)
+
 	product := models.Product{
 		Name:              req.Name,
 		Slug:              slug,
@@ -70,6 +83,7 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		Weight:            req.Weight,
 		IsDigital:         req.IsDigital,
 		CategoryID:        req.CategoryID,
+		BrandID:           req.BrandID,
 		Images:            req.Images,
 		Status:            req.Status,
 		MetaTitle:         req.MetaTitle,
@@ -79,7 +93,9 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		ReviewsCount:      0,
 		Colors:            req.Colors,
 		Sizes:             req.Sizes,
+		Attributes:        buildAttributes(req.Attributes),
 	}
+
 	if req.IsNew != nil {
 		product.IsNew = *req.IsNew
 	}
@@ -92,11 +108,8 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 	if product.LowStockThreshold == 0 {
 		product.LowStockThreshold = 5
 	}
-	if req.IsNew != nil {
-		product.IsNew = *req.IsNew
-	}
 
-	if err := s.db.Create(product).Error; err != nil {
+	if err := s.db.Create(&product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	return &product, nil
@@ -105,7 +118,12 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 // GetByID Retrieve product by id
 func (s *productService) GetByID(id uint) (*models.Product, error) {
 	var product models.Product
-	if err := s.db.Preload("Category").Preload("Store").First(&product, id).Error; err != nil {
+	if err := s.db.
+		Preload("Category").
+		Preload("Store").
+		Preload("Brand").
+		Preload("Attributes").
+		First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
@@ -117,7 +135,13 @@ func (s *productService) GetByID(id uint) (*models.Product, error) {
 // GetBySlug Retrieve product by slug
 func (s *productService) GetBySlug(slug string) (*models.Product, error) {
 	var product models.Product
-	if err := s.db.Preload("Category").Preload("Store").Where("slug = ?", slug).First(&product).Error; err != nil {
+	if err := s.db.
+		Preload("Category").
+		Preload("Store").
+		Preload("Brand").
+		Preload("Attributes").
+		Where("slug = ?", slug).
+		First(&product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
@@ -127,7 +151,6 @@ func (s *productService) GetBySlug(slug string) (*models.Product, error) {
 }
 
 // Update product
-
 func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.Product, error) {
 	product, err := s.GetByID(id)
 	if err != nil {
@@ -178,6 +201,9 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.CategoryID != nil {
 		product.CategoryID = req.CategoryID
 	}
+	if req.BrandID != nil {
+		product.BrandID = req.BrandID
+	}
 	if req.Images != nil {
 		product.Images = *req.Images
 	}
@@ -187,12 +213,11 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.MetaTitle != nil {
 		product.MetaTitle = *req.MetaTitle
 	}
-	if req.IsNew != nil {
-		product.IsNew = *req.IsNew
-	}
-
 	if req.MetaDescription != nil {
 		product.MetaDescription = *req.MetaDescription
+	}
+	if req.IsNew != nil {
+		product.IsNew = *req.IsNew
 	}
 	if req.Colors != nil {
 		product.Colors = *req.Colors
@@ -204,6 +229,24 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if err := s.db.Save(product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
+
+	// Replace attributes wholesale if provided
+	if req.Attributes != nil {
+		if err := s.db.Where("product_id = ?", id).Delete(&models.ProductAttribute{}).Error; err != nil {
+			return nil, utils.ErrInternal(err)
+		}
+		newAttrs := buildAttributes(*req.Attributes)
+		for i := range newAttrs {
+			newAttrs[i].ProductID = id
+		}
+		if len(newAttrs) > 0 {
+			if err := s.db.Create(&newAttrs).Error; err != nil {
+				return nil, utils.ErrInternal(err)
+			}
+		}
+		product.Attributes = newAttrs
+	}
+
 	return product, nil
 }
 
@@ -254,6 +297,9 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 	if filters.CategoryID != 0 {
 		query = query.Where("category_id = ?", filters.CategoryID)
 	}
+	if filters.BrandID != nil && *filters.BrandID != 0 {
+		query = query.Where("brand_id = ?", *filters.BrandID)
+	}
 	if filters.MinPrice != 0 {
 		query = query.Where("price >= ?", filters.MinPrice)
 	}
@@ -287,14 +333,17 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 	}
 
 	var products []*models.Product
-	if err := query.Limit(limit).Offset(offset).Preload("Category").Find(&products).Error; err != nil {
+	if err := query.Limit(limit).Offset(offset).
+		Preload("Category").
+		Preload("Brand").
+		Preload("Attributes").
+		Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("find products: %w", err)
 	}
 
 	return products, total, nil
 }
 
-// BulkCreate create multiple product
 // BulkCreate create multiple product
 func (s *productService) BulkCreate(products []dto.CreateProductRequest) ([]*models.Product, error) {
 	if len(products) == 0 {
@@ -322,13 +371,15 @@ func (s *productService) BulkCreate(products []dto.CreateProductRequest) ([]*mod
 				Weight:            p.Weight,
 				IsDigital:         p.IsDigital,
 				CategoryID:        p.CategoryID,
+				BrandID:           p.BrandID,
 				Images:            p.Images,
 				Status:            p.Status,
 				MetaTitle:         p.MetaTitle,
 				MetaDescription:   p.MetaDescription,
 				Colors:            p.Colors,
 				Sizes:             p.Sizes,
-				IsNew:             false, // default
+				Attributes:        buildAttributes(p.Attributes),
+				IsNew:             false,
 				Rating:            0,
 				ReviewsCount:      0,
 			}
@@ -417,6 +468,7 @@ func (s *productService) GetRelated(productID uint, limit int) ([]*models.Produc
 
 	err = s.db.
 		Preload("Category").
+		Preload("Brand").
 		Where("category_id = ? AND id != ?", product.CategoryID, productID).
 		Order("rating DESC, reviews_count DESC").
 		Limit(limit).
@@ -444,6 +496,7 @@ func (s *productService) GetSuggestions(productIDs []uint, limit int) ([]*models
 	var suggestions []*models.Product
 	err := s.db.
 		Preload("Category").
+		Preload("Brand").
 		Where("category_id IN ? AND id NOT IN ?", categoryIDs, productIDs).
 		Order("rating DESC, reviews_count DESC, created_at DESC").
 		Limit(limit).

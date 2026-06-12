@@ -170,6 +170,7 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 // @Param        name        query string false "Filter by product name"
 // @Param        sku         query string false "Filter by SKU"
 // @Param        category_id query int    false "Filter by category ID"
+// @Param        brand_id    query int    false "Filter by brand ID"
 // @Param        min_price   query number false "Minimum price"
 // @Param        max_price   query number false "Maximum price"
 // @Param        min_rating  query number false "Minimum rating (0–5)"

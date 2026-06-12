@@ -29,7 +29,7 @@ func NewSettingController(settingService services.SettingServiceInterface) *Sett
 // @Param        key  path      string  true  "Setting key"
 // @Success      200  {object}  utils.Response{data=dto.SettingResponse}  "Setting found"
 // @Failure      404  {object}  utils.Response  "Setting not found"
-// @Router       /api/v1/settings/{key} [get]
+// @Router       /settings/{key} [get]
 func (ctrl *SettingController) GetSetting(c *gin.Context) {
 	key := c.Param("key")
 	setting, err := ctrl.settingService.Get(c.Request.Context(), key)
@@ -50,7 +50,7 @@ func (ctrl *SettingController) GetSetting(c *gin.Context) {
 // @Tags         settings
 // @Produce      json
 // @Success      200  {object}  utils.Response{data=[]dto.SettingResponse}  "Settings list"
-// @Router       /api/v1/settings [get]
+// @Router       /settings [get]
 func (ctrl *SettingController) ListSettings(c *gin.Context) {
 	settings, err := ctrl.settingService.List(c.Request.Context())
 	if err != nil {
@@ -71,7 +71,7 @@ func (ctrl *SettingController) ListSettings(c *gin.Context) {
 // @Success      200      {object}  utils.Response{data=dto.SettingResponse}  "Setting updated"
 // @Success      201      {object}  utils.Response{data=dto.SettingResponse}  "Setting created"
 // @Failure      400      {object}  utils.Response  "Validation error"
-// @Router       /api/v1/settings/{key} [put]
+// @Router       /settings/{key} [put]
 func (ctrl *SettingController) SetSetting(c *gin.Context) {
 	key := c.Param("key")
 	var req dto.SetSettingRequest
@@ -97,7 +97,7 @@ func (ctrl *SettingController) SetSetting(c *gin.Context) {
 // @Param        key  path      string  true  "Setting key"
 // @Success      200  {object}  utils.Response  "Setting deleted"
 // @Failure      404  {object}  utils.Response  "Setting not found"
-// @Router       /api/v1/settings/{key} [delete]
+// @Router       /settings/{key} [delete]
 func (ctrl *SettingController) DeleteSetting(c *gin.Context) {
 	key := c.Param("key")
 	err := ctrl.settingService.Delete(c.Request.Context(), key)

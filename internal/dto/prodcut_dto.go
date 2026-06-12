@@ -12,28 +12,42 @@ type BulkStockUpdate struct {
 	ProductID uint `json:"product_id" validate:"required,gt=0"`
 	Stock     int  `json:"stock" validate:"gte=0"`
 }
+type ProductAttributeInput struct {
+	Name   string   `json:"name" validate:"required"`
+	Values []string `json:"values" validate:"required,min=1"`
+}
 
 type CreateProductRequest struct {
-	Name              string   `json:"name" validate:"required,min=3,max=255"`
-	Description       string   `json:"description,omitempty"`
-	Price             float64  `json:"price" validate:"required,gte=0"`
-	CompareAtPrice    *float64 `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
-	Cost              *float64 `json:"cost,omitempty" validate:"omitempty,gte=0"`
-	SKU               string   `json:"sku" validate:"required,min=3,max=50"`
-	Barcode           string   `json:"barcode,omitempty"`
-	Stock             int      `json:"stock" validate:"gte=0"`
-	LowStockThreshold int      `json:"low_stock_threshold,omitempty"`
-	Weight            *float64 `json:"weight,omitempty" validate:"omitempty,gte=0"`
-	IsDigital         bool     `json:"is_digital"`
-	CategoryID        *uint    `json:"category_id,omitempty"`
-	Images            []string `json:"images,omitempty"`
-	Status            string   `json:"status" validate:"oneof=draft active inactive archived"`
-	MetaTitle         string   `json:"meta_title,omitempty"`
-	MetaDescription   string   `json:"meta_description,omitempty"`
-	IsNew             *bool    `json:"is_new,omitempty"`
-	Colors            []string `json:"colors,omitempty"`
-	Sizes             []string `json:"sizes,omitempty"`
-	StoreID           *uint    `json:"store_id,omitempty"`
+	Name              string                  `json:"name" validate:"required,min=3,max=255"`
+	Description       string                  `json:"description,omitempty"`
+	Price             float64                 `json:"price" validate:"required,gte=0"`
+	CompareAtPrice    *float64                `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
+	Cost              *float64                `json:"cost,omitempty" validate:"omitempty,gte=0"`
+	SKU               string                  `json:"sku" validate:"required,min=3,max=50"`
+	Barcode           string                  `json:"barcode,omitempty"`
+	Stock             int                     `json:"stock" validate:"gte=0"`
+	LowStockThreshold int                     `json:"low_stock_threshold,omitempty"`
+	Weight            *float64                `json:"weight,omitempty" validate:"omitempty,gte=0"`
+	IsDigital         bool                    `json:"is_digital"`
+	CategoryID        *uint                   `json:"category_id,omitempty"`
+	Images            []string                `json:"images,omitempty"`
+	Status            string                  `json:"status" validate:"oneof=draft active inactive archived"`
+	MetaTitle         string                  `json:"meta_title,omitempty"`
+	MetaDescription   string                  `json:"meta_description,omitempty"`
+	IsNew             *bool                   `json:"is_new,omitempty"`
+	Colors            []string                `json:"colors,omitempty"`
+	Sizes             []string                `json:"sizes,omitempty"`
+	StoreID           *uint                   `json:"store_id,omitempty"`
+	BrandID           *uint                   `json:"brand_id,omitempty"`
+	Attributes        []ProductAttributeInput `json:"attributes,omitempty"`
+	TrackInventory    *bool                   `json:"track_inventory,omitempty"`
+	WarehouseLocation string                  `json:"warehouse_location,omitempty"`
+	AllowBackorder    *bool                   `json:"allow_backorder,omitempty"`
+
+	Visibility  string     `json:"visibility,omitempty"`
+	Tags        []string   `json:"tags,omitempty"`
+	Channels    []string   `json:"channels,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
 }
 
 type UpdateProductRequest struct {
@@ -57,6 +71,18 @@ type UpdateProductRequest struct {
 	Colors            *[]string `json:"colors,omitempty"`
 	Sizes             *[]string `json:"sizes,omitempty"`
 	StoreID           *uint     `json:"store_id,omitempty"`
+
+	BrandID    *uint                    `json:"brand_id,omitempty"`
+	Attributes *[]ProductAttributeInput `json:"attributes,omitempty"`
+
+	TrackInventory    *bool   `json:"track_inventory,omitempty"`
+	WarehouseLocation *string `json:"warehouse_location,omitempty"`
+	AllowBackorder    *bool   `json:"allow_backorder,omitempty"`
+
+	Visibility  *string    `json:"visibility,omitempty"`
+	Tags        *[]string  `json:"tags,omitempty"`
+	Channels    *[]string  `json:"channels,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
 }
 
 type BulkDeleteProductsRequest struct {
@@ -78,6 +104,7 @@ type ProductListFilters struct {
 	IsNew      *bool   `form:"is_new"`
 	Sort       string  `form:"sort"`
 	StoreID    *uint   `json:"store_id,omitempty"`
+	BrandID    *uint   `json:"brand_id,omitempty"`
 }
 
 // ─── Response DTOs ───────────────────────────────────────────────────────────
@@ -123,6 +150,20 @@ type ProductResponse struct {
 	UpdatedAt         time.Time         `json:"updated_at"`
 	Colors            []string          `json:"colors,omitempty"`
 	Sizes             []string          `json:"sizes,omitempty"`
+
+	BrandID    *uint                      `json:"brand_id,omitempty"`
+	Brand      *BrandResponse             `json:"brand,omitempty"`
+	Attributes []ProductAttributeResponse `json:"attributes,omitempty"`
+
+	TrackInventory    bool   `json:"track_inventory"`
+	WarehouseLocation string `json:"warehouse_location,omitempty"`
+	AllowBackorder    bool   `json:"allow_backorder"`
+
+	// Publishing extras
+	Visibility  string     `json:"visibility"`
+	Tags        []string   `json:"tags,omitempty"`
+	Channels    []string   `json:"channels,omitempty"`
+	PublishedAt *time.Time `json:"published_at,omitempty"`
 }
 
 // ToProductResponse maps a models.Product to a ProductResponse.
@@ -153,10 +194,40 @@ func ToProductResponse(p models.Product) ProductResponse {
 		UpdatedAt:         p.UpdatedAt,
 		Colors:            p.Colors,
 		Sizes:             p.Sizes,
+		TrackInventory:    p.TrackInventory,
+		WarehouseLocation: p.WarehouseLocation,
+		AllowBackorder:    p.AllowBackorder,
+		Visibility:        p.Visibility,
+		Tags:              p.Tags,
+		Channels:          p.Channels,
+		PublishedAt:       p.PublishedAt,
 	}
 
 	if p.CategoryID != nil {
 		r.CategoryID = p.CategoryID
+	}
+
+	if p.BrandID != nil {
+		r.BrandID = p.BrandID
+	}
+	if p.Brand != nil && p.Brand.ID != 0 {
+		r.Brand = &BrandResponse{
+			ID:          p.Brand.ID,
+			Name:        p.Brand.Name,
+			Slug:        p.Brand.Slug,
+			LogoURL:     p.Brand.LogoURL,
+			Description: p.Brand.Description,
+			Status:      p.Brand.Status,
+			CreatedAt:   p.Brand.CreatedAt,
+			UpdatedAt:   p.Brand.UpdatedAt,
+		}
+	}
+	if len(p.Attributes) > 0 {
+		attrs := make([]ProductAttributeResponse, 0, len(p.Attributes))
+		for _, a := range p.Attributes {
+			attrs = append(attrs, ProductAttributeResponse{Name: a.Name, Values: a.Values})
+		}
+		r.Attributes = attrs
 	}
 
 	if p.Category != nil && p.Category.ID != 0 {
@@ -237,4 +308,9 @@ type ToggleLikeRequest struct {
 
 type ToggleLikeResponse struct {
 	Liked bool `json:"liked"`
+}
+
+type ProductAttributeResponse struct {
+	Name   string   `json:"name"`
+	Values []string `json:"values"`
 }

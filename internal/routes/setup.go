@@ -46,6 +46,7 @@ func (r *Router) Setup() {
 		SetupNavMenuRoutes(public, r.controllers)
 		SetupPaymentRoutes(protected, r.controllers)
 		SetupCategoryRoutes(public, protected, r.controllers)
+		SetupSettingRoutes(public, protected, r.controllers)
 		SetupStoreRoutes(public, protected, r.controllers)
 		SetupCouponRoutes(public, protected, r.controllers)
 		SetupReviewRoutes(public, protected, r.controllers)

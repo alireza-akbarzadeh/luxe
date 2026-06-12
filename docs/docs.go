@@ -1352,18 +1352,47 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/nav-menus": {
+        "/api/v1/brands": {
             "get": {
+                "description": "Returns a paginated list of brands with optional search and status filtering.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Navigation"
+                    "brands"
                 ],
-                "summary": "Get all navigation menus",
+                "summary": "List all brands",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name or slug",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Brand list",
                         "schema": {
                             "allOf": [
                                 {
@@ -1375,17 +1404,24 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/dto.NavItemResponse"
+                                                "$ref": "#/definitions/dto.BrandResponse"
                                             }
                                         }
                                     }
                                 }
                             ]
                         }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     }
                 }
             },
             "post": {
+                "description": "Creates a brand with the provided details. Defaults status to \"draft\" if not supplied.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1393,23 +1429,23 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Navigation"
+                    "brands"
                 ],
-                "summary": "Create navigation menu",
+                "summary": "Create a new brand",
                 "parameters": [
                     {
-                        "description": "Menu data",
-                        "name": "body",
+                        "description": "Brand creation payload",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                            "$ref": "#/definitions/dto.CreateBrandRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Brand created",
                         "schema": {
                             "allOf": [
                                 {
@@ -1419,26 +1455,42 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                            "$ref": "#/definitions/dto.BrandResponse"
                                         }
                                     }
                                 }
                             ]
                         }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     }
                 }
             }
         },
-        "/api/nav-menus/{id}": {
+        "/api/v1/brands/{id}": {
             "get": {
-                "tags": [
-                    "Navigation"
+                "description": "Returns a single brand by its unique identifier.",
+                "produces": [
+                    "application/json"
                 ],
-                "summary": "Get one navigation menu",
+                "tags": [
+                    "brands"
+                ],
+                "summary": "Get a brand by ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Menu ID",
+                        "description": "Brand ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1446,7 +1498,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Brand found",
                         "schema": {
                             "allOf": [
                                 {
@@ -1456,16 +1508,35 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                            "$ref": "#/definitions/dto.BrandResponse"
                                         }
                                     }
                                 }
                             ]
                         }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Brand not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     }
                 }
             },
             "put": {
+                "description": "Partially updates a brand. Only supplied fields are changed.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1473,30 +1544,30 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Navigation"
+                    "brands"
                 ],
-                "summary": "Update navigation menu",
+                "summary": "Update a brand",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Menu ID",
+                        "description": "Brand ID",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Menu data",
-                        "name": "body",
+                        "description": "Brand update payload",
+                        "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                            "$ref": "#/definitions/dto.UpdateBrandRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Brand updated",
                         "schema": {
                             "allOf": [
                                 {
@@ -1506,24 +1577,46 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                            "$ref": "#/definitions/dto.BrandResponse"
                                         }
                                     }
                                 }
                             ]
                         }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Brand not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
                     }
                 }
             },
             "delete": {
-                "tags": [
-                    "Navigation"
+                "description": "Permanently deletes a brand by ID.",
+                "produces": [
+                    "application/json"
                 ],
-                "summary": "Delete navigation menu",
+                "tags": [
+                    "brands"
+                ],
+                "summary": "Delete a brand",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Menu ID",
+                        "description": "Brand ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -1531,7 +1624,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Brand deleted",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Brand not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -3347,6 +3458,193 @@ const docTemplate = `{
                 }
             }
         },
+        "/nav-menus": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Get all navigation menus",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.NavItemResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Create navigation menu",
+                "parameters": [
+                    {
+                        "description": "Menu data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/nav-menus/{id}": {
+            "get": {
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Get one navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Update navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Menu data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpsertNavMenuRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.NavItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Navigation"
+                ],
+                "summary": "Delete navigation menu",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Menu ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/orders": {
             "get": {
                 "security": [
@@ -3897,15 +4195,7 @@ const docTemplate = `{
                                                 "products": {
                                                     "type": "array",
                                                     "items": {
-                                                        "type": "object",
-                                                        "properties": {
-                                                            "is_liked": {
-                                                                "type": "boolean"
-                                                            },
-                                                            "items": {
-                                                                "$ref": "#/definitions/dto.ProductResponse"
-                                                            }
-                                                        }
+                                                        "$ref": "#/definitions/dto.ProductWithLike"
                                                     }
                                                 },
                                                 "total": {
@@ -4455,7 +4745,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/dto.ToggleLikeRequest"
                         }
                     }
                 ],
@@ -4471,12 +4761,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "liked": {
-                                                    "type": "boolean"
-                                                }
-                                            }
+                                            "$ref": "#/definitions/dto.ToggleLikeResponse"
                                         }
                                     }
                                 }
@@ -5265,6 +5550,196 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/settings": {
+            "get": {
+                "description": "Returns a list of all settings with their keys and values.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "List all settings",
+                "responses": {
+                    "200": {
+                        "description": "Settings list",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.SettingResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/{key}": {
+            "get": {
+                "description": "Returns the value (any JSON) for the given setting key.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Get a setting by key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Setting key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Setting found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SettingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Setting not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Upserts a setting by key. If the key exists, value is updated; otherwise created.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Create or update a setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Setting key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Setting payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SetSettingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Setting updated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SettingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "201": {
+                        "description": "Setting created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SettingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes a setting by its key. Admin only.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "settings"
+                ],
+                "summary": "Delete a setting",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Setting key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Setting deleted",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Setting not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -6391,6 +6866,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/menu/structure": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all menu groups and their items, nested and ordered, filtered by user's permissions.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User Menu"
+                ],
+                "summary": "Get user menu structure (grouped + nested)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search by label or href",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.MenuGroupResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "security": [
@@ -7078,6 +7607,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.BrandResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.BulkCategoryData": {
             "type": "object",
             "properties": {
@@ -7688,6 +8246,30 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateBrandRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "slug"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateCategoryRequest": {
             "type": "object",
             "required": [
@@ -8170,6 +8752,73 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.MenuGroupResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MenuItemResponse"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.MenuItemResponse": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MenuItemResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "display_order": {
+                    "type": "integer"
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "href": {
+                    "type": "string"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "permission": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.MenuListResponse": {
             "type": "object",
             "properties": {
@@ -8431,6 +9080,101 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ProductWithLike": {
+            "type": "object",
+            "properties": {
+                "barcode": {
+                    "type": "string"
+                },
+                "category": {
+                    "$ref": "#/definitions/dto.CategoryResponse"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "colors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "compare_at_price": {
+                    "type": "number"
+                },
+                "cost": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "is_digital": {
+                    "type": "boolean"
+                },
+                "is_liked": {
+                    "type": "boolean"
+                },
+                "is_new": {
+                    "type": "boolean"
+                },
+                "low_stock_threshold": {
+                    "type": "integer"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "reviews_count": {
+                    "type": "integer"
+                },
+                "sizes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "weight": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.RefreshResponse": {
             "type": "object",
             "properties": {
@@ -8589,6 +9333,46 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.SetSettingRequest": {
+            "type": "object",
+            "required": [
+                "value"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.SettingResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -8751,6 +9535,22 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ToggleLikeRequest": {
+            "type": "object",
+            "properties": {
+                "like": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ToggleLikeResponse": {
+            "type": "object",
+            "properties": {
+                "liked": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.TransactionResponse": {
             "type": "object",
             "properties": {
@@ -8851,6 +9651,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateBrandRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 }
             }
