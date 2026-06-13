@@ -265,3 +265,43 @@ func (cc *CouponController) GetMyCoupons(c *gin.Context) {
 
 	utils.SuccessResponse(c, "available coupons retrieved successfully", coupons)
 }
+
+// GetCouponByID retrieves a single coupon by ID (admin only).
+// @Summary      Get a coupon by ID
+// @Description  Returns a single coupon by its numeric ID. Only accessible by users with the "admin" role.
+// @Tags         Coupons
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Coupon ID"
+// @Success      200  {object}  dto.CouponSingleResponse
+// @Failure      400  {object}  utils.Response
+// @Failure      401  {object}  utils.Response
+// @Failure      403  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /coupons/{id} [get]
+func (cc *CouponController) GetCouponByID(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, 400, "invalid coupon ID")
+		return
+	}
+
+	coupon, err := cc.couponService.GetByID(uint(id))
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to find coupon")
+		return
+	}
+
+	resp := dto.CouponSingleResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.CouponData{Coupon: *coupon},
+	}
+	c.JSON(http.StatusOK, resp)
+}

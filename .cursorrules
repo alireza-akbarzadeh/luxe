@@ -1,0 +1,317 @@
+# ──────────────────────────────────────────────────────────────────
+# 1. PROJECT OVERVIEW
+# ──────────────────────────────────────────────────────────────────────────────
+description: |
+  This is a production‑grade Go (Golang) web application following the MVC pattern.
+  It uses Goose for database migrations, GORM as the ORM, and a standard layered architecture:
+  - Models (database schemas)
+  - DTOs (request/response)
+  - Services (business logic)
+  - Controllers (HTTP handlers)
+  - Routes (routing definitions)
+
+  All responses must use the `utils.Response` package that returns a consistent JSON structure.
+  Constants (statuses, roles, etc.) belong to the `constants` package.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. CODING STANDARDS & NAMING CONVENTIONS
+# ──────────────────────────────────────────────────────────────────────────────
+naming:
+  files:
+    models:    "{entity}_model.go"      # e.g., user_model.go
+    dto:       "{entity}_dto.go"       # e.g., user_dto.go
+    services:  "{entity}_service.go"   # e.g., user_service.go
+    controller:"{entity}_controller.go"# e.g., user_controller.go
+    routes:    "{entity}_routes.go"    # e.g., user_routes.go
+  structs: PascalCase
+  variables: camelCase
+  database:
+    tables:    snake_case (plural)
+    columns:   snake_case
+    foreign keys: fk_{table}_{ref_table}
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. DIRECTORY STRUCTURE (enforced)
+# ──────────────────────────────────────────────────────────────────────────────
+directories:
+  cmd/api/                  # main entry point
+  internal/
+    config/                 # configuration loading
+    constants/              # global constants (e.g., user roles, order status)
+    models/                 # GORM models
+    dto/                    # request/response DTOs
+    services/               # business logic interfaces & implementations
+    controllers/            # HTTP handlers (use utils.Response)
+    routes/                 # route definitions (Gin/Echo/Chi)
+    utils/                  # helpers, Response wrapper
+    database/               # DB connection & migration runner
+  migrations/               # goose migration files (up/down)
+  .env                      # environment variables
+  Makefile                  # includes make migration, make run, etc.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. GOOSE MIGRATION RULES
+# ──────────────────────────────────────────────────────────────────────────────
+goose:
+  create_command: "make migration name=<name>"   # creates timestamped .sql file
+  naming:        "<timestamp>_<name>.sql"
+  required_fields:
+    - up:        CREATE TABLE, ALTER, ADD COLUMN, etc.
+    - down:      DROP TABLE, REVERT ALTER, etc.
+  best_practices:
+    - Always provide both up and down migrations.
+    - Use IF NOT EXISTS / IF EXISTS for idempotency.
+    - Include indexes (CREATE INDEX IF NOT EXISTS).
+    - Use `timestamptz` for time columns (PostgreSQL) or `datetime` for others.
+    - Add `deleted_at` column for soft deletes (if needed).
+  example_up: |
+    CREATE TABLE IF NOT EXISTS users (
+        id BIGSERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        deleted_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  example_down: |
+    DROP TABLE IF EXISTS users;
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. MODELS (GORM)
+# ──────────────────────────────────────────────────────────────────────────────
+model_rules:
+  - Package: models
+  - Struct name: singular PascalCase (e.g., User, Product)
+  - Use gorm.Model for base fields (ID, CreatedAt, UpdatedAt, DeletedAt) OR define your own.
+  - Use proper GORM tags: `gorm:"column:xxx;type:...;index;default:..."`
+  - Use JSON tags for API serialization.
+  - For sensitive fields (password_hash), use `json:"-"` to omit from responses.
+  - Relationships: use `gorm:"foreignKey:UserID;references:ID"`
+  example: |
+    type User struct {
+        ID           uint      `gorm:"primaryKey" json:"id"`
+        Email        string    `gorm:"uniqueIndex;not null" json:"email"`
+        PasswordHash string    `gorm:"column:password_hash;not null" json:"-"`
+        FirstName    string    `gorm:"column:first_name" json:"first_name"`
+        LastName     string    `gorm:"column:last_name" json:"last_name"`
+        IsActive     bool      `gorm:"column:is_active;default:true" json:"is_active"`
+        CreatedAt    time.Time `gorm:"column:created_at" json:"created_at"`
+        UpdatedAt    time.Time `gorm:"column:updated_at" json:"updated_at"`
+        DeletedAt    *time.Time `gorm:"column:deleted_at;index" json:"deleted_at,omitempty"`
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. DTOs (Request / Response)
+# ──────────────────────────────────────────────────────────────────────────────
+dto_rules:
+  - Package: dto
+  - File: {entity}_dto.go
+  - Request types:   {Action}{Entity}Request   e.g., CreateUserRequest, UpdateUserRequest
+  - Response types:  {Entity}Response, {Entity}ListResponse, etc.
+  - Use validation tags from `go-playground/validator` (e.g., `validate:"required,email"`).
+  - Timestamps in responses should be formatted as RFC3339 (string) or omit.
+  - For pagination responses, include limit, offset, total, and data array.
+  example_request: |
+    type CreateUserRequest struct {
+        Email     string `json:"email" validate:"required,email"`
+        Password  string `json:"password" validate:"required,min=8"`
+        FirstName string `json:"first_name" validate:"omitempty,max=100"`
+        LastName  string `json:"last_name" validate:"omitempty,max=100"`
+    }
+  example_response: |
+    type UserResponse struct {
+        ID        uint   `json:"id"`
+        Email     string `json:"email"`
+        FirstName string `json:"first_name"`
+        LastName  string `json:"last_name"`
+        IsActive  bool   `json:"is_active"`
+        CreatedAt string `json:"created_at"`
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7. SERVICE LAYER
+# ──────────────────────────────────────────────────────────────────────────────
+service_rules:
+  - Package: services
+  - File: {entity}_service.go
+  - Define interface first, then struct implementation.
+  - Use dependency injection – accept *gorm.DB, repositories, other services as parameters.
+  - All service methods should accept context.Context as the first argument.
+  - Business logic (validation, hashing, transactions) goes here, not in controllers.
+  - Error handling: return custom domain errors (from utils/errors) or wrap with fmt.Errorf.
+  example: |
+    type UserService interface {
+        Create(ctx context.Context, req *dto.CreateUserRequest) (*models.User, error)
+        GetByID(ctx context.Context, id uint) (*models.User, error)
+        List(ctx context.Context, limit, offset int) ([]models.User, int64, error)
+    }
+
+    type userService struct {
+        db *gorm.DB
+    }
+
+    func NewUserService(db *gorm.DB) UserService {
+        return &userService{db: db}
+    }
+
+    func (s *userService) Create(ctx context.Context, req *dto.CreateUserRequest) (*models.User, error) {
+        // implementation
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 8. CONTROLLER (HTTP HANDLER)
+# ──────────────────────────────────────────────────────────────────────────────
+controller_rules:
+  - Package: controllers
+  - File: {entity}_controller.go
+  - Struct contains service dependencies.
+  - All methods return `utils.Response` (see below) – do NOT write raw JSON.
+  - Use standard HTTP status codes (http.StatusOK, http.StatusCreated, etc.).
+  - Extract query parameters (pagination, filters) and DTOs from request.
+  - Validate request DTOs using `validate.Struct()`.
+  - Call service methods and handle errors with `utils.Response` helpers.
+  example: |
+    type UserController struct {
+        userService services.UserService
+        validator   *validator.Validate
+    }
+
+    func NewUserController(userService services.UserService) *UserController {
+        return &UserController{
+            userService: userService,
+            validator:   validator.New(),
+        }
+    }
+
+    func (ctrl *UserController) Create(c *gin.Context) {
+        var req dto.CreateUserRequest
+        if err := c.ShouldBindJSON(&req); err != nil {
+            utils.BadRequest(c, "Invalid request body")
+            return
+        }
+        if err := ctrl.validator.Struct(&req); err != nil {
+            utils.ValidationError(c, err)
+            return
+        }
+        user, err := ctrl.userService.Create(c.Request.Context(), &req)
+        if err != nil {
+            utils.InternalServerError(c, err.Error())
+            return
+        }
+        utils.Created(c, user)
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. ROUTES
+# ──────────────────────────────────────────────────────────────────────────────
+routes_rules:
+  - Package: routes
+  - File: {entity}_routes.go (or consolidated in routes.go)
+  - Group routes by domain (e.g., /api/v1/users).
+  - Attach controllers methods with proper HTTP methods.
+  - Middleware (auth, logging, rate limit) applied at group level.
+  example: |
+    func SetupUserRoutes(r *gin.RouterGroup, ctrl *controllers.UserController) {
+        users := r.Group("/users")
+        {
+            users.POST("/", ctrl.Create)
+            users.GET("/:id", ctrl.GetByID)
+            users.GET("/", ctrl.List)
+            users.PUT("/:id", ctrl.Update)
+            users.DELETE("/:id", ctrl.Delete)
+        }
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 10. UTILS.RESPONSE PACKAGE
+# ──────────────────────────────────────────────────────────────────────────────
+response_rules:
+  - Package: utils
+  - File: response.go
+  - All controller responses must use these functions.
+  - Standard response structure: { "success": bool, "data": any, "message": string, "code": int }
+  - Functions to implement:
+      - OK(c, data)               (200)
+      - Created(c, data)          (201)
+      - NoContent(c)              (204)
+      - BadRequest(c, message)    (400)
+      - Unauthorized(c, message)  (401)
+      - Forbidden(c, message)     (403)
+      - NotFound(c, message)      (404)
+      - ValidationError(c, err)   (422)
+      - InternalServerError(c, message) (500)
+  example: |
+    type ApiResponse struct {
+        Success bool        `json:"success"`
+        Data    interface{} `json:"data,omitempty"`
+        Message string      `json:"message,omitempty"`
+        Code    int         `json:"code,omitempty"`
+    }
+
+    func OK(c *gin.Context, data interface{}) {
+        c.JSON(http.StatusOK, ApiResponse{Success: true, Data: data})
+    }
+
+    func BadRequest(c *gin.Context, message string) {
+        c.JSON(http.StatusBadRequest, ApiResponse{Success: false, Message: message, Code: http.StatusBadRequest})
+    }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 11. CONSTANTS PACKAGE
+# ──────────────────────────────────────────────────────────────────────────────
+constants_rules:
+  - Package: constants
+  - File: constants.go (split into multiple files if needed, e.g., user_constants.go)
+  - Define typed string constants (e.g., type UserRole string) for better type safety.
+  - Use iota for enums when applicable.
+  - Do not put configuration (DB URLs, API keys) here – use config package.
+  example: |
+    package constants
+
+    type UserRole string
+    const (
+        RoleAdmin   UserRole = "admin"
+        RoleUser    UserRole = "user"
+        RoleModerator UserRole = "moderator"
+    )
+
+    type OrderStatus string
+    const (
+        OrderPending   OrderStatus = "pending"
+        OrderPaid      OrderStatus = "paid"
+        OrderShipped   OrderStatus = "shipped"
+        OrderCompleted OrderStatus = "completed"
+        OrderCancelled OrderStatus = "cancelled"
+    )
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 12. MAKEFILE & COMMANDS
+# ──────────────────────────────────────────────────────────────────────────────
+makefile_commands:
+  - "make migration name=<name>"   – creates new goose migration
+  - "make migrate"                  – runs all pending migrations up
+  - "make rollback"                 – rolls back the most recent migration
+  - "make run"                      – runs the application
+  - "make build"                    – compiles the binary
+  - "make test"                     – runs tests
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 13. AI GENERATION RULES
+# ──────────────────────────────────────────────────────────────────────────────
+ai_generation:
+  - When generating code for a new entity, follow the order: migration → model → dto → service → controller → routes.
+  - Always include error handling that uses `utils.Response` helpers.
+  - Use `context.Context` everywhere.
+  - Validate input DTOs with `validator.Struct`.
+  - For database operations, use GORM with context (`.WithContext(ctx)`).
+  - Do not put business logic inside controllers.
+  - Use dependency injection – pass DB and services in constructors.
+  - Write tests for services (table-driven tests).
+  - Keep functions small and focused (single responsibility).
+  - Use meaningful variable names; avoid `data`, `temp`, `val`.
+  - Add comments for exported functions (Go convention).
+```

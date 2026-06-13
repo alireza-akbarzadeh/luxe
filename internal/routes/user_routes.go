@@ -17,7 +17,7 @@ func SetupUserRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	adminUsers := protected.Group("/users")
 	adminUsers.Use(middleware.RequireRole("admin"))
 	{
-		adminUsers.GET("/users", ctrl.User.GetAllUsers)
+		adminUsers.GET("/", ctrl.User.GetAllUsers)
 	}
 
 	userMe := protected.Group("/users/me")

@@ -75,7 +75,7 @@ func (ctrl *CategoryController) Create(c *gin.Context) {
 // @Failure      403     {object}  utils.Response
 // @Failure      404     {object}  utils.Response
 // @Failure      500     {object}  utils.Response
-// @Router       /categories/{id} [put]
+// @Router       /admin/categories/{id} [put]
 func (ctrl *CategoryController) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -119,7 +119,7 @@ func (ctrl *CategoryController) Update(c *gin.Context) {
 // @Failure      403  {object}  utils.Response
 // @Failure      404  {object}  utils.Response
 // @Failure      500  {object}  utils.Response
-// @Router       /categories/{id} [delete]
+// @Router       /admin/categories/{id} [delete]
 func (ctrl *CategoryController) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -187,6 +187,7 @@ func (ctrl *CategoryController) GetOne(c *gin.Context) {
 // @Param        offset      query     int     false  "Offset (skip number of items)"  default(0)  minimum(0)
 // @Param        is_active   query     bool    false  "Filter by active status (true/false)"
 // @Param        parent_id   query     int     false  "Filter by parent category ID"
+// @Param        search   	 query     string  false  "Filter by name  the name "
 // @Param        sort        query     string   false  "Sort order (popular, name)"
 // @Success      200         {object}  dto.CategoryListResponse
 // @Failure      400         {object}  utils.Response
@@ -233,7 +234,7 @@ func (ctrl *CategoryController) List(c *gin.Context) {
 // @Failure      401 {object} utils.Response
 // @Failure      403 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /categories/bulk [post]
+// @Router       /admin/categories/bulk [post]
 func (ctrl *CategoryController) BulkCreate(c *gin.Context) {
 	var reqs []dto.CreateCategoryRequest
 	if !utils.BindAndValidate(c, &reqs, ctrl.validate) {
@@ -274,7 +275,7 @@ func (ctrl *CategoryController) BulkCreate(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /categories/bulk [delete]
+// @Router       /admin/categories/bulk [delete]
 func (ctrl *CategoryController) BulkDelete(c *gin.Context) {
 	var req services.BulkDeleteCategoryRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
@@ -290,6 +291,47 @@ func (ctrl *CategoryController) BulkDelete(c *gin.Context) {
 			Message: "categories deleted successfully",
 			Code:    http.StatusOK,
 		},
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// GetCategoryByID retrieves a single category by ID (admin only).
+// @Summary      Get a category by ID (admin)
+// @Description  Returns a single category by its numeric ID. Only accessible by users with the "admin" role.
+// @Tags         Categories
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Category ID"
+// @Success      200  {object}  dto.CategorySingleResponse
+// @Failure      400  {object}  utils.Response
+// @Failure      401  {object}  utils.Response
+// @Failure      403  {object}  utils.Response
+// @Failure      404  {object}  utils.Response
+// @Failure      500  {object}  utils.Response
+// @Router       /admin/categories/{id} [get]
+func (ctrl *CategoryController) GetCategoryByID(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, 400, "invalid category ID")
+		return
+	}
+
+	category, err := ctrl.categoryService.GetByID(uint(id))
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to find category")
+		return
+	}
+
+	// Return same DTO format as other admin endpoints
+	resp := dto.CategorySingleResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.CategoryData{Category: *category},
 	}
 	c.JSON(http.StatusOK, resp)
 }

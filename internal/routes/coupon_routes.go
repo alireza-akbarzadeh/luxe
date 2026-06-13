@@ -21,5 +21,7 @@ func SetupCouponRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Con
 		admin.POST("/", ctrl.Coupon.Create)
 		admin.PUT("/:id", ctrl.Coupon.Update)
 		admin.DELETE("/:id", ctrl.Coupon.Delete)
+		admin.GET("/:id", ctrl.Coupon.GetCouponByID)
+
 	}
 }

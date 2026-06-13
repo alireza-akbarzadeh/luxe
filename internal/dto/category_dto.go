@@ -5,13 +5,13 @@ type CategoryListFilters struct {
 	Offset   int    `form:"offset" validate:"omitempty,min=0"`
 	IsActive *bool  `form:"is_active"`
 	ParentID *uint  `form:"parent_id" validate:"omitempty,gt=0"`
-	Sort     string `form:"sort"` // "popular" or "name"
-
+	Sort     string `form:"sort"`
+	Search   string `form:"search"`
 }
 
 type CreateCategoryRequest struct {
 	Name        string `json:"name" validate:"required,min=2,max=100"`
-	Slug        string `json:"slug" validate:"required,slug"`
+	Slug        string `json:"slug"`
 	Description string `json:"description,omitempty"`
 	ParentID    *uint  `json:"parent_id,omitempty"`
 	IsActive    bool   `json:"is_active"`
@@ -19,7 +19,7 @@ type CreateCategoryRequest struct {
 
 type UpdateCategoryRequest struct {
 	Name        *string `json:"name,omitempty" validate:"omitempty,min=2,max=100"`
-	Slug        *string `json:"slug,omitempty" validate:"omitempty,slug"`
+	Slug        *string `json:"slug,omitempty"`
 	Description *string `json:"description,omitempty"`
 	ParentID    *uint   `json:"parent_id,omitempty"`
 	IsActive    *bool   `json:"is_active,omitempty"`

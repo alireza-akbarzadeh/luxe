@@ -2,7 +2,6 @@ package dto
 
 import "time"
 
-// ---------- Requests ----------
 type CreateBrandRequest struct {
 	Name        string  `json:"name" binding:"required"`
 	Slug        string  `json:"slug" binding:"required"`

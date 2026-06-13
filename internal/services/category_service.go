@@ -182,14 +182,18 @@ func (s *categoryService) List(filters dto.CategoryListFilters) ([]models.Catego
 
 	// Base query for filtering (without product join)
 	baseQuery := s.db.Model(&models.Category{})
+
 	if filters.IsActive != nil {
 		baseQuery = baseQuery.Where("is_active = ?", *filters.IsActive)
 	}
 	if filters.ParentID != nil {
 		baseQuery = baseQuery.Where("parent_id = ?", *filters.ParentID)
 	}
+	if filters.Search != "" {
+		baseQuery = baseQuery.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Search+"%")
+	}
 
-	// Total count (before sorting and product join)
+	// Total count (now includes search)
 	var total int64
 	if err := baseQuery.Count(&total).Error; err != nil {
 		return nil, 0, utils.ErrInternal(err)
