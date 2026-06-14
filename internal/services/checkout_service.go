@@ -26,6 +26,7 @@ type checkoutService struct {
 	shipmentService     ShipmentServiceInterface
 	workerPool          *tasks.WorkerPool
 	hub                 *websocket.Hub
+	salesFeed           *SalesFeedService
 }
 
 func NewCheckoutService(
@@ -36,7 +37,7 @@ func NewCheckoutService(
 	shipmentService ShipmentServiceInterface,
 	workerPool *tasks.WorkerPool,
 	hub *websocket.Hub,
-
+	salesFeed *SalesFeedService,
 ) CheckoutServiceInterface {
 	return &checkoutService{
 		db:                  db,
@@ -46,6 +47,7 @@ func NewCheckoutService(
 		shipmentService:     shipmentService,
 		workerPool:          workerPool,
 		hub:                 hub,
+		salesFeed:           salesFeed,
 	}
 }
 
@@ -147,8 +149,10 @@ func (s *checkoutService) ProcessOrder(orderID uint, cardInfo dto.CardInfo) erro
 		// Broadcast success
 		s.broadcastOrderUpdate(order.ID, order.UserID, "payment_succeeded", map[string]interface{}{
 			"title":          "Payment Confirmed",
-			"message":        "Your payment has been successfully processed.",
+			"message":        fmt.Sprintf("Order %s paid successfully", order.OrderNumber),
 			"order_id":       order.ID,
+			"order_number":   order.OrderNumber,
+			"total_amount":   order.TotalAmount,
 			"transaction_id": order.Payment.TransactionID,
 			"status":         constants.OrderStatusPaid,
 		})
@@ -181,6 +185,30 @@ func (s *checkoutService) broadcastOrderUpdate(orderID, userID uint, eventType s
 			data,
 		)
 	}()
+
+	if s.salesFeed != nil {
+		switch eventType {
+		case "payment_succeeded":
+			totalAmount, _ := data["total_amount"].(float64)
+			orderNumber, _ := data["order_number"].(string)
+			title, _ := data["title"].(string)
+			message, _ := data["message"].(string)
+			s.salesFeed.PublishOrderEvent("payment", title, message, totalAmount)
+			s.salesFeed.PublishRevenueSnapshot(totalAmount, 1)
+			if orderNumber != "" {
+				s.salesFeed.PublishOrderEvent(
+					"new_order",
+					fmt.Sprintf("New order %s", orderNumber),
+					message,
+					totalAmount,
+				)
+			}
+		case "payment_failed":
+			title, _ := data["title"].(string)
+			message, _ := data["message"].(string)
+			s.salesFeed.PublishOrderEvent("cancellation", title, message, 0)
+		}
+	}
 }
 
 // processShipment handles the shipping steps (called after payment success)

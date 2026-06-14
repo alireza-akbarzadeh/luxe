@@ -25,17 +25,20 @@ type orderService struct {
 	db                  *gorm.DB
 	notificationService NotificationServiceInterface
 	hub                 *websocket.Hub
+	salesFeed           *SalesFeedService
 }
 
 func NewOrderService(
 	db *gorm.DB,
 	notificationService NotificationServiceInterface,
 	hub *websocket.Hub,
+	salesFeed *SalesFeedService,
 ) OrderServiceInterface {
 	return &orderService{
 		db:                  db,
 		notificationService: notificationService,
 		hub:                 hub,
+		salesFeed:           salesFeed,
 	}
 }
 
@@ -124,6 +127,30 @@ func (s *orderService) UpdateOrderStatus(orderID uint, status string) error {
 			Timestamp: time.Now(),
 		}
 		s.hub.BroadcastToRoom(roomID, message)
+	}
+
+	if s.salesFeed != nil {
+		eventType := "status_change"
+		title := fmt.Sprintf("Order %s updated", order.OrderNumber)
+		subtitle := fmt.Sprintf("Status changed to %s", status)
+		amount := order.TotalAmount
+
+		switch status {
+		case constants.OrderStatusPending:
+			eventType = "new_order"
+			title = fmt.Sprintf("New order %s", order.OrderNumber)
+			subtitle = fmt.Sprintf("Status: %s · $%.2f", status, amount)
+		case constants.OrderStatusCancelled:
+			eventType = "cancellation"
+			title = "Order cancelled"
+			subtitle = fmt.Sprintf("%s was cancelled", order.OrderNumber)
+		case constants.OrderStatusShipped:
+			eventType = "shipment"
+			title = "Order shipped"
+			subtitle = fmt.Sprintf("%s is on its way", order.OrderNumber)
+		}
+
+		s.salesFeed.PublishOrderEvent(eventType, title, subtitle, amount)
 	}
 
 	// Keep existing notification (persistent)

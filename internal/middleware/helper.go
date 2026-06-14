@@ -24,5 +24,9 @@ func ExtractToken(c *gin.Context) string {
 		return cookie
 	}
 
+	if token := strings.TrimSpace(c.Query("token")); token != "" {
+		return token
+	}
+
 	return ""
 }

@@ -30,6 +30,7 @@ type Container struct {
 	NavMenu  *NavMenuController
 	Brand    *BrandController
 	Settings *SettingController
+	WebSocket *WebSocketController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -58,5 +59,6 @@ func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 		NavMenu:  NewNavMenuController(svc.NavMenu),
 		Brand:    NewBrandController(svc.Brand),
 		Settings: NewSettingController(svc.Settings),
+		WebSocket: NewWebSocketController(svc),
 	}
 }

@@ -33,12 +33,14 @@ type Services struct {
 	NavMenu      NavMenuServiceInterface
 	Brand        BrandServiceInterface
 	Settings     SettingServiceInterface
+	SalesFeed    *SalesFeedService
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
 	// 1. WebSocket hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
+	salesFeedSvc := NewSalesFeedService(wsHub)
 
 	// 2. Services that depend on hub
 	notificationSvc := NewNotificationService(db, wsHub)
@@ -51,8 +53,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	shipmentSvc := NewShipmentService(db, workerPool, notificationSvc, wsHub)
 
 	// 5. Order service with all dependencies
-	orderSvc := NewOrderService(db, notificationSvc, wsHub)
-	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub)
+	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
+	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc)
 	// 5. Assemble all services
 	return &Services{
 		DB:           db,
@@ -79,5 +81,6 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
 		WebSocketHub: wsHub,
+		SalesFeed:    salesFeedSvc,
 	}
 }

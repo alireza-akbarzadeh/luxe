@@ -51,6 +51,11 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 
 	h.hub.register <- client
 
+	role, _ := middleware.GetUserRole(c)
+	if role == "admin" || role == "moderator" {
+		h.hub.JoinRoom(client, SalesFeedRoom)
+	}
+
 	welcomeMsg := Message{
 		Type:      EventUserOnline,
 		UserID:    userID,
@@ -134,7 +139,7 @@ func (h *Handler) handleMessage(client *Client, data []byte) {
 
 	switch msg.Type {
 	case "join_room":
-		if roomID, ok := msg.Data.(string); ok {
+		if roomID, ok := parseRoomID(msg.Data); ok {
 			h.hub.JoinRoom(client, roomID)
 			utils.Log.WithFields(map[string]interface{}{
 				"user_id": client.UserID,
@@ -143,7 +148,7 @@ func (h *Handler) handleMessage(client *Client, data []byte) {
 		}
 
 	case "leave_room":
-		if roomID, ok := msg.Data.(string); ok {
+		if roomID, ok := parseRoomID(msg.Data); ok {
 			h.hub.LeaveRoom(client, roomID)
 			utils.Log.WithFields(map[string]interface{}{
 				"user_id": client.UserID,
@@ -168,4 +173,21 @@ func (h *Handler) handleMessage(client *Client, data []byte) {
 			"msg_type": msg.Type,
 		}).Warn("Unknown WebSocket message type")
 	}
+}
+
+func parseRoomID(data interface{}) (string, bool) {
+	switch value := data.(type) {
+	case string:
+		return value, value != ""
+	case map[string]interface{}:
+		for _, key := range []string{"room_id", "room", "id"} {
+			if raw, ok := value[key]; ok {
+				if roomID, ok := raw.(string); ok && roomID != "" {
+					return roomID, true
+				}
+			}
+		}
+	}
+
+	return "", false
 }

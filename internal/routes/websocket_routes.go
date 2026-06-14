@@ -7,21 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupWebSocketRoutes(router *gin.Engine, wsController *controllers.WebSocketController, cfg *config.Config) {
-	ws := router.Group("/ws")
-	ws.Use(middleware.AuthMiddleware(cfg))
+// SetupWebSocketRoutes registers the realtime WebSocket upgrade and notification REST endpoints.
+func SetupWebSocketRoutes(v1 *gin.RouterGroup, protected *gin.RouterGroup, ctrl *controllers.Container, cfg *config.Config) {
+	v1.GET("/ws/connect", middleware.AuthMiddleware(cfg), ctrl.WebSocket.Connect)
+
+	ws := protected.Group("/ws")
 	{
-		// WebSocket connection endpoint
-		ws.GET("/connect", wsController.Connect)
-
-		// Notification endpoints
-		ws.GET("/notifications", wsController.GetNotifications)
-		ws.PUT("/notifications/:id/read", wsController.MarkNotificationAsRead)
-		ws.PUT("/notifications/read-all", wsController.MarkAllNotificationsAsRead)
-
-		// Chat endpoints
-		ws.POST("/chat/rooms", wsController.CreateChatRoom)
-		ws.POST("/chat/rooms/:room_id/messages", wsController.SendChatMessage)
-		ws.GET("/chat/rooms/:room_id/messages", wsController.GetChatMessages)
+		ws.GET("/notifications", ctrl.WebSocket.GetNotifications)
+		ws.PUT("/notifications/:id/read", ctrl.WebSocket.MarkNotificationAsRead)
+		ws.PUT("/notifications/read-all", ctrl.WebSocket.MarkAllNotificationsAsRead)
 	}
 }
