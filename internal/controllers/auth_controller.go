@@ -44,7 +44,7 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, user, err := ctrl.authService.Register(req)
+	accessToken, refreshToken, user, err := ctrl.authService.Register(req, sessionMetaFromContext(c))
 	if err != nil {
 		utils.HandleAppError(c, err, constants.MsgRegistrationFailed)
 		return
@@ -86,7 +86,7 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, user, err := ctrl.authService.Login(req)
+	accessToken, refreshToken, user, err := ctrl.authService.Login(req, sessionMetaFromContext(c))
 	if err != nil {
 		utils.HandleAppError(c, err, constants.MsgLoginFailed)
 		return
@@ -134,7 +134,7 @@ func (ctrl *AuthController) Refresh(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(req.RefreshToken)
+	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(req.RefreshToken, sessionMetaFromContext(c))
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to refresh tokens")
 		return
@@ -177,16 +177,10 @@ func (ctrl *AuthController) Refresh(c *gin.Context) {
 // @Failure      401 {object} dto.MessageResponse
 // @Router       /auth/logout [post]
 func (ctrl *AuthController) Logout(c *gin.Context) {
-	userID, ok := middleware.GetUserID(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
-		return
-	}
+	userID, _ := middleware.GetUserID(c)
 
 	var req services.LogoutRequest
-	if !utils.BindAndValidate(c, &req, ctrl.validate) {
-		return
-	}
+	_ = c.ShouldBindJSON(&req)
 
 	if err := ctrl.authService.Logout(userID, req); err != nil {
 		utils.InternalServerErrorResponse(c, err, "logout failed")
@@ -340,6 +334,103 @@ func (ctrl *AuthController) SendVerificationEmail(c *gin.Context) {
 	resp := dto.MessageResponse{
 		Success: true,
 		Message: "verification email sent",
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func sessionMetaFromContext(c *gin.Context) services.SessionMeta {
+	ip := c.ClientIP()
+	if forwarded := c.GetHeader("X-Forwarded-For"); forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		if len(parts) > 0 {
+			ip = strings.TrimSpace(parts[0])
+		}
+	}
+	if realIP := c.GetHeader("X-Real-IP"); realIP != "" {
+		ip = realIP
+	}
+
+	return services.SessionMeta{
+		UserAgent: c.GetHeader("User-Agent"),
+		IPAddress: ip,
+	}
+}
+
+// ListSessions returns active refresh-token sessions for the authenticated user.
+func (ctrl *AuthController) ListSessions(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	currentRefreshToken, _ := c.Cookie("refresh_token")
+	sessions, err := ctrl.authService.ListSessions(userID, currentRefreshToken)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to list sessions")
+		return
+	}
+
+	resp := dto.SessionsResponse{
+		Success: true,
+		Message: "sessions retrieved",
+		Data: dto.SessionsResponseData{
+			Sessions: sessions,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// RevokeSession revokes a single session by ID.
+func (ctrl *AuthController) RevokeSession(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var sessionID uint
+	if _, err := fmt.Sscan(c.Param("id"), &sessionID); err != nil || sessionID == 0 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid session id")
+		return
+	}
+
+	if err := ctrl.authService.RevokeSession(userID, sessionID); err != nil {
+		utils.HandleAppError(c, err, "failed to revoke session")
+		return
+	}
+
+	resp := dto.MessageResponse{
+		Success: true,
+		Message: "session revoked",
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// RevokeOtherSessions revokes all sessions except the current refresh token.
+func (ctrl *AuthController) RevokeOtherSessions(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var req dto.RevokeSessionsRequest
+	_ = c.ShouldBindJSON(&req)
+
+	currentRefreshToken := req.RefreshToken
+	if currentRefreshToken == "" {
+		currentRefreshToken, _ = c.Cookie("refresh_token")
+	}
+
+	if err := ctrl.authService.RevokeOtherSessions(userID, currentRefreshToken); err != nil {
+		utils.HandleAppError(c, err, "failed to revoke other sessions")
+		return
+	}
+
+	resp := dto.MessageResponse{
+		Success: true,
+		Message: "other sessions revoked",
 	}
 	c.JSON(http.StatusOK, resp)
 }

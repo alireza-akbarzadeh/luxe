@@ -31,6 +31,29 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" binding:"required,min=6"`
 }
 
+type SessionResponse struct {
+	ID         uint   `json:"id"`
+	UserAgent  string `json:"user_agent"`
+	IPAddress  string `json:"ip_address"`
+	LastUsedAt string `json:"last_used_at"`
+	CreatedAt  string `json:"created_at"`
+	IsCurrent  bool   `json:"is_current"`
+}
+
+type SessionsResponseData struct {
+	Sessions []SessionResponse `json:"sessions"`
+}
+
+type SessionsResponse struct {
+	Success bool                 `json:"success"`
+	Message string               `json:"message"`
+	Data    SessionsResponseData `json:"data"`
+}
+
+type RevokeSessionsRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
 type LoginResponseData struct {
 	User         UserResponse `json:"user"`
 	AccessToken  string       `json:"access_token"`

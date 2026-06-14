@@ -2,24 +2,31 @@ package routes
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 // SetupAuthRoutes registers all authentication routes (public + protected)
 func SetupAuthRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
-	// 1. Public auth endpoints (no auth required)
-	authGroup := public.Group("/auth")
+	authPublic := public.Group("/auth")
+	authPublic.Use(middleware.RateLimitMiddleware(rate.Limit(1), 5))
 	{
-		authGroup.POST("/register", ctrl.Auth.Register)
-		authGroup.POST("/login", ctrl.Auth.Login)
+		authPublic.POST("/register", ctrl.Auth.Register)
+		authPublic.POST("/login", ctrl.Auth.Login)
+		authPublic.POST("/forgot-password", ctrl.Auth.ForgotPassword)
+		authPublic.POST("/reset-password", ctrl.Auth.ResetPassword)
+		authPublic.POST("/refresh", ctrl.Auth.Refresh)
+		authPublic.GET("/verify-email", ctrl.Auth.VerifyEmail)
+		authPublic.POST("/logout", ctrl.Auth.Logout)
 	}
-	authGroup.POST("/forgot-password", ctrl.Auth.ForgotPassword)
-	authGroup.POST("/reset-password", ctrl.Auth.ResetPassword)
-	authGroup.POST("/refresh", ctrl.Auth.Refresh)
 
-	authGroup.GET("/verify-email", ctrl.Auth.VerifyEmail)
-	// 2. Protected auth endpoints (require a valid JWT token)
-	authGroup.POST("/send-verification", ctrl.Auth.SendVerificationEmail)
-	authGroup.POST("/logout", ctrl.Auth.Logout)
-	authGroup.POST("/change-password", ctrl.Auth.ChangePassword)
+	authProtected := protected.Group("/auth")
+	{
+		authProtected.GET("/sessions", ctrl.Auth.ListSessions)
+		authProtected.DELETE("/sessions/:id", ctrl.Auth.RevokeSession)
+		authProtected.DELETE("/sessions", ctrl.Auth.RevokeOtherSessions)
+		authProtected.POST("/send-verification", ctrl.Auth.SendVerificationEmail)
+		authProtected.POST("/change-password", ctrl.Auth.ChangePassword)
+	}
 }

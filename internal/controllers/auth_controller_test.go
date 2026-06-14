@@ -23,18 +23,18 @@ type MockAuthService struct {
 	services.AuthServiceInterface
 }
 
-func (m *MockAuthService) Login(req dto.LoginRequest) (string, string, *models.User, error) {
-	args := m.Called(req)
+func (m *MockAuthService) Login(req dto.LoginRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+	args := m.Called(req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) Register(req dto.RegisterRequest) (string, string, *models.User, error) {
-	args := m.Called(req)
+func (m *MockAuthService) Register(req dto.RegisterRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+	args := m.Called(req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) RefreshTokens(refreshToken string) (string, string, error) {
-	args := m.Called(refreshToken)
+func (m *MockAuthService) RefreshTokens(refreshToken string, meta services.SessionMeta) (string, string, error) {
+	args := m.Called(refreshToken, meta)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
@@ -75,7 +75,7 @@ func TestAuthController_Login(t *testing.T) {
 		mockAuthService.On("Login", dto.LoginRequest{
 			Email:    "test@example.com",
 			Password: "password123",
-		}).Return("access_token", "refresh_token", expectedUser, nil).Once()
+		}, mock.Anything).Return("access_token", "refresh_token", expectedUser, nil).Once()
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)
 		body := `{"email":"test@example.com","password":"password123"}`
@@ -96,7 +96,7 @@ func TestAuthController_Login(t *testing.T) {
 		mockAuthService.On("Login", dto.LoginRequest{
 			Email:    "wrong@example.com",
 			Password: "wrong",
-		}).Return("", "", (*models.User)(nil), utils.ErrUnauthorized("invalid email or password")).Once()
+		}, mock.Anything).Return("", "", (*models.User)(nil), utils.ErrUnauthorized("invalid email or password")).Once()
 
 		w := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(w)

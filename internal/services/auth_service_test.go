@@ -53,7 +53,7 @@ func TestAuthService_Login(t *testing.T) {
 			AddRow(user.ID, user.Email, user.PasswordHash, user.IsActive, user.Role, nil)
 
 		mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "users" WHERE email = $1`) + `.*`).
-			WithArgs("test@example.com").
+			WithArgs("test@example.com", sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
 		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)+`.*`).
@@ -62,13 +62,13 @@ func TestAuthService_Login(t *testing.T) {
 
 		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "refresh_tokens"`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 
 		accessToken, refreshToken, returnedUser, err := svc.Login(dto.LoginRequest{
 			Email: "test@example.com", Password: "password123",
-		})
+		}, SessionMeta{})
 
 		assert.NoError(t, err)
 		assert.NotEmpty(t, accessToken)
@@ -86,7 +86,8 @@ func TestAuthService_Login(t *testing.T) {
 
 		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
 			Email:    "nonexistent@example.com",
-			Password: "anything"})
+			Password: "anything",
+		}, SessionMeta{})
 
 		assert.Error(t, err)
 		assert.Empty(t, accessToken)
@@ -106,7 +107,7 @@ func TestAuthService_Login(t *testing.T) {
 		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
 			Email:    "test@example.con",
 			Password: "123456",
-		})
+		}, SessionMeta{})
 
 		assert.Error(t, err)
 		assert.Empty(t, accessToken)
@@ -126,7 +127,7 @@ func TestAuthService_Login(t *testing.T) {
 		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
 			Email:    "test@example.com",
 			Password: "password123",
-		})
+		}, SessionMeta{})
 		assert.Error(t, err)
 		assert.Empty(t, accessToken)
 		assert.Empty(t, refreshToken)

@@ -67,9 +67,7 @@ func GetUserRole(c *gin.Context) (string, bool) {
 func GuestAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := ExtractToken(c)
-		utils.Log.Infof("GuestAuth: tokenString = %q", tokenString) // log the token
 		if tokenString == "" {
-			utils.Log.Info("GuestAuth: no token, proceeding")
 			c.Next()
 			return
 		}
@@ -78,7 +76,6 @@ func GuestAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			c.Next()
 			return
 		}
-		utils.Log.Infof("GuestAuth: setting user_id = %v", claims.UserID)
 		c.Set("user_id", claims.UserID)
 		c.Set("user_email", claims.Email)
 		c.Set("user_role", claims.Role)
