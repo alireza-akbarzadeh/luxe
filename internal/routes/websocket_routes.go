@@ -16,5 +16,11 @@ func SetupWebSocketRoutes(v1 *gin.RouterGroup, protected *gin.RouterGroup, ctrl 
 		ws.GET("/notifications", ctrl.WebSocket.GetNotifications)
 		ws.PUT("/notifications/:id/read", ctrl.WebSocket.MarkNotificationAsRead)
 		ws.PUT("/notifications/read-all", ctrl.WebSocket.MarkAllNotificationsAsRead)
+
+		wsAdmin := ws.Group("")
+		wsAdmin.Use(middleware.RequireRole("admin"))
+		{
+			wsAdmin.POST("/notifications/test", ctrl.WebSocket.SendTestNotification)
+		}
 	}
 }

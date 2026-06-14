@@ -107,6 +107,53 @@ func (wc *WebSocketController) MarkAllNotificationsAsRead(c *gin.Context) {
 	utils.SuccessResponse(c, "all notifications marked as read", nil)
 }
 
+// SendTestNotification creates a notification and pushes it over WebSocket (admin only).
+func (wc *WebSocketController) SendTestNotification(c *gin.Context) {
+	var req struct {
+		UserID  uint                   `json:"user_id" binding:"required"`
+		Type    string                 `json:"type"`
+		Title   string                 `json:"title"`
+		Message string                 `json:"message"`
+		Data    map[string]interface{} `json:"data"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if req.Type == "" {
+		req.Type = "order_update"
+	}
+	if req.Title == "" {
+		req.Title = "Test notification"
+	}
+	if req.Message == "" {
+		req.Message = "This is a test notification from the API."
+	}
+	if req.Data == nil {
+		req.Data = map[string]interface{}{"source": "test_endpoint"}
+	}
+
+	if err := wc.services.Notification.CreateNotification(
+		req.UserID,
+		req.Type,
+		req.Title,
+		req.Message,
+		req.Data,
+	); err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.SuccessResponse(c, "test notification sent successfully", gin.H{
+		"user_id": req.UserID,
+		"type":    req.Type,
+		"title":   req.Title,
+		"message": req.Message,
+	})
+}
+
 // CreateChatRoom creates a new chat room for customer support
 func (wc *WebSocketController) CreateChatRoom(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
