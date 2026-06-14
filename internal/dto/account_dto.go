@@ -23,6 +23,7 @@ type DashboardSummaryResponse struct {
 	Phone                  string             `json:"phone"`
 	Role                   string             `json:"role"`
 	IsActive               bool               `json:"is_active"`
+	EmailVerifiedAt        *time.Time         `json:"email_verified_at,omitempty"`
 	CreatedAt              time.Time          `json:"created_at"`
 	DefaultShippingAddress *DefaultAddressDTO `json:"default_shipping_address,omitempty"`
 	DefaultBillingAddress  *DefaultAddressDTO `json:"default_billing_address,omitempty"`

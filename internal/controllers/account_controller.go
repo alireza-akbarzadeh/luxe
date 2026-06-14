@@ -90,6 +90,7 @@ func (ac *AccountController) GetAccountSummary(c *gin.Context) {
 		Phone:                  user.Phone,
 		Role:                   user.Role,
 		IsActive:               user.IsActive,
+		EmailVerifiedAt:        user.EmailVerifiedAt,
 		CreatedAt:              user.CreatedAt,
 		DefaultShippingAddress: toAddressDTO(shippingAddr),
 		DefaultBillingAddress:  toAddressDTO(billingAddr),
