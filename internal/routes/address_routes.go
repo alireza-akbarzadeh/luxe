@@ -6,14 +6,11 @@ import (
 )
 
 func SetupAddressRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
-	address := protected.Group("/addresses")
-	{
-		address.POST("/", ctrl.Address.Create)
-		address.GET("/", ctrl.Address.List)
-		address.PUT("/:id", ctrl.Address.Update)
-		address.DELETE("/:id", ctrl.Address.Delete)
-		address.PATCH("/:id/default", ctrl.Address.SetDefault)
-		address.GET("/default", ctrl.Address.GetDefault)
-
-	}
+	// Register without a trailing slash — Gin's RedirectTrailingSlash 301 breaks browser CORS.
+	protected.GET("/addresses", ctrl.Address.List)
+	protected.POST("/addresses", ctrl.Address.Create)
+	protected.PUT("/addresses/:id", ctrl.Address.Update)
+	protected.DELETE("/addresses/:id", ctrl.Address.Delete)
+	protected.PATCH("/addresses/:id/default", ctrl.Address.SetDefault)
+	protected.GET("/addresses/default", ctrl.Address.GetDefault)
 }

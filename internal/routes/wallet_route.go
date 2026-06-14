@@ -8,14 +8,12 @@ import (
 
 // SetupWalletRoutes registers wallet endpoints.
 func SetupWalletRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
-	wallet := protected.Group("/wallet")
-	{
-		wallet.GET("/", ctrl.Wallet.GetWallet)
-		wallet.POST("/deposit", ctrl.Wallet.Deposit)
-		wallet.POST("/withdraw", ctrl.Wallet.Withdraw)
-		wallet.GET("/transactions/:id", ctrl.Wallet.GetTransaction)
-		wallet.POST("/deposit/:id/cancel", ctrl.Wallet.CancelPendingDeposit)
-	}
+	// Register without trailing slashes — Gin's RedirectTrailingSlash 301 breaks browser/proxy calls.
+	protected.GET("/wallet", ctrl.Wallet.GetWallet)
+	protected.POST("/wallet/deposit", ctrl.Wallet.Deposit)
+	protected.POST("/wallet/withdraw", ctrl.Wallet.Withdraw)
+	protected.GET("/wallet/transactions/:id", ctrl.Wallet.GetTransaction)
+	protected.POST("/wallet/deposit/:id/cancel", ctrl.Wallet.CancelPendingDeposit)
 
 	// Admin wallet management
 	admin := protected.Group("/admin/wallet")

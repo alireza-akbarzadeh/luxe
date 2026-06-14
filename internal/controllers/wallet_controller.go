@@ -115,7 +115,10 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 		utils.HandleAppError(c, err, "failed to deposit")
 		return
 	}
-	_ = ctrl.walletService.ConfirmDeposit(txID)
+	if err := ctrl.walletService.ConfirmDeposit(txID); err != nil {
+		utils.HandleAppError(c, err, "failed to confirm deposit")
+		return
+	}
 	utils.SuccessResponse(c, "deposit initiated", gin.H{
 		"transaction_id": txID,
 		"status":         "completed",

@@ -130,10 +130,18 @@ func (w *walletService) ConfirmDeposit(transactionID uint) error {
 		if txRecord.Status != "pending" {
 			return utils.ErrBadRequest("transaction already processed")
 		}
-		// Lock wallet row
+		// Lock wallet row (create on first deposit if missing).
 		var wallet models.Wallet
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("user_id = ?", txRecord.UserID).First(&wallet).Error; err != nil {
-			return err
+		err := tx.Set("gorm:query_option", "FOR UPDATE").Where("user_id = ?", txRecord.UserID).First(&wallet).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				wallet = models.Wallet{UserID: txRecord.UserID, Balance: 0, Currency: "USD"}
+				if err := tx.Create(&wallet).Error; err != nil {
+					return utils.ErrInternal(err)
+				}
+			} else {
+				return utils.ErrInternal(err)
+			}
 		}
 		newBalance := wallet.Balance + txRecord.Amount
 		wallet.Balance = newBalance

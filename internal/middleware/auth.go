@@ -10,6 +10,11 @@ import (
 // AuthMiddleware validates the JWT token and stores user info in context.
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		tokenString := ExtractToken(c)
 		if tokenString == "" {
 			utils.UnauthorizedResponse(c, constants.ErrorMissingAuthHeader)
