@@ -13,13 +13,18 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Cont
 		stores.GET("", ctrl.Store.ListStores)
 		stores.GET("/:slug", ctrl.Store.GetStore)
 		stores.GET("/:slug/products", ctrl.Store.GetStoreProducts)
+		stores.GET("/:slug/reviews", ctrl.Store.GetStoreReviews)
 	}
 
-	// Protected (authenticated) routes for follow/unfollow
+	// Protected (authenticated) routes for follow/unfollow and reviews
 	protectedStores := protected.Group("/stores")
 	{
 		protectedStores.POST("/:slug/follow", ctrl.Store.FollowStore)
 		protectedStores.DELETE("/:slug/follow", ctrl.Store.UnfollowStore)
+		protectedStores.GET("/:slug/reviews/me", ctrl.Store.GetMyStoreReview)
+		protectedStores.POST("/:slug/reviews", ctrl.Store.CreateStoreReview)
+		protectedStores.PUT("/:slug/reviews/:reviewId", ctrl.Store.UpdateStoreReview)
+		protectedStores.DELETE("/:slug/reviews/:reviewId", ctrl.Store.DeleteStoreReview)
 	}
 
 	// Admin routes – use a separate prefix to avoid wildcard conflict

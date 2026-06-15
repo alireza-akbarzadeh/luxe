@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,6 +24,11 @@ type StoreServiceInterface interface {
 	UnfollowStore(userID, storeID uint) error
 	IsFollowing(userID, storeID uint) (bool, error)
 	GetFollowedStoreIDs(userID uint, storeIDs []uint) (map[uint]bool, error)
+	ListStoreReviews(storeID uint, limit, offset int) ([]models.StoreReview, int64, dto.StoreReviewSummary, error)
+	GetUserStoreReview(userID, storeID uint) (*models.StoreReview, error)
+	CreateStoreReview(userID, storeID uint, req dto.CreateStoreReviewRequest) (*models.StoreReview, error)
+	UpdateStoreReview(userID, reviewID uint, req dto.UpdateStoreReviewRequest) (*models.StoreReview, error)
+	DeleteStoreReview(userID, reviewID uint) error
 }
 
 type storeService struct {
@@ -324,4 +330,167 @@ func (s *storeService) GetFollowedStoreIDs(userID uint, storeIDs []uint) (map[ui
 		result[f.StoreID] = true
 	}
 	return result, nil
+}
+
+func (s *storeService) updateStoreReviewStats(storeID uint) {
+	var result struct {
+		AvgRating float64
+		Count     int64
+	}
+	s.db.Model(&models.StoreReview{}).
+		Select("COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as count").
+		Where("store_id = ?", storeID).
+		Scan(&result)
+
+	s.db.Model(&models.Store{}).Where("id = ?", storeID).
+		Updates(map[string]interface{}{
+			"rating":       result.AvgRating,
+			"review_count": result.Count,
+		})
+}
+
+func (s *storeService) buildStoreReviewSummary(storeID uint) (dto.StoreReviewSummary, error) {
+	summary := dto.StoreReviewSummary{
+		Counts: map[string]int{"1": 0, "2": 0, "3": 0, "4": 0, "5": 0},
+	}
+
+	var result struct {
+		AvgRating float64
+		Count     int64
+	}
+	if err := s.db.Model(&models.StoreReview{}).
+		Select("COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as count").
+		Where("store_id = ?", storeID).
+		Scan(&result).Error; err != nil {
+		return summary, utils.ErrInternal(err)
+	}
+
+	summary.Average = result.AvgRating
+	summary.Total = result.Count
+
+	type ratingCount struct {
+		Rating int
+		Count  int
+	}
+	var rows []ratingCount
+	if err := s.db.Model(&models.StoreReview{}).
+		Select("rating, COUNT(*) as count").
+		Where("store_id = ?", storeID).
+		Group("rating").
+		Scan(&rows).Error; err != nil {
+		return summary, utils.ErrInternal(err)
+	}
+
+	for _, row := range rows {
+		summary.Counts[strconv.Itoa(row.Rating)] = row.Count
+	}
+
+	return summary, nil
+}
+
+// ListStoreReviews returns paginated reviews and rating summary for a store.
+func (s *storeService) ListStoreReviews(storeID uint, limit, offset int) ([]models.StoreReview, int64, dto.StoreReviewSummary, error) {
+	summary, err := s.buildStoreReviewSummary(storeID)
+	if err != nil {
+		return nil, 0, summary, err
+	}
+
+	var reviews []models.StoreReview
+	query := s.db.Model(&models.StoreReview{}).Where("store_id = ?", storeID)
+	if err := query.Preload("User").Order("created_at DESC").Limit(limit).Offset(offset).Find(&reviews).Error; err != nil {
+		return nil, 0, summary, utils.ErrInternal(err)
+	}
+
+	return reviews, summary.Total, summary, nil
+}
+
+// GetUserStoreReview returns the authenticated user's review for a store, if any.
+func (s *storeService) GetUserStoreReview(userID, storeID uint) (*models.StoreReview, error) {
+	var review models.StoreReview
+	err := s.db.Preload("User").Where("user_id = ? AND store_id = ?", userID, storeID).First(&review).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return &review, nil
+}
+
+// CreateStoreReview adds a review and recalculates store rating stats.
+func (s *storeService) CreateStoreReview(userID, storeID uint, req dto.CreateStoreReviewRequest) (*models.StoreReview, error) {
+	var existing models.StoreReview
+	err := s.db.Where("user_id = ? AND store_id = ?", userID, storeID).First(&existing).Error
+	if err == nil {
+		return nil, utils.ErrBadRequest("you have already reviewed this store")
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, utils.ErrInternal(err)
+	}
+
+	review := &models.StoreReview{
+		StoreID: storeID,
+		UserID:  userID,
+		Rating:  req.Rating,
+		Comment: req.Comment,
+	}
+	if err := s.db.Create(review).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	s.updateStoreReviewStats(storeID)
+
+	if err := s.db.Preload("User").First(review, review.ID).Error; err != nil {
+		return review, nil
+	}
+	return review, nil
+}
+
+// UpdateStoreReview updates a review owned by the user.
+func (s *storeService) UpdateStoreReview(userID, reviewID uint, req dto.UpdateStoreReviewRequest) (*models.StoreReview, error) {
+	var review models.StoreReview
+	err := s.db.Where("id = ? AND user_id = ?", reviewID, userID).First(&review).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("review not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+
+	if req.Rating != nil {
+		review.Rating = *req.Rating
+	}
+	if req.Comment != nil {
+		review.Comment = *req.Comment
+	}
+
+	if err := s.db.Save(&review).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	s.updateStoreReviewStats(review.StoreID)
+
+	if err := s.db.Preload("User").First(&review, review.ID).Error; err != nil {
+		return &review, nil
+	}
+	return &review, nil
+}
+
+// DeleteStoreReview removes a review owned by the user.
+func (s *storeService) DeleteStoreReview(userID, reviewID uint) error {
+	var review models.StoreReview
+	err := s.db.Where("id = ? AND user_id = ?", reviewID, userID).First(&review).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("review not found")
+		}
+		return utils.ErrInternal(err)
+	}
+
+	if err := s.db.Delete(&review).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+
+	s.updateStoreReviewStats(review.StoreID)
+	return nil
 }

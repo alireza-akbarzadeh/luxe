@@ -17,13 +17,15 @@ import (
 type ProductController struct {
 	productService  services.ProductServiceInterface
 	userLikeService services.UsertLikeServiceInterface
+	pdpService      services.PdpServiceInterface
 	validate        *validator.Validate
 }
 
-func NewProductController(ps services.ProductServiceInterface, uls services.UsertLikeServiceInterface) *ProductController {
+func NewProductController(ps services.ProductServiceInterface, uls services.UsertLikeServiceInterface, pdp services.PdpServiceInterface) *ProductController {
 	return &ProductController{
 		productService:  ps,
 		userLikeService: uls,
+		pdpService:      pdp,
 		validate:        validator.New(),
 	}
 }
@@ -52,6 +54,7 @@ func (ctrl *ProductController) Create(c *gin.Context) {
 		utils.HandleAppError(c, err, "failed to create product")
 		return
 	}
+	_ = ctrl.pdpService.RecordPriceSnapshot(product)
 	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToProductResponse(*product))
 }
 
@@ -81,10 +84,21 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
+	existing, err := ctrl.productService.GetByID(uint(id))
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch product")
+		return
+	}
+	oldStock := existing.Stock
+
 	product, err := ctrl.productService.Update(uint(id), req)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to update product")
 		return
+	}
+	_ = ctrl.pdpService.RecordPriceSnapshot(product)
+	if oldStock == 0 && product.Stock > 0 {
+		_ = ctrl.pdpService.NotifyBackInStock(product.ID, product.Name, product.Slug)
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(*product))
 }
@@ -123,7 +137,7 @@ func (ctrl *ProductController) Delete(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        id   path string true "Product identifier (ID or slug)"
-// @Success      200 {object} utils.Response{data=object{product=dto.ProductResponse,is_liked=bool}}
+// @Success      200 {object} utils.Response{data=object{product=dto.ProductResponse,is_liked=bool,stock_subscribed=bool}}
 // @Failure      400 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
@@ -145,16 +159,22 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 	}
 
 	isLiked := false
+	stockSubscribed := false
 	if userID, ok := middleware.GetUserID(c); ok {
 		liked, err := ctrl.userLikeService.IsLikedByUser(userID, product.ID)
 		if err == nil {
 			isLiked = liked
 		}
+		subscribed, err := ctrl.pdpService.IsStockSubscribed(userID, product.ID)
+		if err == nil {
+			stockSubscribed = subscribed
+		}
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
-		"product":  dto.ToProductResponse(*product),
-		"is_liked": isLiked,
+		"product":           dto.ToProductResponse(*product),
+		"is_liked":          isLiked,
+		"stock_subscribed":  stockSubscribed,
 	})
 }
 

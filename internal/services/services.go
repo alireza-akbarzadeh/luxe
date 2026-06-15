@@ -33,6 +33,7 @@ type Services struct {
 	NavMenu      NavMenuServiceInterface
 	Brand        BrandServiceInterface
 	Settings     SettingServiceInterface
+	Pdp          PdpServiceInterface
 	SalesFeed    *SalesFeedService
 }
 
@@ -56,6 +57,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
 	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc)
 	// 5. Assemble all services
+	productSvc := NewProductService(db)
 	return &Services{
 		DB:           db,
 		Auth:         NewAuthServices(db, cfg),
@@ -63,7 +65,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		User:         NewUserService(db, cfg),
 		Cart:         NewCartService(db),
 		NavMenu:      NewNavMenuService(db),
-		Product:      NewProductService(db),
+		Product:      productSvc,
+		Pdp:          NewPdpService(db, notificationSvc, productSvc),
 		Compare:      NewCompareService(db),
 		Category:     NewCategoryService(db),
 		Address:      NewAddressService(db),

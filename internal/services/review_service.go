@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -13,7 +14,7 @@ type ReviewServiceInterface interface {
 	Create(userID uint, req dto.CreateReviewRequest) (*models.Review, error)
 	Update(userID, reviewID uint, req dto.UpdateReviewRequest) (*models.Review, error)
 	Delete(userID, reviewID uint) error
-	GetProductReviews(productID uint, limit, offset int) ([]models.Review, int64, error)
+	GetProductReviews(productID uint, limit, offset int) ([]models.Review, int64, dto.ReviewSummary, error)
 	GetUserReviewForProduct(userID, productID uint) (*models.Review, error)
 }
 
@@ -35,7 +36,6 @@ func (s *reviewService) Create(userID uint, req dto.CreateReviewRequest) (*model
 		return nil, utils.ErrInternal(err)
 	}
 
-	// Create review
 	review := &models.Review{
 		ProductID: req.ProductID,
 		UserID:    userID,
@@ -47,7 +47,6 @@ func (s *reviewService) Create(userID uint, req dto.CreateReviewRequest) (*model
 		return nil, utils.ErrInternal(err)
 	}
 
-	// Update product rating and reviews count
 	s.updateProductStats(req.ProductID)
 
 	return review, nil
@@ -56,7 +55,7 @@ func (s *reviewService) Create(userID uint, req dto.CreateReviewRequest) (*model
 // Update review and recalc product stats.
 func (s *reviewService) Update(userID, reviewID uint, req dto.UpdateReviewRequest) (*models.Review, error) {
 	var review models.Review
-	err := s.db.Where("id = ? AND user_id = ?", reviewID, userID).First(&review).Error
+	err := s.db.Preload("User").Where("id = ? AND user_id = ?", reviewID, userID).First(&review).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("review not found")
@@ -99,7 +98,6 @@ func (s *reviewService) Delete(userID, reviewID uint) error {
 	return nil
 }
 
-// Helper: recalc average rating and count for a product.
 func (s *reviewService) updateProductStats(productID uint) {
 	var result struct {
 		AvgRating float32
@@ -117,29 +115,68 @@ func (s *reviewService) updateProductStats(productID uint) {
 		})
 }
 
-// GetProductReviews returns paginated reviews for a product.
-func (s *reviewService) GetProductReviews(productID uint, limit, offset int) ([]models.Review, int64, error) {
-	var reviews []models.Review
-	var total int64
-
-	query := s.db.Model(&models.Review{}).Where("product_id = ?", productID)
-	query.Count(&total)
-
-	// Preload the User relation – this populates the `User` field
-	err := query.Preload("User").Limit(limit).Offset(offset).Find(&reviews).Error
-	if err != nil {
-		return nil, 0, err
+func (s *reviewService) buildReviewSummary(productID uint) (dto.ReviewSummary, error) {
+	summary := dto.ReviewSummary{
+		Counts: map[string]int{"1": 0, "2": 0, "3": 0, "4": 0, "5": 0},
 	}
-	return reviews, total, nil
+
+	var result struct {
+		AvgRating float64
+		Count     int64
+	}
+	if err := s.db.Model(&models.Review{}).
+		Select("COALESCE(AVG(rating), 0) as avg_rating, COUNT(*) as count").
+		Where("product_id = ?", productID).
+		Scan(&result).Error; err != nil {
+		return summary, utils.ErrInternal(err)
+	}
+
+	summary.Average = result.AvgRating
+	summary.Total = result.Count
+
+	type ratingCount struct {
+		Rating int
+		Count  int
+	}
+	var rows []ratingCount
+	if err := s.db.Model(&models.Review{}).
+		Select("rating, COUNT(*) as count").
+		Where("product_id = ?", productID).
+		Group("rating").
+		Scan(&rows).Error; err != nil {
+		return summary, utils.ErrInternal(err)
+	}
+
+	for _, row := range rows {
+		summary.Counts[strconv.Itoa(row.Rating)] = row.Count
+	}
+
+	return summary, nil
+}
+
+// GetProductReviews returns paginated reviews and rating summary for a product.
+func (s *reviewService) GetProductReviews(productID uint, limit, offset int) ([]models.Review, int64, dto.ReviewSummary, error) {
+	summary, err := s.buildReviewSummary(productID)
+	if err != nil {
+		return nil, 0, summary, err
+	}
+
+	var reviews []models.Review
+	query := s.db.Model(&models.Review{}).Where("product_id = ?", productID)
+	if err := query.Preload("User").Order("created_at DESC").Limit(limit).Offset(offset).Find(&reviews).Error; err != nil {
+		return nil, 0, summary, utils.ErrInternal(err)
+	}
+
+	return reviews, summary.Total, summary, nil
 }
 
 // GetUserReviewForProduct returns the authenticated user's review for a product (if any).
 func (s *reviewService) GetUserReviewForProduct(userID, productID uint) (*models.Review, error) {
 	var review models.Review
-	err := s.db.Where("user_id = ? AND product_id = ?", userID, productID).First(&review).Error
+	err := s.db.Preload("User").Where("user_id = ? AND product_id = ?", userID, productID).First(&review).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil // no review, not an error
+			return nil, nil
 		}
 		return nil, utils.ErrInternal(err)
 	}

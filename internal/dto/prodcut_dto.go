@@ -155,7 +155,9 @@ type ProductResponse struct {
 	Brand      *BrandResponse             `json:"brand,omitempty"`
 	Attributes []ProductAttributeResponse `json:"attributes,omitempty"`
 
-	TrackInventory    bool   `json:"track_inventory"`
+	StoreID           uint                   `json:"store_id,omitempty"`
+	Store             *ProductStoreSummary   `json:"store,omitempty"`
+	TrackInventory    bool                   `json:"track_inventory"`
 	WarehouseLocation string `json:"warehouse_location,omitempty"`
 	AllowBackorder    bool   `json:"allow_backorder"`
 
@@ -242,6 +244,13 @@ func ToProductResponse(p models.Product) ProductResponse {
 			ParentID:    p.Category.ParentID,
 		}
 		r.Category = &cat
+	}
+
+	if p.StoreID != 0 {
+		r.StoreID = p.StoreID
+	}
+	if p.Store != nil && p.Store.ID != 0 {
+		r.Store = ToProductStoreSummary(p.Store)
 	}
 
 	return r

@@ -7,6 +7,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -351,4 +352,216 @@ func (ctrl *StoreController) UnfollowStore(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, "unfollowed store successfully", nil)
+}
+
+func parseStoreReviewPagination(c *gin.Context) (limit, offset int) {
+	limit, _ = strconv.Atoi(c.DefaultQuery("limit", "10"))
+	offset, _ = strconv.Atoi(c.DefaultQuery("offset", "0"))
+	if limit < 1 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
+}
+
+func (ctrl *StoreController) loadStoreBySlug(c *gin.Context) (*models.Store, bool) {
+	slug := c.Param("slug")
+	if slug == "" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "store slug is required")
+		return nil, false
+	}
+	store, err := ctrl.storeService.GetBySlug(slug)
+	if err != nil {
+		utils.HandleAppError(c, err, "store not found")
+		return nil, false
+	}
+	return store, true
+}
+
+// GetStoreReviews godoc
+// @Summary      List store reviews
+// @Description  Paginated reviews and rating summary for a store
+// @Tags         Stores
+// @Produce      json
+// @Param        slug   path  string true  "Store slug"
+// @Param        limit  query int    false "Items per page" default(10)
+// @Param        offset query int    false "Offset" default(0)
+// @Success      200 {object} utils.Response
+// @Router       /stores/{slug}/reviews [get]
+func (ctrl *StoreController) GetStoreReviews(c *gin.Context) {
+	store, ok := ctrl.loadStoreBySlug(c)
+	if !ok {
+		return
+	}
+	limit, offset := parseStoreReviewPagination(c)
+
+	reviews, total, summary, err := ctrl.storeService.ListStoreReviews(store.ID, limit, offset)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch store reviews")
+		return
+	}
+
+	viewerID, _ := middleware.GetUserID(c)
+	responseReviews := make([]dto.StoreReviewResponse, len(reviews))
+	for i := range reviews {
+		responseReviews[i] = dto.ToStoreReviewResponse(&reviews[i], viewerID)
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"reviews": responseReviews,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+		"summary": summary,
+	})
+}
+
+// GetMyStoreReview godoc
+// @Summary      Get my store review
+// @Description  Returns the authenticated user's review for a store, if any
+// @Tags         Stores
+// @Produce      json
+// @Security     BearerAuth
+// @Param        slug path string true "Store slug"
+// @Success      200 {object} utils.Response
+// @Router       /stores/{slug}/reviews/me [get]
+func (ctrl *StoreController) GetMyStoreReview(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	store, ok := ctrl.loadStoreBySlug(c)
+	if !ok {
+		return
+	}
+
+	review, err := ctrl.storeService.GetUserStoreReview(userID, store.ID)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to fetch review")
+		return
+	}
+	if review == nil {
+		utils.SuccessResponse(c, constants.MsgFetchSuccess, nil)
+		return
+	}
+
+	resp := dto.ToStoreReviewResponse(review, userID)
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, resp)
+}
+
+// CreateStoreReview godoc
+// @Summary      Create store review
+// @Description  Leave a rating and comment for a store
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        slug    path string true "Store slug"
+// @Param        request body dto.CreateStoreReviewRequest true "Review data"
+// @Success      201 {object} utils.Response
+// @Router       /stores/{slug}/reviews [post]
+func (ctrl *StoreController) CreateStoreReview(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	store, ok := ctrl.loadStoreBySlug(c)
+	if !ok {
+		return
+	}
+
+	var req dto.CreateStoreReviewRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	review, err := ctrl.storeService.CreateStoreReview(userID, store.ID, req)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to create review")
+		return
+	}
+
+	utils.CreatedResponse(c, "review submitted", dto.ToStoreReviewResponse(review, userID))
+}
+
+// UpdateStoreReview godoc
+// @Summary      Update store review
+// @Description  Update the authenticated user's store review
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        slug      path int true "Store slug"
+// @Param        reviewId  path int true "Review ID"
+// @Param        request   body dto.UpdateStoreReviewRequest true "Updated review"
+// @Success      200 {object} utils.Response
+// @Router       /stores/{slug}/reviews/{reviewId} [put]
+func (ctrl *StoreController) UpdateStoreReview(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	if _, ok := ctrl.loadStoreBySlug(c); !ok {
+		return
+	}
+
+	reviewID, err := strconv.ParseUint(c.Param("reviewId"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid review id")
+		return
+	}
+
+	var req dto.UpdateStoreReviewRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	review, err := ctrl.storeService.UpdateStoreReview(userID, uint(reviewID), req)
+	if err != nil {
+		utils.HandleAppError(c, err, "failed to update review")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreReviewResponse(review, userID))
+}
+
+// DeleteStoreReview godoc
+// @Summary      Delete store review
+// @Description  Delete the authenticated user's store review
+// @Tags         Stores
+// @Security     BearerAuth
+// @Param        slug     path string true "Store slug"
+// @Param        reviewId path int    true "Review ID"
+// @Success      200 {object} utils.Response
+// @Router       /stores/{slug}/reviews/{reviewId} [delete]
+func (ctrl *StoreController) DeleteStoreReview(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	if _, ok := ctrl.loadStoreBySlug(c); !ok {
+		return
+	}
+
+	reviewID, err := strconv.ParseUint(c.Param("reviewId"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid review id")
+		return
+	}
+
+	if err := ctrl.storeService.DeleteStoreReview(userID, uint(reviewID)); err != nil {
+		utils.HandleAppError(c, err, "failed to delete review")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
 }
