@@ -15,7 +15,7 @@ type CompareProductResponse struct {
 }
 
 type SyncCompareRequest struct {
-	ProductIDs []uint `json:"product_ids" validate:"required,max=4,dive,gt=0"`
+	ProductIDs []uint `json:"product_ids" validate:"max=4,dive,gt=0"`
 }
 
 type CompareListResponse struct {

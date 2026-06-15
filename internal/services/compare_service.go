@@ -81,7 +81,7 @@ func (s *compareService) GetCompareList(userID uint) ([]uint, error) {
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return list.ProductIDs, nil
+	return []uint(list.ProductIDs), nil
 }
 
 func (s *compareService) SyncCompareList(userID uint, productIDs []uint) error {
@@ -91,12 +91,12 @@ func (s *compareService) SyncCompareList(userID uint, productIDs []uint) error {
 	var list models.CompareList
 	err := s.db.Where("user_id = ?", userID).First(&list).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		list = models.CompareList{UserID: userID, ProductIDs: productIDs}
+		list = models.CompareList{UserID: userID, ProductIDs: models.UintArray(productIDs)}
 		return s.db.Create(&list).Error
 	}
 	if err != nil {
 		return utils.ErrInternal(err)
 	}
-	list.ProductIDs = productIDs
+	list.ProductIDs = models.UintArray(productIDs)
 	return s.db.Save(&list).Error
 }

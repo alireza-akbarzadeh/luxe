@@ -93,6 +93,8 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM product_attributes WHERE product_id = prod_main LIMIT 1) THEN
             INSERT INTO product_attributes (product_id, name, values, created_at, updated_at)
             VALUES
+                (prod_main, 'color', ARRAY['Silver', 'Gold'], NOW(), NOW()),
+                (prod_main, 'size', ARRAY['40mm', '42mm'], NOW(), NOW()),
                 (prod_main, 'Material', ARRAY['Stainless steel', 'Sapphire crystal'], NOW(), NOW()),
                 (prod_main, 'Movement', ARRAY['Swiss automatic'], NOW(), NOW()),
                 (prod_main, 'Water resistance', ARRAY['100m'], NOW(), NOW()),
