@@ -22,6 +22,7 @@ type StoreServiceInterface interface {
 	FollowStore(userID, storeID uint) error
 	UnfollowStore(userID, storeID uint) error
 	IsFollowing(userID, storeID uint) (bool, error)
+	GetFollowedStoreIDs(userID uint, storeIDs []uint) (map[uint]bool, error)
 }
 
 type storeService struct {
@@ -304,4 +305,23 @@ func (s *storeService) IsFollowing(userID, storeID uint) (bool, error) {
 		return false, utils.ErrInternal(err)
 	}
 	return count > 0, nil
+}
+
+// GetFollowedStoreIDs returns a set of store IDs the user follows from the given list.
+func (s *storeService) GetFollowedStoreIDs(userID uint, storeIDs []uint) (map[uint]bool, error) {
+	result := make(map[uint]bool)
+	if len(storeIDs) == 0 {
+		return result, nil
+	}
+
+	var followers []models.StoreFollower
+	if err := s.db.Where("user_id = ? AND store_id IN ?", userID, storeIDs).
+		Find(&followers).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	for _, f := range followers {
+		result[f.StoreID] = true
+	}
+	return result, nil
 }

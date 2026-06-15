@@ -71,6 +71,22 @@ func (ctrl *StoreController) ListStores(c *gin.Context) {
 		responses[i] = dto.ToStoreResponse(s)
 	}
 
+	if userID, ok := middleware.GetUserID(c); ok && len(stores) > 0 {
+		storeIDs := make([]uint, len(stores))
+		for i, s := range stores {
+			storeIDs[i] = s.ID
+		}
+		followed, err := ctrl.storeService.GetFollowedStoreIDs(userID, storeIDs)
+		if err == nil {
+			for i := range responses {
+				if followed[responses[i].ID] {
+					v := true
+					responses[i].IsFollowed = &v
+				}
+			}
+		}
+	}
+
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
 		"stores": responses,
 		"total":  total,
