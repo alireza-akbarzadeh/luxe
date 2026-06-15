@@ -10,6 +10,6 @@ func SetupCompareRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Co
 	{
 		compare.GET("", ctrl.Compare.GetCompareList)
 		compare.PUT("", ctrl.Compare.SyncCompareList)
-		compare.POST("/fetch", ctrl.Compare.CompareProducts) // this can stay public or also protected
+		compare.POST("", ctrl.Compare.CompareProducts)
 	}
 }

@@ -498,7 +498,7 @@ func (ctrl *StoreController) CreateStoreReview(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        slug      path int true "Store slug"
+// @Param        slug      path string true "Store slug"
 // @Param        reviewId  path int true "Review ID"
 // @Param        request   body dto.UpdateStoreReviewRequest true "Updated review"
 // @Success      200 {object} utils.Response
