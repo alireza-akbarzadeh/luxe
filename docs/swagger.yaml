@@ -42,6 +42,25 @@ definitions:
     - description
     - user_id
     type: object
+  dto.BrandResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      logo_url:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.BulkCategoryData:
     properties:
       categories:
@@ -272,12 +291,26 @@ definitions:
     type: object
   dto.CompareProductResponse:
     properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeResponse'
+        type: array
       barcode:
         type: string
+      brand:
+        $ref: '#/definitions/dto.BrandResponse'
+      brand_id:
+        type: integer
       category:
         $ref: '#/definitions/dto.CategoryResponse'
       category_id:
         type: integer
+      channels:
+        items:
+          type: string
+        type: array
       colors:
         items:
           type: string
@@ -312,6 +345,8 @@ definitions:
         type: string
       price:
         type: number
+      published_at:
+        type: string
       rating:
         type: number
       return_policy:
@@ -332,13 +367,28 @@ definitions:
         type: string
       stock:
         type: integer
+      store:
+        $ref: '#/definitions/dto.ProductStoreSummary'
+      store_id:
+        type: integer
       store_logo:
         type: string
       store_name:
         type: string
       store_slug:
         type: string
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
       updated_at:
+        type: string
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
         type: string
       weight:
         type: number
@@ -451,6 +501,22 @@ definitions:
     - postal_code
     - recipient_name
     type: object
+  dto.CreateBrandRequest:
+    properties:
+      description:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   dto.CreateCategoryRequest:
     properties:
       description:
@@ -467,7 +533,6 @@ definitions:
         type: string
     required:
     - name
-    - slug
     type: object
   dto.CreateCouponRequest:
     properties:
@@ -531,12 +596,42 @@ definitions:
     - icon
     - label
     type: object
+  dto.CreateProductAnswerRequest:
+    properties:
+      body:
+        maxLength: 2000
+        minLength: 2
+        type: string
+    required:
+    - body
+    type: object
+  dto.CreateProductQuestionRequest:
+    properties:
+      body:
+        maxLength: 1000
+        minLength: 5
+        type: string
+    required:
+    - body
+    type: object
   dto.CreateProductRequest:
     properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeInput'
+        type: array
       barcode:
         type: string
+      brand_id:
+        type: integer
       category_id:
         type: integer
+      channels:
+        items:
+          type: string
+        type: array
       colors:
         items:
           type: string
@@ -570,6 +665,8 @@ definitions:
       price:
         minimum: 0
         type: number
+      published_at:
+        type: string
       sizes:
         items:
           type: string
@@ -590,6 +687,16 @@ definitions:
         type: integer
       store_id:
         type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
+      visibility:
+        type: string
+      warehouse_location:
+        type: string
       weight:
         minimum: 0
         type: number
@@ -653,6 +760,20 @@ definitions:
     required:
     - name
     type: object
+  dto.CreateStoreReviewRequest:
+    properties:
+      comment:
+        maxLength: 2000
+        minLength: 3
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
+    required:
+    - comment
+    - rating
+    type: object
   dto.DashboardSummaryResponse:
     properties:
       address_count:
@@ -664,6 +785,8 @@ definitions:
       default_shipping_address:
         $ref: '#/definitions/dto.DefaultAddressDTO'
       email:
+        type: string
+      email_verified_at:
         type: string
       first_name:
         type: string
@@ -777,6 +900,50 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserResponse'
     type: object
+  dto.MenuGroupResponse:
+    properties:
+      created_at:
+        type: string
+      display_order:
+        type: integer
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.MenuItemResponse'
+        type: array
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.MenuItemResponse:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/dto.MenuItemResponse'
+        type: array
+      created_at:
+        type: string
+      display_order:
+        type: integer
+      group_id:
+        type: integer
+      href:
+        type: string
+      icon:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      parent_id:
+        type: integer
+      permission:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.MenuListResponse:
     properties:
       code:
@@ -887,14 +1054,37 @@ definitions:
       requires_card:
         type: boolean
     type: object
-  dto.ProductResponse:
+  dto.PriceHistoryPoint:
     properties:
+      compare_at_price:
+        type: number
+      price:
+        type: number
+      recorded_at:
+        type: string
+    type: object
+  dto.ProductAlternativeResponse:
+    properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeResponse'
+        type: array
       barcode:
         type: string
+      brand:
+        $ref: '#/definitions/dto.BrandResponse'
+      brand_id:
+        type: integer
       category:
         $ref: '#/definitions/dto.CategoryResponse'
       category_id:
         type: integer
+      channels:
+        items:
+          type: string
+        type: array
       colors:
         items:
           type: string
@@ -927,6 +1117,8 @@ definitions:
         type: string
       price:
         type: number
+      published_at:
+        type: string
       rating:
         type: number
       reviews_count:
@@ -943,7 +1135,299 @@ definitions:
         type: string
       stock:
         type: integer
+      store:
+        $ref: '#/definitions/dto.ProductStoreSummary'
+      store_id:
+        type: integer
+      store_logo:
+        type: string
+      store_name:
+        type: string
+      store_rating:
+        type: number
+      store_slug:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
       updated_at:
+        type: string
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
+        type: string
+      weight:
+        type: number
+    type: object
+  dto.ProductAnswerResponse:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_ai_reply:
+        type: boolean
+      is_store_reply:
+        type: boolean
+      question_id:
+        type: integer
+    type: object
+  dto.ProductAttributeInput:
+    properties:
+      name:
+        type: string
+      values:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - name
+    - values
+    type: object
+  dto.ProductAttributeResponse:
+    properties:
+      name:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.ProductQuestionResponse:
+    properties:
+      answers:
+        items:
+          $ref: '#/definitions/dto.ProductAnswerResponse'
+        type: array
+      author:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_owner:
+        type: boolean
+      product_id:
+        type: integer
+    type: object
+  dto.ProductResponse:
+    properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeResponse'
+        type: array
+      barcode:
+        type: string
+      brand:
+        $ref: '#/definitions/dto.BrandResponse'
+      brand_id:
+        type: integer
+      category:
+        $ref: '#/definitions/dto.CategoryResponse'
+      category_id:
+        type: integer
+      channels:
+        items:
+          type: string
+        type: array
+      colors:
+        items:
+          type: string
+        type: array
+      compare_at_price:
+        type: number
+      cost:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          type: string
+        type: array
+      is_digital:
+        type: boolean
+      is_new:
+        type: boolean
+      low_stock_threshold:
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      published_at:
+        type: string
+      rating:
+        type: number
+      reviews_count:
+        type: integer
+      sizes:
+        items:
+          type: string
+        type: array
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+      store:
+        $ref: '#/definitions/dto.ProductStoreSummary'
+      store_id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
+      updated_at:
+        type: string
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
+        type: string
+      weight:
+        type: number
+    type: object
+  dto.ProductStoreSummary:
+    properties:
+      follower_count:
+        type: integer
+      id:
+        type: integer
+      is_verified:
+        type: boolean
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      rating:
+        type: number
+      return_policy:
+        type: string
+      review_count:
+        type: integer
+      shipping_info:
+        type: string
+      slug:
+        type: string
+    type: object
+  dto.ProductWithLike:
+    properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeResponse'
+        type: array
+      barcode:
+        type: string
+      brand:
+        $ref: '#/definitions/dto.BrandResponse'
+      brand_id:
+        type: integer
+      category:
+        $ref: '#/definitions/dto.CategoryResponse'
+      category_id:
+        type: integer
+      channels:
+        items:
+          type: string
+        type: array
+      colors:
+        items:
+          type: string
+        type: array
+      compare_at_price:
+        type: number
+      cost:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          type: string
+        type: array
+      is_digital:
+        type: boolean
+      is_liked:
+        type: boolean
+      is_new:
+        type: boolean
+      low_stock_threshold:
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      published_at:
+        type: string
+      rating:
+        type: number
+      reviews_count:
+        type: integer
+      sizes:
+        items:
+          type: string
+        type: array
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+      store:
+        $ref: '#/definitions/dto.ProductStoreSummary'
+      store_id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
+      updated_at:
+        type: string
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
         type: string
       weight:
         type: number
@@ -1026,6 +1510,8 @@ definitions:
         type: string
       id:
         type: integer
+      is_owner:
+        type: boolean
       is_verified:
         type: boolean
       product_id:
@@ -1056,6 +1542,28 @@ definitions:
       total:
         type: integer
     type: object
+  dto.SetSettingRequest:
+    properties:
+      description:
+        type: string
+      value:
+        type: object
+    required:
+    - value
+    type: object
+  dto.SettingResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      key:
+        type: string
+      updated_at:
+        type: string
+      value:
+        type: object
+    type: object
   dto.SidebarGroup:
     properties:
       group:
@@ -1077,6 +1585,11 @@ definitions:
         type: string
       label:
         type: string
+    type: object
+  dto.StockNotificationStatusResponse:
+    properties:
+      subscribed:
+        type: boolean
     type: object
   dto.StoreResponse:
     properties:
@@ -1161,6 +1674,16 @@ definitions:
     required:
     - product_ids
     type: object
+  dto.ToggleLikeRequest:
+    properties:
+      like:
+        type: boolean
+    type: object
+  dto.ToggleLikeResponse:
+    properties:
+      liked:
+        type: boolean
+    type: object
   dto.TransactionResponse:
     properties:
       amount:
@@ -1230,6 +1753,19 @@ definitions:
     - country
     - postal_code
     - recipient_name
+    type: object
+  dto.UpdateBrandRequest:
+    properties:
+      description:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
     type: object
   dto.UpdateCategoryRequest:
     properties:
@@ -1301,10 +1837,22 @@ definitions:
     type: object
   dto.UpdateProductRequest:
     properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeInput'
+        type: array
       barcode:
         type: string
+      brand_id:
+        type: integer
       category_id:
         type: integer
+      channels:
+        items:
+          type: string
+        type: array
       colors:
         items:
           type: string
@@ -1338,6 +1886,8 @@ definitions:
       price:
         minimum: 0
         type: number
+      published_at:
+        type: string
       sizes:
         items:
           type: string
@@ -1358,6 +1908,16 @@ definitions:
         type: integer
       store_id:
         type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
+      visibility:
+        type: string
+      warehouse_location:
+        type: string
       weight:
         minimum: 0
         type: number
@@ -1409,6 +1969,17 @@ definitions:
         type: string
       status:
         type: string
+    type: object
+  dto.UpdateStoreReviewRequest:
+    properties:
+      comment:
+        maxLength: 2000
+        minLength: 3
+        type: string
+      rating:
+        maximum: 5
+        minimum: 1
+        type: integer
     type: object
   dto.UpsertNavMenuRequest:
     properties:
@@ -1594,6 +2165,25 @@ definitions:
     - phone
     - postal_code
     - recipient_name
+    type: object
+  models.Brand:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      logo_url:
+        type: string
+      name:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
     type: object
   models.Category:
     properties:
@@ -1816,12 +2406,26 @@ definitions:
     type: object
   models.Product:
     properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/models.ProductAttribute'
+        type: array
       barcode:
         type: string
+      brand:
+        $ref: '#/definitions/models.Brand'
+      brand_id:
+        type: integer
       category:
         $ref: '#/definitions/models.Category'
       category_id:
         type: integer
+      channels:
+        items:
+          type: string
+        type: array
       colors:
         items:
           type: string
@@ -1860,6 +2464,8 @@ definitions:
         type: string
       price:
         type: number
+      published_at:
+        type: string
       rating:
         type: number
       reviews_count:
@@ -1885,10 +2491,22 @@ definitions:
         $ref: '#/definitions/models.Store'
       storeID:
         type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        description: Inventory extras
+        type: boolean
       updated_at:
         type: string
       updated_by:
         type: integer
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
+        type: string
       weight:
         type: number
     required:
@@ -1897,30 +2515,30 @@ definitions:
     - sku
     - slug
     type: object
-  models.Review:
+  models.ProductAttribute:
     properties:
-      comment:
-        type: string
       created_at:
         type: string
       deleted_at:
         $ref: '#/definitions/gorm.DeletedAt'
       id:
         type: integer
-      is_verified:
-        type: boolean
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
       product_id:
         type: integer
-      rating:
-        maximum: 5
-        minimum: 1
-        type: integer
-      title:
-        type: string
       updated_at:
         type: string
-      user_id:
-        type: integer
+      values:
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - name
+    - values
     type: object
   models.Shipment:
     properties:
@@ -2488,6 +3106,231 @@ paths:
       summary: Get default address
       tags:
       - Addresses
+  /admin/categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Deletes a category by ID. Only accessible by users with the "admin" role.
+        Categories with child categories cannot be deleted – delete children first.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a category
+      tags:
+      - Categories
+    get:
+      consumes:
+      - application/json
+      description: Returns a single category by its numeric ID. Only accessible by
+        users with the "admin" role.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CategorySingleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a category by ID (admin)
+      tags:
+      - Categories
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing category by ID. Only accessible by users with
+        the "admin" role.
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Category update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CategorySingleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a category
+      tags:
+      - Categories
+  /admin/categories/bulk:
+    delete:
+      consumes:
+      - application/json
+      description: |-
+        Deletes multiple categories by their IDs. Only accessible by users with the "admin" role.
+        Cannot delete categories that have child categories – delete children first.
+      parameters:
+      - description: Category IDs to delete
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk delete categories
+      tags:
+      - Categories
+    post:
+      consumes:
+      - application/json
+      description: Creates multiple categories at once. Only accessible by users with
+        the "admin" role.
+      parameters:
+      - description: Array of categories to create
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/dto.CreateCategoryRequest'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.BulkCreateCategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk create categories
+      tags:
+      - Categories
   /admin/menu/groups:
     get:
       description: Retrieves all menu groups ordered by display_order
@@ -2979,116 +3822,6 @@ paths:
       summary: Admin adjust wallet
       tags:
       - Admin Wallet
-  /api/nav-menus:
-    get:
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dto.NavItemResponse'
-                  type: array
-              type: object
-      summary: Get all navigation menus
-      tags:
-      - Navigation
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Menu data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpsertNavMenuRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.NavItemResponse'
-              type: object
-      summary: Create navigation menu
-      tags:
-      - Navigation
-  /api/nav-menus/{id}:
-    delete:
-      parameters:
-      - description: Menu ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/utils.Response'
-      summary: Delete navigation menu
-      tags:
-      - Navigation
-    get:
-      parameters:
-      - description: Menu ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.NavItemResponse'
-              type: object
-      summary: Get one navigation menu
-      tags:
-      - Navigation
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Menu ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Menu data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpsertNavMenuRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.NavItemResponse'
-              type: object
-      summary: Update navigation menu
-      tags:
-      - Navigation
   /auth/change-password:
     post:
       consumes:
@@ -3346,6 +4079,194 @@ paths:
       summary: Verify email
       tags:
       - Authentication
+  /brands:
+    get:
+      description: Returns a paginated list of brands with optional search and status
+        filtering.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search by name or slug
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Brand list
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.BrandResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List all brands
+      tags:
+      - brands
+    post:
+      consumes:
+      - application/json
+      description: Creates a brand with the provided details. Defaults status to "draft"
+        if not supplied.
+      parameters:
+      - description: Brand creation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBrandRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Brand created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BrandResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new brand
+      tags:
+      - brands
+  /brands/{id}:
+    delete:
+      description: Permanently deletes a brand by ID.
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Brand deleted
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Brand not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete a brand
+      tags:
+      - brands
+    get:
+      description: Returns a single brand by its unique identifier.
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Brand found
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BrandResponse'
+              type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Brand not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a brand by ID
+      tags:
+      - brands
+    put:
+      consumes:
+      - application/json
+      description: Partially updates a brand. Only supplied fields are changed.
+      parameters:
+      - description: Brand ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Brand update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateBrandRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Brand updated
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BrandResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Brand not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update a brand
+      tags:
+      - brands
   /cart:
     get:
       description: Retrieve all items in the authenticated user's cart
@@ -3534,6 +4455,10 @@ paths:
         in: query
         name: parent_id
         type: integer
+      - description: 'Filter by name  the name '
+        in: query
+        name: search
+        type: string
       - description: Sort order (popular, name)
         in: query
         name: sort
@@ -3596,100 +4521,6 @@ paths:
       summary: Create a new category
       tags:
       - Categories
-  /categories/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: |-
-        Deletes a category by ID. Only accessible by users with the "admin" role.
-        Categories with child categories cannot be deleted – delete children first.
-      parameters:
-      - description: Category ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.EmptyResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete a category
-      tags:
-      - Categories
-    put:
-      consumes:
-      - application/json
-      description: Updates an existing category by ID. Only accessible by users with
-        the "admin" role.
-      parameters:
-      - description: Category ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Category update data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateCategoryRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.CategorySingleResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Update a category
-      tags:
-      - Categories
   /categories/{identifier}:
     get:
       consumes:
@@ -3722,94 +4553,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Get a category by ID or slug
-      tags:
-      - Categories
-  /categories/bulk:
-    delete:
-      consumes:
-      - application/json
-      description: |-
-        Deletes multiple categories by their IDs. Only accessible by users with the "admin" role.
-        Cannot delete categories that have child categories – delete children first.
-      parameters:
-      - description: Category IDs to delete
-        in: body
-        name: request
-        required: true
-        schema:
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.EmptyResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Bulk delete categories
-      tags:
-      - Categories
-    post:
-      consumes:
-      - application/json
-      description: Creates multiple categories at once. Only accessible by users with
-        the "admin" role.
-      parameters:
-      - description: Array of categories to create
-        in: body
-        name: request
-        required: true
-        schema:
-          items:
-            $ref: '#/definitions/dto.CreateCategoryRequest'
-          type: array
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/dto.BulkCreateCategoryResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Bulk create categories
       tags:
       - Categories
   /checkout:
@@ -4109,6 +4852,49 @@ paths:
       summary: Delete coupon
       tags:
       - Coupons
+    get:
+      consumes:
+      - application/json
+      description: Returns a single coupon by its numeric ID. Only accessible by users
+        with the "admin" role.
+      parameters:
+      - description: Coupon ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CouponSingleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a coupon by ID
+      tags:
+      - Coupons
     put:
       consumes:
       - application/json
@@ -4254,6 +5040,116 @@ paths:
       summary: Health check
       tags:
       - health
+  /nav-menus:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.NavItemResponse'
+                  type: array
+              type: object
+      summary: Get all navigation menus
+      tags:
+      - Navigation
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Menu data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpsertNavMenuRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Create navigation menu
+      tags:
+      - Navigation
+  /nav-menus/{id}:
+    delete:
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete navigation menu
+      tags:
+      - Navigation
+    get:
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Get one navigation menu
+      tags:
+      - Navigation
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Menu ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Menu data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpsertNavMenuRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.NavItemResponse'
+              type: object
+      summary: Update navigation menu
+      tags:
+      - Navigation
   /orders:
     get:
       consumes:
@@ -4544,6 +5440,10 @@ paths:
         in: query
         name: category_id
         type: integer
+      - description: Filter by brand ID
+        in: query
+        name: brand_id
+        type: integer
       - description: Minimum price
         in: query
         name: min_price
@@ -4604,12 +5504,7 @@ paths:
                       type: integer
                     products:
                       items:
-                        properties:
-                          is_liked:
-                            type: boolean
-                          items:
-                            $ref: '#/definitions/dto.ProductResponse'
-                        type: object
+                        $ref: '#/definitions/dto.ProductWithLike'
                       type: array
                     total:
                       type: integer
@@ -4734,6 +5629,8 @@ paths:
                       type: boolean
                     product:
                       $ref: '#/definitions/dto.ProductResponse'
+                    stock_subscribed:
+                      type: boolean
                   type: object
               type: object
         "400":
@@ -4804,6 +5701,44 @@ paths:
       summary: Update product
       tags:
       - Products
+  /products/{id}/alternatives:
+    get:
+      description: Lists the same product model from other stores (matched by barcode)
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 6
+        description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    alternatives:
+                      items:
+                        $ref: '#/definitions/dto.ProductAlternativeResponse'
+                      type: array
+                  type: object
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get cross-store product alternatives
+      tags:
+      - Products
   /products/{id}/like:
     post:
       consumes:
@@ -4821,7 +5756,7 @@ paths:
         name: request
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/dto.ToggleLikeRequest'
       produces:
       - application/json
       responses:
@@ -4832,10 +5767,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  properties:
-                    liked:
-                      type: boolean
-                  type: object
+                  $ref: '#/definitions/dto.ToggleLikeResponse'
               type: object
         "400":
           description: Bad Request
@@ -4897,6 +5829,173 @@ paths:
       summary: Check if product is liked
       tags:
       - Product Likes
+  /products/{id}/price-history:
+    get:
+      description: Returns price snapshots over time for PDP charts
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 90
+        description: Number of days to include
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    points:
+                      items:
+                        $ref: '#/definitions/dto.PriceHistoryPoint'
+                      type: array
+                  type: object
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get product price history
+      tags:
+      - Products
+  /products/{id}/questions:
+    get:
+      description: Paginated buyer questions and answers for a product
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    questions:
+                      items:
+                        $ref: '#/definitions/dto.ProductQuestionResponse'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List product Q&A
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Post a buyer question on the product detail page
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Question body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductQuestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductQuestionResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Ask a product question
+      tags:
+      - Products
+  /products/{id}/questions/{questionId}/answers:
+    post:
+      consumes:
+      - application/json
+      description: Post an answer; store owners are marked as store replies
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Question ID
+        in: path
+        name: questionId
+        required: true
+        type: integer
+      - description: Answer body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductAnswerRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductAnswerResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Answer a product question
+      tags:
+      - Products
   /products/{id}/related:
     get:
       consumes:
@@ -4940,6 +6039,91 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Get related products
+      tags:
+      - Products
+  /products/{id}/stock-notifications:
+    delete:
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StockNotificationStatusResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Unsubscribe from back-in-stock notifications
+      tags:
+      - Products
+    get:
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StockNotificationStatusResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get back-in-stock subscription status
+      tags:
+      - Products
+    post:
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StockNotificationStatusResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Subscribe to back-in-stock notifications
       tags:
       - Products
   /products/bulk:
@@ -5181,14 +6365,14 @@ paths:
       - User
   /reviews:
     get:
-      description: Returns paginated reviews for a specific product
+      description: Returns paginated reviews and rating summary for a specific product
       parameters:
       - description: Product ID
         in: query
         name: product_id
         required: true
         type: integer
-      - default: 20
+      - default: 10
         description: Items per page
         in: query
         name: limit
@@ -5202,23 +6386,7 @@ paths:
         "200":
           description: OK
           schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  properties:
-                    limit:
-                      type: integer
-                    offset:
-                      type: integer
-                    reviews:
-                      items:
-                        $ref: '#/definitions/dto.ReviewResponse'
-                      type: array
-                    total:
-                      type: integer
-                  type: object
-              type: object
+            $ref: '#/definitions/utils.Response'
       summary: Get product reviews
       tags:
       - Reviews
@@ -5243,7 +6411,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.Review'
+                  $ref: '#/definitions/dto.ReviewResponse'
               type: object
         "400":
           description: Bad Request
@@ -5303,11 +6471,37 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.Review'
+                  $ref: '#/definitions/dto.ReviewResponse'
               type: object
       security:
       - BearerAuth: []
       summary: Update a review
+      tags:
+      - Reviews
+  /reviews/me:
+    get:
+      description: Returns the authenticated user's review for a product, if any
+      parameters:
+      - description: Product ID
+        in: query
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReviewResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get my product review
       tags:
       - Reviews
   /search:
@@ -5450,6 +6644,121 @@ paths:
       summary: Trending searches
       tags:
       - Search
+  /settings:
+    get:
+      description: Returns a list of all settings with their keys and values.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Settings list
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.SettingResponse'
+                  type: array
+              type: object
+      summary: List all settings
+      tags:
+      - settings
+  /settings/{key}:
+    delete:
+      description: Deletes a setting by its key. Admin only.
+      parameters:
+      - description: Setting key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Setting deleted
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Setting not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete a setting
+      tags:
+      - settings
+    get:
+      description: Returns the value (any JSON) for the given setting key.
+      parameters:
+      - description: Setting key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Setting found
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SettingResponse'
+              type: object
+        "404":
+          description: Setting not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a setting by key
+      tags:
+      - settings
+    put:
+      consumes:
+      - application/json
+      description: Upserts a setting by key. If the key exists, value is updated;
+        otherwise created.
+      parameters:
+      - description: Setting key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Setting payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetSettingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Setting updated
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SettingResponse'
+              type: object
+        "201":
+          description: Setting created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SettingResponse'
+              type: object
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create or update a setting
+      tags:
+      - settings
   /shipments:
     get:
       consumes:
@@ -6115,6 +7424,141 @@ paths:
       summary: Get products of a store
       tags:
       - Stores
+  /stores/{slug}/reviews:
+    get:
+      description: Paginated reviews and rating summary for a store
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List store reviews
+      tags:
+      - Stores
+    post:
+      consumes:
+      - application/json
+      description: Leave a rating and comment for a store
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Review data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create store review
+      tags:
+      - Stores
+  /stores/{slug}/reviews/{reviewId}:
+    delete:
+      description: Delete the authenticated user's store review
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Review ID
+        in: path
+        name: reviewId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete store review
+      tags:
+      - Stores
+    put:
+      consumes:
+      - application/json
+      description: Update the authenticated user's store review
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Review ID
+        in: path
+        name: reviewId
+        required: true
+        type: integer
+      - description: Updated review
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update store review
+      tags:
+      - Stores
+  /stores/{slug}/reviews/me:
+    get:
+      description: Returns the authenticated user's review for a store, if any
+      parameters:
+      - description: Store slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get my store review
+      tags:
+      - Stores
   /user/menu:
     get:
       description: Returns the sidebar menu filtered by user's role and optional search
@@ -6145,6 +7589,38 @@ paths:
       security:
       - BearerAuth: []
       summary: Get user sidebar menu
+      tags:
+      - User Menu
+  /user/menu/structure:
+    get:
+      description: Returns all menu groups and their items, nested and ordered, filtered
+        by user's permissions.
+      parameters:
+      - description: Search by label or href
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.MenuGroupResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get user menu structure (grouped + nested)
       tags:
       - User Menu
   /users:
