@@ -17,6 +17,11 @@ func parseAllowOrigins() []string {
 			"http://127.0.0.1:3000",
 			"http://localhost:4000",
 			"http://127.0.0.1:4000",
+			// Expo dev (Metro web + legacy web port)
+			"http://localhost:8081",
+			"http://127.0.0.1:8081",
+			"http://localhost:19006",
+			"http://127.0.0.1:19006",
 		}
 	}
 
