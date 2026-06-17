@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
@@ -73,7 +74,7 @@ func TestAuthService_Login(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 
-		accessToken, refreshToken, returnedUser, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, returnedUser, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email: "test@example.com", Password: "password123",
 		}, SessionMeta{})
 
@@ -91,7 +92,7 @@ func TestAuthService_Login(t *testing.T) {
 		svc := NewAuthServices(gormDB, cfg)
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnError(gorm.ErrRecordNotFound)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "nonexistent@example.com",
 			Password: "anything",
 		}, SessionMeta{})
@@ -111,7 +112,7 @@ func TestAuthService_Login(t *testing.T) {
 		rows := sqlmock.NewRows([]string{"id", "email", "password_hash", "is_active", "role", "last_login_at"}).AddRow(user.ID, user.Email, hashed, true, "user", nil)
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnRows(rows)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "test@example.con",
 			Password: "123456",
 		}, SessionMeta{})
@@ -131,7 +132,7 @@ func TestAuthService_Login(t *testing.T) {
 			AddRow(user.ID, user.Email, user.PasswordHash, false, user.Role, nil) // Set is_active to false here!
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnRows(rows)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "test@example.com",
 			Password: "password123",
 		}, SessionMeta{})

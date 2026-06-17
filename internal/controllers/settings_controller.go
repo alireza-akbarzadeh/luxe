@@ -38,7 +38,7 @@ func (ctrl *SettingController) GetSetting(c *gin.Context) {
 			utils.NotFoundResponse(c, "setting not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to get setting")
+		utils.HandleServiceError(c, err, "failed to get setting")
 		return
 	}
 	utils.SuccessResponse(c, "setting retrieved", setting)
@@ -54,7 +54,7 @@ func (ctrl *SettingController) GetSetting(c *gin.Context) {
 func (ctrl *SettingController) ListSettings(c *gin.Context) {
 	settings, err := ctrl.settingService.List(c.Request.Context())
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list settings")
+		utils.HandleServiceError(c, err, "failed to list settings")
 		return
 	}
 	utils.SuccessResponse(c, "settings retrieved", settings)
@@ -81,7 +81,7 @@ func (ctrl *SettingController) SetSetting(c *gin.Context) {
 
 	set, err := ctrl.settingService.Set(c.Request.Context(), key, &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to upsert setting")
+		utils.HandleServiceError(c, err, "failed to upsert setting")
 		return
 	}
 
@@ -106,7 +106,7 @@ func (ctrl *SettingController) DeleteSetting(c *gin.Context) {
 			utils.NotFoundResponse(c, "setting not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to delete setting")
+		utils.HandleServiceError(c, err, "failed to delete setting")
 		return
 	}
 	utils.SuccessResponse(c, "setting deleted", nil)

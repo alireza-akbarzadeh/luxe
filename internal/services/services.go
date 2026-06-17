@@ -87,11 +87,11 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 // JobHandlers wires service methods into background task handlers.
 func (s *Services) JobHandlers() tasks.Handlers {
 	return tasks.Handlers{
-		ProcessOrder: func(orderID uint, cardInfo dto.CardInfo) error {
-			return s.Checkout.ProcessOrder(context.Background(), orderID, cardInfo)
+		ProcessOrder: func(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error {
+			return s.Checkout.ProcessOrder(ctx, orderID, cardInfo)
 		},
-		ProcessShipment: func(shipmentID uint) error {
-			return s.Shipment.ProcessShipmentBackground(shipmentID)
+		ProcessShipment: func(ctx context.Context, shipmentID uint) error {
+			return s.Shipment.ProcessShipmentBackground(ctx, shipmentID)
 		},
 	}
 }

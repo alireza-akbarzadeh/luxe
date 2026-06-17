@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
+	"github.com/alireza-akbarzadeh/luxe/internal/observability"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -24,6 +25,8 @@ func (r *Router) Setup() {
 		}
 		c.Data(200, "application/json", spec)
 	})
+
+	r.engine.GET("/metrics", observability.MetricsHandler())
 
 	v1 := r.engine.Group(constants.APIVersionV1)
 	{

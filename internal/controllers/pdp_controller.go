@@ -30,7 +30,7 @@ func (ctrl *PdpController) resolveProductID(c *gin.Context) (uint, bool) {
 	}
 	product, err := ctrl.productService.GetBySlug(identifier)
 	if err != nil {
-		utils.HandleAppError(c, err, "product not found")
+		utils.HandleServiceError(c, err, "product not found")
 		return 0, false
 	}
 	return product.ID, true
@@ -69,7 +69,7 @@ func (ctrl *PdpController) GetPriceHistory(c *gin.Context) {
 	days, _ := strconv.Atoi(c.DefaultQuery("days", "90"))
 	points, err := ctrl.pdpService.GetPriceHistory(productID, days)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch price history")
+		utils.HandleServiceError(c, err, "failed to fetch price history")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{"points": points})
@@ -93,7 +93,7 @@ func (ctrl *PdpController) GetAlternatives(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "6"))
 	items, err := ctrl.pdpService.GetAlternatives(productID, limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch alternatives")
+		utils.HandleServiceError(c, err, "failed to fetch alternatives")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{"alternatives": items})
@@ -162,7 +162,7 @@ func (ctrl *PdpController) CreateQuestion(c *gin.Context) {
 	}
 	question, err := ctrl.pdpService.CreateQuestion(userID, productID, req.Body)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create question")
+		utils.HandleServiceError(c, err, "failed to create question")
 		return
 	}
 	questions, _, _ := ctrl.pdpService.ListQuestions(productID, 20, 0)
@@ -205,7 +205,7 @@ func (ctrl *PdpController) CreateAnswer(c *gin.Context) {
 	}
 	answer, err := ctrl.pdpService.CreateAnswer(userID, uint(questionID), req.Body)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create answer")
+		utils.HandleServiceError(c, err, "failed to create answer")
 		return
 	}
 	utils.CreatedResponse(c, "answer posted", dto.ToProductAnswerResponse(answer))
@@ -231,7 +231,7 @@ func (ctrl *PdpController) SubscribeStock(c *gin.Context) {
 		return
 	}
 	if err := ctrl.pdpService.SubscribeStockNotification(userID, productID); err != nil {
-		utils.HandleAppError(c, err, "failed to subscribe")
+		utils.HandleServiceError(c, err, "failed to subscribe")
 		return
 	}
 	utils.CreatedResponse(c, "notification subscribed", dto.StockNotificationStatusResponse{Subscribed: true})
@@ -257,7 +257,7 @@ func (ctrl *PdpController) UnsubscribeStock(c *gin.Context) {
 		return
 	}
 	if err := ctrl.pdpService.UnsubscribeStockNotification(userID, productID); err != nil {
-		utils.HandleAppError(c, err, "failed to unsubscribe")
+		utils.HandleServiceError(c, err, "failed to unsubscribe")
 		return
 	}
 	utils.SuccessResponse(c, "notification removed", dto.StockNotificationStatusResponse{Subscribed: false})

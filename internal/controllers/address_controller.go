@@ -50,7 +50,7 @@ func (ac *AddressController) Create(c *gin.Context) {
 	}
 	address, err := ac.addressService.Create(userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create address")
+		utils.HandleServiceError(c, err, "failed to create address")
 		return
 	}
 	resp := dto.AddressSingleResponse{
@@ -94,7 +94,7 @@ func (ac *AddressController) Update(c *gin.Context) {
 	}
 	address, err := ac.addressService.Update(uint(id), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update address")
+		utils.HandleServiceError(c, err, "failed to update address")
 		return
 	}
 	resp := dto.AddressSingleResponse{
@@ -133,7 +133,7 @@ func (ac *AddressController) Delete(c *gin.Context) {
 	}
 	err = ac.addressService.Delete(uint(id), userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete address")
+		utils.HandleServiceError(c, err, "failed to delete address")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -164,7 +164,7 @@ func (ac *AddressController) List(c *gin.Context) {
 	}
 	addresses, err := ac.addressService.List(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch addresses")
+		utils.HandleServiceError(c, err, "failed to fetch addresses")
 		return
 	}
 	// Use SuccessResponse for consistency
@@ -200,7 +200,7 @@ func (ac *AddressController) SetDefault(c *gin.Context) {
 	}
 	err = ac.addressService.SetDefault(uint(id), userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to set default address")
+		utils.HandleServiceError(c, err, "failed to set default address")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -238,7 +238,7 @@ func (ac *AddressController) GetDefault(c *gin.Context) {
 	}
 	addr, err := ac.addressService.GetDefaultAddress(userID, addressType)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get default address")
+		utils.HandleServiceError(c, err, "failed to get default address")
 		return
 	}
 	if addr == nil {

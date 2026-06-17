@@ -34,7 +34,7 @@ func (ctrl *AuditController) List(c *gin.Context) {
 
 	logs, total, err := ctrl.auditService.List(c.Request.Context(), limit, filters.Offset)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list audit logs")
+		utils.HandleServiceError(c, err, "failed to list audit logs")
 		return
 	}
 

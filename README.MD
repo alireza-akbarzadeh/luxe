@@ -212,6 +212,14 @@ OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
 
 3. Run the API (`make run`) and send requests.
 
+## Prometheus metrics
+
+The API exposes Prometheus metrics at `GET /metrics` (Go runtime and default HTTP metrics). No authentication is required by default — restrict access in production (reverse proxy or network policy).
+
+```bash
+curl http://localhost:8080/metrics
+```
+
 4. Open the Jaeger UI: [http://localhost:16686](http://localhost:16686) — search service `luxe-api` (or your `SERVICE_NAME`).
 
 ## Project Structure

@@ -57,7 +57,7 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 	}
 	balance, err := ctrl.walletService.GetBalance(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get wallet balance")
+		utils.HandleServiceError(c, err, "failed to get wallet balance")
 		return
 	}
 	transactions, total, err := ctrl.walletService.GetTransactions(userID, filters)
@@ -112,11 +112,11 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 	// Create pending transaction
 	txID, err := ctrl.walletService.CreatePendingDeposit(userID, req.Amount, "Online deposit via payment gateway")
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to deposit")
+		utils.HandleServiceError(c, err, "failed to deposit")
 		return
 	}
 	if err := ctrl.walletService.ConfirmDeposit(txID); err != nil {
-		utils.HandleAppError(c, err, "failed to confirm deposit")
+		utils.HandleServiceError(c, err, "failed to confirm deposit")
 		return
 	}
 	utils.SuccessResponse(c, "deposit initiated", gin.H{
@@ -150,7 +150,7 @@ func (ctrl *WalletController) AdminAdjust(c *gin.Context) {
 		return
 	}
 	if err := ctrl.walletService.AdminAdjust(req.UserID, req.Amount, req.Description); err != nil {
-		utils.HandleAppError(c, err, "adjustment failed")
+		utils.HandleServiceError(c, err, "adjustment failed")
 	}
 	utils.SuccessResponse(c, "wallet adjusted successfully", nil)
 }
@@ -180,7 +180,7 @@ func (ctrl *WalletController) Withdraw(c *gin.Context) {
 	}
 	err := ctrl.walletService.Withdraw(userID, req.Amount, "user_withdrawal", nil, req.Description)
 	if err != nil {
-		utils.HandleAppError(c, err, "withdrawal failed")
+		utils.HandleServiceError(c, err, "withdrawal failed")
 		return
 	}
 	utils.SuccessResponse(c, "withdrawal successful", nil)
@@ -212,7 +212,7 @@ func (ctrl *WalletController) GetTransaction(c *gin.Context) {
 	}
 	tx, err := ctrl.walletService.GetTransaction(userID, uint(txID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch transaction")
+		utils.HandleServiceError(c, err, "failed to fetch transaction")
 		return
 	}
 	resp := dto.TransactionResponse{
@@ -259,7 +259,7 @@ func (ctrl *WalletController) CancelPendingDeposit(c *gin.Context) {
 	// Service should verify ownership and status.
 	err = ctrl.walletService.CancelPendingDeposit(userID, uint(txID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to cancel deposit")
+		utils.HandleServiceError(c, err, "failed to cancel deposit")
 		return
 	}
 

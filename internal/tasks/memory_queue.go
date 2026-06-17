@@ -45,7 +45,7 @@ func (q *memoryQueue) EnqueueProcessOrder(_ context.Context, orderID uint, cardI
 			if !ok {
 				return fmt.Errorf("invalid process order payload type")
 			}
-			return q.handlers.ProcessOrder(p.OrderID, p.CardInfo)
+			return q.handlers.ProcessOrder(context.Background(), p.OrderID, p.CardInfo)
 		},
 	})
 	return nil
@@ -63,7 +63,7 @@ func (q *memoryQueue) EnqueueProcessShipment(_ context.Context, shipmentID uint)
 			if !ok {
 				return fmt.Errorf("invalid shipment payload type")
 			}
-			return q.handlers.ProcessShipment(id)
+			return q.handlers.ProcessShipment(context.Background(), id)
 		},
 	})
 	return nil

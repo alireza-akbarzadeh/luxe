@@ -40,7 +40,7 @@ func (ctrl *CompareController) CompareProducts(c *gin.Context) {
 	}
 	products, err := ctrl.compareService.GetForCompare(req.ProductIDs)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch products for comparison")
+		utils.HandleServiceError(c, err, "failed to fetch products for comparison")
 		return
 	}
 	utils.SuccessResponse(c, "products fetched", products)
@@ -65,7 +65,7 @@ func (ctrl *CompareController) GetCompareList(c *gin.Context) {
 	}
 	productIDs, err := ctrl.compareService.GetCompareList(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get compare list")
+		utils.HandleServiceError(c, err, "failed to get compare list")
 		return
 	}
 	utils.SuccessResponse(c, "compare list fetched", dto.CompareListResponse{ProductIDs: productIDs})
@@ -94,7 +94,7 @@ func (ctrl *CompareController) SyncCompareList(c *gin.Context) {
 		return
 	}
 	if err := ctrl.compareService.SyncCompareList(userID, req.ProductIDs); err != nil {
-		utils.HandleAppError(c, err, "failed to sync compare list")
+		utils.HandleServiceError(c, err, "failed to sync compare list")
 		return
 	}
 	utils.SuccessResponse(c, "compare list synced", nil)

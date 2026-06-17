@@ -63,7 +63,7 @@ func (rc *ReviewController) Create(c *gin.Context) {
 	}
 	review, err := rc.reviewService.Create(userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create review")
+		utils.HandleServiceError(c, err, "failed to create review")
 		return
 	}
 	review.UserID = userID
@@ -98,7 +98,7 @@ func (rc *ReviewController) Update(c *gin.Context) {
 	}
 	review, err := rc.reviewService.Update(userID, uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update review")
+		utils.HandleServiceError(c, err, "failed to update review")
 		return
 	}
 	utils.SuccessResponse(c, "review updated", dto.ToReviewResponse(review, userID))
@@ -125,7 +125,7 @@ func (rc *ReviewController) Delete(c *gin.Context) {
 	}
 	err = rc.reviewService.Delete(userID, uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete review")
+		utils.HandleServiceError(c, err, "failed to delete review")
 		return
 	}
 	utils.SuccessResponse(c, "review deleted", nil)
@@ -193,7 +193,7 @@ func (rc *ReviewController) GetMyProductReview(c *gin.Context) {
 
 	review, err := rc.reviewService.GetUserReviewForProduct(userID, uint(productID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch review")
+		utils.HandleServiceError(c, err, "failed to fetch review")
 		return
 	}
 	if review == nil {

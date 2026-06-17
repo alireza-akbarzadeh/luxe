@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -24,18 +25,18 @@ type SessionMeta struct {
 }
 
 type AuthServiceInterface interface {
-	Register(req dto.RegisterRequest, meta SessionMeta) (accessToken, refreshToken string, user *models.User, err error)
-	Login(req dto.LoginRequest, meta SessionMeta) (accessToken, refreshToken string, user *models.User, err error)
-	RefreshTokens(refreshToken string, meta SessionMeta) (newAccessToken, newRefreshToken string, err error)
-	Logout(userID uint, req LogoutRequest) error
-	ListSessions(userID uint, currentRefreshToken string) ([]dto.SessionResponse, error)
-	RevokeSession(userID, sessionID uint) error
-	RevokeOtherSessions(userID uint, currentRefreshToken string) error
-	VerifyEmail(token string) error
-	ChangePassword(userID uint, req dto.ChangePasswordRequest) error
-	ResetPassword(token string, newPassword string) error
-	ForgotPassword(email string) error
-	SendVerificationEmail(userID uint) error
+	Register(ctx context.Context, req dto.RegisterRequest, meta SessionMeta) (accessToken, refreshToken string, user *models.User, err error)
+	Login(ctx context.Context, req dto.LoginRequest, meta SessionMeta) (accessToken, refreshToken string, user *models.User, err error)
+	RefreshTokens(ctx context.Context, refreshToken string, meta SessionMeta) (newAccessToken, newRefreshToken string, err error)
+	Logout(ctx context.Context, userID uint, req LogoutRequest) error
+	ListSessions(ctx context.Context, userID uint, currentRefreshToken string) ([]dto.SessionResponse, error)
+	RevokeSession(ctx context.Context, userID, sessionID uint) error
+	RevokeOtherSessions(ctx context.Context, userID uint, currentRefreshToken string) error
+	VerifyEmail(ctx context.Context, token string) error
+	ChangePassword(ctx context.Context, userID uint, req dto.ChangePasswordRequest) error
+	ResetPassword(ctx context.Context, token string, newPassword string) error
+	ForgotPassword(ctx context.Context, email string) error
+	SendVerificationEmail(ctx context.Context, userID uint) error
 }
 type AuthService struct {
 	db  *gorm.DB
@@ -47,9 +48,11 @@ func NewAuthServices(db *gorm.DB, cfg *config.Config) *AuthService {
 }
 
 // Register creates a new user and returns token pair.
-func (s *AuthService) Register(req dto.RegisterRequest, meta SessionMeta) (string, string, *models.User, error) {
+func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest, meta SessionMeta) (string, string, *models.User, error) {
+	db := s.db.WithContext(ctx)
+
 	var existingUser models.User
-	if err := s.db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
+	if err := db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
 		return "", "", nil, utils.ErrConflict(constants.ErrEmailAlreadyExists)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", "", nil, utils.ErrInternal(err)
@@ -70,11 +73,11 @@ func (s *AuthService) Register(req dto.RegisterRequest, meta SessionMeta) (strin
 		IsActive:     true,
 	}
 
-	if err := s.db.Create(user).Error; err != nil {
+	if err := db.Create(user).Error; err != nil {
 		return "", "", nil, utils.ErrInternal(err)
 	}
 
-	accessToken, refreshToken, err := s.GenerateTokenPair(user, meta)
+	accessToken, refreshToken, err := s.generateTokenPair(ctx, user, meta)
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -83,9 +86,11 @@ func (s *AuthService) Register(req dto.RegisterRequest, meta SessionMeta) (strin
 }
 
 // Login authenticates a user and returns token pair.
-func (s *AuthService) Login(req dto.LoginRequest, meta SessionMeta) (string, string, *models.User, error) {
+func (s *AuthService) Login(ctx context.Context, req dto.LoginRequest, meta SessionMeta) (string, string, *models.User, error) {
+	db := s.db.WithContext(ctx)
+
 	var user models.User
-	if err := s.db.Where("email = ?", req.Email).First(&user).Error; err != nil {
+	if err := db.Where("email = ?", req.Email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", "", nil, utils.ErrUnauthorized(constants.ErrInvalidCredentials)
 		}
@@ -102,11 +107,11 @@ func (s *AuthService) Login(req dto.LoginRequest, meta SessionMeta) (string, str
 
 	now := time.Now()
 	user.LastLoginAt = &now
-	if err := s.db.Model(&user).Update("last_login_at", now).Error; err != nil {
+	if err := db.Model(&user).Update("last_login_at", now).Error; err != nil {
 		utils.Log.WithError(err).Warn("failed to update last_login_at")
 	}
 
-	accessToken, refreshToken, err := s.GenerateTokenPair(&user, meta)
+	accessToken, refreshToken, err := s.generateTokenPair(ctx, &user, meta)
 	if err != nil {
 		return "", "", nil, err
 	}
@@ -114,9 +119,9 @@ func (s *AuthService) Login(req dto.LoginRequest, meta SessionMeta) (string, str
 	return accessToken, refreshToken, &user, nil
 }
 
-// GenerateTokenPair creates both access and refresh tokens.
-func (s *AuthService) GenerateTokenPair(user *models.User, meta SessionMeta) (accessToken, refreshToken string, err error) {
-	// Access token with configured expiry
+func (s *AuthService) generateTokenPair(ctx context.Context, user *models.User, meta SessionMeta) (accessToken, refreshToken string, err error) {
+	db := s.db.WithContext(ctx)
+
 	accessToken, err = utils.GenerateToken(
 		user.ID,
 		user.Email,
@@ -129,18 +134,15 @@ func (s *AuthService) GenerateTokenPair(user *models.User, meta SessionMeta) (ac
 		return "", "", utils.ErrInternal(err)
 	}
 
-	// Raw refresh token (random string)
 	rawRefresh, err := utils.GenerateRefreshToken()
 	if err != nil {
 		return "", "", utils.ErrInternal(err)
 	}
 
 	hashedRefresh := utils.HashRefreshToken(rawRefresh)
-
-	// Use configured refresh token expiry (e.g., 168h = 7 days)
 	refreshExpiry := config.AppConfig.JWT.RefreshTokenExpiry
-
 	now := time.Now()
+
 	refreshTokenObj := &models.RefreshToken{
 		Token:      hashedRefresh,
 		UserID:     user.ID,
@@ -150,7 +152,7 @@ func (s *AuthService) GenerateTokenPair(user *models.User, meta SessionMeta) (ac
 		IPAddress:  meta.IPAddress,
 		LastUsedAt: now,
 	}
-	if err := s.db.Create(refreshTokenObj).Error; err != nil {
+	if err := db.Create(refreshTokenObj).Error; err != nil {
 		return "", "", utils.ErrInternal(err)
 	}
 
@@ -158,16 +160,17 @@ func (s *AuthService) GenerateTokenPair(user *models.User, meta SessionMeta) (ac
 }
 
 // RefreshTokens validates a refresh token, rotates it, and returns a new token pair.
-func (s *AuthService) RefreshTokens(rawRefreshToken string, meta SessionMeta) (newAccessToken, newRawRefreshToken string, err error) {
+func (s *AuthService) RefreshTokens(ctx context.Context, rawRefreshToken string, meta SessionMeta) (newAccessToken, newRawRefreshToken string, err error) {
+	db := s.db.WithContext(ctx)
 	hashed := utils.HashRefreshToken(rawRefreshToken)
 	now := time.Now()
 
 	var storedToken models.RefreshToken
-	err = s.db.Where("token = ? AND revoked = ? AND expires_at > ?", hashed, false, now).
+	err = db.Where("token = ? AND revoked = ? AND expires_at > ?", hashed, false, now).
 		First(&storedToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return s.handleRevokedRefreshToken(hashed, meta)
+			return s.handleRevokedRefreshToken(ctx, hashed, meta)
 		}
 		return "", "", utils.ErrInternal(err)
 	}
@@ -180,12 +183,12 @@ func (s *AuthService) RefreshTokens(rawRefreshToken string, meta SessionMeta) (n
 	if meta.IPAddress != "" {
 		storedToken.IPAddress = meta.IPAddress
 	}
-	if err := s.db.Save(&storedToken).Error; err != nil {
+	if err := db.Save(&storedToken).Error; err != nil {
 		return "", "", utils.ErrInternal(err)
 	}
 
 	var user models.User
-	if err := s.db.First(&user, storedToken.UserID).Error; err != nil {
+	if err := db.First(&user, storedToken.UserID).Error; err != nil {
 		return "", "", utils.ErrInternal(err)
 	}
 
@@ -211,16 +214,18 @@ func (s *AuthService) RefreshTokens(rawRefreshToken string, meta SessionMeta) (n
 		IPAddress:  meta.IPAddress,
 		LastUsedAt: now,
 	}
-	if err := s.db.Create(newTokenRecord).Error; err != nil {
+	if err := db.Create(newTokenRecord).Error; err != nil {
 		return "", "", utils.ErrInternal(err)
 	}
 
 	return newAccessToken, newRawRefreshToken, nil
 }
 
-func (s *AuthService) handleRevokedRefreshToken(hashed string, meta SessionMeta) (string, string, error) {
+func (s *AuthService) handleRevokedRefreshToken(ctx context.Context, hashed string, meta SessionMeta) (string, string, error) {
+	db := s.db.WithContext(ctx)
+
 	var revokedToken models.RefreshToken
-	err := s.db.Where("token = ? AND revoked = ?", hashed, true).First(&revokedToken).Error
+	err := db.Where("token = ? AND revoked = ?", hashed, true).First(&revokedToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", "", utils.ErrUnauthorized("invalid or expired refresh token")
@@ -237,7 +242,7 @@ func (s *AuthService) handleRevokedRefreshToken(hashed string, meta SessionMeta)
 		return "", "", utils.ErrUnauthorized("refresh token already rotated")
 	}
 
-	if err := s.revokeAllUserRefreshTokens(revokedToken.UserID); err != nil {
+	if err := s.revokeAllUserRefreshTokens(ctx, revokedToken.UserID); err != nil {
 		return "", "", err
 	}
 
@@ -249,8 +254,8 @@ func (s *AuthService) handleRevokedRefreshToken(hashed string, meta SessionMeta)
 	return "", "", utils.ErrUnauthorized("refresh token reuse detected")
 }
 
-func (s *AuthService) revokeAllUserRefreshTokens(userID uint) error {
-	result := s.db.Model(&models.RefreshToken{}).
+func (s *AuthService) revokeAllUserRefreshTokens(ctx context.Context, userID uint) error {
+	result := s.db.WithContext(ctx).Model(&models.RefreshToken{}).
 		Where("user_id = ? AND revoked = ?", userID, false).
 		Update("revoked", true)
 	if result.Error != nil {
@@ -260,9 +265,11 @@ func (s *AuthService) revokeAllUserRefreshTokens(userID uint) error {
 }
 
 // ListSessions returns active refresh-token sessions for a user.
-func (s *AuthService) ListSessions(userID uint, currentRefreshToken string) ([]dto.SessionResponse, error) {
+func (s *AuthService) ListSessions(ctx context.Context, userID uint, currentRefreshToken string) ([]dto.SessionResponse, error) {
+	db := s.db.WithContext(ctx)
+
 	var tokens []models.RefreshToken
-	if err := s.db.Where("user_id = ? AND revoked = ? AND expires_at > ?", userID, false, time.Now()).
+	if err := db.Where("user_id = ? AND revoked = ? AND expires_at > ?", userID, false, time.Now()).
 		Order("last_used_at DESC, created_at DESC").
 		Find(&tokens).Error; err != nil {
 		return nil, utils.ErrInternal(err)
@@ -294,8 +301,8 @@ func (s *AuthService) ListSessions(userID uint, currentRefreshToken string) ([]d
 }
 
 // RevokeSession revokes a single refresh-token session.
-func (s *AuthService) RevokeSession(userID, sessionID uint) error {
-	result := s.db.Model(&models.RefreshToken{}).
+func (s *AuthService) RevokeSession(ctx context.Context, userID, sessionID uint) error {
+	result := s.db.WithContext(ctx).Model(&models.RefreshToken{}).
 		Where("id = ? AND user_id = ? AND revoked = ?", sessionID, userID, false).
 		Update("revoked", true)
 	if result.Error != nil {
@@ -308,8 +315,8 @@ func (s *AuthService) RevokeSession(userID, sessionID uint) error {
 }
 
 // RevokeOtherSessions revokes all sessions except the current refresh token.
-func (s *AuthService) RevokeOtherSessions(userID uint, currentRefreshToken string) error {
-	query := s.db.Model(&models.RefreshToken{}).
+func (s *AuthService) RevokeOtherSessions(ctx context.Context, userID uint, currentRefreshToken string) error {
+	query := s.db.WithContext(ctx).Model(&models.RefreshToken{}).
 		Where("user_id = ? AND revoked = ?", userID, false)
 
 	if currentRefreshToken != "" {
@@ -324,10 +331,12 @@ func (s *AuthService) RevokeOtherSessions(userID uint, currentRefreshToken strin
 }
 
 // Logout revokes refresh tokens for the current session or all sessions for a user.
-func (s *AuthService) Logout(userID uint, req LogoutRequest) error {
+func (s *AuthService) Logout(ctx context.Context, userID uint, req LogoutRequest) error {
+	db := s.db.WithContext(ctx)
+
 	if req.RefreshToken != "" {
 		hashed := utils.HashRefreshToken(req.RefreshToken)
-		result := s.db.Model(&models.RefreshToken{}).
+		result := db.Model(&models.RefreshToken{}).
 			Where("token = ? AND revoked = ?", hashed, false).
 			Update("revoked", true)
 		if result.Error != nil {
@@ -342,13 +351,15 @@ func (s *AuthService) Logout(userID uint, req LogoutRequest) error {
 		return nil
 	}
 
-	return s.db.Model(&models.RefreshToken{}).Where("user_id = ?", userID).Update("revoked", true).Error
+	return db.Model(&models.RefreshToken{}).Where("user_id = ?", userID).Update("revoked", true).Error
 }
 
 // ChangePassword use can change password with this services
-func (s *AuthService) ChangePassword(userID uint, req dto.ChangePasswordRequest) error {
+func (s *AuthService) ChangePassword(ctx context.Context, userID uint, req dto.ChangePasswordRequest) error {
+	db := s.db.WithContext(ctx)
+
 	var user models.User
-	if err := s.db.Select("id", "password_hash").First(&user, userID).Error; err != nil {
+	if err := db.Select("id", "password_hash").First(&user, userID).Error; err != nil {
 		return utils.ErrNotFound("user not found")
 	}
 
@@ -361,7 +372,7 @@ func (s *AuthService) ChangePassword(userID uint, req dto.ChangePasswordRequest)
 		return utils.ErrInternal(err)
 	}
 	user.PasswordHash = hashed
-	if err := s.db.Save(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
@@ -369,18 +380,16 @@ func (s *AuthService) ChangePassword(userID uint, req dto.ChangePasswordRequest)
 }
 
 // ForgotPassword generates a reset token and sends email.
-func (s *AuthService) ForgotPassword(email string) error {
+func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
+	db := s.db.WithContext(ctx)
+
 	var user models.User
-	// Find user by email
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		// Don't reveal if user exists – return nil (silent)
+	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		return nil
 	}
 
-	// Delete any previous unused tokens for this user
-	s.db.Where("user_id = ? AND used_at IS NULL", user.ID).Delete(&models.PasswordResetToken{})
+	db.Where("user_id = ? AND used_at IS NULL", user.ID).Delete(&models.PasswordResetToken{})
 
-	// Generate a secure random token
 	token, err := utils.GenerateRandomToken()
 	if err != nil {
 		return utils.ErrInternal(err)
@@ -392,27 +401,27 @@ func (s *AuthService) ForgotPassword(email string) error {
 		Token:     utils.HashRefreshToken(token),
 		ExpiresAt: expiresAt,
 	}
-	if err := s.db.Create(&resetToken).Error; err != nil {
+	if err := db.Create(&resetToken).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
-	// Send email asynchronously
 	go utils.SendPasswordResetEmail(user.Email, token)
 	return nil
 }
 
 // SendVerificationEmail creates a token and sends verification link.
-func (s *AuthService) SendVerificationEmail(userID uint) error {
+func (s *AuthService) SendVerificationEmail(ctx context.Context, userID uint) error {
+	db := s.db.WithContext(ctx)
+
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := db.First(&user, userID).Error; err != nil {
 		return utils.ErrNotFound("user not found")
 	}
 	if user.EmailVerifiedAt != nil {
 		return utils.ErrBadRequest("email already verified")
 	}
 
-	// Invalidate previous tokens
-	s.db.Where("user_id = ? AND used_at IS NULL", userID).Delete(&models.EmailVerificationToken{})
+	db.Where("user_id = ? AND used_at IS NULL", userID).Delete(&models.EmailVerificationToken{})
 
 	token, err := utils.GenerateRandomToken()
 	if err != nil {
@@ -424,45 +433,48 @@ func (s *AuthService) SendVerificationEmail(userID uint) error {
 		Token:     utils.HashRefreshToken(token),
 		ExpiresAt: expiresAt,
 	}
-	if err := s.db.Create(&vt).Error; err != nil {
+	if err := db.Create(&vt).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
-	go utils.SendVerificationEmail(user.Email, token) // you'll implement this
+	go utils.SendVerificationEmail(user.Email, token)
 	return nil
 }
 
 // VerifyEmail marks email as verified.
-func (s *AuthService) VerifyEmail(token string) error {
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
+	db := s.db.WithContext(ctx)
+
 	var vt models.EmailVerificationToken
-	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), time.Now()).
+	err := db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), time.Now()).
 		First(&vt).Error
 	if err != nil {
 		return utils.ErrBadRequest("invalid or expired verification token")
 	}
 
 	var user models.User
-	if err := s.db.First(&user, vt.UserID).Error; err != nil {
+	if err := db.First(&user, vt.UserID).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
 	now := time.Now()
 	user.EmailVerifiedAt = &now
-	if err := s.db.Save(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
 	vt.UsedAt = &now
-	s.db.Save(&vt)
+	db.Save(&vt)
 	return nil
 }
 
 // ResetPassword uses a valid reset token to set a new password.
-func (s *AuthService) ResetPassword(token string, newPassword string) error {
-	var resetToken models.PasswordResetToken
+func (s *AuthService) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	db := s.db.WithContext(ctx)
 	now := time.Now()
 
-	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), now).
+	var resetToken models.PasswordResetToken
+	err := db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), now).
 		First(&resetToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -472,7 +484,7 @@ func (s *AuthService) ResetPassword(token string, newPassword string) error {
 	}
 
 	var user models.User
-	if err := s.db.First(&user, resetToken.UserID).Error; err != nil {
+	if err := db.First(&user, resetToken.UserID).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
@@ -482,16 +494,16 @@ func (s *AuthService) ResetPassword(token string, newPassword string) error {
 	}
 
 	user.PasswordHash = hashed
-	if err := s.db.Save(&user).Error; err != nil {
+	if err := db.Save(&user).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
 	resetToken.UsedAt = &now
-	if err := s.db.Save(&resetToken).Error; err != nil {
+	if err := db.Save(&resetToken).Error; err != nil {
 		utils.Log.WithError(err).Warn("failed to mark reset token as used")
 	}
 
-	s.db.Model(&models.RefreshToken{}).Where("user_id = ?", user.ID).Update("revoked", true)
+	db.Model(&models.RefreshToken{}).Where("user_id = ?", user.ID).Update("revoked", true)
 
 	return nil
 }

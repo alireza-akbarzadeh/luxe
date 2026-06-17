@@ -71,7 +71,7 @@ func (ctrl *SearchController) GlobalSearch(c *gin.Context) {
 
 	result, err := ctrl.searchService.GlobalSearch(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "search failed")
+		utils.HandleServiceError(c, err, "search failed")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
@@ -104,7 +104,7 @@ func (ctrl *SearchController) Suggestions(c *gin.Context) {
 	}
 	suggestions, err := ctrl.searchService.Suggestions(q, limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get suggestions")
+		utils.HandleServiceError(c, err, "failed to get suggestions")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, suggestions)
@@ -130,7 +130,7 @@ func (ctrl *SearchController) Trending(c *gin.Context) {
 	}
 	trending, err := ctrl.searchService.Trending(limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get trending searches")
+		utils.HandleServiceError(c, err, "failed to get trending searches")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{"trending": trending})

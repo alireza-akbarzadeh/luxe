@@ -42,7 +42,7 @@ type ShipmentServiceInterface interface {
 	GetShippingProviders() ([]models.ShippingProviders, error)
 	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
 	UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
-	ProcessShipmentBackground(shipmentID uint) error
+	ProcessShipmentBackground(ctx context.Context, shipmentID uint) error
 }
 
 type shipmentService struct {
@@ -150,22 +150,22 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 }
 
 // ProcessShipmentBackground runs async shipment processing (carrier simulation).
-func (s *shipmentService) ProcessShipmentBackground(shipmentID uint) error {
-	return s.processShipment(shipmentID)
+func (s *shipmentService) ProcessShipmentBackground(ctx context.Context, shipmentID uint) error {
+	return s.processShipment(ctx, shipmentID)
 }
 
 // processShipment is the background job handler (standalone flow only).
-func (s *shipmentService) processShipment(shipmentID uint) error {
+func (s *shipmentService) processShipment(ctx context.Context, shipmentID uint) error {
 	time.Sleep(2 * time.Second) // simulate carrier API
 
 	var shipment models.Shipment
-	if err := s.db.First(&shipment, shipmentID).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&shipment, shipmentID).Error; err != nil {
 		return err
 	}
 
 	oldStatus := shipment.Status
 
-	if err := s.db.Model(&models.Shipment{}).Where("id = ?", shipmentID).
+	if err := s.db.WithContext(ctx).Model(&models.Shipment{}).Where("id = ?", shipmentID).
 		Update("status", "processing").Error; err != nil {
 		return err
 	}

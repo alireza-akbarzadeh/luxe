@@ -90,7 +90,7 @@ func (ctrl *CategoryController) Update(c *gin.Context) {
 
 	category, err := ctrl.categoryService.Update(uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update category")
+		utils.HandleServiceError(c, err, "failed to update category")
 		return
 	}
 	resp := dto.CategorySingleResponse{
@@ -128,7 +128,7 @@ func (ctrl *CategoryController) Delete(c *gin.Context) {
 	}
 
 	if err := ctrl.categoryService.Delete(uint(id)); err != nil {
-		utils.HandleAppError(c, err, "failed to delete category")
+		utils.HandleServiceError(c, err, "failed to delete category")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -163,7 +163,7 @@ func (ctrl *CategoryController) GetOne(c *gin.Context) {
 		category, err = ctrl.categoryService.GetBySlug(identifier)
 	}
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch category")
+		utils.HandleServiceError(c, err, "failed to fetch category")
 		return
 	}
 	resp := dto.CategorySingleResponse{
@@ -201,7 +201,7 @@ func (ctrl *CategoryController) List(c *gin.Context) {
 
 	categories, total, err := ctrl.categoryService.List(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list categories")
+		utils.HandleServiceError(c, err, "failed to list categories")
 		return
 	}
 
@@ -246,7 +246,7 @@ func (ctrl *CategoryController) BulkCreate(c *gin.Context) {
 	}
 	categories, err := ctrl.categoryService.BulkCreate(reqs)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to bulk create categories")
+		utils.HandleServiceError(c, err, "failed to bulk create categories")
 		return
 	}
 	resp := dto.BulkCreateCategoryResponse{
@@ -282,7 +282,7 @@ func (ctrl *CategoryController) BulkDelete(c *gin.Context) {
 		return
 	}
 	if err := ctrl.categoryService.BulkDelete(req.IDs); err != nil {
-		utils.HandleAppError(c, err, "failed to bulk delete categories")
+		utils.HandleServiceError(c, err, "failed to bulk delete categories")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -320,7 +320,7 @@ func (ctrl *CategoryController) GetCategoryByID(c *gin.Context) {
 
 	category, err := ctrl.categoryService.GetByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to find category")
+		utils.HandleServiceError(c, err, "failed to find category")
 		return
 	}
 

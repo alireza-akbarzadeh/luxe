@@ -59,7 +59,7 @@ func (ctrl *UploadController) PresignUpload(c *gin.Context) {
 
 	result, err := ctrl.uploadService.CreatePresignedUpload(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create upload URL")
+		utils.HandleServiceError(c, err, "failed to create upload URL")
 		return
 	}
 

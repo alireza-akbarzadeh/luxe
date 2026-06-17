@@ -46,7 +46,7 @@ func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 
 	brand, err := ctrl.brandService.Create(c.Request.Context(), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create brand")
+		utils.HandleServiceError(c, err, "failed to create brand")
 		return
 	}
 
@@ -77,7 +77,7 @@ func (ctrl *BrandController) GetBrand(c *gin.Context) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to retrieve brand")
+		utils.HandleServiceError(c, err, "failed to retrieve brand")
 		return
 	}
 
@@ -104,7 +104,7 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 
 	brands, total, err := ctrl.brandService.List(c.Request.Context(), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list brands")
+		utils.HandleServiceError(c, err, "failed to list brands")
 		return
 	}
 
@@ -146,7 +146,7 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to update brand")
+		utils.HandleServiceError(c, err, "failed to update brand")
 		return
 	}
 
@@ -177,7 +177,7 @@ func (ctrl *BrandController) DeleteBrand(c *gin.Context) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to delete brand")
+		utils.HandleServiceError(c, err, "failed to delete brand")
 		return
 	}
 

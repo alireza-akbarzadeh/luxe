@@ -66,3 +66,13 @@ func TestOrders_ListAfterCheckout(t *testing.T) {
 	require.GreaterOrEqual(t, data.Total, int64(1))
 	require.NotEmpty(t, data.Orders)
 }
+
+func TestOrders_UnauthorizedWithoutToken(t *testing.T) {
+	server := newTestServer(t)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/api/v1/orders/my")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}

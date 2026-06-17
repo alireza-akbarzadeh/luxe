@@ -14,8 +14,8 @@ const (
 
 // ProcessOrderPayload is the durable payload for mock payment fulfillment.
 type ProcessOrderPayload struct {
-	OrderID  uint          `json:"order_id"`
-	CardInfo dto.CardInfo  `json:"card_info"`
+	OrderID  uint         `json:"order_id"`
+	CardInfo dto.CardInfo `json:"card_info"`
 }
 
 // ProcessShipmentPayload is the durable payload for shipment background processing.
@@ -25,8 +25,8 @@ type ProcessShipmentPayload struct {
 
 // Handlers registers business logic invoked by background workers.
 type Handlers struct {
-	ProcessOrder    func(orderID uint, cardInfo dto.CardInfo) error
-	ProcessShipment func(shipmentID uint) error
+	ProcessOrder    func(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error
+	ProcessShipment func(ctx context.Context, shipmentID uint) error
 }
 
 // BindHandlers updates handlers on a running queue (used after services are wired in main).

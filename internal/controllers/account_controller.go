@@ -53,7 +53,7 @@ func (ac *AccountController) GetAccountSummary(c *gin.Context) {
 	// 1. Get user profile (from userService – you need to inject it)
 	user, err := ac.userService.GetUserByID(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch user")
+		utils.HandleServiceError(c, err, "failed to fetch user")
 		return
 	}
 
@@ -148,7 +148,7 @@ func (ac *AccountController) GetUserOrderAccount(c *gin.Context) {
 		Offset: offset,
 	})
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch orders")
+		utils.HandleServiceError(c, err, "failed to fetch orders")
 		return
 	}
 
@@ -214,7 +214,7 @@ func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 	// Pass sortBy parameters straight to the service worker
 	products, total, err := ac.likeService.GetUserWishlist(userID, limit, offset, sortBy)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch wishlist")
+		utils.HandleServiceError(c, err, "failed to fetch wishlist")
 		return
 	}
 

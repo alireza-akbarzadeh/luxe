@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -23,38 +24,38 @@ type MockAuthService struct {
 	services.AuthServiceInterface
 }
 
-func (m *MockAuthService) Login(req dto.LoginRequest, meta services.SessionMeta) (string, string, *models.User, error) {
-	args := m.Called(req, meta)
+func (m *MockAuthService) Login(ctx context.Context, req dto.LoginRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+	args := m.Called(ctx, req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) Register(req dto.RegisterRequest, meta services.SessionMeta) (string, string, *models.User, error) {
-	args := m.Called(req, meta)
+func (m *MockAuthService) Register(ctx context.Context, req dto.RegisterRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+	args := m.Called(ctx, req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) RefreshTokens(refreshToken string, meta services.SessionMeta) (string, string, error) {
-	args := m.Called(refreshToken, meta)
+func (m *MockAuthService) RefreshTokens(ctx context.Context, refreshToken string, meta services.SessionMeta) (string, string, error) {
+	args := m.Called(ctx, refreshToken, meta)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockAuthService) Logout(userID uint, req services.LogoutRequest) error {
-	args := m.Called(userID, req)
+func (m *MockAuthService) Logout(ctx context.Context, userID uint, req services.LogoutRequest) error {
+	args := m.Called(ctx, userID, req)
 	return args.Error(0)
 }
 
-func (m *MockAuthService) ChangePassword(userID uint, req dto.ChangePasswordRequest) error {
-	args := m.Called(userID, req)
+func (m *MockAuthService) ChangePassword(ctx context.Context, userID uint, req dto.ChangePasswordRequest) error {
+	args := m.Called(ctx, userID, req)
 	return args.Error(0)
 }
 
-func (m *MockAuthService) ResetPassword(token string, newPassword string) error {
-	args := m.Called(token, newPassword)
+func (m *MockAuthService) ResetPassword(ctx context.Context, token string, newPassword string) error {
+	args := m.Called(ctx, token, newPassword)
 	return args.Error(0)
 }
 
-func (m *MockAuthService) ForgotPassword(email string) error {
-	args := m.Called(email)
+func (m *MockAuthService) ForgotPassword(ctx context.Context, email string) error {
+	args := m.Called(ctx, email)
 	return args.Error(0)
 }
 
@@ -72,7 +73,7 @@ func TestAuthController_Login(t *testing.T) {
 			Role:      "user",
 			Phone:     "1234567890",
 		}
-		mockAuthService.On("Login", dto.LoginRequest{
+		mockAuthService.On("Login", mock.Anything, dto.LoginRequest{
 			Email:    "test@example.com",
 			Password: "password123",
 		}, mock.Anything).Return("access_token", "refresh_token", expectedUser, nil).Once()
@@ -93,7 +94,7 @@ func TestAuthController_Login(t *testing.T) {
 		mockAuthService.AssertExpectations(t)
 	})
 	t.Run("invalid credential return 401", func(t *testing.T) {
-		mockAuthService.On("Login", dto.LoginRequest{
+		mockAuthService.On("Login", mock.Anything, dto.LoginRequest{
 			Email:    "wrong@example.com",
 			Password: "wrong",
 		}, mock.Anything).Return("", "", (*models.User)(nil), utils.ErrUnauthorized("invalid email or password")).Once()

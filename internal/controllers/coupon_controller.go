@@ -48,7 +48,7 @@ func (cc *CouponController) Create(c *gin.Context) {
 	}
 	coupon, err := cc.couponService.Create(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create coupon")
+		utils.HandleServiceError(c, err, "failed to create coupon")
 		return
 	}
 	resp := dto.CouponSingleResponse{
@@ -91,7 +91,7 @@ func (cc *CouponController) Update(c *gin.Context) {
 	}
 	coupon, err := cc.couponService.Update(uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update coupon")
+		utils.HandleServiceError(c, err, "failed to update coupon")
 		return
 	}
 	resp := dto.CouponSingleResponse{
@@ -128,7 +128,7 @@ func (cc *CouponController) Delete(c *gin.Context) {
 	}
 	err = cc.couponService.Delete(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete coupon")
+		utils.HandleServiceError(c, err, "failed to delete coupon")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -166,7 +166,7 @@ func (cc *CouponController) Validate(c *gin.Context) {
 	}
 	coupon, discount, err := cc.couponService.ValidateCoupon(req.Code, userID, req.OrderTotal)
 	if err != nil {
-		utils.HandleAppError(c, err, "coupon validation failed")
+		utils.HandleServiceError(c, err, "coupon validation failed")
 		return
 	}
 	resp := dto.CouponValidateResponse{
@@ -212,7 +212,7 @@ func (cc *CouponController) List(c *gin.Context) {
 
 	coupons, total, err := cc.couponService.List(filters)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list coupons")
+		utils.HandleServiceError(c, err, "failed to list coupons")
 		return
 	}
 	resp := dto.CouponListResponse{
@@ -259,7 +259,7 @@ func (cc *CouponController) GetMyCoupons(c *gin.Context) {
 	}
 	coupons, err := cc.couponService.GetAvailableCouponsForUser(userID, orderTotal)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch available coupons")
+		utils.HandleServiceError(c, err, "failed to fetch available coupons")
 		return
 	}
 
@@ -291,7 +291,7 @@ func (cc *CouponController) GetCouponByID(c *gin.Context) {
 
 	coupon, err := cc.couponService.GetByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to find coupon")
+		utils.HandleServiceError(c, err, "failed to find coupon")
 		return
 	}
 
