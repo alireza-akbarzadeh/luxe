@@ -188,6 +188,7 @@ const (
 	PaymentStatusCompleted = "completed"
 	PaymentStatusSucceeded = "succeeded"
 	PaymentStatusFailed    = "failed"
+	PaymentStatusRefunded  = "refunded"
 
 	// Wallet transaction types
 	WalletTxTypeDeposit     = "deposit"

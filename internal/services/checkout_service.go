@@ -19,6 +19,8 @@ type CheckoutServiceInterface interface {
 	Checkout(ctx context.Context, userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
 	CompletePaidOrder(ctx context.Context, orderID uint) error
 	ProcessOrder(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error
+	// CancelOrder cancels an order owned by userID, restores stock, and refunds wallet payments.
+	CancelOrder(ctx context.Context, orderID, userID uint) error
 }
 
 type checkoutService struct {
@@ -27,6 +29,7 @@ type checkoutService struct {
 	couponService       CouponServiceInterface
 	paymentService      PaymentServiceInterface
 	shipmentService     ShipmentServiceInterface
+	walletService       WalletServiceInterface
 	workerPool          tasks.JobQueue
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
@@ -39,6 +42,7 @@ func NewCheckoutService(
 	couponService CouponServiceInterface,
 	paymentService PaymentServiceInterface,
 	shipmentService ShipmentServiceInterface,
+	walletService WalletServiceInterface,
 	workerPool tasks.JobQueue,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
@@ -50,6 +54,7 @@ func NewCheckoutService(
 		couponService:       couponService,
 		paymentService:      paymentService,
 		shipmentService:     shipmentService,
+		walletService:       walletService,
 		workerPool:          workerPool,
 		hub:                 hub,
 		salesFeed:           salesFeed,
@@ -190,13 +195,26 @@ func (s *checkoutService) ProcessOrder(ctx context.Context, orderID uint, cardIn
 			return fmt.Errorf("payment record missing for order %d", orderID)
 		}
 
-		// 2. Process payment (mock gateway inside)
-		if err := s.paymentService.ProcessPayment(tx, order.Payment.ID, cardInfo); err != nil {
-			// Payment failed – update order status & cancel shipment
+		// 2. Process payment — wallet deducts balance; mock/card goes through gateway.
+		if order.Payment.Method == "wallet" {
+			if err := s.walletService.DeductForOrder(order.UserID, order.TotalAmount, order.ID); err != nil {
+				tx.Model(&order).Update("status", "payment_failed")
+				tx.Model(&models.Shipment{}).Where("order_id = ?", order.ID).Update("status", "cancelled")
+				s.broadcastOrderUpdate(order.ID, order.UserID, "payment_failed", map[string]interface{}{
+					"title":    "Payment Failed",
+					"message":  fmt.Sprintf("Wallet payment failed: %s", err.Error()),
+					"order_id": order.ID,
+					"status":   "payment_failed",
+				})
+				return err
+			}
+			tx.Model(&models.Payment{}).Where("id = ?", order.Payment.ID).Updates(map[string]interface{}{
+				"status":         constants.PaymentStatusSucceeded,
+				"transaction_id": fmt.Sprintf("wallet_%d_%d", order.UserID, order.ID),
+			})
+		} else if err := s.paymentService.ProcessPayment(tx, order.Payment.ID, cardInfo); err != nil {
 			tx.Model(&order).Update("status", "payment_failed")
 			tx.Model(&models.Shipment{}).Where("order_id = ?", order.ID).Update("status", "cancelled")
-
-			// Broadcast failure
 			s.broadcastOrderUpdate(order.ID, order.UserID, "payment_failed", map[string]interface{}{
 				"title":    "Payment Failed",
 				"message":  fmt.Sprintf("Payment failed: %s", err.Error()),
@@ -505,4 +523,81 @@ func (s *checkoutService) sendOrderCreatedNotification(userID uint, order *model
 			},
 		)
 	}()
+}
+
+// cancellableStatuses are the order statuses a customer may cancel from.
+var cancellableStatuses = map[string]bool{
+	constants.OrderStatusPending: true,
+	constants.OrderStatusPaid:    true,
+}
+
+// CancelOrder cancels an order belonging to userID, restores stock, and refunds
+// wallet payments. Stripe orders are cancelled without an automatic refund (requires
+// manual processing via the Stripe dashboard).
+func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint) error {
+	var order models.Order
+	if err := s.db.WithContext(ctx).
+		Preload("Items").
+		Preload("Payment").
+		Where("id = ? AND user_id = ?", orderID, userID).
+		First(&order).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("order not found")
+		}
+		return utils.ErrInternal(err)
+	}
+
+	if !cancellableStatuses[order.Status] {
+		return utils.ErrBadRequest(fmt.Sprintf("order cannot be cancelled in status %q", order.Status))
+	}
+
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Restore stock for each item.
+		for _, item := range order.Items {
+			if err := tx.Model(&models.Product{}).
+				Where("id = ?", item.ProductID).
+				UpdateColumn("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
+				return utils.ErrInternal(err)
+			}
+		}
+
+		// Refund wallet if it was the payment method and payment succeeded.
+		if order.Payment != nil &&
+			order.Payment.Method == "wallet" &&
+			order.Payment.Status == constants.PaymentStatusSucceeded {
+			if err := s.walletService.Refund(order.UserID, order.TotalAmount, order.ID); err != nil {
+				return err
+			}
+			tx.Model(&models.Payment{}).Where("id = ?", order.Payment.ID).
+				Update("status", constants.PaymentStatusRefunded)
+		}
+
+		// Cancel any pending/processing shipment.
+		tx.Model(&models.Shipment{}).
+			Where("order_id = ? AND status NOT IN ?", order.ID,
+				[]string{constants.ShipmentStatusShipped, constants.ShipmentStatusDelivered}).
+			Update("status", "cancelled")
+
+		// Mark order cancelled.
+		return tx.Model(&order).Update("status", constants.OrderStatusCancelled).Error
+	})
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		_ = s.notificationService.CreateNotification(
+			userID,
+			"order_cancelled",
+			"Order Cancelled",
+			fmt.Sprintf("Your order #%s has been cancelled.", order.OrderNumber),
+			map[string]interface{}{
+				"order_id":     order.ID,
+				"order_number": order.OrderNumber,
+				"status":       constants.OrderStatusCancelled,
+			},
+		)
+	}()
+
+	return nil
 }

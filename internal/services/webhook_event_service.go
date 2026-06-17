@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -120,20 +121,8 @@ func isUniqueViolation(err error) bool {
 	if err == nil {
 		return false
 	}
-	return containsStr(err.Error(), "unique constraint") ||
-		containsStr(err.Error(), "duplicate key") ||
-		containsStr(err.Error(), "UNIQUE constraint failed")
-}
-
-func containsStr(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(s) > 0 && stringContains(s, sub))
-}
-
-func stringContains(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	msg := err.Error()
+	return strings.Contains(msg, "unique constraint") ||
+		strings.Contains(msg, "duplicate key") ||
+		strings.Contains(msg, "UNIQUE constraint failed")
 }

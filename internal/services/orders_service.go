@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
@@ -28,6 +29,7 @@ type orderService struct {
 	notificationService NotificationServiceInterface
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
+	jobQueue            tasks.JobQueue
 }
 
 func NewOrderService(
@@ -35,12 +37,14 @@ func NewOrderService(
 	notificationService NotificationServiceInterface,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
+	jobQueue tasks.JobQueue,
 ) OrderServiceInterface {
 	return &orderService{
 		db:                  db,
 		notificationService: notificationService,
 		hub:                 hub,
 		salesFeed:           salesFeed,
+		jobQueue:            jobQueue,
 	}
 }
 
@@ -163,7 +167,31 @@ func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 		)
 	}()
 
+	s.enqueueOrderStatusEmail(ctx, order, status)
+
 	return nil
+}
+
+// enqueueOrderStatusEmail sends an email for significant order lifecycle events.
+func (s *orderService) enqueueOrderStatusEmail(ctx context.Context, order *models.Order, status string) {
+	emailStatuses := map[string]bool{
+		constants.OrderStatusShipped:   true,
+		constants.OrderStatusDelivered: true,
+		constants.OrderStatusCancelled: true,
+	}
+	if !emailStatuses[status] || s.jobQueue == nil {
+		return
+	}
+
+	email := order.User.Email
+	if email == "" {
+		return
+	}
+
+	subject, body := s.getOrderStatusNotificationMessage(status, order.OrderNumber)
+	if err := s.jobQueue.EnqueueSendEmail(ctx, email, subject, body); err != nil {
+		utils.Log.WithError(err).WithField("order_id", order.ID).Warn("failed to enqueue order status email")
+	}
 }
 
 func (s *orderService) getOrderStatusNotificationMessage(status, orderNumber string) (string, string) {

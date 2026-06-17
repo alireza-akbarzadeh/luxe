@@ -245,3 +245,33 @@ func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 
 	utils.SuccessResponse(c, "order status updated successfully", nil)
 }
+
+// CancelOrder cancels an order belonging to the current user.
+// @Summary      Cancel order
+// @Description  Cancels a pending or paid order, restores stock, and refunds wallet payments.
+// @Tags         Orders
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  int  true  "Order ID"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /orders/{id}/cancel [post]
+func (ctrl *OrderController) CancelOrder(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
+		return
+	}
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	if err := ctrl.checkoutSvc.CancelOrder(c.Request.Context(), orderID, userID); err != nil {
+		RespondServiceError(c, err, "failed to cancel order")
+		return
+	}
+	utils.SuccessResponse(c, "order cancelled successfully", nil)
+}
