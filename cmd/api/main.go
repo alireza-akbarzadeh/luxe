@@ -84,6 +84,10 @@ func main() {
 
 	utils.Log.WithField("job_backend", jobQueue.Backend()).Info("background workers ready")
 
+	if newServices.Upload.IsEnabled() {
+		utils.Log.Info("R2 presigned uploads enabled")
+	}
+
 	cronService := jobs.NewCronJobs(newServices)
 	cronService.Start()
 	defer cronService.Stop()

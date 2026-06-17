@@ -37,6 +37,7 @@ type Services struct {
 	Pdp          PdpServiceInterface
 	SalesFeed    *SalesFeedService
 	Audit        AuditServiceInterface
+	Upload       UploadServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -90,6 +91,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
 		Audit:        auditSvc,
+		Upload:       NewUploadService(cfg),
 	}
 }
 

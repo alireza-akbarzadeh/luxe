@@ -20,6 +20,7 @@ type Config struct {
 	Log                   LogConfig
 	Observability         ObservabilityConfig
 	Redis                 RedisConfig
+	R2                    R2Config
 	Email                 Email
 	Stripe                StripeConfig
 	ShipmentDeliveryDelay time.Duration
@@ -28,6 +29,18 @@ type Config struct {
 type RedisConfig struct {
 	URL     string
 	Enabled bool
+}
+
+type R2Config struct {
+	AccountID       string
+	AccessKeyID     string
+	SecretAccessKey string
+	Bucket          string
+	Endpoint        string
+	PublicBaseURL   string
+	PresignTTL      time.Duration
+	MaxUploadMB     int
+	Enabled         bool
 }
 
 type ObservabilityConfig struct {
@@ -138,6 +151,15 @@ func Load() (*Config, error) {
 	viper.SetDefault("SENTRY_TRACES_SAMPLE_RATE", "0.1")
 	viper.SetDefault("REDIS_URL", "")
 
+	viper.SetDefault("R2_ACCOUNT_ID", "")
+	viper.SetDefault("R2_ACCESS_KEY_ID", "")
+	viper.SetDefault("R2_SECRET_ACCESS_KEY", "")
+	viper.SetDefault("R2_BUCKET", "")
+	viper.SetDefault("R2_ENDPOINT", "")
+	viper.SetDefault("R2_PUBLIC_BASE_URL", "")
+	viper.SetDefault("R2_PRESIGN_TTL", "15m")
+	viper.SetDefault("R2_MAX_UPLOAD_MB", 10)
+
 	viper.SetDefault("EMAIL_HOST", "smtp.gmail.com")
 	viper.SetDefault("EMAIL_PORT", 587)
 	viper.SetDefault("EMAIL_USERNAME", "")
@@ -171,6 +193,21 @@ func Load() (*Config, error) {
 	if err != nil {
 		connMaxIdle = 15 * time.Minute
 	}
+
+	r2PresignTTL, err := time.ParseDuration(viper.GetString("R2_PRESIGN_TTL"))
+	if err != nil {
+		r2PresignTTL = 15 * time.Minute
+	}
+
+	r2AccountID := viper.GetString("R2_ACCOUNT_ID")
+	r2AccessKey := viper.GetString("R2_ACCESS_KEY_ID")
+	r2Secret := viper.GetString("R2_SECRET_ACCESS_KEY")
+	r2Bucket := viper.GetString("R2_BUCKET")
+	r2Endpoint := viper.GetString("R2_ENDPOINT")
+	if r2Endpoint == "" && r2AccountID != "" {
+		r2Endpoint = fmt.Sprintf("https://%s.r2.cloudflarestorage.com", r2AccountID)
+	}
+	r2Enabled := r2AccountID != "" && r2AccessKey != "" && r2Secret != "" && r2Bucket != ""
 
 	cfg := &Config{
 		AppEnv: appEnv,
@@ -210,6 +247,17 @@ func Load() (*Config, error) {
 		Redis: RedisConfig{
 			URL:     viper.GetString("REDIS_URL"),
 			Enabled: viper.GetString("REDIS_URL") != "",
+		},
+		R2: R2Config{
+			AccountID:       r2AccountID,
+			AccessKeyID:     r2AccessKey,
+			SecretAccessKey: r2Secret,
+			Bucket:          r2Bucket,
+			Endpoint:        r2Endpoint,
+			PublicBaseURL:   viper.GetString("R2_PUBLIC_BASE_URL"),
+			PresignTTL:      r2PresignTTL,
+			MaxUploadMB:     viper.GetInt("R2_MAX_UPLOAD_MB"),
+			Enabled:         r2Enabled,
 		},
 		Email: Email{
 			Host:        viper.GetString("EMAIL_HOST"),

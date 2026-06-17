@@ -35,6 +35,7 @@ type Container struct {
 	WebSocket *WebSocketController
 	Stripe    *StripeWebhookController
 	Audit     *AuditController
+	Upload    *UploadController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -67,5 +68,6 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		WebSocket: NewWebSocketController(svc),
 		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, cfg),
 		Audit:     NewAuditController(svc.Audit),
+		Upload:    NewUploadController(svc.Upload),
 	}
 }
