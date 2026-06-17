@@ -50,7 +50,7 @@ func (r *Router) Setup() {
 		SetupAccountRoutes(protected, r.controllers)
 		SetupProductRoutes(public, protected, r.controllers)
 		SetupCompareRoutes(public, protected, r.controllers)
-		SetupNavMenuRoutes(public, r.controllers)
+		SetupNavMenuRoutes(public, protected, r.controllers)
 		SetupPaymentRoutes(public, protected, r.controllers)
 		SetupCategoryRoutes(public, protected, r.controllers)
 		SetupSettingRoutes(public, protected, r.controllers)
@@ -65,6 +65,7 @@ func (r *Router) Setup() {
 		SetupWalletRoutes(protected, r.controllers)
 		SetupBrandRoutes(public, protected, r.controllers)
 		SetupUploadRoutes(public, protected, r.controllers)
+		SetupAdminRoutes(protected, r.controllers)
 		SetupWebSocketRoutes(v1, protected, r.controllers, r.cfg)
 	}
 }

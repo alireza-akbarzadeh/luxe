@@ -12,7 +12,7 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [x] Add centralized request validation and binding helpers (`utils.BindAndValidate`).
 - [x] Create a shared error handling layer for `AppError` → HTTP response mapping (`HandleServiceError`).
 - [x] Replace raw string statuses with typed constants (cart, order, payment, wallet, product, store).
-- [ ] Refactor controllers to reduce duplication and improve readability.
+- [x] Refactor controllers to reduce duplication (`paginationParams`, `parseUintParam` in `controllers/helpers.go`).
 - [x] Remove developer-only JWT default from production paths (`JWT_SECRET` default only when `APP_ENV=local`).
 
 ### Phase 2: Add test coverage and documentation
@@ -24,20 +24,20 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 ### Phase 3: Harden platform reliability
 - [x] Implement graceful shutdown for Gin + worker pool + DB connection (`cmd/api/server.go`).
 - [x] Add health endpoints and readiness probes (`/api/v1/health/*`).
-- [ ] Add DB connection retry logic on startup.
+- [x] Add DB connection retry logic on startup (`database.ConnectWithRetry`).
 - [x] Add validation for required environment variables, fail fast in production (`config.Validate`).
 
 ### Phase 4: Improve architecture and extensibility
 - [x] ~~Introduce repository layer~~ — **not planned**; services use `*gorm.DB` directly.
 - [x] Implement request/response DTOs for public API contracts.
 - [x] Add OpenAPI/Swagger docs generation from source annotations.
-- [ ] Add role-based permissions middleware and use it consistently across admin routes.
+- [x] Add role-based permissions middleware and use it consistently across admin routes (`RequireAdmin`, nav menu write protection).
 
 ### Phase 5: Production feature polish
 - [x] Order lifecycle: payment (Stripe/mock/wallet), shipment tracking, cancellation paths.
 - [x] Inventory checks at checkout; stock decrement on order processing.
 - [x] Customer account: address book, order history filters, profile update.
-- [ ] Admin dashboards or expanded lightweight admin API.
+- [x] Admin dashboards or expanded lightweight admin API (`GET /api/v1/admin/stats`, `AdminService`).
 
 ## Quick wins
 - [x] Standardize JSON response format (`utils.Response`).
@@ -58,7 +58,6 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 4. `M4` — Observability and deployment: metrics, logging, CI/CD. **Mostly done**
 
 ## Next focus (suggested order)
-1. Phase 4 — RBAC middleware on admin routes.
-2. Phase 3 — DB connection retry on startup.
-3. Phase 5 — Admin API expansion (wallet adjust, order admin filters already exist — extend as needed).
-4. Phase 1 — Controller deduplication (`RespondServiceError`, pagination helpers).
+1. Phase 5 — Admin API expansion (reports, bulk ops).
+2. Phase 1 — Controller deduplication (pagination helpers).
+3. Integration tests for admin RBAC (403 for non-admin).

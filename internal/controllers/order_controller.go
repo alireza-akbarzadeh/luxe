@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"net/http"
 	"strconv"
 	"time"
 
@@ -129,18 +128,7 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 // @Failure      500         {object} utils.Response
 // @Router       /orders [get]
 func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
-	// Pagination
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
 
 	// Filters
 	filters := services.AdminOrderFilters{}
@@ -207,12 +195,11 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 		utils.UnauthorizedResponse(c, "unauthorized")
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), uint(orderID), userID)
+	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), orderID, userID)
 	if err != nil {
 		RespondServiceError(c, err, "failed to fetch order")
 		return
@@ -237,9 +224,8 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 // @Failure      500     {object} utils.Response
 // @Router       /orders/{id}/status [put]
 func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid order id")
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 

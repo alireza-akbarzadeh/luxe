@@ -2,20 +2,20 @@ package routes
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupMenuRoutes(router *gin.RouterGroup, ctrl *controllers.Container) {
 	adminGroup := router.Group("/admin/menu")
+	adminGroup.Use(middleware.RequireAdmin())
 	{
-		// Groups
 		adminGroup.GET("/groups", ctrl.Menu.GetAllGroups)
 		adminGroup.GET("/groups/:id", ctrl.Menu.GetGroupByID)
 		adminGroup.POST("/groups", ctrl.Menu.CreateGroup)
 		adminGroup.PUT("/groups/:id", ctrl.Menu.UpdateGroup)
 		adminGroup.DELETE("/groups/:id", ctrl.Menu.DeleteGroup)
 
-		// Items
 		adminGroup.GET("/items", ctrl.Menu.GetAllItems)
 		adminGroup.GET("/items/:id", ctrl.Menu.GetItemByID)
 		adminGroup.POST("/items", ctrl.Menu.CreateItem)
@@ -23,7 +23,6 @@ func SetupMenuRoutes(router *gin.RouterGroup, ctrl *controllers.Container) {
 		adminGroup.DELETE("/items/:id", ctrl.Menu.DeleteItem)
 	}
 
-	// User-facing menu (authenticated users)
 	userGroup := router.Group("/user/menu")
 	{
 		userGroup.GET("/structure", ctrl.Menu.GetUserMenuStructure)

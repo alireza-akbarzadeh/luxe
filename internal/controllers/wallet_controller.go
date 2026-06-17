@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"strconv"
-
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
@@ -43,14 +41,7 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
 		return
 	}
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if err != nil || limit < 1 {
-		limit = 20
-	}
-	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if err != nil || offset < 0 {
-		offset = 0
-	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
 	filters := dto.WalletListFilters{
 		Offset: offset,
 		Limit:  limit,
@@ -144,17 +135,13 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 // @Failure      500 {object} utils.Response
 // @Router       /admin/wallet/adjust [post]
 func (ctrl *WalletController) AdminAdjust(c *gin.Context) {
-	role, ok := middleware.GetUserRole(c)
-	if !ok || role != "admin" {
-		utils.ForbiddenResponse(c, constants.ErrorForbidden)
-		return
-	}
 	var req dto.AdminAdjustRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	if err := ctrl.walletService.AdminAdjust(req.UserID, req.Amount, req.Description); err != nil {
 		utils.HandleServiceError(c, err, "adjustment failed")
+		return
 	}
 	utils.SuccessResponse(c, "wallet adjusted successfully", nil)
 }
@@ -209,12 +196,11 @@ func (ctrl *WalletController) GetTransaction(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
 		return
 	}
-	txID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid transaction id")
+	txID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	tx, err := ctrl.walletService.GetTransaction(userID, uint(txID))
+	tx, err := ctrl.walletService.GetTransaction(userID, txID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch transaction")
 		return
@@ -254,16 +240,12 @@ func (ctrl *WalletController) CancelPendingDeposit(c *gin.Context) {
 		return
 	}
 
-	txID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid transaction id")
+	txID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	// Add a service method to cancel pending deposit.
-	// Service should verify ownership and status.
-	err = ctrl.walletService.CancelPendingDeposit(userID, uint(txID))
-	if err != nil {
+	if err := ctrl.walletService.CancelPendingDeposit(userID, txID); err != nil {
 		utils.HandleServiceError(c, err, "failed to cancel deposit")
 		return
 	}

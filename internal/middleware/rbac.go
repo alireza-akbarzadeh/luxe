@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RequireRole ensures the authenticated user has one of the allowed roles.
 func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == "OPTIONS" {
@@ -13,7 +14,6 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 			return
 		}
 
-		// Original role check
 		role, ok := GetUserRole(c)
 		if !ok {
 			utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -29,4 +29,15 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		utils.ForbiddenResponse(c, constants.ErrorForbidden)
 		c.Abort()
 	}
+}
+
+// RequireAdmin restricts access to users with the admin role.
+func RequireAdmin() gin.HandlerFunc {
+	return RequireRole(constants.RoleAdmin)
+}
+
+// IsAdmin reports whether the current request context belongs to an admin user.
+func IsAdmin(c *gin.Context) bool {
+	role, ok := GetUserRole(c)
+	return ok && role == constants.RoleAdmin
 }

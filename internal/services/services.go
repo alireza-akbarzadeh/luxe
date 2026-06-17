@@ -39,6 +39,7 @@ type Services struct {
 	SalesFeed    *SalesFeedService
 	Audit        AuditServiceInterface
 	Upload       UploadServiceInterface
+	Admin        AdminServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -81,6 +82,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		SalesFeed:    salesFeedSvc,
 		Audit:        NewAuditService(db),
 		Upload:       NewUploadService(cfg),
+		Admin:        NewAdminService(db),
 	}
 }
 

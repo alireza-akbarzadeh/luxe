@@ -17,7 +17,7 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 
 	// Admin endpoints for shipments
 	adminShipments := protected.Group("/shipments")
-	adminShipments.Use(middleware.RequireRole("admin"))
+	adminShipments.Use(middleware.RequireAdmin())
 	{
 		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
 		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
@@ -26,7 +26,7 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 
 	// Admin endpoints for shipping providers (CRUD)
 	adminProviders := protected.Group("/shipping-providers")
-	adminProviders.Use(middleware.RequireRole("admin"))
+	adminProviders.Use(middleware.RequireAdmin())
 	{
 		adminProviders.POST("/", ctrl.Shipment.CreateShippingProvider)
 		adminProviders.PUT("/:id", ctrl.Shipment.UpdateShippingProvider)

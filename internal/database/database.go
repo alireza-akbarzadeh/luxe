@@ -1,6 +1,9 @@
 package database
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/driver/postgres"
@@ -8,8 +11,61 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const defaultConnectAttempts = 10
+const defaultConnectDelay = 2 * time.Second
+
 // Connect opens a PostgreSQL connection with pool settings from config.
 func Connect(cfg *config.Config) (*gorm.DB, error) {
+	db, err := connectOnce(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := Ping(db); err != nil {
+		Close(db)
+		return nil, err
+	}
+	utils.Log.Info("database connection established")
+	return db, nil
+}
+
+// ConnectWithRetry attempts to connect and ping the database with backoff.
+func ConnectWithRetry(cfg *config.Config) (*gorm.DB, error) {
+	return ConnectWithRetryAttempts(cfg, defaultConnectAttempts, defaultConnectDelay)
+}
+
+// ConnectWithRetryAttempts connects with a custom attempt count and delay between tries.
+func ConnectWithRetryAttempts(cfg *config.Config, maxAttempts int, delay time.Duration) (*gorm.DB, error) {
+	if maxAttempts < 1 {
+		maxAttempts = 1
+	}
+
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		db, err := connectOnce(cfg)
+		if err != nil {
+			lastErr = err
+		} else if pingErr := Ping(db); pingErr != nil {
+			lastErr = pingErr
+			Close(db)
+		} else {
+			if attempt > 1 {
+				utils.Log.WithField("attempt", attempt).Info("database connection established after retry")
+			} else {
+				utils.Log.Info("database connection established")
+			}
+			return db, nil
+		}
+
+		if attempt < maxAttempts {
+			utils.Log.WithError(lastErr).Warnf("database connect attempt %d/%d failed, retrying in %s", attempt, maxAttempts, delay)
+			time.Sleep(delay)
+		}
+	}
+
+	return nil, fmt.Errorf("database connection failed after %d attempts: %w", maxAttempts, lastErr)
+}
+
+func connectOnce(cfg *config.Config) (*gorm.DB, error) {
 	logLevel := logger.Info
 	switch cfg.Log.Level {
 	case "debug", "info":
@@ -39,11 +95,9 @@ func Connect(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLife)
 	sqlDB.SetConnMaxIdleTime(cfg.Database.ConnMaxIdle)
 
-	utils.Log.Info("database connection established")
 	return db, nil
 }
 
-// Close closes the underlying database connection pool.
 func Close(db *gorm.DB) {
 	if db == nil {
 		return

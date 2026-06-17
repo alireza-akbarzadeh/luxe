@@ -17,7 +17,7 @@ func SetupBrandRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Cont
 
 	// Admin only
 	admin := protected.Group("/brands")
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.RequireAdmin())
 	{
 		admin.DELETE("/:id", ctrl.Brand.DeleteBrand)
 	}

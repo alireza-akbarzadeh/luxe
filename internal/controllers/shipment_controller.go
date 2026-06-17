@@ -85,11 +85,6 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	role, ok := middleware.GetUserRole(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
-		return
-	}
 
 	shipmentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -104,7 +99,7 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 	}
 
 	// Authorisation: admin can see all, users only their own
-	if role != "admin" && shipment.UserID != userID {
+	if !middleware.IsAdmin(c) && shipment.UserID != userID {
 		utils.ForbiddenResponse(c, constants.ErrForbidden)
 		return
 	}

@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupAuditRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
-	admin := protected.Group("/admin/audit-logs")
+func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
+	admin := protected.Group("/admin")
 	admin.Use(middleware.RequireAdmin())
 	{
-		admin.GET("/", ctrl.Audit.List)
+		admin.GET("/stats", ctrl.Admin.GetStats)
 	}
 }
