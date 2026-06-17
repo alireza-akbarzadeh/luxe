@@ -65,7 +65,7 @@ func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*model
 
 	var order *models.Order
 	err = s.db.Transaction(func(tx *gorm.DB) error {
-		subtotal, err := s.validateCartStock(cart, tx)
+		subtotal, err := s.reserveCartStock(tx, cart.Items)
 		if err != nil {
 			return err
 		}
@@ -309,13 +309,26 @@ func (s *checkoutService) getCarrier(shippingProviderID *uint) string {
 	return DefaultShippingProvider
 }
 
-// validateCartStock checks stock for every cart item and returns the subtotal.
-func (s *checkoutService) validateCartStock(cart *models.Cart, tx *gorm.DB) (float64, error) {
+// reserveCartStock locks product rows, validates stock, and decrements inventory.
+func (s *checkoutService) reserveCartStock(tx *gorm.DB, cartItems []models.CartItem) (float64, error) {
 	var subtotal float64
-	for _, item := range cart.Items {
-		if item.Product.Stock < item.Quantity {
+	for _, item := range cartItems {
+		var product models.Product
+		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&product, item.ProductID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return 0, utils.ErrBadRequest("product not found")
+			}
+			return 0, utils.ErrInternal(err)
+		}
+		if !isProductStockAvailable(product, item.Quantity) {
 			return 0, utils.ErrBadRequest(
-				fmt.Sprintf("insufficient stock for product: %s", item.Product.Name))
+				fmt.Sprintf("insufficient stock for product: %s", product.Name))
+		}
+		if shouldDecrementProductStock(product) {
+			product.Stock -= item.Quantity
+			if err := tx.Save(&product).Error; err != nil {
+				return 0, utils.ErrInternal(err)
+			}
 		}
 		subtotal += item.Price * float64(item.Quantity)
 	}
@@ -365,10 +378,6 @@ func (s *checkoutService) createOrderItems(tx *gorm.DB, orderID uint, cartItems 
 			Price:     item.Price,
 		}
 		if err := tx.Create(oi).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-		if err := tx.Model(&models.Product{}).Where("id = ?", item.ProductID).
-			UpdateColumn("stock", gorm.Expr("stock - ?", item.Quantity)).Error; err != nil {
 			return utils.ErrInternal(err)
 		}
 	}

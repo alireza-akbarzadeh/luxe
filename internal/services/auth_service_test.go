@@ -15,6 +15,11 @@ import (
 	"gorm.io/gorm"
 )
 
+func TestMain(m *testing.M) {
+	_ = utils.InitLogger("error")
+	m.Run()
+}
+
 // uint test
 
 func setupTestDB(t *testing.T) (*gorm.DB, sqlmock.Sqlmock) {
@@ -56,13 +61,15 @@ func TestAuthService_Login(t *testing.T) {
 			WithArgs("test@example.com", sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
+		mock.ExpectBegin()
 		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)+`.*`).
 			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), user.ID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
 		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "refresh_tokens"`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 

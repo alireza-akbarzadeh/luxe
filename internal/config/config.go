@@ -1,15 +1,19 @@
-// Package config handles application configuration loading and management using Viper. It defines a Config struct that holds all configuration values, provides defaults, and validates required fields. The DSN method generates a PostgreSQL connection string based on the loaded configuration.
+// Package config handles application configuration loading and management using Viper.
 package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 )
 
+const devJWTSecret = "dev_secret_do_not_use_in_production"
+
 type Config struct {
+	AppEnv                string
 	Server                ServerConfig
 	Database              DatabaseConfig
 	JWT                   JWTConfig
@@ -17,6 +21,7 @@ type Config struct {
 	Email                 Email
 	ShipmentDeliveryDelay time.Duration
 }
+
 type Email struct {
 	Host        string
 	Port        int
@@ -25,12 +30,24 @@ type Email struct {
 	From        string
 	FrontendURL string
 }
+
 type ServerConfig struct {
 	Port string
 	Mode string
 }
+
 type DatabaseConfig struct {
-	Host string // Can be a full connection string
+	URL           string
+	Host          string
+	Port          string
+	User          string
+	Password      string
+	Name          string
+	SSLMode       string
+	MaxOpenConns  int
+	MaxIdleConns  int
+	ConnMaxLife   time.Duration
+	ConnMaxIdle   time.Duration
 }
 
 type JWTConfig struct {
@@ -38,6 +55,7 @@ type JWTConfig struct {
 	AccessTokenExpiry  time.Duration
 	RefreshTokenExpiry time.Duration
 }
+
 type LogConfig struct {
 	Level string
 }
@@ -45,29 +63,47 @@ type LogConfig struct {
 var AppConfig *Config
 
 func Load() (*Config, error) {
-	viper.SetConfigName(".env")
+	appEnv := os.Getenv("APP_ENV")
+	if appEnv == "" {
+		appEnv = "local"
+	}
+
+	configName := ".env"
+	if appEnv != "" && appEnv != "local" {
+		configName = ".env." + appEnv
+	}
+
+	viper.SetConfigName(configName)
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
-
-	_ = viper.ReadInConfig()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Server defaults
+	if err := viper.ReadInConfig(); err != nil {
+		if appEnv != "local" {
+			return nil, fmt.Errorf("failed to read config %s: %w", configName, err)
+		}
+		viper.SetConfigName(".env")
+		_ = viper.ReadInConfig()
+	}
+
 	viper.SetDefault("SERVER_PORT", "8080")
 	viper.SetDefault("GIN_MODE", "debug")
 	viper.SetDefault("SHIPMENT_DELIVERY_DELAY", "24h")
 
-	// Database defaults
+	viper.SetDefault("DATABASE_URL", "")
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", "5432")
 	viper.SetDefault("DB_USER", "postgres")
 	viper.SetDefault("DB_PASSWORD", "postgres")
 	viper.SetDefault("DB_NAME", "shopping_platform")
 	viper.SetDefault("DB_SSLMODE", "disable")
+	viper.SetDefault("DB_MAX_OPEN_CONNS", 100)
+	viper.SetDefault("DB_MAX_IDLE_CONNS", 10)
+	viper.SetDefault("DB_CONN_MAX_LIFETIME", "1h")
+	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "15m")
 
-	// JWT defaults
-	viper.SetDefault("JWT_SECRET", "dev_secret_do_not_use_in_production")
+	viper.SetDefault("JWT_SECRET", devJWTSecret)
 	viper.SetDefault("JWT_ACCESS_TOKEN_EXPIRY", "15m")
 	viper.SetDefault("JWT_REFRESH_TOKEN_EXPIRY", "168h")
 
@@ -80,7 +116,6 @@ func Load() (*Config, error) {
 	viper.SetDefault("EMAIL_FROM", "noreply@yourapp.com")
 	viper.SetDefault("FRONTEND_URL", "http://localhost:3000")
 
-	// Parse token expiries
 	accessExpiry, err := time.ParseDuration(viper.GetString("JWT_ACCESS_TOKEN_EXPIRY"))
 	if err != nil {
 		accessExpiry = 15 * time.Minute
@@ -95,13 +130,33 @@ func Load() (*Config, error) {
 		deliveryDelay = 24 * time.Hour
 	}
 
+	connMaxLife, err := time.ParseDuration(viper.GetString("DB_CONN_MAX_LIFETIME"))
+	if err != nil {
+		connMaxLife = time.Hour
+	}
+	connMaxIdle, err := time.ParseDuration(viper.GetString("DB_CONN_MAX_IDLE_TIME"))
+	if err != nil {
+		connMaxIdle = 15 * time.Minute
+	}
+
 	cfg := &Config{
+		AppEnv: appEnv,
 		Server: ServerConfig{
 			Port: viper.GetString("SERVER_PORT"),
 			Mode: viper.GetString("GIN_MODE"),
 		},
 		Database: DatabaseConfig{
-			Host: viper.GetString("DB_HOST"),
+			URL:           viper.GetString("DATABASE_URL"),
+			Host:          viper.GetString("DB_HOST"),
+			Port:          viper.GetString("DB_PORT"),
+			User:          viper.GetString("DB_USER"),
+			Password:      viper.GetString("DB_PASSWORD"),
+			Name:          viper.GetString("DB_NAME"),
+			SSLMode:       viper.GetString("DB_SSLMODE"),
+			MaxOpenConns:  viper.GetInt("DB_MAX_OPEN_CONNS"),
+			MaxIdleConns:  viper.GetInt("DB_MAX_IDLE_CONNS"),
+			ConnMaxLife:   connMaxLife,
+			ConnMaxIdle:   connMaxIdle,
 		},
 		JWT: JWTConfig{
 			Secret:             viper.GetString("JWT_SECRET"),
@@ -122,22 +177,53 @@ func Load() (*Config, error) {
 		ShipmentDeliveryDelay: deliveryDelay,
 	}
 
-	// Set global config (used by utils.GenerateToken etc.)
+	if cfg.Database.URL == "" &&
+		(strings.HasPrefix(cfg.Database.Host, "postgresql://") || strings.HasPrefix(cfg.Database.Host, "postgres://")) {
+		cfg.Database.URL = cfg.Database.Host
+	}
+
 	AppConfig = cfg
 
-	// Validate required fields
-	if cfg.JWT.Secret == "" {
-		return nil, fmt.Errorf("JWT_SECRET is required")
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
 	return cfg, nil
 }
 
-// DSN returns the PostgreSQL connection string
-func (c *Config) DSN() string {
-	// If Host looks like a URL, return as is (for Neon or cloud DBs)
-	if strings.HasPrefix(c.Database.Host, "postgresql://") || strings.HasPrefix(c.Database.Host, "postgres://") {
-		return c.Database.Host
+func (c *Config) Validate() error {
+	if c.JWT.Secret == "" {
+		return fmt.Errorf("JWT_SECRET is required")
 	}
-	// Fallback to legacy style
-	return fmt.Sprintf("host=%s", c.Database.Host)
+
+	isProduction := c.AppEnv == "production" || c.Server.Mode == "release"
+	if isProduction {
+		if c.JWT.Secret == devJWTSecret {
+			return fmt.Errorf("JWT_SECRET must be set to a strong secret in production")
+		}
+		dsn := c.DSN()
+		if strings.Contains(dsn, "sslmode=disable") {
+			return fmt.Errorf("database SSL must be enabled in production (sslmode=disable is not allowed)")
+		}
+	}
+
+	return nil
+}
+
+func (c *Config) DSN() string {
+	if c.Database.URL != "" {
+		return c.Database.URL
+	}
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.Database.Host,
+		c.Database.Port,
+		c.Database.User,
+		c.Database.Password,
+		c.Database.Name,
+		c.Database.SSLMode,
+	)
+}
+
+func (c *Config) IsProduction() bool {
+	return c.AppEnv == "production" || c.Server.Mode == "release"
 }

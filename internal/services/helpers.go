@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/datatypes"
 )
@@ -36,4 +37,19 @@ func isDuplicateKeyError(err error) bool {
 		return pgErr.Code == "23505"
 	}
 	return false
+}
+
+// isProductStockAvailable checks whether the requested quantity can be fulfilled.
+func isProductStockAvailable(product models.Product, quantity int) bool {
+	if !product.TrackInventory {
+		return true
+	}
+	if product.AllowBackorder {
+		return true
+	}
+	return product.Stock >= quantity
+}
+
+func shouldDecrementProductStock(product models.Product) bool {
+	return product.TrackInventory
 }

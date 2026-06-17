@@ -84,7 +84,7 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 	if product.Status != constants.ProductStatusActive {
 		return nil, utils.ErrBadRequest("product is not available")
 	}
-	if product.Stock < req.Quantity {
+	if !isProductStockAvailable(product, req.Quantity) {
 		return nil, utils.ErrBadRequest("insufficient stock")
 	}
 
@@ -100,7 +100,7 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 	if err == nil {
 		// Update quantity
 		newQty := cartItem.Quantity + req.Quantity
-		if product.Stock < newQty {
+		if !isProductStockAvailable(product, newQty) {
 			return nil, utils.ErrBadRequest("insufficient stock for updated quantity")
 		}
 		cartItem.Quantity = newQty
@@ -145,7 +145,7 @@ func (s *cartService) UpdateCartItem(userID uint, cartItemID uint, req UpdateCar
 		if err := s.db.First(&product, cartItem.ProductID).Error; err != nil {
 			return utils.ErrInternal(err)
 		}
-		if product.Stock < req.Quantity {
+		if !isProductStockAvailable(product, req.Quantity) {
 			return utils.ErrBadRequest("insufficient stock")
 		}
 		cartItem.Quantity = req.Quantity

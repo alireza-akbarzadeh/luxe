@@ -7,6 +7,8 @@ import (
 
 // RegisterMiddlewares attaches any custom middleware not already applied globally
 func (r *Router) RegisterMiddlewares() {
+	r.engine.Use(middleware.RequestID())
+	r.engine.Use(middleware.SecurityHeaders())
 	r.engine.Use(middleware.CORS())
 	r.engine.Use(middleware.RateLimitMiddleware(100, 200))
 }

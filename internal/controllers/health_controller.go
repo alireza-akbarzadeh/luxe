@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/database"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -29,12 +31,10 @@ func (hc *HealthController) Check(c *gin.Context) {
 		"message": "Service is up and running",
 	}
 
-	// Check database connectivity
-	var result int
-	if err := hc.db.Raw("SELECT 1").Scan(&result).Error; err != nil {
+	if err := database.Ping(hc.db); err != nil {
+		utils.Log.WithError(err).Error("health check: database ping failed")
 		response["status"] = "degraded"
 		response["db_ok"] = false
-		response["db_error"] = err.Error()
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}
