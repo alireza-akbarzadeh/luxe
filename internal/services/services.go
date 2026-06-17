@@ -1,8 +1,8 @@
-// Package services defines the core business logic of the shopping platform.
 package services
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/repositories"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
@@ -39,7 +39,7 @@ type Services struct {
 	Audit        AuditServiceInterface
 }
 
-func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
+func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
 	// 1. WebSocket hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
@@ -53,11 +53,11 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	paymentSvc := NewPaymentService(db, cfg)
 
 	// 4. Shipment service (now also receives the hub for delivery broadcasts)
-	shipmentSvc := NewShipmentService(db, workerPool, notificationSvc, wsHub)
+	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub)
 
 	// 5. Order service with all dependencies
 	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
-	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc, StripeEnabled(cfg))
+	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, jobQueue, wsHub, salesFeedSvc, StripeEnabled(cfg))
 	// 5. Assemble all services
 	productSvc := NewProductService(db)
 	auditRepo := repositories.NewAuditRepository(db)
@@ -77,7 +77,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Menu:         NewMenuService(db),
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
-		Shipment:     NewShipmentService(db, workerPool, notificationSvc, wsHub),
+		Shipment:     NewShipmentService(db, jobQueue, notificationSvc, wsHub),
 		Wallet:       NewWalletService(db),
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
@@ -90,5 +90,17 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
 		Audit:        auditSvc,
+	}
+}
+
+// JobHandlers wires service methods into background task handlers.
+func (s *Services) JobHandlers() tasks.Handlers {
+	return tasks.Handlers{
+		ProcessOrder: func(orderID uint, cardInfo dto.CardInfo) error {
+			return s.Checkout.ProcessOrder(orderID, cardInfo)
+		},
+		ProcessShipment: func(shipmentID uint) error {
+			return s.Shipment.ProcessShipmentBackground(shipmentID)
+		},
 	}
 }

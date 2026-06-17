@@ -1,3 +1,3 @@
-package test
+package integration
 
-// integration test
+// Auth HTTP integration tests can be added here alongside checkout tests.

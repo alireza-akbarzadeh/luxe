@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -41,18 +42,19 @@ type ShipmentServiceInterface interface {
 	GetShippingProviders() ([]models.ShippingProviders, error)
 	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
 	UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
+	ProcessShipmentBackground(shipmentID uint) error
 }
 
 type shipmentService struct {
 	db                  *gorm.DB
-	workerPool          *tasks.WorkerPool
+	workerPool          tasks.JobQueue
 	notificationService NotificationServiceInterface
 	wsHub               *websocket.Hub
 }
 
 func NewShipmentService(
 	db *gorm.DB,
-	workerPool *tasks.WorkerPool,
+	workerPool tasks.JobQueue,
 	notificationService NotificationServiceInterface,
 	wsHub *websocket.Hub,
 ) ShipmentServiceInterface {
@@ -129,12 +131,9 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 	}
 
 	// Enqueue background job
-	job := tasks.Job{
-		ID:      fmt.Sprintf("shipment_%d", shipment.ID),
-		Payload: shipment.ID,
-		Handler: s.processShipment,
+	if err := s.workerPool.EnqueueProcessShipment(context.Background(), shipment.ID); err != nil {
+		utils.Log.WithError(err).WithField("shipment_id", shipment.ID).Error("failed to enqueue shipment processing job")
 	}
-	s.workerPool.Enqueue(job)
 
 	// Broadcast creation event
 	s.broadcastShipmentUpdate(order.ID, order.UserID, "shipment_created", map[string]interface{}{
@@ -150,13 +149,13 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 	return shipment, nil
 }
 
-// processShipment is the background job handler (standalone flow only).
-func (s *shipmentService) processShipment(payload interface{}) error {
-	shipmentID, ok := payload.(uint)
-	if !ok {
-		return fmt.Errorf("invalid payload type")
-	}
+// ProcessShipmentBackground runs async shipment processing (carrier simulation).
+func (s *shipmentService) ProcessShipmentBackground(shipmentID uint) error {
+	return s.processShipment(shipmentID)
+}
 
+// processShipment is the background job handler (standalone flow only).
+func (s *shipmentService) processShipment(shipmentID uint) error {
 	time.Sleep(2 * time.Second) // simulate carrier API
 
 	var shipment models.Shipment

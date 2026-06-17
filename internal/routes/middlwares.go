@@ -8,6 +8,11 @@ import (
 // RegisterMiddlewares attaches any custom middleware not already applied globally
 func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.RequestID())
+	if r.cfg.Observability.SentryEnabled {
+		r.engine.Use(middleware.SentryMiddleware())
+		r.engine.Use(middleware.SentryScope())
+	}
+	r.engine.Use(middleware.AccessLog())
 	r.engine.Use(middleware.SecurityHeaders())
 	r.engine.Use(middleware.AuditMiddleware(r.auditSvc))
 	r.engine.Use(middleware.CORS())

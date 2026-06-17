@@ -18,9 +18,25 @@ type Config struct {
 	Database              DatabaseConfig
 	JWT                   JWTConfig
 	Log                   LogConfig
+	Observability         ObservabilityConfig
+	Redis                 RedisConfig
 	Email                 Email
 	Stripe                StripeConfig
 	ShipmentDeliveryDelay time.Duration
+}
+
+type RedisConfig struct {
+	URL     string
+	Enabled bool
+}
+
+type ObservabilityConfig struct {
+	ServiceName            string
+	ServiceVersion         string
+	SentryDSN              string
+	SentryEnvironment      string
+	SentryEnabled          bool
+	SentryTracesSampleRate float64
 }
 
 type Email struct {
@@ -116,6 +132,11 @@ func Load() (*Config, error) {
 	viper.SetDefault("JWT_REFRESH_TOKEN_EXPIRY", "168h")
 
 	viper.SetDefault("LOG_LEVEL", "info")
+	viper.SetDefault("SERVICE_NAME", "luxe-api")
+	viper.SetDefault("SERVICE_VERSION", "")
+	viper.SetDefault("SENTRY_DSN", "")
+	viper.SetDefault("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+	viper.SetDefault("REDIS_URL", "")
 
 	viper.SetDefault("EMAIL_HOST", "smtp.gmail.com")
 	viper.SetDefault("EMAIL_PORT", 587)
@@ -177,6 +198,18 @@ func Load() (*Config, error) {
 		},
 		Log: LogConfig{
 			Level: viper.GetString("LOG_LEVEL"),
+		},
+		Observability: ObservabilityConfig{
+			ServiceName:            viper.GetString("SERVICE_NAME"),
+			ServiceVersion:         viper.GetString("SERVICE_VERSION"),
+			SentryDSN:              viper.GetString("SENTRY_DSN"),
+			SentryEnvironment:      appEnv,
+			SentryEnabled:          viper.GetString("SENTRY_DSN") != "",
+			SentryTracesSampleRate: viper.GetFloat64("SENTRY_TRACES_SAMPLE_RATE"),
+		},
+		Redis: RedisConfig{
+			URL:     viper.GetString("REDIS_URL"),
+			Enabled: viper.GetString("REDIS_URL") != "",
 		},
 		Email: Email{
 			Host:        viper.GetString("EMAIL_HOST"),

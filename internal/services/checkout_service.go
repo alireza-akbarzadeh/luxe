@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -17,6 +18,7 @@ import (
 type CheckoutServiceInterface interface {
 	Checkout(userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
 	CompletePaidOrder(orderID uint) error
+	ProcessOrder(orderID uint, cardInfo dto.CardInfo) error
 }
 
 type checkoutService struct {
@@ -25,7 +27,7 @@ type checkoutService struct {
 	couponService       CouponServiceInterface
 	paymentService      PaymentServiceInterface
 	shipmentService     ShipmentServiceInterface
-	workerPool          *tasks.WorkerPool
+	workerPool          tasks.JobQueue
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
 	stripeEnabled       bool
@@ -37,7 +39,7 @@ func NewCheckoutService(
 	couponService CouponServiceInterface,
 	paymentService PaymentServiceInterface,
 	shipmentService ShipmentServiceInterface,
-	workerPool *tasks.WorkerPool,
+	workerPool tasks.JobQueue,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
 	stripeEnabled bool,
@@ -474,7 +476,7 @@ func (s *checkoutService) createShipment(tx *gorm.DB, orderID, userID uint, carr
 	return err
 }
 
-// enqueueFulfillmentJob submits the ProcessOrder job to the worker pool.
+// enqueueFulfillmentJob submits the ProcessOrder job to the background queue.
 func (s *checkoutService) enqueueFulfillmentJob(orderID uint, req dto.CheckoutRequest) {
 	cardInfo := dto.CardInfo{
 		CardNumber:  req.CardNumber,
@@ -482,18 +484,9 @@ func (s *checkoutService) enqueueFulfillmentJob(orderID uint, req dto.CheckoutRe
 		ExpiryYear:  req.ExpiryYear,
 		CVV:         req.CVV,
 	}
-	job := tasks.Job{
-		ID:      fmt.Sprintf("fulfill_%d", orderID),
-		Payload: orderID,
-		Handler: func(payload interface{}) error {
-			id, ok := payload.(uint)
-			if !ok {
-				return fmt.Errorf("invalid payload type")
-			}
-			return s.ProcessOrder(id, cardInfo)
-		},
+	if err := s.workerPool.EnqueueProcessOrder(context.Background(), orderID, cardInfo); err != nil {
+		utils.Log.WithError(err).WithField("order_id", orderID).Error("failed to enqueue order fulfillment job")
 	}
-	s.workerPool.Enqueue(job)
 }
 
 // sendOrderCreatedNotification sends the initial "order placed" notification asynchronously.

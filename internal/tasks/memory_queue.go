@@ -1,0 +1,70 @@
+package tasks
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+)
+
+type memoryQueue struct {
+	pool     *WorkerPool
+	handlers Handlers
+}
+
+func newMemoryQueue(handlers Handlers) *memoryQueue {
+	return &memoryQueue{
+		pool:     NewWorkerPool(5, 100),
+		handlers: handlers,
+	}
+}
+
+func (q *memoryQueue) Backend() string {
+	return "memory"
+}
+
+func (q *memoryQueue) Start() error {
+	q.pool.Start()
+	return nil
+}
+
+func (q *memoryQueue) Shutdown() {
+	q.pool.Stop()
+}
+
+func (q *memoryQueue) EnqueueProcessOrder(_ context.Context, orderID uint, cardInfo dto.CardInfo) error {
+	if q.handlers.ProcessOrder == nil {
+		return fmt.Errorf("process order handler not configured")
+	}
+	card := cardInfo
+	q.pool.Enqueue(Job{
+		ID: fmt.Sprintf("fulfill_%d", orderID),
+		Payload: ProcessOrderPayload{OrderID: orderID, CardInfo: card},
+		Handler: func(payload interface{}) error {
+			p, ok := payload.(ProcessOrderPayload)
+			if !ok {
+				return fmt.Errorf("invalid process order payload type")
+			}
+			return q.handlers.ProcessOrder(p.OrderID, p.CardInfo)
+		},
+	})
+	return nil
+}
+
+func (q *memoryQueue) EnqueueProcessShipment(_ context.Context, shipmentID uint) error {
+	if q.handlers.ProcessShipment == nil {
+		return fmt.Errorf("process shipment handler not configured")
+	}
+	q.pool.Enqueue(Job{
+		ID:      fmt.Sprintf("shipment_%d", shipmentID),
+		Payload: shipmentID,
+		Handler: func(payload interface{}) error {
+			id, ok := payload.(uint)
+			if !ok {
+				return fmt.Errorf("invalid shipment payload type")
+			}
+			return q.handlers.ProcessShipment(id)
+		},
+	})
+	return nil
+}

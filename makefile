@@ -47,15 +47,15 @@ run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"
 	go run ./cmd/api
 
-docker-up: ## Start PostgreSQL (docker compose)
-	@echo "${GREEN}Starting PostgreSQL...${RESET}"
-	docker compose up -d postgres
+docker-up: ## Start PostgreSQL and Redis (docker compose)
+	@echo "${GREEN}Starting PostgreSQL and Redis...${RESET}"
+	docker compose up -d postgres redis
 
 stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
 	@echo "${GREEN}Forwarding Stripe webhooks to localhost:8080/api/v1/webhooks/stripe${RESET}"
 	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 
-dev-setup: docker-up migrate-up ## Start Postgres and run migrations
+dev-setup: docker-up migrate-up ## Start Postgres, Redis, and run migrations
 
 clean: ## Clean build artifacts
 	@echo "${YELLOW}Cleaning build artifacts...${RESET}"
