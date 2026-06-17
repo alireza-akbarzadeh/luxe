@@ -1,6 +1,7 @@
 package services
 
 import (
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -28,7 +29,7 @@ func (s *searchService) applyProductFilters(query *gorm.DB, req dto.SearchReques
 	if req.Query != "" {
 		query = query.Where("search_vector @@ plainto_tsquery('english', ?)", req.Query)
 	} else {
-		query = query.Where("status = ?", "active")
+		query = query.Where("status = ?", constants.ProductStatusActive)
 	}
 
 	if req.CategorySlug != "" {

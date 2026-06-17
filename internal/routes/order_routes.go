@@ -12,10 +12,11 @@ func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	protected.POST("/checkout", ctrl.Order.Checkout)
 	protected.GET(constants.RouteOrders+constants.RouteOrdersMy, ctrl.Order.GetUserOrders)
 	protected.GET(constants.RouteOrders+"/:id", ctrl.Order.GetOrder)
+	protected.POST(constants.RouteOrders+"/:id/cancel", ctrl.Order.CancelOrder)
 
 	// Admin order endpoints (require admin role)
 	admin := protected.Group(constants.RouteOrders)
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.RequireAdmin())
 	{
 		admin.GET("/", ctrl.Order.ListAllOrders)
 		admin.PUT("/:id/status", ctrl.Order.UpdateOrderStatus)

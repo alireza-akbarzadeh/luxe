@@ -24,20 +24,6 @@ func NewReviewController(svc services.ReviewServiceInterface) *ReviewController 
 	}
 }
 
-func parseReviewPagination(c *gin.Context) (limit, offset int) {
-	limit, _ = strconv.Atoi(c.DefaultQuery("limit", "10"))
-	offset, _ = strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if limit < 1 {
-		limit = 10
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	return limit, offset
-}
 
 // Create a review
 // @Summary      Create product review
@@ -63,7 +49,7 @@ func (rc *ReviewController) Create(c *gin.Context) {
 	}
 	review, err := rc.reviewService.Create(userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create review")
+		utils.HandleServiceError(c, err, "failed to create review")
 		return
 	}
 	review.UserID = userID
@@ -87,18 +73,17 @@ func (rc *ReviewController) Update(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid review id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 	var req dto.UpdateReviewRequest
 	if !utils.BindAndValidate(c, &req, rc.validate) {
 		return
 	}
-	review, err := rc.reviewService.Update(userID, uint(id), req)
+	review, err := rc.reviewService.Update(userID, id, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update review")
+		utils.HandleServiceError(c, err, "failed to update review")
 		return
 	}
 	utils.SuccessResponse(c, "review updated", dto.ToReviewResponse(review, userID))
@@ -118,14 +103,13 @@ func (rc *ReviewController) Delete(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid review id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = rc.reviewService.Delete(userID, uint(id))
+	err := rc.reviewService.Delete(userID, id)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete review")
+		utils.HandleServiceError(c, err, "failed to delete review")
 		return
 	}
 	utils.SuccessResponse(c, "review deleted", nil)
@@ -141,16 +125,16 @@ func (rc *ReviewController) Delete(c *gin.Context) {
 // @Success      200 {object} utils.Response
 // @Router       /reviews [get]
 func (rc *ReviewController) GetProductReviews(c *gin.Context) {
-	productID, err := strconv.ParseUint(c.Query("product_id"), 10, 64)
-	if err != nil {
+	productIDRaw, err := strconv.ParseUint(c.Query("product_id"), 10, 64)
+	if err != nil || productIDRaw == 0 {
 		utils.ErrorResponse(c, 400, "invalid product_id")
 		return
 	}
-	limit, offset := parseReviewPagination(c)
+	limit, offset := paginationParams(c, 10)
 
-	reviews, total, summary, err := rc.reviewService.GetProductReviews(uint(productID), limit, offset)
+	reviews, total, summary, err := rc.reviewService.GetProductReviews(uint(productIDRaw), limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch reviews")
+		utils.HandleServiceError(c, err, "failed to fetch reviews")
 		return
 	}
 
@@ -185,15 +169,15 @@ func (rc *ReviewController) GetMyProductReview(c *gin.Context) {
 		return
 	}
 
-	productID, err := strconv.ParseUint(c.Query("product_id"), 10, 64)
-	if err != nil {
+	productIDRaw, err := strconv.ParseUint(c.Query("product_id"), 10, 64)
+	if err != nil || productIDRaw == 0 {
 		utils.ErrorResponse(c, 400, "invalid product_id")
 		return
 	}
 
-	review, err := rc.reviewService.GetUserReviewForProduct(userID, uint(productID))
+	review, err := rc.reviewService.GetUserReviewForProduct(userID, uint(productIDRaw))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch review")
+		utils.HandleServiceError(c, err, "failed to fetch review")
 		return
 	}
 	if review == nil {

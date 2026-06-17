@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
@@ -50,7 +49,7 @@ func (ac *AddressController) Create(c *gin.Context) {
 	}
 	address, err := ac.addressService.Create(userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create address")
+		utils.HandleServiceError(c, err, "failed to create address")
 		return
 	}
 	resp := dto.AddressSingleResponse{
@@ -83,18 +82,17 @@ func (ac *AddressController) Update(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 	var req dto.UpdateAddressRequest
 	if !utils.BindAndValidate(c, &req, ac.validate) {
 		return
 	}
-	address, err := ac.addressService.Update(uint(id), userID, req)
+	address, err := ac.addressService.Update(id, userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update address")
+		utils.HandleServiceError(c, err, "failed to update address")
 		return
 	}
 	resp := dto.AddressSingleResponse{
@@ -126,14 +124,13 @@ func (ac *AddressController) Delete(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = ac.addressService.Delete(uint(id), userID)
+	err := ac.addressService.Delete(id, userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete address")
+		utils.HandleServiceError(c, err, "failed to delete address")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -164,7 +161,7 @@ func (ac *AddressController) List(c *gin.Context) {
 	}
 	addresses, err := ac.addressService.List(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch addresses")
+		utils.HandleServiceError(c, err, "failed to fetch addresses")
 		return
 	}
 	// Use SuccessResponse for consistency
@@ -193,14 +190,13 @@ func (ac *AddressController) SetDefault(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = ac.addressService.SetDefault(uint(id), userID)
+	err := ac.addressService.SetDefault(id, userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to set default address")
+		utils.HandleServiceError(c, err, "failed to set default address")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -238,7 +234,7 @@ func (ac *AddressController) GetDefault(c *gin.Context) {
 	}
 	addr, err := ac.addressService.GetDefaultAddress(userID, addressType)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get default address")
+		utils.HandleServiceError(c, err, "failed to get default address")
 		return
 	}
 	if addr == nil {

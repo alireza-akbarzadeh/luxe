@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"net/http"
 	"strconv"
 	"time"
 
@@ -54,20 +53,18 @@ func (ctrl *OrderController) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Validate struct (tags + custom logic)
 	if err := ctrl.validate.Struct(req); err != nil {
 		utils.ErrorResponse(c, 400, err.Error())
 		return
 	}
 
-	order, err := ctrl.checkoutSvc.Checkout(userID, req)
+	result, err := ctrl.checkoutSvc.Checkout(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create order")
+		RespondServiceError(c, err, "failed to create order")
 		return
 	}
 
-	// The response includes the order so the frontend can immediately join the WebSocket room.
-	utils.CreatedResponse(c, "order created successfully", order)
+	utils.CreatedResponse(c, "order created successfully", result)
 }
 
 // GetUserOrders returns paginated orders for the authenticated user.
@@ -95,9 +92,9 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 		return
 	}
 
-	orders, total, err := ctrl.orderService.GetUserOrders(userID, req)
+	orders, total, err := ctrl.orderService.GetUserOrders(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get orders")
+		RespondServiceError(c, err, "failed to get orders")
 		return
 	}
 
@@ -131,18 +128,7 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 // @Failure      500         {object} utils.Response
 // @Router       /orders [get]
 func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
-	// Pagination
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
 
 	// Filters
 	filters := services.AdminOrderFilters{}
@@ -175,9 +161,9 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 		}
 	}
 
-	orders, total, err := ctrl.orderService.GetAllOrders(filters, limit, offset)
+	orders, total, err := ctrl.orderService.GetAllOrders(c.Request.Context(), filters, limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch orders")
+		RespondServiceError(c, err, "failed to fetch orders")
 		return
 	}
 
@@ -209,14 +195,13 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 		utils.UnauthorizedResponse(c, "unauthorized")
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
+	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), orderID, userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch order")
+		RespondServiceError(c, err, "failed to fetch order")
 		return
 	}
 	utils.SuccessResponse(c, "order retrieved", order)
@@ -239,9 +224,8 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 // @Failure      500     {object} utils.Response
 // @Router       /orders/{id}/status [put]
 func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid order id")
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -254,10 +238,44 @@ func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.orderService.UpdateOrderStatus(uint(orderID), req.Status); err != nil {
-		utils.HandleAppError(c, err, "failed to update order status")
+	var actorID *uint
+	if uid, ok := middleware.GetUserID(c); ok {
+		actorID = &uid
+	}
+	if err := ctrl.orderService.UpdateOrderStatus(c.Request.Context(), orderID, req.Status, actorID); err != nil {
+		RespondServiceError(c, err, "failed to update order status")
 		return
 	}
 
 	utils.SuccessResponse(c, "order status updated successfully", nil)
+}
+
+// CancelOrder cancels an order belonging to the current user.
+// @Summary      Cancel order
+// @Description  Cancels a pending or paid order, restores stock, and refunds wallet payments.
+// @Tags         Orders
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  int  true  "Order ID"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /orders/{id}/cancel [post]
+func (ctrl *OrderController) CancelOrder(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
+		return
+	}
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	if err := ctrl.checkoutSvc.CancelOrder(c.Request.Context(), orderID, userID); err != nil {
+		RespondServiceError(c, err, "failed to cancel order")
+		return
+	}
+	utils.SuccessResponse(c, "order cancelled successfully", nil)
 }

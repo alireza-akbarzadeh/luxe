@@ -24,7 +24,7 @@ func SetupProductRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Co
 	protected.POST("/products/suggestions", ctrl.Product.GetProductSuggestions)
 
 	admin := protected.Group("/products")
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.RequireAdmin())
 	{
 		admin.POST("/", ctrl.Product.Create)
 		admin.POST("/bulk", ctrl.Product.BulkCreate)

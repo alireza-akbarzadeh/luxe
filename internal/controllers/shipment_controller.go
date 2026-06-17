@@ -59,7 +59,7 @@ func (ctrl *ShipmentController) CreateShipment(c *gin.Context) {
 
 	shipment, err := ctrl.shipmentService.CreateShipment(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create shipment")
+		utils.HandleServiceError(c, err, "failed to create shipment")
 		return
 	}
 
@@ -85,11 +85,6 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	role, ok := middleware.GetUserRole(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
-		return
-	}
 
 	shipmentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -99,12 +94,12 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 
 	shipment, err := ctrl.shipmentService.GetShipmentByID(uint(shipmentID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipment")
+		utils.HandleServiceError(c, err, "failed to fetch shipment")
 		return
 	}
 
 	// Authorisation: admin can see all, users only their own
-	if role != "admin" && shipment.UserID != userID {
+	if !middleware.IsAdmin(c) && shipment.UserID != userID {
 		utils.ForbiddenResponse(c, constants.ErrForbidden)
 		return
 	}
@@ -148,7 +143,7 @@ func (ctrl *ShipmentController) GetShipmentsByOrder(c *gin.Context) {
 	// Alternatively, we can query order directly. We'll assume the service enforces ownership.
 	shipments, err := ctrl.shipmentService.GetShipmentsByOrderID(req.OrderID)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch shipments")
+		utils.HandleServiceError(c, err, "failed to fetch shipments")
 		return
 	}
 
@@ -195,7 +190,7 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 	}
 
 	if err := ctrl.shipmentService.UpdateShipmentStatus(uint(shipmentID), req.Status); err != nil {
-		utils.HandleAppError(c, err, "failed to update shipment status")
+		utils.HandleServiceError(c, err, "failed to update shipment status")
 		return
 	}
 
@@ -213,7 +208,7 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 func (ctrl *ShipmentController) GetShippingProviders(c *gin.Context) {
 	providers, err := ctrl.shipmentService.GetShippingProviders()
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping providers")
+		utils.HandleServiceError(c, err, "failed to fetch shipping providers")
 		return
 	}
 	utils.SuccessResponse(c, "shipping providers retrieved", providers)
@@ -245,7 +240,7 @@ func (ctrl *ShipmentController) DeleteShippingProvider(c *gin.Context) {
 	// Call the service
 	err = ctrl.shipmentService.DeleteShippingProvider(providerId)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete shipping provider")
+		utils.HandleServiceError(c, err, "failed to delete shipping provider")
 		return
 	}
 
@@ -274,7 +269,7 @@ func (ctrl *ShipmentController) GetShippingProviderByID(c *gin.Context) {
 	var provider *models.ShippingProviders
 	provider, err = ctrl.shipmentService.GetShippingProviderByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+		utils.HandleServiceError(c, err, "failed to fetch shipping provider")
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, provider)
 }
@@ -299,7 +294,7 @@ func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
 	}
 	privders, err := ctrl.shipmentService.CreateShippingProvider(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create shipping provider")
+		utils.HandleServiceError(c, err, "failed to create shipping provider")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgCreateSuccess, privders)
@@ -329,7 +324,7 @@ func (ctrl *ShipmentController) UpdateShippingProvider(c *gin.Context) {
 	}
 	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(providerId))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+		utils.HandleServiceError(c, err, "failed to fetch shipping provider")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, provider)

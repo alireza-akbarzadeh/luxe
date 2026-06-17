@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -12,10 +13,11 @@ import (
 
 type PaymentProviderController struct {
 	service services.PaymentServiceInterface
+	cfg     *config.Config
 }
 
-func NewPaymentMethodController(service services.PaymentServiceInterface) *PaymentProviderController {
-	return &PaymentProviderController{service: service}
+func NewPaymentMethodController(service services.PaymentServiceInterface, cfg *config.Config) *PaymentProviderController {
+	return &PaymentProviderController{service: service, cfg: cfg}
 }
 
 // GetPaymentProviders handles GET /payment-methods
@@ -57,4 +59,14 @@ func (h *PaymentProviderController) GetPaymentProviders(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "Payment methods retrieved successfully", response)
+}
+
+// GetStripeConfig returns public Stripe client configuration for the frontend.
+func (h *PaymentProviderController) GetStripeConfig(c *gin.Context) {
+	enabled := h.cfg != nil && h.cfg.Stripe.Enabled
+	resp := dto.StripeConfigResponse{Enabled: enabled}
+	if enabled {
+		resp.PublishableKey = h.cfg.Stripe.PublishableKey
+	}
+	utils.SuccessResponse(c, "stripe configuration", resp)
 }

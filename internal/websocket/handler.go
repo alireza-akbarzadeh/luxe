@@ -11,9 +11,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func isOriginAllowed(origin string, allowed []string) bool {
+	if origin == "" {
+		return true
+	}
+	for _, o := range allowed {
+		if origin == o {
+			return true
+		}
+	}
+	return false
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // adjust for production
+		return isOriginAllowed(r.Header.Get("Origin"), middleware.AllowedOrigins())
 	},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,

@@ -2,18 +2,23 @@ package routes
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-// SetupNavMenuRoutes handle nav menu api routes
-func SetupNavMenuRoutes(public *gin.RouterGroup, ctrl *controllers.Container) {
-
-	navGroup := public.Group("/nav-menus")
+// SetupNavMenuRoutes registers public read and admin write nav menu endpoints.
+func SetupNavMenuRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
+	navPublic := public.Group("/nav-menus")
 	{
-		navGroup.GET("", ctrl.NavMenu.GetAll)
-		navGroup.GET("/:id", ctrl.NavMenu.GetByID)
-		navGroup.POST("", ctrl.NavMenu.Create)
-		navGroup.PUT("/:id", ctrl.NavMenu.Update)
-		navGroup.DELETE("/:id", ctrl.NavMenu.Delete)
+		navPublic.GET("", ctrl.NavMenu.GetAll)
+		navPublic.GET("/:id", ctrl.NavMenu.GetByID)
+	}
+
+	navAdmin := protected.Group("/nav-menus")
+	navAdmin.Use(middleware.RequireAdmin())
+	{
+		navAdmin.POST("", ctrl.NavMenu.Create)
+		navAdmin.PUT("/:id", ctrl.NavMenu.Update)
+		navAdmin.DELETE("/:id", ctrl.NavMenu.Delete)
 	}
 }

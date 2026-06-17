@@ -19,3 +19,8 @@ type PaymentProviderResponse struct {
 type GetPaymentProviderQuery struct {
 	IsActive *bool `form:"is_active"`
 }
+
+type StripeConfigResponse struct {
+	Enabled        bool   `json:"enabled"`
+	PublishableKey string `json:"publishable_key,omitempty"`
+}

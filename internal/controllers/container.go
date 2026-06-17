@@ -2,6 +2,8 @@
 package controllers
 
 import (
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/health"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"gorm.io/gorm"
 )
@@ -32,12 +34,18 @@ type Container struct {
 	Settings *SettingController
 	Pdp      *PdpController
 	WebSocket *WebSocketController
+	Stripe    *StripeWebhookController
+	Audit     *AuditController
+	Upload    *UploadController
+	Admin     *AdminController
+	Import    *ImportController
+	Workflow  *WorkflowController
 }
 
 // NewContainer initializes all controllers with their dependencies.
-func NewContainer(db *gorm.DB, svc *services.Services) *Container {
+func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Container {
 	return &Container{
-		Health:   NewHealthController(db),
+		Health:   NewHealthController(health.NewChecker(db, cfg)),
 		Search:   NewSearchController(svc.Search),
 		Auth:     NewAuthController(svc.Auth),
 		User:     NewUserController(svc.User, svc.Address),
@@ -57,10 +65,16 @@ func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 		Review:   NewReviewController(svc.Review),
 		UserLike: NewUserLikeController(svc.UserLike, svc.Product),
 		Wallet:   NewWallerController(svc.Wallet),
-		Payment:  NewPaymentMethodController(svc.Payment),
+		Payment:  NewPaymentMethodController(svc.Payment, cfg),
 		NavMenu:  NewNavMenuController(svc.NavMenu),
 		Brand:    NewBrandController(svc.Brand),
 		Settings: NewSettingController(svc.Settings),
 		WebSocket: NewWebSocketController(svc),
+		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, svc.Wallet, svc.WebhookEvent, cfg),
+		Audit:     NewAuditController(svc.Audit),
+		Upload:    NewUploadController(svc.Upload),
+		Admin:     NewAdminController(svc.Admin, svc.Order, svc.WebhookEvent),
+		Import:    NewImportController(svc.Import),
+		Workflow:  NewWorkflowController(svc.Workflow),
 	}
 }

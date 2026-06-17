@@ -1,14 +1,25 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
+
+// productStatusToStateCode maps a legacy product status to a workflow state code.
+var productStatusToStateCode = map[string]string{
+	"draft":    "draft",
+	"active":   "published",
+	"inactive": "discontinued",
+	"archived": "archived",
+}
 
 type ProductServiceInterface interface {
 	List(limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
@@ -26,11 +37,29 @@ type ProductServiceInterface interface {
 }
 
 type productService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewProductService(db *gorm.DB) ProductServiceInterface {
-	return &productService{db: db}
+func NewProductService(db *gorm.DB, engine *workflow.Engine) ProductServiceInterface {
+	return &productService{db: db, engine: engine}
+}
+
+// setProductState syncs a product status into the workflow engine (best-effort).
+func (s *productService) setProductState(productID uint, status string) {
+	code, ok := productStatusToStateCode[status]
+	if !ok || s.engine == nil {
+		return
+	}
+	if _, err := s.engine.SetState(context.Background(), workflow.SetStateRequest{
+		WorkflowKey:     constants.WorkflowEntityProduct,
+		EntityID:        productID,
+		TargetStateCode: code,
+		Event:           "status_update",
+	}); err != nil {
+		utils.Log.WithError(err).WithField("product_id", productID).
+			Warn("failed to sync product workflow state")
+	}
 }
 
 // UniqSlug ensureUniqueSlug checks and modifies slug to be unique.
@@ -112,6 +141,7 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 	if err := s.db.Create(&product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
+	s.setProductState(product.ID, product.Status)
 	return &product, nil
 }
 
@@ -228,6 +258,9 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 
 	if err := s.db.Save(product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
+	}
+	if req.Status != nil {
+		s.setProductState(product.ID, product.Status)
 	}
 
 	// Replace attributes wholesale if provided
@@ -433,7 +466,7 @@ func (s *productService) BulkDelete(productIDs []uint) error {
 // and logs a warning for each. Returns an error if the database query fails.
 func (s *productService) CheckLowStockAndAlert() error {
 	var products []models.Product
-	err := s.db.Where("stock <= low_stock_threshold AND status = ?", "active").
+	err := s.db.Where("stock <= low_stock_threshold AND status = ?", constants.ProductStatusActive).
 		Find(&products).Error
 	if err != nil {
 		return utils.ErrInternal(err)

@@ -47,7 +47,7 @@ func (pc *UserController) GetProfile(c *gin.Context) {
 
 	user, err := pc.userService.GetUserByID(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, constants.ErrInternalServer.Error())
+		utils.HandleServiceError(c, err, constants.ErrInternalServer.Error())
 		return
 	}
 
@@ -125,7 +125,7 @@ func (pc *UserController) UpdateProfile(c *gin.Context) {
 
 	user, err := pc.userService.UpdateUserProfile(userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, constants.ErrInternalServer.Error())
+		utils.HandleServiceError(c, err, constants.ErrInternalServer.Error())
 		return
 	}
 
@@ -168,7 +168,7 @@ func (pc *UserController) GetAllUsers(c *gin.Context) {
 
 	users, total, err := pc.userService.GetUsers(filter)
 	if err != nil {
-		utils.HandleAppError(c, err, constants.ErrUserNotFound)
+		utils.HandleServiceError(c, err, constants.ErrUserNotFound)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (pc *UserController) DeleteUser(c *gin.Context) {
 
 	err = pc.userService.DeleteUser(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete user")
+		utils.HandleServiceError(c, err, "failed to delete user")
 		return
 	}
 

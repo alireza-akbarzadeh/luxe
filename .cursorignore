@@ -1,0 +1,23 @@
+# Generated Swagger (regenerate with make swagger)
+docs/
+
+# Build artifacts
+bin/
+dist/
+tmp/
+*.exe
+*.test
+*.out
+
+# Dependencies
+vendor/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store

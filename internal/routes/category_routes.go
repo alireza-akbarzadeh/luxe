@@ -16,7 +16,7 @@ func SetupCategoryRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 	// Admin category endpoints (require JWT + admin role)
 	// Use a dedicated admin group to avoid route conflicts
 	admin := protected.Group("/admin" + constants.RouteCategories)
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.RequireAdmin())
 	{
 		admin.POST("/", ctrl.Category.Create)
 		admin.POST("/bulk", ctrl.Category.BulkCreate)

@@ -8712,11 +8712,11 @@ const docTemplate = `{
             "properties": {
                 "current_password": {
                     "type": "string",
-                    "minLength": 6
+                    "minLength": 8
                 },
                 "new_password": {
                     "type": "string",
-                    "minLength": 6
+                    "minLength": 8
                 }
             }
         },
@@ -8724,13 +8724,9 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "address_line1",
-                "card_number",
                 "city",
                 "country",
-                "cvv",
                 "email",
-                "expiry_month",
-                "expiry_year",
                 "first_name",
                 "last_name",
                 "phone",
@@ -8784,7 +8780,12 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "payment_method": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "mock",
+                        "stripe",
+                        "wallet"
+                    ]
                 },
                 "phone": {
                     "type": "string"
@@ -10635,7 +10636,7 @@ const docTemplate = `{
             "properties": {
                 "new_password": {
                     "type": "string",
-                    "minLength": 6
+                    "minLength": 8
                 },
                 "token": {
                     "type": "string"
@@ -10894,9 +10895,6 @@ const docTemplate = `{
         },
         "dto.SyncCompareRequest": {
             "type": "object",
-            "required": [
-                "product_ids"
-            ],
             "properties": {
                 "product_ids": {
                     "type": "array",
@@ -11984,6 +11982,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
+                    "type": "string"
+                },
+                "stripe_session_id": {
                     "type": "string"
                 },
                 "transaction_id": {

@@ -51,7 +51,7 @@ func (ctrl *ProductController) Create(c *gin.Context) {
 	}
 	product, err := ctrl.productService.Create(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create product")
+		utils.HandleServiceError(c, err, "failed to create product")
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
@@ -86,14 +86,14 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 	}
 	existing, err := ctrl.productService.GetByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch product")
+		utils.HandleServiceError(c, err, "failed to fetch product")
 		return
 	}
 	oldStock := existing.Stock
 
 	product, err := ctrl.productService.Update(uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update product")
+		utils.HandleServiceError(c, err, "failed to update product")
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
@@ -124,7 +124,7 @@ func (ctrl *ProductController) Delete(c *gin.Context) {
 		return
 	}
 	if err := ctrl.productService.Delete(uint(id)); err != nil {
-		utils.HandleAppError(c, err, "failed to delete product")
+		utils.HandleServiceError(c, err, "failed to delete product")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
@@ -154,7 +154,7 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 		product, err = ctrl.productService.GetBySlug(identifier)
 	}
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch product")
+		utils.HandleServiceError(c, err, "failed to fetch product")
 		return
 	}
 
@@ -225,7 +225,7 @@ func (ctrl *ProductController) List(c *gin.Context) {
 
 	products, total, err := ctrl.productService.List(limit, offset, filters)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to list products")
+		utils.HandleServiceError(c, err, "failed to list products")
 		return
 	}
 
@@ -279,7 +279,7 @@ func (ctrl *ProductController) BulkCreate(c *gin.Context) {
 	}
 	products, err := ctrl.productService.BulkCreate(reqs)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to bulk create products")
+		utils.HandleServiceError(c, err, "failed to bulk create products")
 		return
 	}
 	responses := make([]dto.ProductResponse, len(products))
@@ -309,7 +309,7 @@ func (ctrl *ProductController) BulkDelete(c *gin.Context) {
 		return
 	}
 	if err := ctrl.productService.BulkDelete(req.ProductIDs); err != nil {
-		utils.HandleAppError(c, err, "failed to delete products")
+		utils.HandleServiceError(c, err, "failed to delete products")
 		return
 	}
 	utils.SuccessResponse(c, "products deleted successfully", nil)
@@ -346,7 +346,7 @@ func (ctrl *ProductController) GetRelated(c *gin.Context) {
 
 	products, err := ctrl.productService.GetRelated(uint(id), limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch related products")
+		utils.HandleServiceError(c, err, "failed to fetch related products")
 		return
 	}
 	responses := make([]dto.ProductResponse, len(products))
@@ -376,7 +376,7 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 
 	suggestions, err := ctrl.productService.GetSuggestions(req.ProductIDs, req.Limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get suggestions")
+		utils.HandleServiceError(c, err, "failed to get suggestions")
 		return
 	}
 

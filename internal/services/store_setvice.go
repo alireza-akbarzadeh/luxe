@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -41,7 +42,7 @@ func NewStoreService(db *gorm.DB) StoreServiceInterface {
 
 // ListStores returns active stores with pagination, filters and sorting.
 func (s *storeService) ListStores(limit, offset int, filters dto.StoreFilter) ([]*models.Store, int64, error) {
-	query := s.db.Model(&models.Store{}).Where("status = ?", "active")
+	query := s.db.Model(&models.Store{}).Where("status = ?", constants.StoreStatusActive)
 
 	// Search (case‑insensitive)
 	if filters.Search != "" {
@@ -119,7 +120,7 @@ func (s *storeService) GetByID(id uint) (*models.Store, error) {
 // GetBySlug retrieves an active store by its slug.
 func (s *storeService) GetBySlug(slug string) (*models.Store, error) {
 	var store models.Store
-	err := s.db.Where("slug = ? AND status = ?", slug, "active").
+	err := s.db.Where("slug = ? AND status = ?", slug, constants.StoreStatusActive).
 		Preload("Categories").
 		First(&store).Error
 	if err != nil {
@@ -146,7 +147,7 @@ func (s *storeService) Create(req dto.CreateStoreRequest) (*models.Store, error)
 		Location:      req.Location,
 		ShippingInfo:  req.ShippingInfo,
 		ReturnPolicy:  req.ReturnPolicy,
-		Status:        "active",
+		Status:        constants.StoreStatusActive,
 		IsVerified:    false,
 		Rating:        0,
 		ReviewCount:   0,

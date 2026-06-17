@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
@@ -153,7 +154,7 @@ func (s *notificationService) CreateChatRoom(userID uint, title string) (*models
 		RoomID:        roomID,
 		UserID:        userID,
 		Title:         title,
-		Status:        "active",
+		Status:        constants.ChatRoomStatusActive,
 		LastMessageAt: time.Now(),
 	}
 

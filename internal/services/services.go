@@ -1,9 +1,13 @@
-// Package services defines the core business logic of the shopping platform.
 package services
 
 import (
+	"context"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
@@ -35,32 +39,33 @@ type Services struct {
 	Settings     SettingServiceInterface
 	Pdp          PdpServiceInterface
 	SalesFeed    *SalesFeedService
+	Audit        AuditServiceInterface
+	Upload       UploadServiceInterface
+	Admin        AdminServiceInterface
+	Import       ImportServiceInterface
+	WebhookEvent WebhookEventServiceInterface
+	Workflow     WorkflowServiceInterface
 }
 
-func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
-	// 1. WebSocket hub
+func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 	salesFeedSvc := NewSalesFeedService(wsHub)
 
-	// 2. Services that depend on hub
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)
+	paymentSvc := NewPaymentService(db, cfg)
+	walletSvc := NewWalletService(db, cfg)
 
-	// 3. New payment service (no hub needed)
-	paymentSvc := NewPaymentService(db)
+	workflowEngine := workflow.NewEngine(db)
+	RegisterWorkflowGuardsAndHooks(workflowEngine, db, notificationSvc, walletSvc, jobQueue)
 
-	// 4. Shipment service (now also receives the hub for delivery broadcasts)
-	shipmentSvc := NewShipmentService(db, workerPool, notificationSvc, wsHub)
+	productSvc := NewProductService(db, workflowEngine)
+	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 
-	// 5. Order service with all dependencies
-	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
-	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc)
-	// 5. Assemble all services
-	productSvc := NewProductService(db)
 	return &Services{
 		DB:           db,
-		Auth:         NewAuthServices(db, cfg),
+		Auth:         NewAuthServices(db, cfg, jobQueue),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
 		Cart:         NewCartService(db),
@@ -73,17 +78,39 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Menu:         NewMenuService(db),
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
-		Shipment:     NewShipmentService(db, workerPool, notificationSvc, wsHub),
-		Wallet:       NewWalletService(db),
-		Payment:      NewPaymentService(db),
+		Shipment:     shipmentSvc,
+		Wallet:       walletSvc,
+		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),
 		Settings:     NewSettingService(db),
-		Checkout:     checkoutSvc,
-		Order:        orderSvc,
+		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, StripeEnabled(cfg)),
+		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
+		Audit:        NewAuditService(db),
+		Upload:       NewUploadService(cfg),
+		Admin:        NewAdminService(db),
+		Import:       NewImportService(productSvc, NewCategoryService(db)),
+		WebhookEvent: NewWebhookEventService(db),
+		Workflow:     NewWorkflowService(db, workflowEngine),
+	}
+}
+
+// JobHandlers wires service methods into background task handlers.
+func (s *Services) JobHandlers() tasks.Handlers {
+	return tasks.Handlers{
+		ProcessOrder: func(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error {
+			return s.Checkout.ProcessOrder(ctx, orderID, cardInfo)
+		},
+		ProcessShipment: func(ctx context.Context, shipmentID uint) error {
+			return s.Shipment.ProcessShipmentBackground(ctx, shipmentID)
+		},
+		SendEmail: func(_ context.Context, to, subject, body string) error {
+			utils.SendEmailDirect(to, subject, body)
+			return nil
+		},
 	}
 }
