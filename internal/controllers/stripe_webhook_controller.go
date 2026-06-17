@@ -88,6 +88,20 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 		if err := ctrl.checkoutService.CompletePaidOrder(c.Request.Context(), orderID); err != nil {
 			utils.Log.WithError(err).WithField("order_id", orderID).Error("stripe webhook: failed to complete order")
 		}
+
+	case stripe.EventTypeCheckoutSessionExpired:
+		var session stripe.CheckoutSession
+		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+			utils.Log.WithError(err).Error("stripe webhook: failed to parse expired checkout session")
+			c.Status(http.StatusOK)
+			return
+		}
+
+		if isWalletDepositSession(session) {
+			if err := ctrl.walletService.FailDepositByStripeSession(session.ID); err != nil {
+				utils.Log.WithError(err).Error("stripe webhook: failed to fail wallet deposit")
+			}
+		}
 	}
 
 	c.Status(http.StatusOK)

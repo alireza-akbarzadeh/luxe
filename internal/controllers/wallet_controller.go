@@ -64,15 +64,16 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 	txResponses := make([]dto.TransactionResponse, len(transactions))
 	for i, tx := range transactions {
 		txResponses[i] = dto.TransactionResponse{
-			ID:            tx.ID,
-			CreatedAt:     tx.CreatedAt,
-			Amount:        tx.Amount,
-			Type:          tx.Type,
-			ReferenceType: tx.ReferenceType,
-			ReferenceID:   tx.ReferenceID,
-			Description:   tx.Description,
-			BalanceAfter:  tx.BalanceAfter,
-			Status:        tx.Status,
+			ID:              tx.ID,
+			CreatedAt:       tx.CreatedAt,
+			Amount:          tx.Amount,
+			Type:            tx.Type,
+			ReferenceType:   tx.ReferenceType,
+			ReferenceID:     tx.ReferenceID,
+			Description:     tx.Description,
+			BalanceAfter:    tx.BalanceAfter,
+			Status:          tx.Status,
+			StripeSessionID: tx.StripeSessionID,
 		}
 	}
 	data := dto.WalletDetailResponse{
@@ -219,15 +220,16 @@ func (ctrl *WalletController) GetTransaction(c *gin.Context) {
 		return
 	}
 	resp := dto.TransactionResponse{
-		ID:            tx.ID,
-		CreatedAt:     tx.CreatedAt,
-		Amount:        tx.Amount,
-		Type:          tx.Type,
-		ReferenceType: tx.ReferenceType,
-		ReferenceID:   tx.ReferenceID,
-		Description:   tx.Description,
-		BalanceAfter:  tx.BalanceAfter,
-		Status:        tx.Status,
+		ID:              tx.ID,
+		CreatedAt:       tx.CreatedAt,
+		Amount:          tx.Amount,
+		Type:            tx.Type,
+		ReferenceType:   tx.ReferenceType,
+		ReferenceID:     tx.ReferenceID,
+		Description:     tx.Description,
+		BalanceAfter:    tx.BalanceAfter,
+		Status:          tx.Status,
+		StripeSessionID: tx.StripeSessionID,
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, resp)
 }

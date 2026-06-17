@@ -296,6 +296,20 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 [//]: # (goose -dir ./migrations create add_orders_indexes sql)
 
+## Wallet deposits (Stripe)
+
+When `STRIPE_SECRET_KEY` is set, `POST /api/v1/wallet/deposit` returns a Stripe Checkout URL (`checkout_url`) and leaves the transaction `pending` until payment succeeds.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/wallet/deposit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50}'
+```
+
+Webhook events: `checkout.session.completed` (credit wallet), `checkout.session.expired` (mark failed). Users can also cancel pending deposits via `POST /api/v1/wallet/deposit/{id}/cancel`.
+
+Without Stripe keys, deposits are auto-confirmed for local dev and CI.
 
 # Redis — durable background jobs
 REDIS_URL=redis://localhost:6379/0

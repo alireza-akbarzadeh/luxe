@@ -21,6 +21,7 @@ type WalletServiceInterface interface {
 	InitiateDeposit(userID uint, amount float64, customerEmail string) (*dto.DepositResponse, error)
 	ConfirmDeposit(transactionID uint) error
 	ConfirmDepositByStripeSession(sessionID, paymentIntentID string) error
+	FailDepositByStripeSession(sessionID string) error
 	FailDeposit(transactionID uint) error
 	Withdraw(userID uint, amount float64, referenceType string, referenceID *uint, description string) error
 	DeductForOrder(userID uint, amount float64, orderID uint) error
@@ -197,6 +198,24 @@ func (w *walletService) ConfirmDepositByStripeSession(sessionID, paymentIntentID
 	}
 
 	return w.ConfirmDeposit(txRecord.ID)
+}
+
+// FailDepositByStripeSession marks a pending wallet deposit as failed when Stripe checkout expires or is abandoned.
+func (w *walletService) FailDepositByStripeSession(sessionID string) error {
+	var txRecord models.WalletTransaction
+	err := w.db.Where("stripe_session_id = ?", sessionID).First(&txRecord).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return utils.ErrInternal(err)
+	}
+
+	if txRecord.Status != "pending" {
+		return nil
+	}
+
+	return w.FailDeposit(txRecord.ID)
 }
 
 // ConfirmDeposit – completes a pending deposit, updates wallet balance

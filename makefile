@@ -19,7 +19,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger stripe-listen dev-setup seed-dev
+.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
 
 # Default target
 help: ## Show this help message
@@ -51,6 +51,15 @@ docker-up: ## Start PostgreSQL and Redis (required for local dev)
 	@echo "${GREEN}Starting PostgreSQL and Redis...${RESET}"
 	docker compose up -d postgres redis
 	@echo "${GREEN}Core services ready. For tracing UI: make docker-up-jaeger (optional)${RESET}"
+	@echo "${YELLOW}Tip: wait for Postgres before migrate-up — use make dev-setup or make docker-wait-postgres${RESET}"
+
+docker-wait-postgres: ## Wait until Docker Postgres accepts connections
+	@echo "${GREEN}Waiting for Postgres...${RESET}"
+	@for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do \
+		docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && { echo "${GREEN}Postgres ready${RESET}"; exit 0; }; \
+		sleep 1; \
+	done; \
+	echo "${YELLOW}Postgres not ready after 30s — check docker compose ps${RESET}"; exit 1
 
 docker-up-jaeger: ## Start Jaeger for OTLP tracing (optional; needs Docker Hub access)
 	@echo "${GREEN}Starting Jaeger...${RESET}"
@@ -58,11 +67,11 @@ docker-up-jaeger: ## Start Jaeger for OTLP tracing (optional; needs Docker Hub a
 
 docker-up-all: docker-up docker-up-jaeger ## Start Postgres, Redis, and Jaeger
 
-stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
+stripe-listen: ## Forward Stripe webhooks (orders + wallet deposits) to local API
 	@echo "${GREEN}Forwarding Stripe webhooks to localhost:8080/api/v1/webhooks/stripe${RESET}"
-	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
+	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe --events checkout.session.completed,checkout.session.expired
 
-dev-setup: docker-up migrate-up ## Start Postgres, Redis, and run migrations
+dev-setup: docker-up docker-wait-postgres migrate-up ## Start Postgres, Redis, and run migrations
 
 seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 	@echo "${GREEN}Seeding dev demo data...${RESET}"

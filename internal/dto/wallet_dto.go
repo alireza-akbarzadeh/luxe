@@ -38,8 +38,9 @@ type TransactionResponse struct {
 	ReferenceType string    `json:"reference_type,omitempty"`
 	ReferenceID   *uint     `json:"reference_id,omitempty"`
 	Description   string    `json:"description,omitempty"`
-	BalanceAfter  float64   `json:"balance_after"`
-	Status        string    `json:"status"`
+	BalanceAfter    float64   `json:"balance_after"`
+	Status          string    `json:"status"`
+	StripeSessionID string    `json:"stripe_session_id,omitempty"`
 }
 
 type WalletDetailResponse struct {

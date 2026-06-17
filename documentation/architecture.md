@@ -62,7 +62,7 @@ New domains must be registered in **both** `services.go` and `container.go`.
 | Catalog | `product_services`, `category_service`, `brand_service`, `pdp_service`, `search_service` | PDP, compare, likes |
 | Cart | `cart_service` | Stock checks, active cart |
 | Orders | `orders_service`, `checkout_service` | Checkout transaction, inventory |
-| Payments | `payment_service`, `wallet_service` | mock / stripe / wallet |
+| Payments | `payment_service`, `wallet_service` | Stripe Checkout (orders + wallet deposits), mock when Stripe disabled, wallet balance |
 | Fulfillment | `shipment_service`, `address_service` | Async shipment jobs |
 | Engagement | `review_service`, `coupon_service`, `notification_service` | WebSocket hub |
 | Platform | `audit_service`, `upload_service`, `settings_service` | Audit logs, R2 presign |
@@ -80,7 +80,7 @@ Multi-step writes use `db.Transaction` (checkout, payments, stock).
 
 | Package | Purpose | Config |
 |---------|---------|--------|
-| `internal/integrations/stripe` | Checkout sessions, webhooks | `STRIPE_*` |
+| `internal/integrations/stripe` | Checkout sessions (orders + wallet deposits), webhooks | `STRIPE_*` |
 | `internal/integrations/r2` | Presigned uploads | `R2_*` |
 
 ## Observability
