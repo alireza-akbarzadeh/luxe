@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -433,7 +434,7 @@ func (s *productService) BulkDelete(productIDs []uint) error {
 // and logs a warning for each. Returns an error if the database query fails.
 func (s *productService) CheckLowStockAndAlert() error {
 	var products []models.Product
-	err := s.db.Where("stock <= low_stock_threshold AND status = ?", "active").
+	err := s.db.Where("stock <= low_stock_threshold AND status = ?", constants.ProductStatusActive).
 		Find(&products).Error
 	if err != nil {
 		return utils.ErrInternal(err)

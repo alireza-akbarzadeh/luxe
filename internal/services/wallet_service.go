@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/integrations/stripe"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -102,7 +103,7 @@ func (w *walletService) GetTransactions(userID uint, filters dto.WalletListFilte
 
 // Deposit – immediately credit the wallet (for direct admin deposit or internal use)
 func (w *walletService) Deposit(userID uint, amount float64, description string) error {
-	return w.updateBalance(userID, amount, "deposit", "", nil, description, "completed")
+	return w.updateBalance(userID, amount, constants.WalletTxTypeDeposit, "", nil, description, constants.WalletTxStatusCompleted)
 }
 
 // CreatePendingDeposit – immediately credit the wallet (for direct admin deposit or internal use)
@@ -112,10 +113,10 @@ func (w *walletService) CreatePendingDeposit(userID uint, amount float64, descri
 		record := models.WalletTransaction{
 			UserID:       userID,
 			Amount:       amount,
-			Type:         "deposit",
+			Type:         constants.WalletTxTypeDeposit,
 			Description:  description,
 			BalanceAfter: 0,
-			Status:       "pending",
+			Status:       constants.WalletTxStatusPending,
 		}
 		if err := tx.Create(&record).Error; err != nil {
 			return err
@@ -142,7 +143,7 @@ func (w *walletService) InitiateDeposit(userID uint, amount float64, customerEma
 		}
 		return &dto.DepositResponse{
 			TransactionID: txID,
-			Status:        "completed",
+			Status:        constants.WalletTxStatusCompleted,
 		}, nil
 	}
 
@@ -166,7 +167,7 @@ func (w *walletService) InitiateDeposit(userID uint, amount float64, customerEma
 
 	return &dto.DepositResponse{
 		TransactionID:   txID,
-		Status:          "pending",
+		Status:          constants.WalletTxStatusPending,
 		CheckoutURL:     checkoutURL,
 		StripeSessionID: sessionID,
 	}, nil
@@ -183,11 +184,11 @@ func (w *walletService) ConfirmDepositByStripeSession(sessionID, paymentIntentID
 		return utils.ErrInternal(err)
 	}
 
-	if txRecord.Status == "completed" {
+	if txRecord.Status == constants.WalletTxStatusCompleted {
 		return nil
 	}
 
-	if txRecord.Status != "pending" {
+	if txRecord.Status != constants.WalletTxStatusPending {
 		return utils.ErrBadRequest("transaction already processed")
 	}
 
@@ -211,7 +212,7 @@ func (w *walletService) FailDepositByStripeSession(sessionID string) error {
 		return utils.ErrInternal(err)
 	}
 
-	if txRecord.Status != "pending" {
+	if txRecord.Status != constants.WalletTxStatusPending {
 		return nil
 	}
 
@@ -225,7 +226,7 @@ func (w *walletService) ConfirmDeposit(transactionID uint) error {
 		if err := tx.First(&txRecord, transactionID).Error; err != nil {
 			return err
 		}
-		if txRecord.Status != "pending" {
+		if txRecord.Status != constants.WalletTxStatusPending {
 			return utils.ErrBadRequest("transaction already processed")
 		}
 		// Lock wallet row (create on first deposit if missing).
@@ -246,7 +247,7 @@ func (w *walletService) ConfirmDeposit(transactionID uint) error {
 		if err := tx.Save(&wallet).Error; err != nil {
 			return err
 		}
-		txRecord.Status = "completed"
+		txRecord.Status = constants.WalletTxStatusCompleted
 		txRecord.BalanceAfter = newBalance
 		return tx.Save(&txRecord).Error
 	})
@@ -254,22 +255,22 @@ func (w *walletService) ConfirmDeposit(transactionID uint) error {
 
 // FailDeposit – marks a pending deposit as failed
 func (w *walletService) FailDeposit(transactionID uint) error {
-	return w.db.Model(&models.WalletTransaction{}).Where("id = ?", transactionID).Update("status", "failed").Error
+	return w.db.Model(&models.WalletTransaction{}).Where("id = ?", transactionID).Update("status", constants.WalletTxStatusFailed).Error
 }
 
 // Withdraw – generic withdrawal (e.g., admin deduction)
 func (w *walletService) Withdraw(userID uint, amount float64, referenceType string, referenceID *uint, description string) error {
-	return w.updateBalance(userID, -amount, "adjustment", referenceType, referenceID, description, "completed")
+	return w.updateBalance(userID, -amount, constants.WalletTxTypeAdjustment, referenceType, referenceID, description, constants.WalletTxStatusCompleted)
 }
 
 // DeductForOrder – payment from wallet during checkout
 func (w *walletService) DeductForOrder(userID uint, amount float64, orderID uint) error {
-	return w.updateBalance(userID, -amount, "payment", "order", &orderID, fmt.Sprintf("Payment for order #%d", orderID), "completed")
+	return w.updateBalance(userID, -amount, constants.WalletTxTypePayment, constants.WalletRefTypeOrder, &orderID, fmt.Sprintf("Payment for order #%d", orderID), constants.WalletTxStatusCompleted)
 }
 
 // Refund – refund a payment back to wallet
 func (w *walletService) Refund(userID uint, amount float64, orderID uint) error {
-	return w.updateBalance(userID, amount, "refund", "order", &orderID, fmt.Sprintf("Refund for order #%d", orderID), "completed")
+	return w.updateBalance(userID, amount, constants.WalletTxTypeRefund, constants.WalletRefTypeOrder, &orderID, fmt.Sprintf("Refund for order #%d", orderID), constants.WalletTxStatusCompleted)
 }
 
 // AdminAdjust – direct adjustment (positive or negative) with custom description
@@ -278,13 +279,13 @@ func (w *walletService) AdminAdjust(userID uint, amount float64, description str
 	if amount > 0 {
 		// Could be treated as deposit, but keep as adjustment for audit
 	}
-	return w.updateBalance(userID, amount, txType, "admin", nil, description, "completed")
+	return w.updateBalance(userID, amount, txType, constants.WalletRefTypeAdmin, nil, description, constants.WalletTxStatusCompleted)
 }
 
 // internal helper – core balance update with transaction
 func (w *walletService) updateBalance(userID uint, delta float64, txType, refType string, refID *uint, description string, status string) error {
 	if status == "" {
-		status = "completed"
+		status = constants.WalletTxStatusCompleted
 	}
 	return w.db.Transaction(func(tx *gorm.DB) error {
 		// Lock wallet row for update
@@ -347,13 +348,13 @@ func (w *walletService) CancelPendingDeposit(userID, txID uint) error {
 		if err := tx.Where("id = ? AND user_id = ?", txID, userID).First(&record).Error; err != nil {
 			return err
 		}
-		if record.Status != "pending" {
+		if record.Status != constants.WalletTxStatusPending {
 			return utils.ErrBadRequest("only pending deposits can be cancelled")
 		}
-		if record.Type != "deposit" {
+		if record.Type != constants.WalletTxTypeDeposit {
 			return utils.ErrBadRequest("only deposit transactions can be cancelled")
 		}
-		record.Status = "cancelled"
+		record.Status = constants.WalletTxStatusCancelled
 		return tx.Save(&record).Error
 	})
 }

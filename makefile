@@ -20,7 +20,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
 
 # Default target
 help: ## Show this help message
@@ -166,6 +166,11 @@ test-coverage: ## Run tests with coverage report
 	go test -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	@echo "${GREEN}Coverage report generated: coverage.html${RESET}"
+
+lint: ## Run go vet on all packages
+	@echo "${GREEN}Running go vet...${RESET}"
+	go vet ./...
+	@echo "${GREEN}Lint complete${RESET}"
 
 ## Utility
 watch: ## Run with hot reload (requires air)

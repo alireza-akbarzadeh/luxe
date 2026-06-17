@@ -236,7 +236,7 @@ func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
 
 	for _, order := range orders {
 		oldStatus := order.Status
-		order.Status = "delayed"
+		order.Status = constants.OrderStatusDelayed
 		if err := s.db.WithContext(ctx).Save(&order).Error; err != nil {
 			utils.Log.WithError(err).Errorf("Failed to update order %d to delayed", order.ID)
 			continue
@@ -253,7 +253,7 @@ func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
 					"order_id":     order.ID,
 					"order_number": order.OrderNumber,
 					"old_status":   oldStatus,
-					"new_status":   "delayed",
+					"new_status":   constants.OrderStatusDelayed,
 					"updated_at":   order.UpdatedAt,
 				},
 			)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/integrations/stripe"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -46,7 +47,7 @@ func (s *paymentService) CreatePayment(tx *gorm.DB, req dto.PaymentRequest) (*mo
 		Currency:      req.Currency,
 		Method:        req.Method,
 		TransactionID: tempTxID,
-		Status:        "pending",
+		Status:        constants.PaymentStatusPending,
 	}
 	if err := tx.Create(payment).Error; err != nil {
 		return nil, utils.ErrInternal(err)
@@ -61,7 +62,7 @@ func (s *paymentService) ProcessPayment(tx *gorm.DB, paymentID uint, cardInfo dt
 	}
 
 	if err := s.mockGateway(cardInfo); err != nil {
-		payment.Status = "failed"
+		payment.Status = constants.PaymentStatusFailed
 		payment.GatewayResponse = datatypes.JSON(fmt.Sprintf(`{"error":"%s"}`, err.Error()))
 		if err := tx.Save(&payment).Error; err != nil {
 			return fmt.Errorf("failed to save failed payment: %w", err)
@@ -69,7 +70,7 @@ func (s *paymentService) ProcessPayment(tx *gorm.DB, paymentID uint, cardInfo dt
 		return err
 	}
 
-	payment.Status = "succeeded"
+	payment.Status = constants.PaymentStatusSucceeded
 	payment.TransactionID = fmt.Sprintf("txn_%d", time.Now().UnixNano())
 	if err := tx.Save(&payment).Error; err != nil {
 		return fmt.Errorf("failed to save successful payment: %w", err)
@@ -110,7 +111,7 @@ func (s *paymentService) ConfirmStripeSession(sessionID, paymentIntentID string)
 		return 0, utils.ErrInternal(err)
 	}
 
-	if payment.Status == "succeeded" {
+	if payment.Status == constants.PaymentStatusSucceeded {
 		return payment.OrderID, nil
 	}
 
@@ -120,7 +121,7 @@ func (s *paymentService) ConfirmStripeSession(sessionID, paymentIntentID string)
 	}
 
 	updates := map[string]interface{}{
-		"status":         "succeeded",
+		"status":         constants.PaymentStatusSucceeded,
 		"transaction_id": txnID,
 	}
 	if err := s.db.Model(&payment).Updates(updates).Error; err != nil {

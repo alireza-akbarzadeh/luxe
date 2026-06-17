@@ -142,7 +142,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("DB_CONN_MAX_LIFETIME", "1h")
 	viper.SetDefault("DB_CONN_MAX_IDLE_TIME", "15m")
 
-	viper.SetDefault("JWT_SECRET", devJWTSecret)
+	if appEnv == "local" {
+		viper.SetDefault("JWT_SECRET", devJWTSecret)
+	}
+
 	viper.SetDefault("JWT_ACCESS_TOKEN_EXPIRY", "15m")
 	viper.SetDefault("JWT_REFRESH_TOKEN_EXPIRY", "168h")
 

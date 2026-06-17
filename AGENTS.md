@@ -36,7 +36,8 @@ HTTP → Controller → Service (*gorm.DB + business logic) → PostgreSQL
 
 | Command | Purpose |
 |---------|---------|
-| `make dev-setup` | Docker Postgres + Redis, run migrations |
+| `make dev-setup` | Docker Postgres + Redis, wait, migrate (Goose CLI) |
+| `make migrate-up-docker` | Goose via Docker network (Windows Docker fallback) |
 | `make run` | Start API |
 | `make migrate-create name=<name>` | New migration |
 | `make migrate-up` | Apply migrations |

@@ -323,7 +323,7 @@ func (s *checkoutService) processShipment(ctx context.Context, orderID uint) err
 
 func (s *checkoutService) getActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
-	err := s.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, "active").
+	err := s.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, constants.CartStatusActive).
 		Preload("Items.Product").
 		First(&cart).Error
 	if err != nil {

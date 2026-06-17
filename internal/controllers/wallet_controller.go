@@ -123,7 +123,7 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 	}
 
 	message := "deposit completed"
-	if result.Status == "pending" {
+	if result.Status == constants.WalletTxStatusPending {
 		message = "deposit initiated — complete payment at checkout_url"
 	}
 	utils.SuccessResponse(c, message, result)
