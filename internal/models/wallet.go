@@ -33,7 +33,8 @@ type WalletTransaction struct {
 	ReferenceID   *uint          `json:"reference_id,omitempty"`
 	Description   string         `json:"description,omitempty"`
 	BalanceAfter  float64        `gorm:"type:decimal(10,2);not null" json:"balance_after"`
-	Status        string         `gorm:"not null;default:'pending';index" json:"status"`
-	Metadata      datatypes.JSON `gorm:"type:jsonb" json:"metadata,omitempty"`
+	Status          string         `gorm:"not null;default:'pending';index" json:"status"`
+	StripeSessionID string         `gorm:"column:stripe_session_id;index" json:"stripe_session_id,omitempty"`
+	Metadata        datatypes.JSON `gorm:"type:jsonb" json:"metadata,omitempty"`
 	User          User           `gorm:"foreignKey:UserID" json:"-"`
 }

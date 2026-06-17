@@ -4,7 +4,14 @@ import "time"
 
 type DepositRequest struct {
 	Amount        float64 `json:"amount" validate:"required,gt=0"`
-	PaymentMethod string  `json:"payment_method"` // for future gateway integration
+	PaymentMethod string  `json:"payment_method" validate:"omitempty,oneof=stripe mock"`
+}
+
+type DepositResponse struct {
+	TransactionID   uint   `json:"transaction_id"`
+	Status          string `json:"status"`
+	CheckoutURL     string `json:"checkout_url,omitempty"`
+	StripeSessionID string `json:"stripe_session_id,omitempty"`
 }
 
 type AdminAdjustRequest struct {

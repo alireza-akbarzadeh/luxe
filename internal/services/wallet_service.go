@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/integrations/stripe"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
@@ -16,7 +18,9 @@ type WalletServiceInterface interface {
 	GetTransactions(userID uint, filters dto.WalletListFilters) ([]models.WalletTransaction, int64, error)
 	Deposit(userID uint, amount float64, description string) error
 	CreatePendingDeposit(userID uint, amount float64, description string) (uint, error)
+	InitiateDeposit(userID uint, amount float64, customerEmail string) (*dto.DepositResponse, error)
 	ConfirmDeposit(transactionID uint) error
+	ConfirmDepositByStripeSession(sessionID, paymentIntentID string) error
 	FailDeposit(transactionID uint) error
 	Withdraw(userID uint, amount float64, referenceType string, referenceID *uint, description string) error
 	DeductForOrder(userID uint, amount float64, orderID uint) error
@@ -27,13 +31,17 @@ type WalletServiceInterface interface {
 }
 
 type walletService struct {
-	db *gorm.DB
+	db            *gorm.DB
+	stripe        *stripeintegration.Gateway
+	stripeEnabled bool
 }
 
-func NewWalletService(db *gorm.DB) WalletServiceInterface {
-	return &walletService{
-		db: db,
+func NewWalletService(db *gorm.DB, cfg *config.Config) WalletServiceInterface {
+	svc := &walletService{db: db, stripeEnabled: StripeEnabled(cfg)}
+	if cfg != nil && cfg.Stripe.Enabled {
+		svc.stripe = stripeintegration.NewGateway(cfg.Stripe.SecretKey, cfg.Email.FrontendURL)
 	}
+	return svc
 }
 
 // GetOrCreateWallet – ensures a wallet exists for the user.
@@ -118,6 +126,77 @@ func (w *walletService) CreatePendingDeposit(userID uint, amount float64, descri
 		return 0, utils.ErrInternal(err)
 	}
 	return txID, nil
+}
+
+// InitiateDeposit creates a pending deposit and returns a Stripe Checkout URL when enabled.
+func (w *walletService) InitiateDeposit(userID uint, amount float64, customerEmail string) (*dto.DepositResponse, error) {
+	txID, err := w.CreatePendingDeposit(userID, amount, "Online deposit via payment gateway")
+	if err != nil {
+		return nil, err
+	}
+
+	if !w.stripeEnabled || w.stripe == nil {
+		if err := w.ConfirmDeposit(txID); err != nil {
+			return nil, err
+		}
+		return &dto.DepositResponse{
+			TransactionID: txID,
+			Status:        "completed",
+		}, nil
+	}
+
+	if customerEmail == "" {
+		w.FailDeposit(txID)
+		return nil, utils.ErrBadRequest("customer email is required for stripe deposit")
+	}
+
+	checkoutURL, sessionID, err := w.stripe.CreateWalletDepositSession(userID, txID, amount, "USD", customerEmail)
+	if err != nil {
+		w.FailDeposit(txID)
+		return nil, utils.ErrInternal(err)
+	}
+
+	if err := w.db.Model(&models.WalletTransaction{}).Where("id = ?", txID).Updates(map[string]interface{}{
+		"stripe_session_id": sessionID,
+	}).Error; err != nil {
+		w.FailDeposit(txID)
+		return nil, utils.ErrInternal(err)
+	}
+
+	return &dto.DepositResponse{
+		TransactionID:   txID,
+		Status:          "pending",
+		CheckoutURL:     checkoutURL,
+		StripeSessionID: sessionID,
+	}, nil
+}
+
+// ConfirmDepositByStripeSession completes a wallet deposit after Stripe payment (idempotent).
+func (w *walletService) ConfirmDepositByStripeSession(sessionID, paymentIntentID string) error {
+	var txRecord models.WalletTransaction
+	err := w.db.Where("stripe_session_id = ?", sessionID).First(&txRecord).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("wallet deposit not found for session")
+		}
+		return utils.ErrInternal(err)
+	}
+
+	if txRecord.Status == "completed" {
+		return nil
+	}
+
+	if txRecord.Status != "pending" {
+		return utils.ErrBadRequest("transaction already processed")
+	}
+
+	if paymentIntentID != "" {
+		if err := w.db.Model(&txRecord).Update("description", fmt.Sprintf("Stripe deposit (%s)", paymentIntentID)).Error; err != nil {
+			utils.Log.WithError(err).Warn("failed to update wallet deposit description")
+		}
+	}
+
+	return w.ConfirmDeposit(txRecord.ID)
 }
 
 // ConfirmDeposit – completes a pending deposit, updates wallet balance

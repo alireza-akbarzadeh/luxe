@@ -49,6 +49,16 @@ func TestWallet_Deposit_IncreasesBalance(t *testing.T) {
 	defer depResp.Body.Close()
 	require.Equal(t, http.StatusOK, depResp.StatusCode)
 
+	var depEnvelope apiEnvelope
+	require.NoError(t, json.NewDecoder(depResp.Body).Decode(&depEnvelope))
+	require.True(t, depEnvelope.Success)
+
+	var depData struct {
+		Status string `json:"status"`
+	}
+	require.NoError(t, json.Unmarshal(depEnvelope.Data, &depData))
+	require.Equal(t, "completed", depData.Status, "mock deposit when Stripe is disabled")
+
 	walletResp, err := authRequest(http.MethodGet, server.URL+"/api/v1/wallet", token, nil)
 	require.NoError(t, err)
 	defer walletResp.Body.Close()

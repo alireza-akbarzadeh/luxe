@@ -68,7 +68,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
 		Shipment:     shipmentSvc,
-		Wallet:       NewWalletService(db),
+		Wallet:       NewWalletService(db, cfg),
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),

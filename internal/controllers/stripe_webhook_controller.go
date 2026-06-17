@@ -16,17 +16,20 @@ import (
 type StripeWebhookController struct {
 	paymentService  services.PaymentServiceInterface
 	checkoutService services.CheckoutServiceInterface
+	walletService   services.WalletServiceInterface
 	webhookSecret   string
 }
 
 func NewStripeWebhookController(
 	paymentService services.PaymentServiceInterface,
 	checkoutService services.CheckoutServiceInterface,
+	walletService services.WalletServiceInterface,
 	cfg *config.Config,
 ) *StripeWebhookController {
 	return &StripeWebhookController{
 		paymentService:  paymentService,
 		checkoutService: checkoutService,
+		walletService:   walletService,
 		webhookSecret:   cfg.Stripe.WebhookSecret,
 	}
 }
@@ -67,6 +70,14 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 			paymentIntentID = session.PaymentIntent.ID
 		}
 
+		if isWalletDepositSession(session) {
+			if err := ctrl.walletService.ConfirmDepositByStripeSession(session.ID, paymentIntentID); err != nil {
+				utils.Log.WithError(err).Error("stripe webhook: failed to confirm wallet deposit")
+			}
+			c.Status(http.StatusOK)
+			return
+		}
+
 		orderID, err := ctrl.paymentService.ConfirmStripeSession(session.ID, paymentIntentID)
 		if err != nil {
 			utils.Log.WithError(err).Error("stripe webhook: failed to confirm payment")
@@ -80,4 +91,11 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func isWalletDepositSession(session stripe.CheckoutSession) bool {
+	if session.Metadata == nil {
+		return false
+	}
+	return session.Metadata["type"] == "wallet_deposit"
 }

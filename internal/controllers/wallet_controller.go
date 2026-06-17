@@ -86,15 +86,15 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
 }
 
-// Deposit initiates a wallet deposit (requires payment gateway integration).
+// Deposit initiates a wallet deposit via Stripe Checkout (or mock confirm when Stripe is disabled).
 // @Summary      Deposit funds
-// @Description  Create a pending deposit transaction. In production, this would integrate with a payment gateway.
+// @Description  Creates a pending deposit and returns a Stripe Checkout URL when Stripe is enabled.
 // @Tags         Wallet
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body dto.DepositRequest true "Deposit amount"
-// @Success      200 {object} utils.Response{data=object{transaction_id=uint}}
+// @Success      200 {object} utils.Response{data=dto.DepositResponse}
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
@@ -109,20 +109,23 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	// Create pending transaction
-	txID, err := ctrl.walletService.CreatePendingDeposit(userID, req.Amount, "Online deposit via payment gateway")
+
+	customerEmail := ""
+	if emailVal, exists := c.Get("user_email"); exists {
+		customerEmail, _ = emailVal.(string)
+	}
+
+	result, err := ctrl.walletService.InitiateDeposit(userID, req.Amount, customerEmail)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to deposit")
 		return
 	}
-	if err := ctrl.walletService.ConfirmDeposit(txID); err != nil {
-		utils.HandleServiceError(c, err, "failed to confirm deposit")
-		return
+
+	message := "deposit completed"
+	if result.Status == "pending" {
+		message = "deposit initiated — complete payment at checkout_url"
 	}
-	utils.SuccessResponse(c, "deposit initiated", gin.H{
-		"transaction_id": txID,
-		"status":         "completed",
-	})
+	utils.SuccessResponse(c, message, result)
 }
 
 // AdminAdjust adjusts a user's wallet balance (admin only).
