@@ -19,7 +19,9 @@ type OrderServiceInterface interface {
 	GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error)
 	UpdateOverdueOrders(ctx context.Context) error
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
+	BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string) (updated int64, err error)
 }
+
 
 type orderService struct {
 	db                  *gorm.DB
@@ -215,6 +217,29 @@ func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilte
 		return nil, 0, utils.ErrInternal(err)
 	}
 	return orders, total, nil
+}
+
+func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string) (int64, error) {
+	if len(orderIDs) == 0 {
+		return 0, utils.ErrBadRequest("no order IDs provided")
+	}
+	validStatuses := map[string]bool{
+		constants.OrderStatusPaid:      true,
+		constants.OrderStatusShipped:   true,
+		constants.OrderStatusDelivered: true,
+		constants.OrderStatusCancelled: true,
+	}
+	if !validStatuses[status] {
+		return 0, utils.ErrBadRequest("invalid bulk status; allowed: paid, shipped, delivered, cancelled")
+	}
+
+	result := s.db.WithContext(ctx).Model(&models.Order{}).
+		Where("id IN ?", orderIDs).
+		Update("status", status)
+	if result.Error != nil {
+		return 0, utils.ErrInternal(result.Error)
+	}
+	return result.RowsAffected, nil
 }
 
 func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {

@@ -1,23 +1,31 @@
 package controllers
 
 import (
+	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type AdminController struct {
 	adminService services.AdminServiceInterface
+	orderService services.OrderServiceInterface
+	validate     *validator.Validate
 }
 
-func NewAdminController(svc services.AdminServiceInterface) *AdminController {
-	return &AdminController{adminService: svc}
+func NewAdminController(svc services.AdminServiceInterface, orderSvc services.OrderServiceInterface) *AdminController {
+	return &AdminController{adminService: svc, orderService: orderSvc, validate: validator.New()}
 }
 
 // GetStats returns platform-wide statistics (admin only).
 // @Summary      Platform stats (admin)
-// @Description  Returns counts of users, orders, products, revenue, and wallet balances.
+// @Description  Returns counts of users, orders, products, revenue, wallet balances, and low-stock alerts.
 // @Tags         Admin
 // @Produce      json
 // @Security     BearerAuth
@@ -33,4 +41,163 @@ func (ctrl *AdminController) GetStats(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, stats)
+}
+
+// ListUsers returns paginated user list with optional filters (admin only).
+// @Summary      List users (admin)
+// @Description  Returns paginated users with optional filters by email, role, and active status.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit     query  int     false  "Items per page (default 20)"
+// @Param        offset    query  int     false  "Offset"
+// @Param        email     query  string  false  "Email search (partial)"
+// @Param        role      query  string  false  "Filter by role (admin|user)"
+// @Param        is_active query  bool    false  "Filter by active status"
+// @Success      200 {object} utils.Response{data=object{users=[]dto.AdminUserResponse,total=int,limit=int,offset=int}}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users [get]
+func (ctrl *AdminController) ListUsers(c *gin.Context) {
+	var filters dto.AdminUserFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	filters.Limit = limit
+	filters.Offset = offset
+
+	users, total, err := ctrl.adminService.ListUsers(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list users")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"users":  users,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
+}
+
+// UpdateUserRole changes the role of a user (admin only).
+// @Summary      Update user role (admin)
+// @Description  Sets the role of a user to 'admin' or 'user'.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path  int                         true  "User ID"
+// @Param        request body  dto.UpdateUserRoleRequest   true  "New role"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id}/role [patch]
+func (ctrl *AdminController) UpdateUserRole(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.UpdateUserRoleRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	if err := ctrl.adminService.UpdateUserRole(c.Request.Context(), userID, req.Role); err != nil {
+		utils.HandleServiceError(c, err, "failed to update user role")
+		return
+	}
+	utils.SuccessResponse(c, "user role updated", nil)
+}
+
+// ToggleUserActive enables or disables a user account (admin only).
+// @Summary      Toggle user active status (admin)
+// @Description  Enables or disables a user account.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path  int                            true  "User ID"
+// @Param        request body  dto.ToggleUserActiveRequest    true  "Active flag"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id}/active [patch]
+func (ctrl *AdminController) ToggleUserActive(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.ToggleUserActiveRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	if err := ctrl.adminService.ToggleUserActive(c.Request.Context(), userID, req.IsActive); err != nil {
+		utils.HandleServiceError(c, err, "failed to toggle user active")
+		return
+	}
+	utils.SuccessResponse(c, "user status updated", nil)
+}
+
+// BulkUpdateOrderStatus updates the status of multiple orders atomically (admin only).
+// @Summary      Bulk update order status (admin)
+// @Description  Applies the given status to all specified order IDs. Max 500 IDs per call.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.BulkUpdateOrderStatusRequest true "Order IDs and target status"
+// @Success      200 {object} utils.Response{data=object{updated=int}}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/orders/bulk-status [post]
+func (ctrl *AdminController) BulkUpdateOrderStatus(c *gin.Context) {
+	var req dto.BulkUpdateOrderStatusRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	updated, err := ctrl.orderService.BulkUpdateOrderStatus(c.Request.Context(), req.OrderIDs, req.Status)
+	if err != nil {
+		utils.HandleServiceError(c, err, "bulk status update failed")
+		return
+	}
+	utils.SuccessResponse(c, "orders updated", gin.H{"updated": updated})
+}
+
+// ExportOrdersCSV streams a CSV file of filtered orders (admin only).
+// @Summary      Export orders CSV (admin)
+// @Description  Returns a CSV file of orders filtered by status and date range (max 10 000 rows).
+// @Tags         Admin
+// @Produce      text/csv
+// @Security     BearerAuth
+// @Param        status    query  string  false  "Filter by status"
+// @Param        from_date query  string  false  "Start date (YYYY-MM-DD)"
+// @Param        to_date   query  string  false  "End date (YYYY-MM-DD)"
+// @Success      200  {file}   binary
+// @Failure      401  {object} utils.Response
+// @Failure      403  {object} utils.Response
+// @Failure      500  {object} utils.Response
+// @Router       /admin/orders/export [get]
+func (ctrl *AdminController) ExportOrdersCSV(c *gin.Context) {
+	var filters dto.AdminOrderExportFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	data, err := ctrl.adminService.ExportOrdersCSV(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to export orders")
+		return
+	}
+	filename := fmt.Sprintf("orders_%s.csv", time.Now().UTC().Format("20060102_150405"))
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
 }

@@ -3,12 +3,14 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
@@ -39,12 +41,13 @@ type AuthServiceInterface interface {
 	SendVerificationEmail(ctx context.Context, userID uint) error
 }
 type AuthService struct {
-	db  *gorm.DB
-	cfg *config.Config
+	db       *gorm.DB
+	cfg      *config.Config
+	jobQueue tasks.JobQueue
 }
 
-func NewAuthServices(db *gorm.DB, cfg *config.Config) *AuthService {
-	return &AuthService{db: db, cfg: cfg}
+func NewAuthServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *AuthService {
+	return &AuthService{db: db, cfg: cfg, jobQueue: jobQueue}
 }
 
 // Register creates a new user and returns token pair.
@@ -405,8 +408,26 @@ func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 		return utils.ErrInternal(err)
 	}
 
-	go utils.SendPasswordResetEmail(user.Email, token)
+	s.enqueueSendPasswordResetEmail(user.Email, token)
 	return nil
+}
+
+func (s *AuthService) enqueueSendPasswordResetEmail(email, token string) {
+	if s.jobQueue == nil {
+		go utils.SendPasswordResetEmail(email, token)
+		return
+	}
+	frontendURL := ""
+	if s.cfg != nil {
+		frontendURL = s.cfg.Email.FrontendURL
+	}
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
+	subject := "Password Reset Request"
+	body := fmt.Sprintf(`<h2>Password Reset</h2><p>Click the link below to reset your password:</p><a href="%s">%s</a><p>Expires in 1 hour.</p>`, resetURL, resetURL)
+	if err := s.jobQueue.EnqueueSendEmail(context.Background(), email, subject, body); err != nil {
+		utils.Log.WithError(err).Warn("failed to enqueue password reset email; sending inline")
+		go utils.SendPasswordResetEmail(email, token)
+	}
 }
 
 // SendVerificationEmail creates a token and sends verification link.
@@ -437,8 +458,26 @@ func (s *AuthService) SendVerificationEmail(ctx context.Context, userID uint) er
 		return utils.ErrInternal(err)
 	}
 
-	go utils.SendVerificationEmail(user.Email, token)
+	s.enqueueSendVerificationEmail(user.Email, token)
 	return nil
+}
+
+func (s *AuthService) enqueueSendVerificationEmail(email, token string) {
+	if s.jobQueue == nil {
+		go utils.SendVerificationEmail(email, token)
+		return
+	}
+	frontendURL := ""
+	if s.cfg != nil {
+		frontendURL = s.cfg.Email.FrontendURL
+	}
+	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", frontendURL, token)
+	subject := "Verify Your Email Address"
+	body := fmt.Sprintf(`<h2>Email Verification</h2><p>Please verify your email by clicking below:</p><a href="%s">%s</a><p>Expires in 24 hours.</p>`, verifyURL, verifyURL)
+	if err := s.jobQueue.EnqueueSendEmail(context.Background(), email, subject, body); err != nil {
+		utils.Log.WithError(err).Warn("failed to enqueue verification email; sending inline")
+		go utils.SendVerificationEmail(email, token)
+	}
 }
 
 // VerifyEmail marks email as verified.

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
@@ -83,16 +82,15 @@ func (ac *AddressController) Update(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 	var req dto.UpdateAddressRequest
 	if !utils.BindAndValidate(c, &req, ac.validate) {
 		return
 	}
-	address, err := ac.addressService.Update(uint(id), userID, req)
+	address, err := ac.addressService.Update(id, userID, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update address")
 		return
@@ -126,12 +124,11 @@ func (ac *AddressController) Delete(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = ac.addressService.Delete(uint(id), userID)
+	err := ac.addressService.Delete(id, userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete address")
 		return
@@ -193,12 +190,11 @@ func (ac *AddressController) SetDefault(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid address id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = ac.addressService.SetDefault(uint(id), userID)
+	err := ac.addressService.SetDefault(id, userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to set default address")
 		return

@@ -53,6 +53,18 @@ func SendVerificationEmail(to, token string) {
 	}
 }
 
+// SendEmailDirect sends a pre-composed email using AppConfig. Intended for use
+// by background job handlers where the full body is already built.
+func SendEmailDirect(to, subject, bodyHTML string) {
+	if config.AppConfig == nil {
+		Log.Error("config not loaded, cannot send email")
+		return
+	}
+	if err := sendEmail(to, subject, bodyHTML, config.AppConfig.Email); err != nil {
+		Log.WithError(err).WithField("to", to).Error("failed to send email")
+	}
+}
+
 // sendEmail now receives the email config as a parameter
 func sendEmail(to, subject, bodyHTML string, emailCfg config.Email) error {
 	host := emailCfg.Host

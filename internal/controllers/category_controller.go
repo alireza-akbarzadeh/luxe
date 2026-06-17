@@ -77,9 +77,8 @@ func (ctrl *CategoryController) Create(c *gin.Context) {
 // @Failure      500     {object}  utils.Response
 // @Router       /admin/categories/{id} [put]
 func (ctrl *CategoryController) Update(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid category id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -88,7 +87,7 @@ func (ctrl *CategoryController) Update(c *gin.Context) {
 		return
 	}
 
-	category, err := ctrl.categoryService.Update(uint(id), req)
+	category, err := ctrl.categoryService.Update(id, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update category")
 		return
@@ -121,13 +120,12 @@ func (ctrl *CategoryController) Update(c *gin.Context) {
 // @Failure      500  {object}  utils.Response
 // @Router       /admin/categories/{id} [delete]
 func (ctrl *CategoryController) Delete(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid category id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	if err := ctrl.categoryService.Delete(uint(id)); err != nil {
+	if err := ctrl.categoryService.Delete(id); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete category")
 		return
 	}

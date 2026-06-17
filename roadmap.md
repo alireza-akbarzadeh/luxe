@@ -57,7 +57,18 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 3. `M3` — Feature readiness: checkout resiliency, inventory safety, admin APIs. **In progress**
 4. `M4` — Observability and deployment: metrics, logging, CI/CD. **Mostly done**
 
-## Next focus (suggested order)
-1. Phase 5 — Admin API expansion (reports, bulk ops).
-2. Phase 1 — Controller deduplication (pagination helpers).
-3. Integration tests for admin RBAC (403 for non-admin).
+## Completed this session
+- Controller deduplication: `paginationParams` + `parseUintParam` helpers in `controllers/helpers.go`; applied across `wallet`, `order`, `review`, `account`, `brand`, `category`, `address`, `coupon` controllers.
+- Admin API: `GET /admin/stats`, `GET /admin/users`, `PATCH /admin/users/:id/role`, `PATCH /admin/users/:id/active` — all behind `RequireAdmin` middleware.
+- RBAC integration tests: 401 (no token), 403 (regular user), 200 (admin) for `/admin/stats`.
+- Admin service unit tests: `GetStats`, `ListUsers`, `UpdateUserRole` (valid + invalid), `ToggleUserActive`.
+- Swagger regenerated.
+
+## Completed (long-term)
+- [x] Bulk admin ops: `POST /admin/orders/bulk-status` (up to 500 IDs) + `GET /admin/orders/export` (CSV, 10k rows, date/status filters).
+- [x] Async email: `TypeSendEmail` task added to `JobQueue` interface; password-reset and verification emails now enqueued (Asynq when Redis available, memory queue fallback with inline goroutine safety net).
+
+## Next focus (long-term)
+- Domain modularization (group by domain, not layer).
+- Rate limiting middleware (per-IP, per-user) for auth endpoints.
+- Webhook event log / delivery retry table.

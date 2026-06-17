@@ -3,8 +3,6 @@ package controllers
 
 import (
 	"errors"
-	"net/http"
-	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
@@ -65,13 +63,12 @@ func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 // @Failure      500  {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [get]
 func (ctrl *BrandController) GetBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	brand, err := ctrl.brandService.GetByID(c.Request.Context(), uint(id))
+	brand, err := ctrl.brandService.GetByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")
@@ -129,9 +126,8 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 // @Failure      500      {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [put]
 func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -140,7 +136,7 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 		return
 	}
 
-	brand, err := ctrl.brandService.Update(c.Request.Context(), uint(id), &req)
+	brand, err := ctrl.brandService.Update(c.Request.Context(), id, &req)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")
@@ -165,13 +161,12 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 // @Failure      500  {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [delete]
 func (ctrl *BrandController) DeleteBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	err = ctrl.brandService.Delete(c.Request.Context(), uint(id))
+	err := ctrl.brandService.Delete(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")

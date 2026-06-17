@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 )
@@ -64,6 +65,25 @@ func (q *memoryQueue) EnqueueProcessShipment(_ context.Context, shipmentID uint)
 				return fmt.Errorf("invalid shipment payload type")
 			}
 			return q.handlers.ProcessShipment(context.Background(), id)
+		},
+	})
+	return nil
+}
+
+func (q *memoryQueue) EnqueueSendEmail(_ context.Context, to, subject, body string) error {
+	if q.handlers.SendEmail == nil {
+		return fmt.Errorf("send email handler not configured")
+	}
+	p := SendEmailPayload{To: to, Subject: subject, Body: body}
+	q.pool.Enqueue(Job{
+		ID:      fmt.Sprintf("email_%s_%d", to, time.Now().UnixNano()),
+		Payload: p,
+		Handler: func(payload interface{}) error {
+			ep, ok := payload.(SendEmailPayload)
+			if !ok {
+				return fmt.Errorf("invalid email payload type")
+			}
+			return q.handlers.SendEmail(context.Background(), ep.To, ep.Subject, ep.Body)
 		},
 	})
 	return nil

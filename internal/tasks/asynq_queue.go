@@ -67,6 +67,7 @@ func (q *asynqQueue) Backend() string {
 func (q *asynqQueue) registerHandlers() {
 	q.mux.HandleFunc(TypeProcessOrder, q.handleProcessOrder)
 	q.mux.HandleFunc(TypeProcessShipment, q.handleProcessShipment)
+	q.mux.HandleFunc(TypeSendEmail, q.handleSendEmail)
 }
 
 func (q *asynqQueue) handleProcessOrder(ctx context.Context, t *asynq.Task) error {
@@ -113,6 +114,35 @@ func (q *asynqQueue) Shutdown() {
 	if err := q.client.Close(); err != nil {
 		utils.Log.WithError(err).Warn("failed to close asynq client")
 	}
+}
+
+func (q *asynqQueue) handleSendEmail(ctx context.Context, t *asynq.Task) error {
+	if q.handlers.SendEmail == nil {
+		return fmt.Errorf("send email handler not configured")
+	}
+	var payload SendEmailPayload
+	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+		return fmt.Errorf("decode send email payload: %w", err)
+	}
+	if err := q.handlers.SendEmail(ctx, payload.To, payload.Subject, payload.Body); err != nil {
+		utils.Log.WithError(err).WithField("to", payload.To).Error("asynq: send email failed")
+		return err
+	}
+	return nil
+}
+
+func (q *asynqQueue) EnqueueSendEmail(ctx context.Context, to, subject, body string) error {
+	payload, err := marshalPayload(SendEmailPayload{To: to, Subject: subject, Body: body})
+	if err != nil {
+		return err
+	}
+	task := asynq.NewTask(TypeSendEmail, payload)
+	_, err = q.client.EnqueueContext(ctx, task,
+		asynq.Queue("default"),
+		asynq.MaxRetry(3),
+		asynq.Timeout(30*time.Second),
+	)
+	return err
 }
 
 func (q *asynqQueue) EnqueueProcessOrder(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error {

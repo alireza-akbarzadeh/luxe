@@ -6,6 +6,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
@@ -55,7 +56,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 
 	return &Services{
 		DB:           db,
-		Auth:         NewAuthServices(db, cfg),
+		Auth:         NewAuthServices(db, cfg, jobQueue),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
 		Cart:         NewCartService(db),
@@ -94,6 +95,10 @@ func (s *Services) JobHandlers() tasks.Handlers {
 		},
 		ProcessShipment: func(ctx context.Context, shipmentID uint) error {
 			return s.Shipment.ProcessShipmentBackground(ctx, shipmentID)
+		},
+		SendEmail: func(_ context.Context, to, subject, body string) error {
+			utils.SendEmailDirect(to, subject, body)
+			return nil
 		},
 	}
 }

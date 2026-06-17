@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"strconv"
-
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
@@ -137,11 +135,10 @@ func (ac *AccountController) GetUserOrderAccount(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limit, offset := paginationParams(c, 10)
 	if limit > 50 {
 		limit = 50
 	}
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
 	orders, total, err := ac.orderService.GetUserOrders(c.Request.Context(), userID, dto.OrderListFilters{
 		Limit:  limit,
@@ -204,11 +201,10 @@ func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limit, offset := paginationParams(c, 10)
 	if limit > 50 {
 		limit = 50
 	}
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	sortBy := c.Query("sort") // Reads ?sort=price-asc etc.
 
 	// Pass sortBy parameters straight to the service worker
