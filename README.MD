@@ -118,27 +118,36 @@ docker-compose down -v
 
 ## Database Migrations
 
-This project uses [Goose](https://github.com/pressly/goose) for schema migrations. All migration files are stored in `./migrations/`.
+This project uses the external [Goose](https://github.com/pressly/goose) CLI. Migration files live in `internal/migrations/`.
+
+Install Goose: `make install-tools` (pins `v3.22.1`).
 
 ### Commands
 
 | Command                                     | Description                                    |
 |---------------------------------------------|------------------------------------------------|
 | `make migrate-create name=<migration_name>` | Create a new migration file (up and down)     |
-| `make migrate-up`                           | Apply all pending migrations                  |
+| `make migrate-up`                           | Apply all pending migrations (host `goose`)   |
+| `make migrate-up-docker`                    | Run `goose` inside Docker network (Windows Docker fallback) |
 | `make migrate-down`                         | Rollback the last migration                   |
 | `make migrate-reset`                        | Rollback all migrations (dangerous)           |
 | `make migrate-status`                       | Show current migration status                 |
 | `make migrate-version`                      | Show the current migration version            |
 | `make migrate-force version=<version>`      | Force set migration version (use with caution)|
 
-**Example:** Create a `create_users_table` migration:
+**Windows + Docker Desktop:** if `make migrate-up` fails with `unexpected EOF` on `localhost:5433`, use:
 
 ```bash
-make migrate-create name=create_users_table
+make migrate-up-docker
 ```
 
-Then edit the generated `.sql` files in `migrations/` and run `make migrate-up`.
+Or full setup:
+
+```bash
+make dev-setup   # docker-up → wait postgres → migrate-up (auto-fallback)
+```
+
+Then edit the generated `.sql` files in `internal/migrations/` and run `make migrate-up`.
 
 ## Environment Variables
 
@@ -147,7 +156,7 @@ Then edit the generated `.sql` files in `migrations/` and run `make migrate-up`.
 | `SERVER_PORT`  | HTTP server port                | `8080`                           |
 | `GIN_MODE`     | Gin mode (`debug`, `release`)   | `debug`                          |
 | `DB_HOST`      | PostgreSQL host                 | `localhost` (Docker: `postgres`) |
-| `DB_PORT`      | PostgreSQL port                 | `5432`                           |
+| `DB_PORT`      | PostgreSQL port                 | `5433` (Docker maps `5433→5432`) |
 | `DB_USER`      | Database user                   | `postgres`                       |
 | `DB_PASSWORD`  | Database password               | `postgres`                       |
 | `DB_NAME`      | Database name                   | `shopping_platform`              |

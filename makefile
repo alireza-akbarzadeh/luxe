@@ -10,10 +10,9 @@ MIGRATIONS_DIR=./internal/migrations
 # Override with: make migrate-up DATABASE_URL="postgres://user:pass@localhost:5432/db?sslmode=disable"
 DATABASE_URL ?= postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable
 
-# Goose command (PostgreSQL driver) — host path; falls back to Docker on failure (Windows Docker)
+# Goose CLI (install: make install-tools or go install github.com/pressly/goose/v3/cmd/goose@latest)
 GOOSE_CMD=goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)"
-MIGRATE_CMD=go run ./cmd/migrate
-MIGRATE_DB_URL_DOCKER=postgresql://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable
+GOOSE_DOCKER_URL=postgresql://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable
 
 # Colors for output
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -21,7 +20,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
+.PHONY: help build run clean test migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
 
 # Default target
 help: ## Show this help message
@@ -108,14 +107,9 @@ migrate-up: ## Apply all pending migrations
 	}
 	@echo "${GREEN}Migrations completed${RESET}"
 
-migrate-up-docker: docker-wait-postgres ## Run migrations inside Docker network (use when host port 5433 fails)
-	@echo "${GREEN}Running migrations via Docker...${RESET}"
+migrate-up-docker: docker-wait-postgres ## Run goose inside Docker network (when host port 5433 fails on Windows)
+	@echo "${GREEN}Running migrations via Docker (external goose)...${RESET}"
 	docker compose --profile migrate run --rm migrate
-	@echo "${GREEN}Migrations completed${RESET}"
-
-migrate-go: ## Run migrations using go run ./cmd/migrate (requires working DATABASE_URL)
-	@echo "${GREEN}Running migrations (go)...${RESET}"
-	$(MIGRATE_CMD) up
 	@echo "${GREEN}Migrations completed${RESET}"
 
 migrate-down: ## Rollback the last migration
@@ -157,7 +151,7 @@ tidy: ## Tidy up go.mod and go.sum
 
 install-tools: ## Install development tools (goose, air)
 	@echo "${GREEN}Installing goose...${RESET}"
-	go install github.com/pressly/goose/v3/cmd/goose@latest
+	go install github.com/pressly/goose/v3/cmd/goose@v3.22.1
 	@echo "${GREEN}Installing air (hot reload)...${RESET}"
 	go install github.com/cosmtrek/air@latest
 	@echo "${GREEN}Tools installed${RESET}"

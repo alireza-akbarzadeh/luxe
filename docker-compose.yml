@@ -50,7 +50,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["go", "run", "./cmd/migrate", "up"]
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache git >/dev/null
+        go install github.com/pressly/goose/v3/cmd/goose@v3.22.1
+        /go/bin/goose -dir internal/migrations postgres "$$DATABASE_URL" up
 
 volumes:
   postgres_data:
