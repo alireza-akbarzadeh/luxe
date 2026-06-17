@@ -1,13 +1,13 @@
 package services
 
 import (
-	"errors"
+	"context"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/repositories"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
-	"gorm.io/gorm"
 )
 
 type AddItemRequest struct {
@@ -35,48 +35,44 @@ type CartServiceInterface interface {
 }
 
 type cartService struct {
-	db *gorm.DB
+	carts    repositories.CartRepository
+	products repositories.ProductRepository
 }
 
-func NewCartService(db *gorm.DB) CartServiceInterface {
-	return &cartService{db: db}
+func NewCartService(carts repositories.CartRepository, products repositories.ProductRepository) CartServiceInterface {
+	return &cartService{carts: carts, products: products}
 }
 
-// GetOrCreateCart returns existing active cart or creates a new one.
 func (s *cartService) GetOrCreateCart(userID uint) (*models.Cart, error) {
-	var cart models.Cart
-	err := s.db.Where("user_id = ? AND status = ?", userID, constants.CartStatusActive).
-		Preload("Items.Product"). // optional: preload for view
-		First(&cart).Error
+	ctx := context.Background()
+	cart, err := s.carts.FindActiveByUserID(ctx, userID, true)
 	if err == nil {
-		return &cart, nil
+		return cart, nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !repositories.IsRecordNotFound(err) {
 		return nil, utils.ErrInternal(err)
 	}
 
-	// Create new cart
-	cart = models.Cart{
+	newCart := models.Cart{
 		UserID:    userID,
 		Status:    constants.CartStatusActive,
 		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
 	}
-	if err := s.db.Create(&cart).Error; err != nil {
+	if err := s.carts.Create(ctx, &newCart); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return &cart, nil
+	return &newCart, nil
 }
 
-// AddItem adds a product to the cart.
 func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem, error) {
 	if req.Quantity <= 0 {
 		return nil, utils.ErrBadRequest("quantity must be positive")
 	}
 
-	// Get product and check stock
-	var product models.Product
-	if err := s.db.First(&product, req.ProductID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	ctx := context.Background()
+	product, err := s.products.GetByID(ctx, req.ProductID)
+	if err != nil {
+		if repositories.IsRecordNotFound(err) {
 			return nil, utils.ErrNotFound("product not found")
 		}
 		return nil, utils.ErrInternal(err)
@@ -84,132 +80,115 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 	if product.Status != constants.ProductStatusActive {
 		return nil, utils.ErrBadRequest("product is not available")
 	}
-	if !isProductStockAvailable(product, req.Quantity) {
+	if !isProductStockAvailable(*product, req.Quantity) {
 		return nil, utils.ErrBadRequest("insufficient stock")
 	}
 
-	// Get or create cart
 	cart, err := s.GetOrCreateCart(userID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if item already exists
-	var cartItem models.CartItem
-	err = s.db.Where("cart_id = ? AND product_id = ?", cart.ID, req.ProductID).First(&cartItem).Error
+	cartItem, err := s.carts.FindCartItemByCartAndProduct(ctx, cart.ID, req.ProductID)
 	if err == nil {
-		// Update quantity
 		newQty := cartItem.Quantity + req.Quantity
-		if !isProductStockAvailable(product, newQty) {
+		if !isProductStockAvailable(*product, newQty) {
 			return nil, utils.ErrBadRequest("insufficient stock for updated quantity")
 		}
 		cartItem.Quantity = newQty
-		if err := s.db.Save(&cartItem).Error; err != nil {
+		if err := s.carts.SaveCartItem(ctx, cartItem); err != nil {
 			return nil, utils.ErrInternal(err)
 		}
-		return &cartItem, nil
+		return cartItem, nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !repositories.IsRecordNotFound(err) {
 		return nil, utils.ErrInternal(err)
 	}
 
-	// Create new cart item with price snapshot
-	cartItem = models.CartItem{
+	newItem := models.CartItem{
 		CartID:    cart.ID,
 		ProductID: req.ProductID,
 		Quantity:  req.Quantity,
 		Price:     product.Price,
 	}
-	if err := s.db.Create(&cartItem).Error; err != nil {
+	if err := s.carts.CreateCartItem(ctx, &newItem); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return &cartItem, nil
+	return &newItem, nil
 }
 
-// UpdateItemQuantity modifies existing cart item quantity.
 func (s *cartService) UpdateCartItem(userID uint, cartItemID uint, req UpdateCartItemRequest) error {
-	var cartItem models.CartItem
-	if err := s.db.Joins("JOIN carts ON carts.id = cart_items.cart_id").
-		Where("cart_items.id = ? AND carts.user_id = ? AND carts.status = ?", cartItemID, userID, constants.CartStatusActive).
-		First(&cartItem).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	ctx := context.Background()
+	cartItem, err := s.carts.FindCartItemForUser(ctx, userID, cartItemID)
+	if err != nil {
+		if repositories.IsRecordNotFound(err) {
 			return utils.ErrNotFound("cart item not found")
 		}
 		return utils.ErrInternal(err)
 	}
 
-	// Update quantity if provided and positive
 	if req.Quantity > 0 {
-		// Validate stock
-		var product models.Product
-		if err := s.db.First(&product, cartItem.ProductID).Error; err != nil {
+		product, err := s.products.GetByID(ctx, cartItem.ProductID)
+		if err != nil {
 			return utils.ErrInternal(err)
 		}
-		if !isProductStockAvailable(product, req.Quantity) {
+		if !isProductStockAvailable(*product, req.Quantity) {
 			return utils.ErrBadRequest("insufficient stock")
 		}
 		cartItem.Quantity = req.Quantity
 	}
 
-	// Update color/size if provided (even empty string is allowed to clear)
 	if req.Color != "" || req.Size != "" {
 		cartItem.Color = req.Color
 		cartItem.Size = req.Size
 	}
 
-	if err := s.db.Save(&cartItem).Error; err != nil {
+	if err := s.carts.SaveCartItem(ctx, cartItem); err != nil {
 		return utils.ErrInternal(err)
 	}
 	return nil
 }
 
-// RemoveItem deletes a cart item.
 func (s *cartService) RemoveItem(userID uint, cartItemID uint) error {
-	result := s.db.Where("id = ? AND cart_id IN (SELECT id FROM carts WHERE user_id = ? AND status = ?)",
-		cartItemID, userID, "active").Delete(&models.CartItem{})
-	if result.Error != nil {
-		return utils.ErrInternal(result.Error)
+	rows, err := s.carts.DeleteCartItem(context.Background(), userID, cartItemID)
+	if err != nil {
+		return utils.ErrInternal(err)
 	}
-	if result.RowsAffected == 0 {
+	if rows == 0 {
 		return utils.ErrNotFound("cart item not found")
 	}
 	return nil
 }
 
-// GetCart returns full cart with items for the user.
 func (s *cartService) GetCart(userID uint) (*models.Cart, error) {
-	var cart models.Cart
-	err := s.db.Where("user_id = ? AND status = ?", userID, "active").
-		Preload("Items.Product").
-		First(&cart).Error
+	cart, err := s.carts.FindActiveByUserID(context.Background(), userID, true)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// Return empty cart (not created yet)
+		if repositories.IsRecordNotFound(err) {
 			return &models.Cart{UserID: userID, Items: []models.CartItem{}}, nil
 		}
 		return nil, utils.ErrInternal(err)
 	}
-	return &cart, nil
+	return cart, nil
 }
 
-// ClearCart removes all items from active cart.
 func (s *cartService) ClearCart(userID uint) error {
-	// Delete all cart items belonging to user's active cart
-	err := s.db.Where("cart_id IN (SELECT id FROM carts WHERE user_id = ? AND status = ?)", userID, "active").
-		Delete(&models.CartItem{}).Error
-	return err
+	if err := s.carts.DeleteItemsForActiveCart(context.Background(), userID); err != nil {
+		return utils.ErrInternal(err)
+	}
+	return nil
 }
 
 func (s *cartService) CleanAbandonedCarts() error {
-	// Find carts with status 'active' and older than 7 days
-	var carts []models.Cart
+	ctx := context.Background()
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
-	if err := s.db.Where("status = ? AND updated_at < ?", "active", cutoff).Find(&carts).Error; err != nil {
+	carts, err := s.carts.FindStaleActiveCarts(ctx, cutoff)
+	if err != nil {
 		return err
 	}
 	for _, cart := range carts {
-		// Delete cart items or mark cart as abandoned
-		s.db.Model(&cart).Update("status", "abandoned")
+		if err := s.carts.UpdateStatus(ctx, cart.ID, constants.CartStatusAbandoned); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -77,7 +77,7 @@ func (q *asynqQueue) handleProcessOrder(_ context.Context, t *asynq.Task) error 
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("decode process order payload: %w", err)
 	}
-		if err := q.handlers.ProcessOrder(payload.OrderID, payload.CardInfo); err != nil {
+	if err := q.handlers.ProcessOrder(payload.OrderID, payload.CardInfo); err != nil {
 		utils.Log.WithError(err).WithField("order_id", payload.OrderID).Error("asynq: process order failed")
 		return err
 	}
@@ -92,7 +92,7 @@ func (q *asynqQueue) handleProcessShipment(_ context.Context, t *asynq.Task) err
 	if err := json.Unmarshal(t.Payload(), &payload); err != nil {
 		return fmt.Errorf("decode process shipment payload: %w", err)
 	}
-		if err := q.handlers.ProcessShipment(payload.ShipmentID); err != nil {
+	if err := q.handlers.ProcessShipment(payload.ShipmentID); err != nil {
 		utils.Log.WithError(err).WithField("shipment_id", payload.ShipmentID).Error("asynq: process shipment failed")
 		return err
 	}

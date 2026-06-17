@@ -34,13 +34,11 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and the JWT token.
 func main() {
-	// 1. Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	// 2. Initialize logger
 	if err := utils.InitLoggerWithConfig(utils.LoggerConfig{
 		Level:          cfg.Log.Level,
 		AppEnv:         cfg.AppEnv,
@@ -62,10 +60,17 @@ func main() {
 		}).Info("Sentry enabled")
 	}
 
-	// 3. Set Gin mode
+	tracingShutdown, err := observability.InitTracing(cfg)
+	if err != nil {
+		utils.Log.WithError(err).Fatal("failed to init tracing")
+	}
+	if tracingShutdown != nil {
+		defer tracingShutdown()
+		utils.Log.Info("OpenTelemetry tracing enabled")
+	}
+
 	gin.SetMode(cfg.Server.Mode)
 
-	// 4. Connect to database
 	db := connectDatabase(cfg)
 	defer closeDatabase(db)
 
@@ -80,7 +85,6 @@ func main() {
 	if err := jobQueue.Start(); err != nil {
 		utils.Log.WithError(err).Fatal("failed to start job queue")
 	}
-	defer jobQueue.Shutdown()
 
 	utils.Log.WithField("job_backend", jobQueue.Backend()).Info("background workers ready")
 
@@ -90,15 +94,15 @@ func main() {
 
 	cronService := jobs.NewCronJobs(newServices)
 	cronService.Start()
-	defer cronService.Stop()
 
-	// 6. Initialize controllers
 	ctrl := controllers.NewContainer(db, newServices, cfg)
-	// 7. Setup Gin engine and routes
 	engine := setupGin()
 	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit)
 	router.Setup()
 
-	// 8. Start server
-	bootStrap(engine, cfg)
+	bootStrap(engine, cfg, func() {
+		utils.Log.Info("stopping background workers")
+		cronService.Stop()
+		jobQueue.Shutdown()
+	})
 }

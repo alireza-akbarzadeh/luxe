@@ -50,6 +50,8 @@ type ObservabilityConfig struct {
 	SentryEnvironment      string
 	SentryEnabled          bool
 	SentryTracesSampleRate float64
+	OTELEnabled            bool
+	OTELExporterEndpoint   string
 }
 
 type Email struct {
@@ -149,6 +151,8 @@ func Load() (*Config, error) {
 	viper.SetDefault("SERVICE_VERSION", "")
 	viper.SetDefault("SENTRY_DSN", "")
 	viper.SetDefault("SENTRY_TRACES_SAMPLE_RATE", "0.1")
+	viper.SetDefault("OTEL_ENABLED", false)
+	viper.SetDefault("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4318")
 	viper.SetDefault("REDIS_URL", "")
 
 	viper.SetDefault("R2_ACCOUNT_ID", "")
@@ -243,6 +247,8 @@ func Load() (*Config, error) {
 			SentryEnvironment:      appEnv,
 			SentryEnabled:          viper.GetString("SENTRY_DSN") != "",
 			SentryTracesSampleRate: viper.GetFloat64("SENTRY_TRACES_SAMPLE_RATE"),
+			OTELEnabled:            viper.GetBool("OTEL_ENABLED"),
+			OTELExporterEndpoint:   viper.GetString("OTEL_EXPORTER_OTLP_ENDPOINT"),
 		},
 		Redis: RedisConfig{
 			URL:     viper.GetString("REDIS_URL"),

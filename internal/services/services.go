@@ -53,22 +53,26 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	// 3. Payment service
 	paymentSvc := NewPaymentService(db, cfg)
 
+	// Repositories
+	cartRepo := repositories.NewCartRepository(db)
+	productRepo := repositories.NewProductRepository(db)
+	orderRepo := repositories.NewOrderRepository(db)
+	auditRepo := repositories.NewAuditRepository(db)
+
 	// 4. Shipment service (now also receives the hub for delivery broadcasts)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub)
 
 	// 5. Order service with all dependencies
-	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
+	orderSvc := NewOrderService(orderRepo, notificationSvc, wsHub, salesFeedSvc)
 	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, jobQueue, wsHub, salesFeedSvc, StripeEnabled(cfg))
-	// 5. Assemble all services
 	productSvc := NewProductService(db)
-	auditRepo := repositories.NewAuditRepository(db)
 	auditSvc := NewAuditService(auditRepo)
 	return &Services{
 		DB:           db,
 		Auth:         NewAuthServices(db, cfg),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
-		Cart:         NewCartService(db),
+		Cart:         NewCartService(cartRepo, productRepo),
 		NavMenu:      NewNavMenuService(db),
 		Product:      productSvc,
 		Pdp:          NewPdpService(db, notificationSvc, productSvc),

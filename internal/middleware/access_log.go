@@ -9,8 +9,10 @@ import (
 )
 
 var accessLogSkipPaths = map[string]bool{
-	"/api/v1/health": true,
-	"/openapi":       true,
+	"/api/v1/health":       true,
+	"/api/v1/health/live":  true,
+	"/api/v1/health/ready": true,
+	"/openapi":             true,
 }
 
 // AccessLog writes one structured JSON line per HTTP request for log aggregation (Loki, ELK, CloudWatch).

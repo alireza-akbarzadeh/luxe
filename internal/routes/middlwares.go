@@ -8,6 +8,13 @@ import (
 // RegisterMiddlewares attaches any custom middleware not already applied globally
 func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.RequestID())
+	if r.cfg.Observability.OTELEnabled {
+		name := r.cfg.Observability.ServiceName
+		if name == "" {
+			name = "luxe-api"
+		}
+		r.engine.Use(middleware.OTELMiddleware(name))
+	}
 	if r.cfg.Observability.SentryEnabled {
 		r.engine.Use(middleware.SentryMiddleware())
 		r.engine.Use(middleware.SentryScope())
