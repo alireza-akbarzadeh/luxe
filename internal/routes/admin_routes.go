@@ -11,6 +11,7 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	admin.Use(middleware.RequireAdmin())
 	{
 			admin.GET("/stats", ctrl.Admin.GetStats)
+		admin.GET("/dashboard/overview", ctrl.Admin.GetDashboardOverview)
 		admin.GET("/users", ctrl.Admin.ListUsers)
 		admin.PATCH("/users/:id/role", ctrl.Admin.UpdateUserRole)
 		admin.PATCH("/users/:id/active", ctrl.Admin.ToggleUserActive)

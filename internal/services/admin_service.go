@@ -18,6 +18,7 @@ import (
 
 type AdminServiceInterface interface {
 	GetStats(ctx context.Context) (*dto.AdminStatsResponse, error)
+	GetDashboardOverview(ctx context.Context, filters dto.AdminDashboardFilters) (*dto.AdminDashboardOverviewResponse, error)
 	ListUsers(ctx context.Context, filters dto.AdminUserFilters) ([]dto.AdminUserResponse, int64, error)
 	UpdateUserRole(ctx context.Context, userID uint, role string) error
 	ToggleUserActive(ctx context.Context, userID uint, active bool) error

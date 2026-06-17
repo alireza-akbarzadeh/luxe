@@ -57,3 +57,80 @@ type AdminOrderExportFilters struct {
 	FromDate string `form:"from_date"`
 	ToDate   string `form:"to_date"`
 }
+
+// AdminDashboardFilters are query params for GET /admin/dashboard/overview.
+type AdminDashboardFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+}
+
+// AdminDashboardKPI is a metric with period-over-period comparison.
+type AdminDashboardKPI struct {
+	Value         float64 `json:"value"`
+	PreviousValue float64 `json:"previous_value"`
+	ChangePercent float64 `json:"change_percent"`
+}
+
+// AdminDashboardKPIs groups headline KPI cards for the admin home dashboard.
+type AdminDashboardKPIs struct {
+	Revenue       AdminDashboardKPI `json:"revenue"`
+	Orders        AdminDashboardKPI `json:"orders"`
+	AvgOrderValue AdminDashboardKPI `json:"avg_order_value"`
+	NewCustomers  AdminDashboardKPI `json:"new_customers"`
+}
+
+// AdminDashboardSeriesPoint is one day in the revenue/orders time series.
+type AdminDashboardSeriesPoint struct {
+	Date    string  `json:"date"`
+	Revenue float64 `json:"revenue"`
+	Orders  int64   `json:"orders"`
+}
+
+// AdminDashboardStatusCount is orders grouped by status for the selected period.
+type AdminDashboardStatusCount struct {
+	Status string `json:"status"`
+	Count  int64  `json:"count"`
+}
+
+// AdminDashboardRecentOrder is a lightweight row for the recent orders table.
+type AdminDashboardRecentOrder struct {
+	ID           uint      `json:"id"`
+	OrderNumber  string    `json:"order_number"`
+	Status       string    `json:"status"`
+	TotalAmount  float64   `json:"total_amount"`
+	Currency     string    `json:"currency"`
+	CustomerName string    `json:"customer_name"`
+	CustomerEmail string   `json:"customer_email"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// AdminDashboardTopProduct is a best-seller row for the dashboard table.
+type AdminDashboardTopProduct struct {
+	ID        uint    `json:"id"`
+	Name      string  `json:"name"`
+	SKU       string  `json:"sku"`
+	UnitsSold int64   `json:"units_sold"`
+	Revenue   float64 `json:"revenue"`
+	Stock     int     `json:"stock"`
+}
+
+// AdminDashboardLowStockProduct is an inventory alert row.
+type AdminDashboardLowStockProduct struct {
+	ID        uint   `json:"id"`
+	Name      string `json:"name"`
+	SKU       string `json:"sku"`
+	Stock     int    `json:"stock"`
+	Threshold int    `json:"threshold"`
+}
+
+// AdminDashboardOverviewResponse powers the admin commerce dashboard.
+type AdminDashboardOverviewResponse struct {
+	Period           string                          `json:"period"`
+	GeneratedAt      time.Time                       `json:"generated_at"`
+	KPIs             AdminDashboardKPIs              `json:"kpis"`
+	RevenueSeries    []AdminDashboardSeriesPoint     `json:"revenue_series"`
+	OrdersByStatus   []AdminDashboardStatusCount     `json:"orders_by_status"`
+	RecentOrders     []AdminDashboardRecentOrder     `json:"recent_orders"`
+	TopProducts      []AdminDashboardTopProduct      `json:"top_products"`
+	LowStockProducts []AdminDashboardLowStockProduct `json:"low_stock_products"`
+	Platform         AdminStatsResponse              `json:"platform"`
+}

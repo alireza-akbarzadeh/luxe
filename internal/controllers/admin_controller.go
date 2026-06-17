@@ -45,6 +45,35 @@ func (ctrl *AdminController) GetStats(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, stats)
 }
 
+// GetDashboardOverview returns KPIs, charts, and operational lists for the admin home dashboard.
+// @Summary      Admin dashboard overview
+// @Description  Returns period KPIs, revenue series, order status breakdown, recent orders, top products, and low-stock alerts.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "Period: 7d, 30d, or 90d (default 30d)"
+// @Success      200 {object} utils.Response{data=dto.AdminDashboardOverviewResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/dashboard/overview [get]
+func (ctrl *AdminController) GetDashboardOverview(c *gin.Context) {
+	var filters dto.AdminDashboardFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Period == "" {
+		filters.Period = "30d"
+	}
+
+	overview, err := ctrl.adminService.GetDashboardOverview(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get dashboard overview")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, overview)
+}
+
 // ListUsers returns paginated user list with optional filters (admin only).
 // @Summary      List users (admin)
 // @Description  Returns paginated users with optional filters by email, role, and active status.
