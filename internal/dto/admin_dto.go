@@ -5,6 +5,8 @@ import "time"
 // AdminStatsResponse holds platform-wide aggregated metrics for admin dashboards.
 type AdminStatsResponse struct {
 	TotalUsers          int64   `json:"total_users"`
+	ActiveUsers         int64   `json:"active_users"`
+	AdminUsers          int64   `json:"admin_users"`
 	TotalOrders         int64   `json:"total_orders"`
 	TotalActiveProducts int64   `json:"total_active_products"`
 	TotalRevenue        float64 `json:"total_revenue"`
@@ -15,6 +17,7 @@ type AdminStatsResponse struct {
 
 // AdminUserFilters are query params for the admin user listing endpoint.
 type AdminUserFilters struct {
+	Search   string `form:"search"`
 	Email    string `form:"email"`
 	Role     string `form:"role"`
 	IsActive *bool  `form:"is_active"`

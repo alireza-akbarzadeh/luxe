@@ -122,7 +122,8 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 // @Param        min_amount  query   number  false  "Minimum amount"
 // @Param        max_amount  query   number  false  "Maximum amount"
 // @Param        user_id     query   int     false  "Filter by user ID"
-// @Success      200         {object} utils.Response{data=object{orders=[]models.Order,total=int,limit=int,offset=int}}
+// @Param        search      query   string  false  "Search order number or customer name/email"
+// @Success      200         {object} utils.Response{data=dto.AdminOrderListData}
 // @Failure      401         {object} utils.Response
 // @Failure      403         {object} utils.Response
 // @Failure      500         {object} utils.Response
@@ -160,6 +161,9 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 			filters.UserID = &[]uint{uint(id)}[0]
 		}
 	}
+	if search := c.Query("search"); search != "" {
+		filters.Search = search
+	}
 
 	orders, total, err := ctrl.orderService.GetAllOrders(c.Request.Context(), filters, limit, offset)
 	if err != nil {
@@ -167,11 +171,11 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 		return
 	}
 
-	data := gin.H{
-		"orders": orders,
-		"total":  total,
-		"limit":  limit,
-		"offset": offset,
+	data := dto.AdminOrderListData{
+		Orders: dto.ToAdminOrderListItems(orders),
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
 }
@@ -184,19 +188,31 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      int  true  "Order ID"
-// @Success      200  {object}  utils.Response{data=models.Order}
+// @Success      200  {object}  utils.Response{data=dto.AdminOrderDetailResponse}
 // @Failure      401  {object}  utils.Response
 // @Failure      404  {object}  utils.Response
 // @Failure      500  {object}  utils.Response
 // @Router       /orders/{id} [get]
 func (ctrl *OrderController) GetOrder(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	role, _ := middleware.GetUserRole(c)
+	if role == constants.RoleAdmin {
+		order, err := ctrl.orderService.GetOrderAdmin(c.Request.Context(), orderID)
+		if err != nil {
+			RespondServiceError(c, err, "failed to fetch order")
+			return
+		}
+		utils.SuccessResponse(c, "order retrieved", dto.ToAdminOrderDetail(*order))
+		return
+	}
+
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, "unauthorized")
-		return
-	}
-	orderID, ok := parseUintParam(c, "id")
-	if !ok {
 		return
 	}
 	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), orderID, userID)

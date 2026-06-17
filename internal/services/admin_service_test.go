@@ -21,6 +21,12 @@ func TestAdminService_GetStats(t *testing.T) {
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "users"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
 
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "users"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(38))
+
+	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "users"`)).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "orders"`)).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(100))
 
@@ -42,6 +48,8 @@ func TestAdminService_GetStats(t *testing.T) {
 	stats, err := svc.GetStats(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, int64(42), stats.TotalUsers)
+	assert.Equal(t, int64(38), stats.ActiveUsers)
+	assert.Equal(t, int64(2), stats.AdminUsers)
 	assert.Equal(t, int64(100), stats.TotalOrders)
 	assert.Equal(t, int64(30), stats.TotalActiveProducts)
 	assert.InDelta(t, 9999.50, stats.TotalRevenue, 0.01)

@@ -96,12 +96,13 @@ func (ctrl *AdminController) GetSalesFeedSnapshot(c *gin.Context) {
 
 // ListUsers returns paginated user list with optional filters (admin only).
 // @Summary      List users (admin)
-// @Description  Returns paginated users with optional filters by email, role, and active status.
+// @Description  Returns paginated users with optional filters by search term, email, role, and active status.
 // @Tags         Admin
 // @Produce      json
 // @Security     BearerAuth
 // @Param        limit     query  int     false  "Items per page (default 20)"
 // @Param        offset    query  int     false  "Offset"
+// @Param        search    query  string  false  "Search name or email (partial)"
 // @Param        email     query  string  false  "Email search (partial)"
 // @Param        role      query  string  false  "Filter by role (admin|user)"
 // @Param        is_active query  bool    false  "Filter by active status"

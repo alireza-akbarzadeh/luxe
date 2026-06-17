@@ -89,6 +89,7 @@ const (
 type orderListQuery struct {
 	UserID      *uint
 	Status      string
+	Search      string
 	FromDate    *time.Time
 	ToDate      *time.Time
 	MinAmount   *float64
@@ -257,13 +258,15 @@ func (s *orderService) GetOrderByID(ctx context.Context, orderID uint, userID ui
 
 type AdminOrderFilters struct {
 	dto.OrderFilters
-	UserID *uint `json:"user_id,omitempty"`
+	UserID *uint  `json:"user_id,omitempty"`
+	Search string `json:"search,omitempty"`
 }
 
 func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
 	q := orderListQuery{
 		UserID:      filters.UserID,
 		Status:      filters.Status,
+		Search:      filters.Search,
 		FromDate:    filters.FromDate,
 		ToDate:      filters.ToDate,
 		MinAmount:   filters.MinAmount,
@@ -376,6 +379,14 @@ func (s *orderService) applyOrderListFilters(query *gorm.DB, q orderListQuery) *
 	if q.MaxAmount != nil {
 		query = query.Where("total_amount <= ?", *q.MaxAmount)
 	}
+	if q.Search != "" {
+		term := "%" + q.Search + "%"
+		query = query.Joins("User").
+			Where(
+				"orders.order_number ILIKE ? OR users.email ILIKE ? OR users.first_name ILIKE ? OR users.last_name ILIKE ?",
+				term, term, term, term,
+			)
+	}
 	return query
 }
 
@@ -432,14 +443,21 @@ func (s *orderService) findOrderByID(ctx context.Context, orderID uint, preloadU
 }
 
 func (s *orderService) GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error) {
-	order, err := s.findOrderByID(ctx, orderID, true)
+	var order models.Order
+	err := s.db.WithContext(ctx).
+		Preload("User").
+		Preload("Items.Product").
+		Preload("Items.Product.Category").
+		Preload("Payment").
+		Preload("Shipment").
+		First(&order, orderID).Error
 	if err != nil {
 		if isRecordNotFound(err) {
 			return nil, utils.ErrNotFound("order not found")
 		}
 		return nil, utils.ErrInternal(err)
 	}
-	return order, nil
+	return &order, nil
 }
 
 func (s *orderService) AvailableTransitions(ctx context.Context, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {

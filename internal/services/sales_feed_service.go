@@ -10,7 +10,8 @@ import (
 
 // SalesFeedService publishes live dashboard events to admin clients.
 type SalesFeedService struct {
-	hub *websocket.Hub
+	hub              *websocket.Hub
+	lastViewerCount  int
 }
 
 func NewSalesFeedService(hub *websocket.Hub) *SalesFeedService {
@@ -63,6 +64,10 @@ func (s *SalesFeedService) PublishRevenueSnapshot(revenue float64, orders int) {
 
 // PublishActiveUsers emits the number of admin clients watching the live feed.
 func (s *SalesFeedService) PublishActiveUsers(count int) {
+	if count == s.lastViewerCount {
+		return
+	}
+	s.lastViewerCount = count
 	s.publish(map[string]interface{}{
 		"type":    "active_users",
 		"payload": count,

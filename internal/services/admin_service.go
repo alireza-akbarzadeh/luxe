@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -40,6 +41,16 @@ func (s *adminService) GetStats(ctx context.Context) (*dto.AdminStatsResponse, e
 
 	var totalUsers int64
 	if err := db.Model(&models.User{}).Count(&totalUsers).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	var activeUsers int64
+	if err := db.Model(&models.User{}).Where("is_active = ?", true).Count(&activeUsers).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	var adminUsers int64
+	if err := db.Model(&models.User{}).Where("role = ?", constants.RoleAdmin).Count(&adminUsers).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 
@@ -82,6 +93,8 @@ func (s *adminService) GetStats(ctx context.Context) (*dto.AdminStatsResponse, e
 
 	return &dto.AdminStatsResponse{
 		TotalUsers:          totalUsers,
+		ActiveUsers:         activeUsers,
+		AdminUsers:          adminUsers,
 		TotalOrders:         totalOrders,
 		TotalActiveProducts: totalProducts,
 		TotalRevenue:        totalRevenue,
@@ -94,7 +107,13 @@ func (s *adminService) GetStats(ctx context.Context) (*dto.AdminStatsResponse, e
 func (s *adminService) ListUsers(ctx context.Context, filters dto.AdminUserFilters) ([]dto.AdminUserResponse, int64, error) {
 	db := s.db.WithContext(ctx).Model(&models.User{})
 
-	if filters.Email != "" {
+	if filters.Search != "" {
+		term := "%" + strings.ToLower(filters.Search) + "%"
+		db = db.Where(
+			"LOWER(email) LIKE ? OR LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?",
+			term, term, term, term,
+		)
+	} else if filters.Email != "" {
 		db = db.Where("email ILIKE ?", "%"+filters.Email+"%")
 	}
 	if filters.Role != "" {
