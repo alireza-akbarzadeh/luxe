@@ -166,7 +166,7 @@ func (ctrl *WorkflowController) History(c *gin.Context) {
 // @Tags         Workflows
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=[]models.Workflow}
 // @Router       /admin/workflows [get]
 func (ctrl *WorkflowController) ListWorkflows(c *gin.Context) {
 	workflows, err := ctrl.svc.ListWorkflows(c.Request.Context())
@@ -418,9 +418,14 @@ func toStateView(s *models.WorkflowState) *dto.StateView {
 
 func toTransitionView(t *models.WorkflowTransition) dto.TransitionView {
 	return dto.TransitionView{
+		ID:           t.ID,
 		Event:        t.Event,
 		Name:         t.Name,
 		RequiredRole: t.RequiredRole,
+		GuardKey:     t.GuardKey,
+		HookKey:      t.HookKey,
+		IsActive:     t.IsActive,
+		FromState:    toStateView(t.FromState),
 		ToState:      toStateView(t.ToState),
 	}
 }

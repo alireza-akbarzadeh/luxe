@@ -86,9 +86,14 @@ type StateView struct {
 
 // TransitionView describes one available action a caller may perform.
 type TransitionView struct {
+	ID           uint       `json:"id,omitempty"`
 	Event        string     `json:"event"`
 	Name         string     `json:"name"`
 	RequiredRole string     `json:"required_role,omitempty"`
+	GuardKey     string     `json:"guard_key,omitempty"`
+	HookKey      string     `json:"hook_key,omitempty"`
+	IsActive     bool       `json:"is_active"`
+	FromState    *StateView `json:"from_state,omitempty"`
 	ToState      *StateView `json:"to_state,omitempty"`
 }
 
