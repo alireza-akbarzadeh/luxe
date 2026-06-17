@@ -34,6 +34,7 @@ type Container struct {
 	Pdp      *PdpController
 	WebSocket *WebSocketController
 	Stripe    *StripeWebhookController
+	Audit     *AuditController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -59,11 +60,12 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Review:   NewReviewController(svc.Review),
 		UserLike: NewUserLikeController(svc.UserLike, svc.Product),
 		Wallet:   NewWallerController(svc.Wallet),
-		Payment:  NewPaymentMethodController(svc.Payment),
+		Payment:  NewPaymentMethodController(svc.Payment, cfg),
 		NavMenu:  NewNavMenuController(svc.NavMenu),
 		Brand:    NewBrandController(svc.Brand),
 		Settings: NewSettingController(svc.Settings),
 		WebSocket: NewWebSocketController(svc),
 		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, cfg),
+		Audit:     NewAuditController(svc.Audit),
 	}
 }

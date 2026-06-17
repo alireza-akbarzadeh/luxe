@@ -5,6 +5,7 @@ import (
 	_ "github.com/alireza-akbarzadeh/luxe/docs"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,12 +13,14 @@ type Router struct {
 	engine      *gin.Engine
 	controllers *controllers.Container
 	cfg         *config.Config
+	auditSvc    services.AuditServiceInterface
 }
 
-func NewRouter(engine *gin.Engine, ctrl *controllers.Container, cfg *config.Config) *Router {
+func NewRouter(engine *gin.Engine, ctrl *controllers.Container, cfg *config.Config, auditSvc services.AuditServiceInterface) *Router {
 	return &Router{
 		engine:      engine,
 		controllers: ctrl,
 		cfg:         cfg,
+		auditSvc:    auditSvc,
 	}
 }

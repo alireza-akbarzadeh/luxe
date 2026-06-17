@@ -68,7 +68,7 @@ func main() {
 	ctrl := controllers.NewContainer(db, newServices, cfg)
 	// 7. Setup Gin engine and routes
 	engine := setupGin()
-	router := routes.NewRouter(engine, ctrl, cfg)
+	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit)
 	router.Setup()
 
 	// 8. Start server

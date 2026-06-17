@@ -3,6 +3,7 @@ package services
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/repositories"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
@@ -35,6 +36,7 @@ type Services struct {
 	Settings     SettingServiceInterface
 	Pdp          PdpServiceInterface
 	SalesFeed    *SalesFeedService
+	Audit        AuditServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) *Services {
@@ -58,6 +60,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc, StripeEnabled(cfg))
 	// 5. Assemble all services
 	productSvc := NewProductService(db)
+	auditRepo := repositories.NewAuditRepository(db)
+	auditSvc := NewAuditService(auditRepo)
 	return &Services{
 		DB:           db,
 		Auth:         NewAuthServices(db, cfg),
@@ -85,5 +89,6 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		Notification: notificationSvc,
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
+		Audit:        auditSvc,
 	}
 }

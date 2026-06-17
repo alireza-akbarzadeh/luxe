@@ -38,6 +38,7 @@ func (r *Router) Setup() {
 		protected.Use(middleware.AuthMiddleware(r.cfg))
 		// required role protected
 
+		SetupAuditRoutes(protected, r.controllers)
 		SetupAuthRoutes(public, protected, r.controllers)
 		SetupAddressRoutes(protected, r.controllers)
 		SetupSearchRoutes(public, r.controllers)
@@ -45,7 +46,7 @@ func (r *Router) Setup() {
 		SetupProductRoutes(public, protected, r.controllers)
 		SetupCompareRoutes(public, protected, r.controllers)
 		SetupNavMenuRoutes(public, r.controllers)
-		SetupPaymentRoutes(protected, r.controllers)
+		SetupPaymentRoutes(public, protected, r.controllers)
 		SetupCategoryRoutes(public, protected, r.controllers)
 		SetupSettingRoutes(public, protected, r.controllers)
 		SetupStoreRoutes(public, protected, r.controllers)

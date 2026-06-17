@@ -202,10 +202,10 @@ definitions:
   dto.ChangePasswordRequest:
     properties:
       current_password:
-        minLength: 6
+        minLength: 8
         type: string
       new_password:
-        minLength: 6
+        minLength: 8
         type: string
     required:
     - current_password
@@ -245,6 +245,10 @@ definitions:
       newsletter:
         type: boolean
       payment_method:
+        enum:
+        - mock
+        - stripe
+        - wallet
         type: string
       phone:
         type: string
@@ -260,13 +264,9 @@ definitions:
         type: string
     required:
     - address_line1
-    - card_number
     - city
     - country
-    - cvv
     - email
-    - expiry_month
-    - expiry_year
     - first_name
     - last_name
     - phone
@@ -1492,7 +1492,7 @@ definitions:
   dto.ResetPasswordRequest:
     properties:
       new_password:
-        minLength: 6
+        minLength: 8
         type: string
       token:
         type: string
@@ -1671,8 +1671,6 @@ definitions:
           type: integer
         maxItems: 4
         type: array
-    required:
-    - product_ids
     type: object
   dto.ToggleLikeRequest:
     properties:
@@ -2396,6 +2394,8 @@ definitions:
       order_id:
         type: integer
       status:
+        type: string
+      stripe_session_id:
         type: string
       transaction_id:
         type: string

@@ -9,6 +9,7 @@ import (
 func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.RequestID())
 	r.engine.Use(middleware.SecurityHeaders())
+	r.engine.Use(middleware.AuditMiddleware(r.auditSvc))
 	r.engine.Use(middleware.CORS())
 	r.engine.Use(middleware.RateLimitMiddleware(100, 200))
 }

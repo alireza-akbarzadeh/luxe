@@ -389,7 +389,7 @@ func (s *AuthService) ForgotPassword(email string) error {
 	expiresAt := time.Now().Add(1 * time.Hour)
 	resetToken := models.PasswordResetToken{
 		UserID:    user.ID,
-		Token:     token,
+		Token:     utils.HashRefreshToken(token),
 		ExpiresAt: expiresAt,
 	}
 	if err := s.db.Create(&resetToken).Error; err != nil {
@@ -421,7 +421,7 @@ func (s *AuthService) SendVerificationEmail(userID uint) error {
 	expiresAt := time.Now().Add(24 * time.Hour)
 	vt := models.EmailVerificationToken{
 		UserID:    userID,
-		Token:     token,
+		Token:     utils.HashRefreshToken(token),
 		ExpiresAt: expiresAt,
 	}
 	if err := s.db.Create(&vt).Error; err != nil {
@@ -435,7 +435,7 @@ func (s *AuthService) SendVerificationEmail(userID uint) error {
 // VerifyEmail marks email as verified.
 func (s *AuthService) VerifyEmail(token string) error {
 	var vt models.EmailVerificationToken
-	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", token, time.Now()).
+	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), time.Now()).
 		First(&vt).Error
 	if err != nil {
 		return utils.ErrBadRequest("invalid or expired verification token")
@@ -462,7 +462,7 @@ func (s *AuthService) ResetPassword(token string, newPassword string) error {
 	var resetToken models.PasswordResetToken
 	now := time.Now()
 
-	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", token, now).
+	err := s.db.Where("token = ? AND used_at IS NULL AND expires_at > ?", utils.HashRefreshToken(token), now).
 		First(&resetToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

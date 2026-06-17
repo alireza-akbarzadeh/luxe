@@ -19,7 +19,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools
+.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up stripe-listen dev-setup
 
 # Default target
 help: ## Show this help message
@@ -46,6 +46,16 @@ build: ## Build the application
 run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"
 	go run ./cmd/api
+
+docker-up: ## Start PostgreSQL (docker compose)
+	@echo "${GREEN}Starting PostgreSQL...${RESET}"
+	docker compose up -d postgres
+
+stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
+	@echo "${GREEN}Forwarding Stripe webhooks to localhost:8080/api/v1/webhooks/stripe${RESET}"
+	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
+
+dev-setup: docker-up migrate-up ## Start Postgres and run migrations
 
 clean: ## Clean build artifacts
 	@echo "${YELLOW}Cleaning build artifacts...${RESET}"

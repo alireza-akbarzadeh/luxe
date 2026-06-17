@@ -37,6 +37,11 @@ func parseAllowOrigins() []string {
 	return origins
 }
 
+// AllowedOrigins returns CORS-allowed origins (shared with WebSocket origin checks).
+func AllowedOrigins() []string {
+	return parseAllowOrigins()
+}
+
 // CORS returns a Gin middleware that enables Cross-Origin Resource Sharing.
 func CORS() gin.HandlerFunc {
 	return cors.New(cors.Config{
