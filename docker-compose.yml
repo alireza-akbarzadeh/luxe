@@ -39,9 +39,18 @@ services:
       COLLECTOR_OTLP_ENABLED: "true"
     restart: unless-stopped
 
-  # app:
-  #   build: .
-  #   ...
+  migrate:
+    image: golang:1.25.5-alpine
+    profiles: ["migrate"]
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["go", "run", "./cmd/migrate", "up"]
 
 volumes:
   postgres_data:

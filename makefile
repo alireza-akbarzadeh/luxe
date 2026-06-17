@@ -10,8 +10,10 @@ MIGRATIONS_DIR=./internal/migrations
 # Override with: make migrate-up DATABASE_URL="postgres://user:pass@localhost:5432/db?sslmode=disable"
 DATABASE_URL ?= postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable
 
-# Goose command (PostgreSQL driver)
+# Goose command (PostgreSQL driver) — host path; falls back to Docker on failure (Windows Docker)
 GOOSE_CMD=goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)"
+MIGRATE_CMD=go run ./cmd/migrate
+MIGRATE_DB_URL_DOCKER=postgresql://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable
 
 # Colors for output
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -100,7 +102,20 @@ migrate-create: ## Create a new migration file (usage: make migrate-create name=
 
 migrate-up: ## Apply all pending migrations
 	@echo "${GREEN}Running migrations...${RESET}"
-	$(GOOSE_CMD) up
+	@$(GOOSE_CMD) up || { \
+		echo "${YELLOW}Host goose failed — retrying via Docker network (common on Windows Docker)${RESET}"; \
+		$(MAKE) migrate-up-docker; \
+	}
+	@echo "${GREEN}Migrations completed${RESET}"
+
+migrate-up-docker: docker-wait-postgres ## Run migrations inside Docker network (use when host port 5433 fails)
+	@echo "${GREEN}Running migrations via Docker...${RESET}"
+	docker compose --profile migrate run --rm migrate
+	@echo "${GREEN}Migrations completed${RESET}"
+
+migrate-go: ## Run migrations using go run ./cmd/migrate (requires working DATABASE_URL)
+	@echo "${GREEN}Running migrations (go)...${RESET}"
+	$(MIGRATE_CMD) up
 	@echo "${GREEN}Migrations completed${RESET}"
 
 migrate-down: ## Rollback the last migration
