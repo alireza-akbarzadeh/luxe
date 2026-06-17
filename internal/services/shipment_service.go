@@ -16,14 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// shipmentStatusToStateCode maps a legacy shipment status to a workflow state code.
-var shipmentStatusToStateCode = map[string]string{
-	"pending":    "pending",
-	"processing": "ready_for_pickup",
-	"shipped":    "in_transit",
-	"delivered":  "delivered",
-	"cancelled":  "returned",
-}
+// shipmentService manages shipment records and carrier simulation.
 
 type CreateShipmentRequest struct {
 	OrderID        uint    `json:"order_id" validate:"required,gt=0"`
@@ -81,19 +74,7 @@ func NewShipmentService(
 
 // setShipmentState syncs a shipment status into the workflow engine (best-effort).
 func (s *shipmentService) setShipmentState(ctx context.Context, shipmentID uint, status string) {
-	code, ok := shipmentStatusToStateCode[status]
-	if !ok || s.engine == nil {
-		return
-	}
-	if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
-		WorkflowKey:     constants.WorkflowEntityShipment,
-		EntityID:        shipmentID,
-		TargetStateCode: code,
-		Event:           "status_update",
-	}); err != nil {
-		utils.Log.WithError(err).WithField("shipment_id", shipmentID).
-			Warn("failed to sync shipment workflow state")
-	}
+	applyShipmentWorkflow(ctx, s.engine, shipmentID, status)
 }
 
 // ─── WebSocket + Notification helper ─────────────────────────────────────

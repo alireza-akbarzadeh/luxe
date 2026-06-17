@@ -68,6 +68,7 @@ func (r *Router) Setup() {
 		SetupAdminRoutes(protected, r.controllers)
 		SetupImportRoutes(protected, r.controllers)
 		SetupWorkflowRoutes(protected, r.controllers)
+		SetupReturnRoutes(protected, r.controllers)
 		SetupWebSocketRoutes(v1, protected, r.controllers, r.cfg)
 	}
 }

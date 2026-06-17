@@ -76,16 +76,12 @@ func (s *checkoutService) setOrderStateActor(ctx context.Context, orderID uint, 
 	if s.engine == nil {
 		return
 	}
-	if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
-		WorkflowKey:     constants.WorkflowEntityOrder,
-		EntityID:        orderID,
-		TargetStateCode: stateCode,
-		Event:           event,
-		ActorID:         actorID,
-	}); err != nil {
-		utils.Log.WithError(err).WithField("order_id", orderID).
-			WithField("state", stateCode).Warn("failed to sync order workflow state")
+	if stateCode == "paid" {
+		if applyOrderWorkflow(ctx, s.engine, orderID, constants.OrderStatusPaid, constants.RoleUser, actorID) {
+			return
+		}
 	}
+	syncWorkflowState(ctx, s.engine, constants.WorkflowEntityOrder, orderID, stateCode, event, actorID)
 }
 
 // Checkout converts the user's active cart into an order.
@@ -604,33 +600,25 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 		}
 
 		// Cancel any pending/processing shipment.
-		tx.Model(&models.Shipment{}).
+		return tx.Model(&models.Shipment{}).
 			Where("order_id = ? AND status NOT IN ?", order.ID,
 				[]string{constants.ShipmentStatusShipped, constants.ShipmentStatusDelivered}).
-			Update("status", "cancelled")
-
-		// Mark order cancelled.
-		return tx.Model(&order).Update("status", constants.OrderStatusCancelled).Error
+			Update("status", "cancelled").Error
 	})
 	if err != nil {
 		return err
 	}
 
-	s.setOrderStateActor(ctx, order.ID, "cancelled", "cancel", &userID)
-
-	go func() {
-		_ = s.notificationService.CreateNotification(
-			userID,
-			"order_cancelled",
-			"Order Cancelled",
-			fmt.Sprintf("Your order #%s has been cancelled.", order.OrderNumber),
-			map[string]interface{}{
-				"order_id":     order.ID,
-				"order_number": order.OrderNumber,
-				"status":       constants.OrderStatusCancelled,
-			},
-		)
-	}()
+	if err := applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityOrder,
+		EntityID:    order.ID,
+		Event:       "cancel",
+		ActorID:     &userID,
+		ActorRole:   constants.RoleUser,
+	}); err != nil {
+		// Fallback when transition rules reject the move (e.g. stale workflow state).
+		s.setOrderStateActor(ctx, order.ID, "cancelled", "cancel", &userID)
+	}
 
 	return nil
 }

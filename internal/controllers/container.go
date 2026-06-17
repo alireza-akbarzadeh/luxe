@@ -40,6 +40,7 @@ type Container struct {
 	Admin     *AdminController
 	Import    *ImportController
 	Workflow  *WorkflowController
+	Return    *ReturnController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -76,5 +77,6 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Admin:     NewAdminController(svc.Admin, svc.Order, svc.WebhookEvent),
 		Import:    NewImportController(svc.Import),
 		Workflow:  NewWorkflowController(svc.Workflow),
+		Return:    NewReturnController(svc.Return),
 	}
 }

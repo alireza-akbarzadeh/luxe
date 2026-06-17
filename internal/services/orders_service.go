@@ -64,24 +64,16 @@ func NewOrderService(
 }
 
 // applyOrderState persists an order status change through the workflow engine
-// (updating workflow_state_id + status mirror + audit history). Falls back to a
-// direct status write when no state mapping exists (e.g. "delayed") or the engine
-// is unavailable.
+// (transition when possible, else SetState, else direct status write).
 func (s *orderService) applyOrderState(ctx context.Context, order *models.Order, status string, actorID *uint) error {
-	code, ok := orderStatusToStateCode[status]
-	if ok && s.engine != nil {
-		_, err := s.engine.SetState(ctx, workflow.SetStateRequest{
-			WorkflowKey:     constants.WorkflowEntityOrder,
-			EntityID:        order.ID,
-			TargetStateCode: code,
-			Event:           "admin_set",
-			ActorID:         actorID,
-		})
-		if err == nil {
-			order.Status = status
-			return nil
-		}
-		utils.Log.WithError(err).WithField("order_id", order.ID).Warn("engine SetState failed; writing status directly")
+	actorRole := constants.RoleAdmin
+	if applyOrderWorkflow(ctx, s.engine, order.ID, status, actorRole, actorID) {
+		order.Status = status
+		return nil
+	}
+	if s.engine != nil {
+		utils.Log.WithField("order_id", order.ID).WithField("status", status).
+			Warn("workflow update failed; writing status directly")
 	}
 	order.Status = status
 	return s.db.WithContext(ctx).Model(order).Update("status", status).Error
@@ -302,19 +294,12 @@ func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uin
 	code := orderStatusToStateCode[status]
 	var updated int64
 	for _, id := range orderIDs {
-		if s.engine != nil && code != "" {
-			if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
-				WorkflowKey:     constants.WorkflowEntityOrder,
-				EntityID:        id,
-				TargetStateCode: code,
-				Event:           "admin_bulk_set",
-				ActorID:         actorID,
-			}); err != nil {
-				utils.Log.WithError(err).WithField("order_id", id).Warn("bulk SetState failed; skipping")
-				continue
-			}
+		if applyOrderWorkflow(ctx, s.engine, id, status, constants.RoleAdmin, actorID) {
 			updated++
 			continue
+		}
+		if code != "" {
+			syncWorkflowState(ctx, s.engine, constants.WorkflowEntityOrder, id, code, "admin_bulk_set", actorID)
 		}
 		res := s.db.WithContext(ctx).Model(&models.Order{}).Where("id = ?", id).Update("status", status)
 		if res.Error == nil {

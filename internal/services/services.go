@@ -45,6 +45,7 @@ type Services struct {
 	Import       ImportServiceInterface
 	WebhookEvent WebhookEventServiceInterface
 	Workflow     WorkflowServiceInterface
+	Return       ReturnServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -65,7 +66,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 
 	return &Services{
 		DB:           db,
-		Auth:         NewAuthServices(db, cfg, jobQueue),
+		Auth:         NewAuthServices(db, cfg, jobQueue, workflowEngine),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
 		Cart:         NewCartService(db),
@@ -92,10 +93,11 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		SalesFeed:    salesFeedSvc,
 		Audit:        NewAuditService(db),
 		Upload:       NewUploadService(cfg),
-		Admin:        NewAdminService(db),
+		Admin:        NewAdminService(db, workflowEngine),
 		Import:       NewImportService(productSvc, NewCategoryService(db)),
 		WebhookEvent: NewWebhookEventService(db),
 		Workflow:     NewWorkflowService(db, workflowEngine),
+		Return:       NewReturnService(db, workflowEngine),
 	}
 }
 

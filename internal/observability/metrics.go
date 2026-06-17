@@ -1,3 +1,4 @@
+// Package observability provides metrics for the application.
 package observability
 
 import (

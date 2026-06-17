@@ -10,6 +10,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
@@ -44,10 +45,11 @@ type AuthService struct {
 	db       *gorm.DB
 	cfg      *config.Config
 	jobQueue tasks.JobQueue
+	engine   *workflow.Engine
 }
 
-func NewAuthServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *AuthService {
-	return &AuthService{db: db, cfg: cfg, jobQueue: jobQueue}
+func NewAuthServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue, engine *workflow.Engine) *AuthService {
+	return &AuthService{db: db, cfg: cfg, jobQueue: jobQueue, engine: engine}
 }
 
 // Register creates a new user and returns token pair.
@@ -79,6 +81,8 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest, met
 	if err := db.Create(user).Error; err != nil {
 		return "", "", nil, utils.ErrInternal(err)
 	}
+
+	syncUserWorkflowState(ctx, s.engine, user.ID, "email_verification_pending", "register", nil)
 
 	accessToken, refreshToken, err := s.generateTokenPair(ctx, user, meta)
 	if err != nil {
@@ -504,6 +508,17 @@ func (s *AuthService) VerifyEmail(ctx context.Context, token string) error {
 
 	vt.UsedAt = &now
 	db.Save(&vt)
+
+	if err := applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityUser,
+		EntityID:    user.ID,
+		Event:       "verify_email",
+		ActorID:     &user.ID,
+		ActorRole:   user.Role,
+	}); err != nil {
+		syncUserWorkflowState(ctx, s.engine, user.ID, "active", "verify_email", &user.ID)
+	}
+
 	return nil
 }
 

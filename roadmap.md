@@ -81,3 +81,15 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 
 ## Next focus (long-term)
 - Domain modularization (group by domain, not layer).
+
+## Phase 6: Workflow state machine (in progress)
+- [x] DB-driven engine: workflows, states, transitions, audit logs, guards, hooks.
+- [x] Seed definitions for order, product, shipment, return, user lifecycles.
+- [x] Workflow CRUD + transition/history API (`/workflows/*`, `/admin/workflows/*`).
+- [x] Partial service integration: order, product, shipment, checkout use `SetState` sync.
+- [x] Return domain: `ReturnService`, customer + admin routes, workflow transitions.
+- [x] User workflow sync on register, email verify, admin active toggle.
+- [x] Checkout cancel uses validated `Transition("cancel")` with hook-driven notifications.
+- [x] Migrate order/shipment/checkout status writes to event-driven `Transition` (with SetState fallback).
+- [ ] Engine unit tests + integration tests for return/cancel flows.
+- [ ] Frontend: consume workflow definitions for status badges and action buttons.

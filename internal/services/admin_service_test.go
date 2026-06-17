@@ -15,7 +15,7 @@ import (
 
 func TestAdminService_GetStats(t *testing.T) {
 	db, mock := setupTestDB(t)
-	svc := NewAdminService(db)
+	svc := NewAdminService(db, nil)
 
 	// Each Count/Scan call translates to a SELECT; match them in order.
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "users"`)).
@@ -53,7 +53,7 @@ func TestAdminService_GetStats(t *testing.T) {
 
 func TestAdminService_UpdateUserRole_InvalidRole(t *testing.T) {
 	db, _ := setupTestDB(t)
-	svc := NewAdminService(db)
+	svc := NewAdminService(db, nil)
 
 	err := svc.UpdateUserRole(context.Background(), 1, "superuser")
 	require.Error(t, err)
@@ -63,7 +63,7 @@ func TestAdminService_UpdateUserRole_ValidRoles(t *testing.T) {
 	for _, role := range []string{constants.RoleAdmin, constants.RoleUser} {
 		t.Run(role, func(t *testing.T) {
 			db, mock := setupTestDB(t)
-			svc := NewAdminService(db)
+			svc := NewAdminService(db, nil)
 
 			mock.ExpectBegin()
 			mock.ExpectExec(`UPDATE "users"`).
@@ -80,7 +80,7 @@ func TestAdminService_UpdateUserRole_ValidRoles(t *testing.T) {
 
 func TestAdminService_ListUsers_EmptyFilters(t *testing.T) {
 	db, mock := setupTestDB(t)
-	svc := NewAdminService(db)
+	svc := NewAdminService(db, nil)
 
 	now := time.Now()
 	mock.ExpectQuery(regexp.QuoteMeta(`SELECT count(*) FROM "users"`)).
@@ -102,7 +102,7 @@ func TestAdminService_ListUsers_EmptyFilters(t *testing.T) {
 
 func TestAdminService_ToggleUserActive(t *testing.T) {
 	db, mock := setupTestDB(t)
-	svc := NewAdminService(db)
+	svc := NewAdminService(db, nil)
 
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "users"`).

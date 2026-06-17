@@ -1,18 +1,58 @@
-# Makefile for shopping-platform (PostgreSQL + Goose)
+# Makefile for luxe-backend (PostgreSQL + Goose)
+#
+# Defaults target an existing local Postgres container (docker-psql_bp-1 on :5432).
+# Override any value via environment, .env, or on the command line:
+#   make migrate-up POSTGRES_CONTAINER=my-postgres POSTGRES_DB=luxe
+#   make dev-setup USE_COMPOSE=1   # start luxe-backend compose stack instead
 
-# Variables
-BINARY_NAME=shopping-platform-api
-GOBASE=$(shell pwd)
-GOBIN=$(GOBASE)/bin
-MIGRATIONS_DIR=./internal/migrations
+# Load local overrides when present (.env is gitignored)
+-include .env
+export
 
-# Database DSN – defaults to environment variable, falls back to dev settings
-# Override with: make migrate-up DATABASE_URL="postgres://user:pass@localhost:5432/db?sslmode=disable"
-DATABASE_URL ?= postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable
+# ─── App ──────────────────────────────────────────────────────────────────────
+BINARY_NAME ?= luxe-api
+GOBASE      := $(shell pwd)
+GOBIN       := $(GOBASE)/bin
+MIGRATIONS_DIR := ./internal/migrations
 
-# Goose CLI (install: make install-tools or go install github.com/pressly/goose/v3/cmd/goose@latest)
-GOOSE_CMD=goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)"
-GOOSE_DOCKER_URL=postgresql://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable
+# ─── Postgres (existing container / local DB) ─────────────────────────────────
+# If DATABASE_URL is set in .env, it wins. Otherwise we build from the fields below.
+POSTGRES_CONTAINER ?= docker-psql_bp-1
+
+# Auto-detect user/db/password from a running container when not set in .env
+DETECTED_DB_USER     := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTGRES_USER 2>/dev/null)
+DETECTED_DB_NAME     := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTGRES_DB 2>/dev/null)
+DETECTED_DB_PASSWORD := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTGRES_PASSWORD 2>/dev/null)
+
+POSTGRES_HOST      ?= $(or $(DB_HOST),localhost)
+POSTGRES_PORT      ?= $(or $(DB_PORT),5432)
+POSTGRES_USER      ?= $(or $(DB_USER),$(DETECTED_DB_USER),postgres)
+POSTGRES_PASSWORD  ?= $(or $(DB_PASSWORD),$(DETECTED_DB_PASSWORD),postgres)
+POSTGRES_DB        ?= $(or $(DB_NAME),shopping_platform)
+POSTGRES_SSLMODE   ?= $(or $(DB_SSLMODE),disable)
+
+# Reject accidental full-URL values in DB_HOST (common .env mistake).
+ifeq ($(findstring ://,$(POSTGRES_HOST)),://)
+POSTGRES_HOST := localhost
+endif
+
+ifndef DATABASE_URL
+DATABASE_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)
+endif
+
+# ─── Docker Compose (optional — set USE_COMPOSE=1 for project-managed stack) ───
+USE_COMPOSE          ?= 0
+COMPOSE              ?= docker compose
+COMPOSE_FILE         ?= docker-compose.yml
+COMPOSE_PROJECT_NAME ?= luxe-backend
+POSTGRES_SERVICE     ?= postgres
+REDIS_SERVICE        ?= redis
+JAEGER_SERVICE       ?= jaeger
+
+# In-compose DSN (service hostname `postgres`, internal port 5432)
+GOOSE_DOCKER_URL ?= postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_SERVICE):5432/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)
+
+GOOSE_CMD = goose -dir $(MIGRATIONS_DIR) postgres "$(DATABASE_URL)"
 
 # Colors for output
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -20,12 +60,16 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup seed-dev
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev db-info
 
 # Default target
 help: ## Show this help message
 	@echo 'Usage:'
 	@echo '  ${YELLOW}make${RESET} ${GREEN}<target>${RESET}'
+	@echo ''
+	@echo 'Database overrides (env or command line):'
+	@echo '  POSTGRES_CONTAINER=$(POSTGRES_CONTAINER)'
+	@echo '  DATABASE_URL=$(DATABASE_URL)'
 	@echo ''
 	@echo 'Targets:'
 	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
@@ -33,10 +77,46 @@ help: ## Show this help message
 		if (helpMessage) { \
 			helpCommand = substr($$1, 0, index($$1, ":")-1); \
 			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
-			printf "  ${YELLOW}%-20s${RESET} ${GREEN}%s${RESET}\n", helpCommand, helpMessage; \
+			printf "  ${YELLOW}%-22s${RESET} ${GREEN}%s${RESET}\n", helpCommand, helpMessage; \
 		} \
 	} \
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
+
+db-info: ## Print resolved database / container settings
+	@echo "${GREEN}Postgres container:${RESET} $(POSTGRES_CONTAINER)"
+	@echo "${GREEN}Postgres user:${RESET}      $(POSTGRES_USER)"
+	@echo "${GREEN}Postgres database:${RESET}  $(POSTGRES_DB)"
+	@echo "${GREEN}DATABASE_URL:${RESET}         postgresql://$(POSTGRES_USER):***@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)"
+	@echo "${GREEN}USE_COMPOSE:${RESET}          $(USE_COMPOSE)"
+	@if [ -z "$(DB_PASSWORD)" ] && [ -n "$(DETECTED_DB_PASSWORD)" ]; then \
+		echo "${GREEN}Password:${RESET}             loaded from container env"; \
+	elif [ "$(POSTGRES_PASSWORD)" = "postgres" ] && [ "$(POSTGRES_USER)" != "postgres" ]; then \
+		echo "${YELLOW}Hint: set DB_PASSWORD in .env or ensure $(POSTGRES_CONTAINER) is running.${RESET}"; \
+	fi
+
+db-detect: ## Show Postgres user/db from the running container
+	@echo "${GREEN}Container:${RESET} $(POSTGRES_CONTAINER)"
+	@echo "${GREEN}POSTGRES_USER:${RESET} $(DETECTED_DB_USER)"
+	@echo "${GREEN}POSTGRES_DB (container):${RESET} $(DETECTED_DB_NAME) ${YELLOW}(ecom-go — do not migrate luxe onto this)${RESET}"
+	@if [ -n "$(DETECTED_DB_PASSWORD)" ]; then \
+		echo "${GREEN}POSTGRES_PASSWORD:${RESET} set in container (auto-used when DB_PASSWORD is empty)"; \
+	else \
+		echo "${YELLOW}POSTGRES_PASSWORD:${RESET} not found in container env"; \
+	fi
+	@echo "${YELLOW}Optional .env overrides:${RESET}"
+	@echo "  DB_USER=$(DETECTED_DB_USER)"
+	@echo "  DB_NAME=$(DETECTED_DB_NAME)"
+	@echo "  DB_PORT=5432"
+	@echo "  DB_PASSWORD=...  # only if you want to override container value"
+
+db-create: ## Create POSTGRES_DB on the running container (for luxe-backend; do not use ecom-go's ecom db)
+	@echo "${GREEN}Creating database '$(POSTGRES_DB)' on $(POSTGRES_CONTAINER)...${RESET}"
+	@docker exec $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d postgres -tc \
+		"SELECT 1 FROM pg_database WHERE datname = '$(POSTGRES_DB)'" | grep -q 1 \
+		&& echo "${YELLOW}Database '$(POSTGRES_DB)' already exists${RESET}" \
+		|| docker exec $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d postgres -c \
+		"CREATE DATABASE \"$(POSTGRES_DB)\" OWNER \"$(POSTGRES_USER)\";"
+	@echo "${GREEN}Done. Set DB_NAME=$(POSTGRES_DB) in .env then: make migrate-up${RESET}"
 
 ## Development
 build: ## Build the application
@@ -48,23 +128,35 @@ run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"
 	go run ./cmd/api
 
-docker-up: ## Start PostgreSQL and Redis (required for local dev)
-	@echo "${GREEN}Starting PostgreSQL and Redis...${RESET}"
-	docker compose up -d postgres redis
-	@echo "${GREEN}Core services ready. For tracing UI: make docker-up-jaeger (optional)${RESET}"
-	@echo "${YELLOW}Tip: wait for Postgres before migrate-up — use make dev-setup or make docker-wait-postgres${RESET}"
+docker-up: ## Start Postgres and Redis via compose (USE_COMPOSE=1) or verify existing container
+	@if [ "$(USE_COMPOSE)" = "1" ]; then \
+		echo "${GREEN}Starting compose stack ($(COMPOSE_PROJECT_NAME))...${RESET}"; \
+		COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) $(COMPOSE) -f $(COMPOSE_FILE) up -d $(POSTGRES_SERVICE) $(REDIS_SERVICE); \
+	else \
+		echo "${GREEN}Using existing Postgres container: $(POSTGRES_CONTAINER)${RESET}"; \
+		docker ps --format '{{.Names}}' | grep -qx '$(POSTGRES_CONTAINER)' || { \
+			echo "${YELLOW}Container '$(POSTGRES_CONTAINER)' is not running.${RESET}"; \
+			echo "${YELLOW}Start it, or run: make docker-up USE_COMPOSE=1${RESET}"; \
+			exit 1; \
+		}; \
+	fi
+	@echo "${GREEN}Postgres ready target: $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)${RESET}"
 
-docker-wait-postgres: ## Wait until Docker Postgres accepts connections
-	@echo "${GREEN}Waiting for Postgres...${RESET}"
+docker-wait-postgres: ## Wait until Postgres accepts connections
+	@echo "${GREEN}Waiting for Postgres ($(POSTGRES_CONTAINER) @ $(POSTGRES_HOST):$(POSTGRES_PORT))...${RESET}"
 	@for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do \
-		docker compose exec -T postgres pg_isready -U postgres >/dev/null 2>&1 && { echo "${GREEN}Postgres ready${RESET}"; exit 0; }; \
+		if [ "$(USE_COMPOSE)" = "1" ]; then \
+			COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) $(COMPOSE) -f $(COMPOSE_FILE) exec -T $(POSTGRES_SERVICE) pg_isready -U $(POSTGRES_USER) >/dev/null 2>&1 && { echo "${GREEN}Postgres ready (compose)${RESET}"; exit 0; }; \
+		else \
+			docker exec $(POSTGRES_CONTAINER) pg_isready -U $(POSTGRES_USER) >/dev/null 2>&1 && { echo "${GREEN}Postgres ready ($(POSTGRES_CONTAINER))${RESET}"; exit 0; }; \
+		fi; \
 		sleep 1; \
 	done; \
-	echo "${YELLOW}Postgres not ready after 30s — check docker compose ps${RESET}"; exit 1
+	echo "${YELLOW}Postgres not ready after 30s — check: make db-info${RESET}"; exit 1
 
 docker-up-jaeger: ## Start Jaeger for OTLP tracing (optional; needs Docker Hub access)
 	@echo "${GREEN}Starting Jaeger...${RESET}"
-	docker compose up -d jaeger || (echo "${YELLOW}Jaeger failed to start (network/Docker Hub?). OTEL_ENABLED still works if a collector is reachable.${RESET}" && exit 1)
+	COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) $(COMPOSE) -f $(COMPOSE_FILE) up -d $(JAEGER_SERVICE) || (echo "${YELLOW}Jaeger failed to start (network/Docker Hub?). OTEL_ENABLED still works if a collector is reachable.${RESET}" && exit 1)
 
 docker-up-all: docker-up docker-up-jaeger ## Start Postgres, Redis, and Jaeger
 
@@ -72,15 +164,22 @@ stripe-listen: ## Forward Stripe webhooks (orders + wallet deposits) to local AP
 	@echo "${GREEN}Forwarding Stripe webhooks to localhost:8080/api/v1/webhooks/stripe${RESET}"
 	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe --events checkout.session.completed,checkout.session.expired
 
-dev-setup: docker-up docker-wait-postgres migrate-up ## Start Postgres, Redis, and run migrations
+dev-setup-existing: docker-wait-postgres migrate-up ## Wait for existing Postgres container and run migrations
+	@echo "${GREEN}Dev setup complete (existing container)${RESET}"
+
+dev-setup: ## Wait for Postgres and run migrations (compose stack when USE_COMPOSE=1)
+	@$(MAKE) docker-up
+	@$(MAKE) docker-wait-postgres
+	@$(MAKE) migrate-up
+	@echo "${GREEN}Dev setup complete${RESET}"
 
 seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
-	@echo "${GREEN}Seeding dev demo data...${RESET}"
+	@echo "${GREEN}Seeding dev demo data into $(POSTGRES_DB) via $(POSTGRES_CONTAINER)...${RESET}"
 	@if command -v psql >/dev/null 2>&1; then \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql; \
 	else \
-		echo "${YELLOW}psql not found - seeding via docker (shopping_platform_postgres)${RESET}"; \
-		docker exec -i shopping_platform_postgres psql -U postgres -d shopping_platform -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
+		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
 	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
 
@@ -97,38 +196,43 @@ migrate-create: ## Create a new migration file (usage: make migrate-create name=
 		exit 1; \
 	fi
 	@echo "${GREEN}Creating migration: $(name)${RESET}"
-	$(GOOSE_CMD) create $(name) sql
+	@$(GOOSE_CMD) create $(name) sql
 
 migrate-up: ## Apply all pending migrations
-	@echo "${GREEN}Running migrations...${RESET}"
+	@echo "${GREEN}Running migrations against $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) as $(POSTGRES_USER)...${RESET}"
 	@$(GOOSE_CMD) up || { \
-		echo "${YELLOW}Host goose failed — retrying via Docker network (common on Windows Docker)${RESET}"; \
-		$(MAKE) migrate-up-docker; \
+		if [ "$(USE_COMPOSE)" = "1" ]; then \
+			echo "${YELLOW}Host goose failed — retrying via Docker compose migrate profile${RESET}"; \
+			$(MAKE) migrate-up-docker; \
+		else \
+			echo "${YELLOW}Migration failed. Check: make db-info${RESET}"; \
+			exit 1; \
+		fi; \
 	}
 	@echo "${GREEN}Migrations completed${RESET}"
 
-migrate-up-docker: docker-wait-postgres ## Run goose inside Docker network (when host port 5433 fails on Windows)
-	@echo "${GREEN}Running migrations via Docker (external goose)...${RESET}"
-	docker compose --profile migrate run --rm migrate
+migrate-up-docker: docker-wait-postgres ## Run goose inside compose network (USE_COMPOSE=1)
+	@echo "${GREEN}Running migrations via compose migrate profile...${RESET}"
+	COMPOSE_PROJECT_NAME=$(COMPOSE_PROJECT_NAME) $(COMPOSE) -f $(COMPOSE_FILE) --profile migrate run --rm migrate
 	@echo "${GREEN}Migrations completed${RESET}"
 
 migrate-down: ## Rollback the last migration
 	@echo "${YELLOW}Rolling back last migration...${RESET}"
-	$(GOOSE_CMD) down
+	@$(GOOSE_CMD) down
 	@echo "${GREEN}Rollback completed${RESET}"
 
 migrate-reset: ## Rollback all migrations (dangerous in production)
 	@echo "${YELLOW}Resetting all migrations...${RESET}"
-	$(GOOSE_CMD) reset
+	@$(GOOSE_CMD) reset
 	@echo "${GREEN}Reset completed${RESET}"
 
 migrate-status: ## Check migration status
 	@echo "${GREEN}Migration status:${RESET}"
-	$(GOOSE_CMD) status
+	@$(GOOSE_CMD) status
 
 migrate-version: ## Show current migration version
 	@echo "${GREEN}Current migration version:${RESET}"
-	$(GOOSE_CMD) version
+	@$(GOOSE_CMD) version
 
 migrate-force: ## Force set migration version (usage: make migrate-force version=20250101120000)
 	@if [ -z "$(version)" ]; then \
@@ -136,7 +240,7 @@ migrate-force: ## Force set migration version (usage: make migrate-force version
 		echo "${GREEN}Usage: make migrate-force version=20250101120000${RESET}"; \
 		exit 1; \
 	fi
-	$(GOOSE_CMD) force $(version)
+	@$(GOOSE_CMD) force $(version)
 
 ## Dependencies and Tools
 deps: ## Download Go module dependencies
@@ -186,7 +290,6 @@ setup: install-tools deps migrate-up ## Install tools, dependencies, and run mig
 
 reset-db: migrate-reset migrate-up ## Full reset: rollback all migrations and reapply
 	@echo "${GREEN}Database reset complete${RESET}"
-
 
 swagger: ## Generate Swagger documentation
 	@echo "${GREEN}Generating Swagger docs...${RESET}"

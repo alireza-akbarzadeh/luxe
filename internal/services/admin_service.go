@@ -1,3 +1,4 @@
+// Package services provides the implementation of the admin service.
 package services
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
@@ -23,11 +25,12 @@ type AdminServiceInterface interface {
 }
 
 type adminService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewAdminService(db *gorm.DB) AdminServiceInterface {
-	return &adminService{db: db}
+func NewAdminService(db *gorm.DB, engine *workflow.Engine) AdminServiceInterface {
+	return &adminService{db: db, engine: engine}
 }
 
 func (s *adminService) GetStats(ctx context.Context) (*dto.AdminStatsResponse, error) {
@@ -197,6 +200,12 @@ func (s *adminService) ToggleUserActive(ctx context.Context, userID uint, active
 	}
 	if result.RowsAffected == 0 {
 		return utils.ErrNotFound("user not found")
+	}
+
+	if active {
+		syncUserWorkflowState(ctx, s.engine, userID, "active", "unblock", nil)
+	} else {
+		syncUserWorkflowState(ctx, s.engine, userID, "blocked", "block", nil)
 	}
 	return nil
 }
