@@ -100,7 +100,7 @@ func (ctrl *WorkflowController) PerformTransition(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        key      path string true "Workflow key"
 // @Param        entityId path int    true "Entity ID"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
 // @Router       /workflows/{key}/{entityId}/available-transitions [get]
 func (ctrl *WorkflowController) AvailableTransitions(c *gin.Context) {
 	key := c.Param("key")

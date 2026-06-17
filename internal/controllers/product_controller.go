@@ -394,7 +394,7 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path int true "Product ID"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
 // @Router       /products/{id}/available-transitions [get]
 func (ctrl *ProductController) GetAvailableTransitions(c *gin.Context) {
 	productID, ok := parseUintParam(c, "id")

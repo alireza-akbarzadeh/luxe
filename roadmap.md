@@ -104,11 +104,11 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [x] Shipment: `GET/POST /shipments/:id/available-transitions|transition`
 - [ ] Deprecate legacy `PUT /orders/:id/status` and `PUT /shipments/:id/status` once admin UI uses transitions
 
-### 6D — Tests & docs (next)
+### 6D — Tests & docs
 - [ ] Integration tests: order cancel, return refund, product publish (real Postgres, skip if no `DATABASE_URL`)
 - [x] Unit tests: `mirrorStatus`, role checks, nil-engine sync helpers
-- [ ] Document workflow in `documentation/architecture.md`
-- [ ] Regenerate Swagger (`make swagger`)
+- [x] Document workflow in `documentation/architecture.md`
+- [x] Regenerate Swagger (`make swagger`)
 
 ### 6E — Frontend (luxe-front)
 - [ ] Shared hook: `useWorkflow(key)` → definition + state colors
@@ -118,7 +118,6 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [ ] Optional: workflow history timeline component (`GET /workflows/:key/:id/history`)
 
 ### Suggested order of work
-1. **Integration tests (6D)** — lock in cancel/refund/publish/deliver flows before frontend work.
-2. **Workflow docs + Swagger (6D)** — `documentation/architecture.md` + `make swagger`.
-3. **Frontend badges + actions (6E)** — highest user-visible value.
-4. **Retire legacy status PUT** — once admin UI uses transitions everywhere.
+1. **Integration tests (6D)** — lock in cancel/refund/publish/deliver flows.
+2. **Frontend badges + actions (6E)** — `useWorkflow` hook, admin transition buttons.
+3. **Retire legacy status PUT** — once admin UI uses transitions everywhere.

@@ -286,7 +286,7 @@ func (ctrl *OrderController) CancelOrder(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path int true "Order ID"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
 // @Router       /orders/{id}/available-transitions [get]
 func (ctrl *OrderController) GetAvailableTransitions(c *gin.Context) {
 	orderID, ok := parseUintParam(c, "id")
@@ -319,7 +319,7 @@ func (ctrl *OrderController) GetAvailableTransitions(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id      path int true "Order ID"
 // @Param        request body dto.PerformOrderTransitionRequest true "Workflow event"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.OrderTransitionResponse}
 // @Router       /orders/{id}/transition [post]
 func (ctrl *OrderController) PerformTransition(c *gin.Context) {
 	orderID, ok := parseUintParam(c, "id")

@@ -80,6 +80,15 @@ definitions:
       role:
         type: string
     type: object
+  dto.AvailableTransitionsView:
+    properties:
+      current_state:
+        $ref: '#/definitions/dto.StateView'
+      transitions:
+        items:
+          $ref: '#/definitions/dto.TransitionView'
+        type: array
+    type: object
   dto.BrandResponse:
     properties:
       created_at:
@@ -1243,6 +1252,13 @@ definitions:
       total_amount:
         type: number
     type: object
+  dto.OrderTransitionResponse:
+    properties:
+      order:
+        description: models.Order in responses
+      transition:
+        $ref: '#/definitions/dto.TransitionResultView'
+    type: object
   dto.PaymentProviderResponse:
     properties:
       description:
@@ -1255,6 +1271,18 @@ definitions:
         type: string
       requires_card:
         type: boolean
+    type: object
+  dto.PerformOrderTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
     type: object
   dto.PerformProductTransitionRequest:
     properties:
@@ -1269,6 +1297,18 @@ definitions:
     - event
     type: object
   dto.PerformReturnTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PerformShipmentTransitionRequest:
     properties:
       event:
         maxLength: 64
@@ -1870,6 +1910,13 @@ definitions:
         type: string
       value:
         type: object
+    type: object
+  dto.ShipmentTransitionResponse:
+    properties:
+      shipment:
+        description: models.Shipment in responses
+      transition:
+        $ref: '#/definitions/dto.TransitionResultView'
     type: object
   dto.SidebarGroup:
     properties:
@@ -6543,6 +6590,31 @@ paths:
       summary: Get order by ID
       tags:
       - Orders
+  /orders/{id}/available-transitions:
+    get:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List order workflow transitions (admin)
+      tags:
+      - Orders
   /orders/{id}/cancel:
     post:
       description: Cancels a pending or paid order, restores stock, and refunds wallet
@@ -6628,6 +6700,41 @@ paths:
       security:
       - BearerAuth: []
       summary: Update order status (admin)
+      tags:
+      - Orders
+  /orders/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires events such as start_processing, ship, deliver, refund, or
+        cancel with guards and hooks.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformOrderTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.OrderTransitionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition order workflow state (admin)
       tags:
       - Orders
   /orders/my:
@@ -7065,7 +7172,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
       security:
       - BearerAuth: []
       summary: List product workflow transitions (admin)
@@ -8288,6 +8400,66 @@ paths:
       security:
       - BearerAuth: []
       summary: Get shipment by ID
+      tags:
+      - Shipments
+  /shipments/{id}/available-transitions:
+    get:
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List shipment workflow transitions (admin)
+      tags:
+      - Shipments
+  /shipments/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires events such as ready, pick_up, depart, out_for_delivery,
+        deliver, or return_to_sender.
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformShipmentTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ShipmentTransitionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition shipment workflow state (admin)
       tags:
       - Shipments
   /shipping-providers:
@@ -9557,7 +9729,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
       security:
       - BearerAuth: []
       summary: List available transitions

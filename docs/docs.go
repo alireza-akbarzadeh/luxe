@@ -5358,6 +5358,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/orders/{id}/available-transitions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "List order workflow transitions (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AvailableTransitionsView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/orders/{id}/cancel": {
             "post": {
                 "security": [
@@ -5487,6 +5532,64 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/transition": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fires events such as start_processing, ship, deliver, refund, or cancel with guards and hooks.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Transition order workflow state (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workflow event",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PerformOrderTransitionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.OrderTransitionResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -6304,7 +6407,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/utils.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AvailableTransitionsView"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -8110,6 +8225,109 @@ const docTemplate = `{
                         "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/shipments/{id}/available-transitions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipments"
+                ],
+                "summary": "List shipment workflow transitions (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AvailableTransitionsView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/shipments/{id}/transition": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Fires events such as ready, pick_up, depart, out_for_delivery, deliver, or return_to_sender.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipments"
+                ],
+                "summary": "Transition shipment workflow state (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Shipment ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Workflow event",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PerformShipmentTransitionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ShipmentTransitionResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -10154,7 +10372,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/utils.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AvailableTransitionsView"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -10417,6 +10647,20 @@ const docTemplate = `{
                 },
                 "role": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.AvailableTransitionsView": {
+            "type": "object",
+            "properties": {
+                "current_state": {
+                    "$ref": "#/definitions/dto.StateView"
+                },
+                "transitions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TransitionView"
+                    }
                 }
             }
         },
@@ -12138,6 +12382,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.OrderTransitionResponse": {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "description": "models.Order in responses"
+                },
+                "transition": {
+                    "$ref": "#/definitions/dto.TransitionResultView"
+                }
+            }
+        },
         "dto.PaymentProviderResponse": {
             "type": "object",
             "properties": {
@@ -12155,6 +12410,23 @@ const docTemplate = `{
                 },
                 "requires_card": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dto.PerformOrderTransitionRequest": {
+            "type": "object",
+            "required": [
+                "event"
+            ],
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 512
                 }
             }
         },
@@ -12176,6 +12448,23 @@ const docTemplate = `{
             }
         },
         "dto.PerformReturnTransitionRequest": {
+            "type": "object",
+            "required": [
+                "event"
+            ],
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 512
+                }
+            }
+        },
+        "dto.PerformShipmentTransitionRequest": {
             "type": "object",
             "required": [
                 "event"
@@ -13074,6 +13363,17 @@ const docTemplate = `{
                 },
                 "value": {
                     "type": "object"
+                }
+            }
+        },
+        "dto.ShipmentTransitionResponse": {
+            "type": "object",
+            "properties": {
+                "shipment": {
+                    "description": "models.Shipment in responses"
+                },
+                "transition": {
+                    "$ref": "#/definitions/dto.TransitionResultView"
                 }
             }
         },

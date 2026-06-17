@@ -203,7 +203,7 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path int true "Shipment ID"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
 // @Router       /shipments/{id}/available-transitions [get]
 func (ctrl *ShipmentController) GetAvailableTransitions(c *gin.Context) {
 	shipmentID, ok := parseUintParam(c, "id")
@@ -236,7 +236,7 @@ func (ctrl *ShipmentController) GetAvailableTransitions(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id      path int true "Shipment ID"
 // @Param        request body dto.PerformShipmentTransitionRequest true "Workflow event"
-// @Success      200 {object} utils.Response
+// @Success      200 {object} utils.Response{data=dto.ShipmentTransitionResponse}
 // @Router       /shipments/{id}/transition [post]
 func (ctrl *ShipmentController) PerformTransition(c *gin.Context) {
 	shipmentID, ok := parseUintParam(c, "id")

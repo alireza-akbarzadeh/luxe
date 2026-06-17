@@ -92,6 +92,12 @@ type TransitionView struct {
 	ToState      *StateView `json:"to_state,omitempty"`
 }
 
+// AvailableTransitionsView is returned by domain-specific available-transitions endpoints.
+type AvailableTransitionsView struct {
+	CurrentState *StateView       `json:"current_state"`
+	Transitions  []TransitionView `json:"transitions"`
+}
+
 // WorkflowDefinitionView is the full definition the frontend needs to render badges.
 type WorkflowDefinitionView struct {
 	ID          uint             `json:"id"`
