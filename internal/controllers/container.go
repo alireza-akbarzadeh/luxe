@@ -2,6 +2,7 @@
 package controllers
 
 import (
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"gorm.io/gorm"
 )
@@ -32,10 +33,11 @@ type Container struct {
 	Settings *SettingController
 	Pdp      *PdpController
 	WebSocket *WebSocketController
+	Stripe    *StripeWebhookController
 }
 
 // NewContainer initializes all controllers with their dependencies.
-func NewContainer(db *gorm.DB, svc *services.Services) *Container {
+func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Container {
 	return &Container{
 		Health:   NewHealthController(db),
 		Search:   NewSearchController(svc.Search),
@@ -62,5 +64,6 @@ func NewContainer(db *gorm.DB, svc *services.Services) *Container {
 		Brand:    NewBrandController(svc.Brand),
 		Settings: NewSettingController(svc.Settings),
 		WebSocket: NewWebSocketController(svc),
+		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, cfg),
 	}
 }

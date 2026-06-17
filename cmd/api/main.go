@@ -65,7 +65,7 @@ func main() {
 	defer cronService.Stop()
 
 	// 6. Initialize controllers
-	ctrl := controllers.NewContainer(db, newServices)
+	ctrl := controllers.NewContainer(db, newServices, cfg)
 	// 7. Setup Gin engine and routes
 	engine := setupGin()
 	router := routes.NewRouter(engine, ctrl, cfg)

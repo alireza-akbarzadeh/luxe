@@ -47,15 +47,15 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)
 
-	// 3. New payment service (no hub needed)
-	paymentSvc := NewPaymentService(db)
+	// 3. Payment service
+	paymentSvc := NewPaymentService(db, cfg)
 
 	// 4. Shipment service (now also receives the hub for delivery broadcasts)
 	shipmentSvc := NewShipmentService(db, workerPool, notificationSvc, wsHub)
 
 	// 5. Order service with all dependencies
 	orderSvc := NewOrderService(db, notificationSvc, wsHub, salesFeedSvc)
-	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc)
+	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, workerPool, wsHub, salesFeedSvc, StripeEnabled(cfg))
 	// 5. Assemble all services
 	productSvc := NewProductService(db)
 	return &Services{
@@ -75,7 +75,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, workerPool *tasks.WorkerPool) 
 		UserLike:     NewUserLikeService(db),
 		Shipment:     NewShipmentService(db, workerPool, notificationSvc, wsHub),
 		Wallet:       NewWalletService(db),
-		Payment:      NewPaymentService(db),
+		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),
 		Settings:     NewSettingService(db),

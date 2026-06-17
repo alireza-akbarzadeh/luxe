@@ -54,20 +54,18 @@ func (ctrl *OrderController) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Validate struct (tags + custom logic)
 	if err := ctrl.validate.Struct(req); err != nil {
 		utils.ErrorResponse(c, 400, err.Error())
 		return
 	}
 
-	order, err := ctrl.checkoutSvc.Checkout(userID, req)
+	result, err := ctrl.checkoutSvc.Checkout(userID, req)
 	if err != nil {
 		utils.HandleAppError(c, err, "failed to create order")
 		return
 	}
 
-	// The response includes the order so the frontend can immediately join the WebSocket room.
-	utils.CreatedResponse(c, "order created successfully", order)
+	utils.CreatedResponse(c, "order created successfully", result)
 }
 
 // GetUserOrders returns paginated orders for the authenticated user.

@@ -28,6 +28,7 @@ func (r *Router) Setup() {
 	v1 := r.engine.Group(constants.APIVersionV1)
 	{
 		v1.GET(constants.RouteHealth, r.controllers.Health.Check)
+		SetupStripeRoutes(v1, r.controllers)
 
 		// ✅ PUBLIC (guest + optional auth)
 		public := v1.Group(constants.RouteRoot)

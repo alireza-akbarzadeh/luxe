@@ -1,10 +1,37 @@
 package dto
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
+
+// CheckoutResult is returned from checkout; MarshalJSON flattens the order for backward-compatible API responses.
+type CheckoutResult struct {
+	Order           *models.Order
+	CheckoutURL     string
+	StripeSessionID string
+}
+
+func (r CheckoutResult) MarshalJSON() ([]byte, error) {
+	if r.Order == nil {
+		return json.Marshal(map[string]interface{}{})
+	}
+	raw, err := json.Marshal(r.Order)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]interface{}{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	if r.CheckoutURL != "" {
+		payload["checkout_url"] = r.CheckoutURL
+		payload["stripe_session_id"] = r.StripeSessionID
+	}
+	return json.Marshal(payload)
+}
 
 type CheckoutRequest struct {
 	CouponCode     string `json:"coupon_code,omitempty"`
@@ -19,16 +46,28 @@ type CheckoutRequest struct {
 	Country        string `json:"country" validate:"required"`
 	Phone          string `json:"phone" validate:"required"`
 	ShippingMethod string `json:"shipping_method"`
-	PaymentMethod  string `json:"payment_method"`
+	PaymentMethod  string `json:"payment_method" validate:"omitempty,oneof=mock stripe wallet"`
 	SaveInfo       bool   `json:"save_info"`
 	Newsletter     bool   `json:"newsletter"`
 	CardLast4      string `json:"card_last4,omitempty"`
 
 	ShippingProviderID *uint  `json:"shipping_provider_id,omitempty"`
-	CardNumber         string `json:"card_number" validate:"required,len=16"`
-	ExpiryMonth        int    `json:"expiry_month" validate:"required,min=1,max=12"`
-	ExpiryYear         int    `json:"expiry_year" validate:"required,min=2025"`
-	CVV                string `json:"cvv" validate:"required,len=3"`
+	CardNumber         string `json:"card_number" validate:"required_if=PaymentMethod mock,omitempty,len=16"`
+	ExpiryMonth        int    `json:"expiry_month" validate:"required_if=PaymentMethod mock,omitempty,min=1,max=12"`
+	ExpiryYear         int    `json:"expiry_year" validate:"required_if=PaymentMethod mock,omitempty,min=2025"`
+	CVV                string `json:"cvv" validate:"required_if=PaymentMethod mock,omitempty,len=3"`
+}
+
+// NormalizePaymentMethod sets a default payment method based on Stripe availability.
+func (r *CheckoutRequest) NormalizePaymentMethod(stripeEnabled bool) {
+	if r.PaymentMethod != "" {
+		return
+	}
+	if stripeEnabled {
+		r.PaymentMethod = "stripe"
+	} else {
+		r.PaymentMethod = "mock"
+	}
 }
 
 // CardInfo used internally (no JSON tags needed)

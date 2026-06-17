@@ -15,7 +15,8 @@ import (
 )
 
 type CheckoutServiceInterface interface {
-	Checkout(userID uint, req dto.CheckoutRequest) (*models.Order, error)
+	Checkout(userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
+	CompletePaidOrder(orderID uint) error
 }
 
 type checkoutService struct {
@@ -27,6 +28,7 @@ type checkoutService struct {
 	workerPool          *tasks.WorkerPool
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
+	stripeEnabled       bool
 }
 
 func NewCheckoutService(
@@ -38,6 +40,7 @@ func NewCheckoutService(
 	workerPool *tasks.WorkerPool,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
+	stripeEnabled bool,
 ) CheckoutServiceInterface {
 	return &checkoutService{
 		db:                  db,
@@ -48,11 +51,14 @@ func NewCheckoutService(
 		workerPool:          workerPool,
 		hub:                 hub,
 		salesFeed:           salesFeed,
+		stripeEnabled:       stripeEnabled,
 	}
 }
 
 // Checkout converts the user's active cart into an order.
-func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*models.Order, error) {
+func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error) {
+	req.NormalizePaymentMethod(s.stripeEnabled)
+
 	cart, err := s.getActiveCart(userID)
 	if err != nil {
 		return nil, err
@@ -108,10 +114,65 @@ func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*model
 	}
 
 	s.db.Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
-	s.enqueueFulfillmentJob(order.ID, req)
 	s.sendOrderCreatedNotification(userID, order)
 
-	return order, nil
+	result := &dto.CheckoutResult{Order: order}
+
+	if req.PaymentMethod == "stripe" {
+		var payment models.Payment
+		if err := s.db.Where("order_id = ?", order.ID).First(&payment).Error; err != nil {
+			return nil, utils.ErrInternal(err)
+		}
+		checkoutURL, sessionID, err := s.paymentService.CreateStripeCheckoutSession(order, &payment, req.Email)
+		if err != nil {
+			return nil, err
+		}
+		result.CheckoutURL = checkoutURL
+		result.StripeSessionID = sessionID
+		return result, nil
+	}
+
+	s.enqueueFulfillmentJob(order.ID, req)
+	return result, nil
+}
+
+// CompletePaidOrder finalizes an order after external payment confirmation (Stripe webhook).
+func (s *checkoutService) CompletePaidOrder(orderID uint) error {
+	var order models.Order
+	if err := s.db.Preload("Payment").First(&order, orderID).Error; err != nil {
+		return fmt.Errorf("order not found: %w", err)
+	}
+
+	if order.Status == constants.OrderStatusPaid {
+		return nil
+	}
+
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Order{}).Where("id = ?", orderID).
+			Update("status", constants.OrderStatusPaid).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	txnID := ""
+	if order.Payment != nil {
+		txnID = order.Payment.TransactionID
+	}
+	s.broadcastOrderUpdate(order.ID, order.UserID, "payment_succeeded", map[string]interface{}{
+		"title":          "Payment Confirmed",
+		"message":        fmt.Sprintf("Order %s paid successfully", order.OrderNumber),
+		"order_id":       order.ID,
+		"order_number":   order.OrderNumber,
+		"total_amount":   order.TotalAmount,
+		"transaction_id": txnID,
+		"status":         constants.OrderStatusPaid,
+	})
+
+	return s.processShipment(orderID)
 }
 
 // ProcessOrder is the background job handler that orchestrates payment and shipment.

@@ -19,6 +19,7 @@ type Config struct {
 	JWT                   JWTConfig
 	Log                   LogConfig
 	Email                 Email
+	Stripe                StripeConfig
 	ShipmentDeliveryDelay time.Duration
 }
 
@@ -58,6 +59,13 @@ type JWTConfig struct {
 
 type LogConfig struct {
 	Level string
+}
+
+type StripeConfig struct {
+	SecretKey      string
+	PublishableKey string
+	WebhookSecret  string
+	Enabled        bool
 }
 
 var AppConfig *Config
@@ -115,6 +123,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("EMAIL_PASSWORD", "")
 	viper.SetDefault("EMAIL_FROM", "noreply@yourapp.com")
 	viper.SetDefault("FRONTEND_URL", "http://localhost:3000")
+
+	viper.SetDefault("STRIPE_SECRET_KEY", "")
+	viper.SetDefault("STRIPE_PUBLISHABLE_KEY", "")
+	viper.SetDefault("STRIPE_WEBHOOK_SECRET", "")
 
 	accessExpiry, err := time.ParseDuration(viper.GetString("JWT_ACCESS_TOKEN_EXPIRY"))
 	if err != nil {
@@ -175,6 +187,12 @@ func Load() (*Config, error) {
 			FrontendURL: viper.GetString("FRONTEND_URL"),
 		},
 		ShipmentDeliveryDelay: deliveryDelay,
+		Stripe: StripeConfig{
+			SecretKey:      viper.GetString("STRIPE_SECRET_KEY"),
+			PublishableKey: viper.GetString("STRIPE_PUBLISHABLE_KEY"),
+			WebhookSecret:  viper.GetString("STRIPE_WEBHOOK_SECRET"),
+			Enabled:        viper.GetString("STRIPE_SECRET_KEY") != "",
+		},
 	}
 
 	if cfg.Database.URL == "" &&
@@ -195,7 +213,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("JWT_SECRET is required")
 	}
 
-	isProduction := c.AppEnv == "production" || c.Server.Mode == "release"
+	isProduction := c.AppEnv == "production"
 	if isProduction {
 		if c.JWT.Secret == devJWTSecret {
 			return fmt.Errorf("JWT_SECRET must be set to a strong secret in production")
@@ -203,6 +221,9 @@ func (c *Config) Validate() error {
 		dsn := c.DSN()
 		if strings.Contains(dsn, "sslmode=disable") {
 			return fmt.Errorf("database SSL must be enabled in production (sslmode=disable is not allowed)")
+		}
+		if c.Stripe.Enabled && c.Stripe.WebhookSecret == "" {
+			return fmt.Errorf("STRIPE_WEBHOOK_SECRET is required when Stripe is enabled in production")
 		}
 	}
 
