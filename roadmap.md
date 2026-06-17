@@ -68,7 +68,10 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [x] Bulk admin ops: `POST /admin/orders/bulk-status` (up to 500 IDs) + `GET /admin/orders/export` (CSV, 10k rows, date/status filters).
 - [x] Async email: `TypeSendEmail` task added to `JobQueue` interface; password-reset and verification emails now enqueued (Asynq when Redis available, memory queue fallback with inline goroutine safety net).
 
+## Completed (long-term) — continued
+- [x] Rate limiting: `StrictRateLimit` + `StandardRateLimit` named presets; TTL eviction prevents memory leak; applied to auth + import routes.
+- [x] Webhook event log: `webhook_events` table, idempotency check on every Stripe delivery, per-event status lifecycle (`received → processed | failed`), `GET /admin/webhooks` list endpoint.
+- [x] Import service unit tests: 9 table-driven tests covering category/product import (happy path, empty-name skip, service error, invalid price, store-ID fallback) and template generation.
+
 ## Next focus (long-term)
 - Domain modularization (group by domain, not layer).
-- Rate limiting middleware (per-IP, per-user) for auth endpoints.
-- Webhook event log / delivery retry table.

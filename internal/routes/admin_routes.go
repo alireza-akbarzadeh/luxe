@@ -16,5 +16,6 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 		admin.PATCH("/users/:id/active", ctrl.Admin.ToggleUserActive)
 		admin.POST("/orders/bulk-status", ctrl.Admin.BulkUpdateOrderStatus)
 		admin.GET("/orders/export", ctrl.Admin.ExportOrdersCSV)
+		admin.GET("/webhooks", ctrl.Admin.ListWebhookEvents)
 	}
 }

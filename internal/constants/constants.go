@@ -224,8 +224,13 @@ const (
 	StoreStatusActive = "active"
 
 	// Chat / stock notification statuses
-	ChatRoomStatusActive            = "active"
-	StockNotificationStatusActive   = "active"
+	ChatRoomStatusActive          = "active"
+	StockNotificationStatusActive = "active"
+
+	// Webhook event statuses
+	WebhookStatusReceived  = "received"
+	WebhookStatusProcessed = "processed"
+	WebhookStatusFailed    = "failed"
 )
 
 // ==================== API routes ====================

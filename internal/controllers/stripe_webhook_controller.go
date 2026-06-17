@@ -14,27 +14,30 @@ import (
 )
 
 type StripeWebhookController struct {
-	paymentService  services.PaymentServiceInterface
-	checkoutService services.CheckoutServiceInterface
-	walletService   services.WalletServiceInterface
-	webhookSecret   string
+	paymentService      services.PaymentServiceInterface
+	checkoutService     services.CheckoutServiceInterface
+	walletService       services.WalletServiceInterface
+	webhookEventService services.WebhookEventServiceInterface
+	webhookSecret       string
 }
 
 func NewStripeWebhookController(
 	paymentService services.PaymentServiceInterface,
 	checkoutService services.CheckoutServiceInterface,
 	walletService services.WalletServiceInterface,
+	webhookEventService services.WebhookEventServiceInterface,
 	cfg *config.Config,
 ) *StripeWebhookController {
 	return &StripeWebhookController{
-		paymentService:  paymentService,
-		checkoutService: checkoutService,
-		walletService:   walletService,
-		webhookSecret:   cfg.Stripe.WebhookSecret,
+		paymentService:      paymentService,
+		checkoutService:     checkoutService,
+		walletService:       walletService,
+		webhookEventService: webhookEventService,
+		webhookSecret:       cfg.Stripe.WebhookSecret,
 	}
 }
 
-// Handle processes Stripe webhook events (checkout.session.completed).
+// Handle processes Stripe webhook events with idempotency and event logging.
 func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 	if ctrl.webhookSecret == "" {
 		utils.ErrorResponse(c, http.StatusServiceUnavailable, "stripe webhooks are not configured")
@@ -56,11 +59,26 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 		return
 	}
 
+	ctx := c.Request.Context()
+
+	// Record event — returns ErrConflict when already seen (idempotency).
+	ev, recordErr := ctrl.webhookEventService.Record(ctx, event.ID, string(event.Type), "stripe", payload)
+	if recordErr != nil {
+		// Already processed — acknowledge immediately so Stripe stops retrying.
+		utils.Log.WithField("event_id", event.ID).Info("stripe webhook: duplicate event ignored")
+		c.Status(http.StatusOK)
+		return
+	}
+	_ = ev
+
+	var handlerErr error
+
 	switch event.Type {
 	case stripe.EventTypeCheckoutSessionCompleted:
 		var session stripe.CheckoutSession
 		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
 			utils.Log.WithError(err).Error("stripe webhook: failed to parse checkout session")
+			_ = ctrl.webhookEventService.MarkFailed(ctx, event.ID, err.Error())
 			c.Status(http.StatusOK)
 			return
 		}
@@ -71,45 +89,42 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 		}
 
 		if isWalletDepositSession(session) {
-			if err := ctrl.walletService.ConfirmDepositByStripeSession(session.ID, paymentIntentID); err != nil {
-				utils.Log.WithError(err).Error("stripe webhook: failed to confirm wallet deposit")
+			handlerErr = ctrl.walletService.ConfirmDepositByStripeSession(session.ID, paymentIntentID)
+		} else {
+			orderID, err := ctrl.paymentService.ConfirmStripeSession(session.ID, paymentIntentID)
+			if err == nil {
+				handlerErr = ctrl.checkoutService.CompletePaidOrder(ctx, orderID)
+			} else {
+				handlerErr = err
 			}
-			c.Status(http.StatusOK)
-			return
-		}
-
-		orderID, err := ctrl.paymentService.ConfirmStripeSession(session.ID, paymentIntentID)
-		if err != nil {
-			utils.Log.WithError(err).Error("stripe webhook: failed to confirm payment")
-			c.Status(http.StatusOK)
-			return
-		}
-
-		if err := ctrl.checkoutService.CompletePaidOrder(c.Request.Context(), orderID); err != nil {
-			utils.Log.WithError(err).WithField("order_id", orderID).Error("stripe webhook: failed to complete order")
 		}
 
 	case stripe.EventTypeCheckoutSessionExpired:
 		var session stripe.CheckoutSession
 		if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
 			utils.Log.WithError(err).Error("stripe webhook: failed to parse expired checkout session")
+			_ = ctrl.webhookEventService.MarkFailed(ctx, event.ID, err.Error())
 			c.Status(http.StatusOK)
 			return
 		}
-
 		if isWalletDepositSession(session) {
-			if err := ctrl.walletService.FailDepositByStripeSession(session.ID); err != nil {
-				utils.Log.WithError(err).Error("stripe webhook: failed to fail wallet deposit")
-			}
+			handlerErr = ctrl.walletService.FailDepositByStripeSession(session.ID)
 		}
+
+	default:
+		// Unhandled event type — record as processed to prevent repeated delivery.
+	}
+
+	if handlerErr != nil {
+		utils.Log.WithError(handlerErr).WithField("event_id", event.ID).Error("stripe webhook: processing error")
+		_ = ctrl.webhookEventService.MarkFailed(ctx, event.ID, handlerErr.Error())
+	} else {
+		_ = ctrl.webhookEventService.MarkProcessed(ctx, event.ID)
 	}
 
 	c.Status(http.StatusOK)
 }
 
 func isWalletDepositSession(session stripe.CheckoutSession) bool {
-	if session.Metadata == nil {
-		return false
-	}
-	return session.Metadata["type"] == "wallet_deposit"
+	return session.Metadata != nil && session.Metadata["type"] == "wallet_deposit"
 }

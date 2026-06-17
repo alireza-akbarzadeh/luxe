@@ -69,10 +69,10 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Brand:    NewBrandController(svc.Brand),
 		Settings: NewSettingController(svc.Settings),
 		WebSocket: NewWebSocketController(svc),
-		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, svc.Wallet, cfg),
+		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, svc.Wallet, svc.WebhookEvent, cfg),
 		Audit:     NewAuditController(svc.Audit),
 		Upload:    NewUploadController(svc.Upload),
-		Admin:     NewAdminController(svc.Admin, svc.Order),
+		Admin:     NewAdminController(svc.Admin, svc.Order, svc.WebhookEvent),
 		Import:    NewImportController(svc.Import),
 	}
 }

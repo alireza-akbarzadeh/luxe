@@ -14,13 +14,14 @@ import (
 )
 
 type AdminController struct {
-	adminService services.AdminServiceInterface
-	orderService services.OrderServiceInterface
-	validate     *validator.Validate
+	adminService        services.AdminServiceInterface
+	orderService        services.OrderServiceInterface
+	webhookEventService services.WebhookEventServiceInterface
+	validate            *validator.Validate
 }
 
-func NewAdminController(svc services.AdminServiceInterface, orderSvc services.OrderServiceInterface) *AdminController {
-	return &AdminController{adminService: svc, orderService: orderSvc, validate: validator.New()}
+func NewAdminController(svc services.AdminServiceInterface, orderSvc services.OrderServiceInterface, webhookSvc services.WebhookEventServiceInterface) *AdminController {
+	return &AdminController{adminService: svc, orderService: orderSvc, webhookEventService: webhookSvc, validate: validator.New()}
 }
 
 // GetStats returns platform-wide statistics (admin only).
@@ -200,4 +201,42 @@ func (ctrl *AdminController) ExportOrdersCSV(c *gin.Context) {
 	filename := fmt.Sprintf("orders_%s.csv", time.Now().UTC().Format("20060102_150405"))
 	c.Header("Content-Disposition", "attachment; filename="+filename)
 	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
+}
+
+// ListWebhookEvents returns paginated webhook delivery history (admin only).
+// @Summary      List webhook events (admin)
+// @Description  Returns paginated Stripe webhook events with optional filters by source, type, and status.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit      query  int     false  "Items per page (default 20)"
+// @Param        offset     query  int     false  "Offset"
+// @Param        source     query  string  false  "Filter by source (e.g. stripe)"
+// @Param        event_type query  string  false  "Filter by event type"
+// @Param        status     query  string  false  "Filter by status (received|processed|failed)"
+// @Success      200 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/webhooks [get]
+func (ctrl *AdminController) ListWebhookEvents(c *gin.Context) {
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	filters := services.WebhookEventFilters{
+		Source:    c.Query("source"),
+		EventType: c.Query("event_type"),
+		Status:    c.Query("status"),
+		Limit:     limit,
+		Offset:    offset,
+	}
+	events, total, err := ctrl.webhookEventService.List(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list webhook events")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"events": events,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
 }

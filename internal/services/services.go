@@ -42,6 +42,7 @@ type Services struct {
 	Upload       UploadServiceInterface
 	Admin        AdminServiceInterface
 	Import       ImportServiceInterface
+	WebhookEvent WebhookEventServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -86,6 +87,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Upload:       NewUploadService(cfg),
 		Admin:        NewAdminService(db),
 		Import:       NewImportService(productSvc, NewCategoryService(db)),
+		WebhookEvent: NewWebhookEventService(db),
 	}
 }
 
