@@ -41,6 +41,7 @@ type Services struct {
 	Audit        AuditServiceInterface
 	Upload       UploadServiceInterface
 	Admin        AdminServiceInterface
+	Import       ImportServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -84,6 +85,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Audit:        NewAuditService(db),
 		Upload:       NewUploadService(cfg),
 		Admin:        NewAdminService(db),
+		Import:       NewImportService(productSvc, NewCategoryService(db)),
 	}
 }
 
