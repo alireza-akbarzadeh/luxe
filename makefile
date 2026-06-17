@@ -19,7 +19,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up stripe-listen dev-setup seed-dev
+.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger stripe-listen dev-setup seed-dev
 
 # Default target
 help: ## Show this help message
@@ -47,9 +47,16 @@ run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"
 	go run ./cmd/api
 
-docker-up: ## Start PostgreSQL, Redis, and Jaeger (docker compose)
+docker-up: ## Start PostgreSQL and Redis (required for local dev)
 	@echo "${GREEN}Starting PostgreSQL and Redis...${RESET}"
 	docker compose up -d postgres redis
+	@echo "${GREEN}Core services ready. For tracing UI: make docker-up-jaeger (optional)${RESET}"
+
+docker-up-jaeger: ## Start Jaeger for OTLP tracing (optional; needs Docker Hub access)
+	@echo "${GREEN}Starting Jaeger...${RESET}"
+	docker compose up -d jaeger || (echo "${YELLOW}Jaeger failed to start (network/Docker Hub?). OTEL_ENABLED still works if a collector is reachable.${RESET}" && exit 1)
+
+docker-up-all: docker-up docker-up-jaeger ## Start Postgres, Redis, and Jaeger
 
 stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
 	@echo "${GREEN}Forwarding Stripe webhooks to localhost:8080/api/v1/webhooks/stripe${RESET}"
@@ -57,10 +64,14 @@ stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
 
 dev-setup: docker-up migrate-up ## Start Postgres, Redis, and run migrations
 
-seed-dev: ## Load dev demo data (local/staging only; requires psql)
+seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 	@echo "${GREEN}Seeding dev demo data...${RESET}"
-	@command -v psql >/dev/null 2>&1 || { echo "${YELLOW}psql not found — install PostgreSQL client or run via docker exec${RESET}"; exit 1; }
-	psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql; \
+	else \
+		echo "${YELLOW}psql not found - seeding via docker (shopping_platform_postgres)${RESET}"; \
+		docker exec -i shopping_platform_postgres psql -U postgres -d shopping_platform -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
+	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
 
 clean: ## Clean build artifacts

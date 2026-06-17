@@ -59,9 +59,9 @@ func (ctrl *OrderController) Checkout(c *gin.Context) {
 		return
 	}
 
-	result, err := ctrl.checkoutSvc.Checkout(userID, req)
+	result, err := ctrl.checkoutSvc.Checkout(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create order")
+		RespondServiceError(c, err, "failed to create order")
 		return
 	}
 

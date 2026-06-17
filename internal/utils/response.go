@@ -185,3 +185,8 @@ func HandleAppError(c *gin.Context, err error, message string) {
 	}
 	InternalServerErrorResponse(c, err, message)
 }
+
+// HandleServiceError maps service-layer errors to HTTP responses (alias for HandleAppError).
+func HandleServiceError(c *gin.Context, err error, logMessage string) {
+	HandleAppError(c, err, logMessage)
+}

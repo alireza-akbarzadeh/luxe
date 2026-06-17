@@ -225,7 +225,7 @@ func (ctrl *ProductController) List(c *gin.Context) {
 
 	products, total, err := ctrl.productService.List(limit, offset, filters)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to list products")
+		utils.HandleServiceError(c, err, "failed to list products")
 		return
 	}
 

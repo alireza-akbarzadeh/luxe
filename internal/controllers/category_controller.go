@@ -46,7 +46,7 @@ func (ctrl *CategoryController) Create(c *gin.Context) {
 	}
 	category, err := ctrl.categoryService.Create(req)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to create category")
+		utils.HandleServiceError(c, err, "failed to create category")
 		return
 	}
 	resp := dto.CategorySingleResponse{

@@ -148,7 +148,7 @@ func (ctrl *ShipmentController) GetShipmentsByOrder(c *gin.Context) {
 	// Alternatively, we can query order directly. We'll assume the service enforces ownership.
 	shipments, err := ctrl.shipmentService.GetShipmentsByOrderID(req.OrderID)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch shipments")
+		utils.HandleServiceError(c, err, "failed to fetch shipments")
 		return
 	}
 

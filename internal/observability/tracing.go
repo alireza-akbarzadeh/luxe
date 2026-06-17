@@ -34,18 +34,13 @@ func InitTracing(cfg *config.Config) (func(), error) {
 		serviceName = "luxe-api"
 	}
 
-	res, err := resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(serviceName),
-			semconv.ServiceVersion(cfg.Observability.ServiceVersion),
-			semconv.DeploymentEnvironment(cfg.Observability.SentryEnvironment),
-		),
+	// Do not merge resource.Default() — it uses a different semconv schema URL than v1.24.0.
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(serviceName),
+		semconv.ServiceVersion(cfg.Observability.ServiceVersion),
+		semconv.DeploymentEnvironment(cfg.Observability.SentryEnvironment),
 	)
-	if err != nil {
-		return nil, fmt.Errorf("otel resource: %w", err)
-	}
 
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),

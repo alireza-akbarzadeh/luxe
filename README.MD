@@ -192,11 +192,16 @@ Requires `psql` and `DATABASE_URL`. Do not run in production.
 
 ## OpenTelemetry tracing (optional)
 
-1. Start Jaeger (included in Docker Compose):
+Tracing is optional. The API runs fine with `OTEL_ENABLED=false` or unset.
+
+1. Start Jaeger when Docker Hub is reachable:
 
 ```bash
-docker compose up -d jaeger
+make docker-up-jaeger
+# or: make docker-up-all
 ```
+
+If pull fails (`auth.docker.io` / DNS), fix VPN/network or skip Jaeger — the app still starts with OTEL enabled; traces export only if a collector is listening.
 
 2. In `.env`:
 

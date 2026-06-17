@@ -14,7 +14,6 @@ func computeDiscountPercent(original, discounted float64) *int {
 }
 
 // RespondServiceError maps service-layer errors (utils.AppError) to HTTP responses.
-// Use for all service call failures instead of InternalServerErrorResponse when the error may be domain-specific.
 func RespondServiceError(c *gin.Context, err error, logMessage string) {
-	utils.HandleAppError(c, err, logMessage)
+	utils.HandleServiceError(c, err, logMessage)
 }

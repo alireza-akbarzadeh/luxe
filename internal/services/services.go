@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
@@ -86,7 +88,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 func (s *Services) JobHandlers() tasks.Handlers {
 	return tasks.Handlers{
 		ProcessOrder: func(orderID uint, cardInfo dto.CardInfo) error {
-			return s.Checkout.ProcessOrder(orderID, cardInfo)
+			return s.Checkout.ProcessOrder(context.Background(), orderID, cardInfo)
 		},
 		ProcessShipment: func(shipmentID uint) error {
 			return s.Shipment.ProcessShipmentBackground(shipmentID)

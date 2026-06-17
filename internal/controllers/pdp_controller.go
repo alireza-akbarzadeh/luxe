@@ -118,7 +118,7 @@ func (ctrl *PdpController) GetQuestions(c *gin.Context) {
 	limit, offset := parsePdpPagination(c)
 	questions, total, err := ctrl.pdpService.ListQuestions(productID, limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch questions")
+		utils.HandleServiceError(c, err, "failed to fetch questions")
 		return
 	}
 	viewerID, _ := middleware.GetUserID(c)
@@ -284,7 +284,7 @@ func (ctrl *PdpController) GetStockStatus(c *gin.Context) {
 	}
 	subscribed, err := ctrl.pdpService.IsStockSubscribed(userID, productID)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch status")
+		utils.HandleServiceError(c, err, "failed to fetch status")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.StockNotificationStatusResponse{Subscribed: subscribed})

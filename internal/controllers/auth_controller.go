@@ -183,7 +183,7 @@ func (ctrl *AuthController) Logout(c *gin.Context) {
 	_ = c.ShouldBindJSON(&req)
 
 	if err := ctrl.authService.Logout(userID, req); err != nil {
-		utils.InternalServerErrorResponse(c, err, "logout failed")
+		utils.HandleServiceError(c, err, "logout failed")
 		return
 	}
 

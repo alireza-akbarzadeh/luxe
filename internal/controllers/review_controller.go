@@ -150,7 +150,7 @@ func (rc *ReviewController) GetProductReviews(c *gin.Context) {
 
 	reviews, total, summary, err := rc.reviewService.GetProductReviews(uint(productID), limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch reviews")
+		utils.HandleServiceError(c, err, "failed to fetch reviews")
 		return
 	}
 

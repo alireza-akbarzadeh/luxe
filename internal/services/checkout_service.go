@@ -16,9 +16,9 @@ import (
 )
 
 type CheckoutServiceInterface interface {
-	Checkout(userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
-	CompletePaidOrder(orderID uint) error
-	ProcessOrder(orderID uint, cardInfo dto.CardInfo) error
+	Checkout(ctx context.Context, userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
+	CompletePaidOrder(ctx context.Context, orderID uint) error
+	ProcessOrder(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error
 }
 
 type checkoutService struct {
@@ -58,21 +58,21 @@ func NewCheckoutService(
 }
 
 // Checkout converts the user's active cart into an order.
-func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error) {
+func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error) {
 	req.NormalizePaymentMethod(s.stripeEnabled)
 
-	cart, err := s.getActiveCart(userID)
+	cart, err := s.getActiveCart(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	address, err := s.resolveAddress(userID, req)
+	address, err := s.resolveAddress(ctx, userID, req)
 	if err != nil {
 		return nil, err
 	}
 	carrier := s.getCarrier(req.ShippingProviderID)
 
 	var order *models.Order
-	err = s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		subtotal, err := s.reserveCartStock(tx, cart.Items)
 		if err != nil {
 			return err
@@ -115,14 +115,14 @@ func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*dto.C
 		return nil, err
 	}
 
-	s.db.Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
+	s.db.WithContext(ctx).Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
 	s.sendOrderCreatedNotification(userID, order)
 
 	result := &dto.CheckoutResult{Order: order}
 
 	if req.PaymentMethod == "stripe" {
 		var payment models.Payment
-		if err := s.db.Where("order_id = ?", order.ID).First(&payment).Error; err != nil {
+		if err := s.db.WithContext(ctx).Where("order_id = ?", order.ID).First(&payment).Error; err != nil {
 			return nil, utils.ErrInternal(err)
 		}
 		checkoutURL, sessionID, err := s.paymentService.CreateStripeCheckoutSession(order, &payment, req.Email)
@@ -134,14 +134,14 @@ func (s *checkoutService) Checkout(userID uint, req dto.CheckoutRequest) (*dto.C
 		return result, nil
 	}
 
-	s.enqueueFulfillmentJob(order.ID, req)
+	s.enqueueFulfillmentJob(ctx, order.ID, req)
 	return result, nil
 }
 
 // CompletePaidOrder finalizes an order after external payment confirmation (Stripe webhook).
-func (s *checkoutService) CompletePaidOrder(orderID uint) error {
+func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) error {
 	var order models.Order
-	if err := s.db.Preload("Payment").First(&order, orderID).Error; err != nil {
+	if err := s.db.WithContext(ctx).Preload("Payment").First(&order, orderID).Error; err != nil {
 		return fmt.Errorf("order not found: %w", err)
 	}
 
@@ -149,7 +149,7 @@ func (s *checkoutService) CompletePaidOrder(orderID uint) error {
 		return nil
 	}
 
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&models.Order{}).Where("id = ?", orderID).
 			Update("status", constants.OrderStatusPaid).Error; err != nil {
 			return err
@@ -174,13 +174,13 @@ func (s *checkoutService) CompletePaidOrder(orderID uint) error {
 		"status":         constants.OrderStatusPaid,
 	})
 
-	return s.processShipment(orderID)
+	return s.processShipment(ctx, orderID)
 }
 
 // ProcessOrder is the background job handler that orchestrates payment and shipment.
-func (s *checkoutService) ProcessOrder(orderID uint, cardInfo dto.CardInfo) error {
+func (s *checkoutService) ProcessOrder(ctx context.Context, orderID uint, cardInfo dto.CardInfo) error {
 	// Use a transaction for the payment + order status update
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 1. Load order with payment
 		var order models.Order
 		if err := tx.Preload("Payment").First(&order, orderID).Error; err != nil {
@@ -226,7 +226,7 @@ func (s *checkoutService) ProcessOrder(orderID uint, cardInfo dto.CardInfo) erro
 	}
 
 	// Transaction committed – now handle shipment (outside transaction for performance)
-	return s.processShipment(orderID)
+	return s.processShipment(ctx, orderID)
 }
 
 func (s *checkoutService) broadcastOrderUpdate(orderID, userID uint, eventType string, data map[string]interface{}) {
@@ -275,16 +275,15 @@ func (s *checkoutService) broadcastOrderUpdate(orderID, userID uint, eventType s
 }
 
 // processShipment handles the shipping steps (called after payment success)
-func (s *checkoutService) processShipment(orderID uint) error {
-	// 1. Mark shipment as processing
+func (s *checkoutService) processShipment(ctx context.Context, orderID uint) error {
 	var shipment models.Shipment
-	if err := s.db.Where("order_id = ?", orderID).First(&shipment).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("order_id = ?", orderID).First(&shipment).Error; err != nil {
 		return fmt.Errorf("shipment not found: %w", err)
 	}
 
 	oldStatus := shipment.Status
 	shipment.Status = "processing"
-	if err := s.db.Save(&shipment).Error; err != nil {
+	if err := s.db.WithContext(ctx).Save(&shipment).Error; err != nil {
 		return err
 	}
 
@@ -302,7 +301,7 @@ func (s *checkoutService) processShipment(orderID uint) error {
 
 	trackingNumber := fmt.Sprintf("TRK-%d-%d", orderID, time.Now().Unix())
 	now := time.Now()
-	s.db.Model(&shipment).Updates(map[string]interface{}{
+	s.db.WithContext(ctx).Model(&shipment).Updates(map[string]interface{}{
 		"status":          constants.ShipmentStatusShipped,
 		"tracking_number": trackingNumber,
 		"shipped_at":      now,
@@ -322,9 +321,9 @@ func (s *checkoutService) processShipment(orderID uint) error {
 	return nil
 }
 
-func (s *checkoutService) getActiveCart(userID uint) (*models.Cart, error) {
+func (s *checkoutService) getActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	var cart models.Cart
-	err := s.db.Where("user_id = ? AND status = ?", userID, "active").
+	err := s.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, "active").
 		Preload("Items.Product").
 		First(&cart).Error
 	if err != nil {
@@ -346,9 +345,9 @@ func (s *checkoutService) markCartConverted(tx *gorm.DB, cartID uint) error {
 }
 
 // resolveAddress finds or creates an address record for the user.
-func (s *checkoutService) resolveAddress(userID uint, req dto.CheckoutRequest) (*models.Address, error) {
+func (s *checkoutService) resolveAddress(ctx context.Context, userID uint, req dto.CheckoutRequest) (*models.Address, error) {
 	address := dto.MapAddress(userID, req)
-	err := s.db.Where("user_id = ? AND address_line1 = ? AND postal_code = ?",
+	err := s.db.WithContext(ctx).Where("user_id = ? AND address_line1 = ? AND postal_code = ?",
 		userID, req.AddressLine1, req.Zip).
 		FirstOrCreate(&address, address).Error
 	if err != nil {
@@ -477,14 +476,14 @@ func (s *checkoutService) createShipment(tx *gorm.DB, orderID, userID uint, carr
 }
 
 // enqueueFulfillmentJob submits the ProcessOrder job to the background queue.
-func (s *checkoutService) enqueueFulfillmentJob(orderID uint, req dto.CheckoutRequest) {
+func (s *checkoutService) enqueueFulfillmentJob(ctx context.Context, orderID uint, req dto.CheckoutRequest) {
 	cardInfo := dto.CardInfo{
 		CardNumber:  req.CardNumber,
 		ExpiryMonth: req.ExpiryMonth,
 		ExpiryYear:  req.ExpiryYear,
 		CVV:         req.CVV,
 	}
-	if err := s.workerPool.EnqueueProcessOrder(context.Background(), orderID, cardInfo); err != nil {
+	if err := s.workerPool.EnqueueProcessOrder(ctx, orderID, cardInfo); err != nil {
 		utils.Log.WithError(err).WithField("order_id", orderID).Error("failed to enqueue order fulfillment job")
 	}
 }

@@ -74,7 +74,7 @@ func (ctrl *StripeWebhookController) Handle(c *gin.Context) {
 			return
 		}
 
-		if err := ctrl.checkoutService.CompletePaidOrder(orderID); err != nil {
+		if err := ctrl.checkoutService.CompletePaidOrder(c.Request.Context(), orderID); err != nil {
 			utils.Log.WithError(err).WithField("order_id", orderID).Error("stripe webhook: failed to complete order")
 		}
 	}
