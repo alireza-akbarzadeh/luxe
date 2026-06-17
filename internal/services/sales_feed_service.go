@@ -60,3 +60,11 @@ func (s *SalesFeedService) PublishRevenueSnapshot(revenue float64, orders int) {
 		},
 	})
 }
+
+// PublishActiveUsers emits the number of admin clients watching the live feed.
+func (s *SalesFeedService) PublishActiveUsers(count int) {
+	s.publish(map[string]interface{}{
+		"type":    "active_users",
+		"payload": count,
+	})
+}

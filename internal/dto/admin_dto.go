@@ -122,6 +122,26 @@ type AdminDashboardLowStockProduct struct {
 	Threshold int    `json:"threshold"`
 }
 
+// AdminSalesFeedEvent is one row in the live sales activity feed.
+type AdminSalesFeedEvent struct {
+	ID        string  `json:"id"`
+	Type      string  `json:"type"`
+	Title     string  `json:"title"`
+	Subtitle  string  `json:"subtitle"`
+	Amount    float64 `json:"amount,omitempty"`
+	Timestamp int64   `json:"timestamp"`
+}
+
+// AdminSalesFeedSnapshotResponse seeds the live sales feed page before WebSocket updates.
+type AdminSalesFeedSnapshotResponse struct {
+	TotalOrdersToday  int64                       `json:"total_orders_today"`
+	TotalRevenueToday float64                     `json:"total_revenue_today"`
+	StatusCounts      []AdminDashboardStatusCount `json:"status_counts"`
+	RecentEvents      []AdminSalesFeedEvent       `json:"recent_events"`
+	RevenueSeries     []AdminDashboardSeriesPoint `json:"revenue_series"`
+	GeneratedAt       time.Time                   `json:"generated_at"`
+}
+
 // AdminDashboardOverviewResponse powers the admin commerce dashboard.
 type AdminDashboardOverviewResponse struct {
 	Period           string                          `json:"period"`

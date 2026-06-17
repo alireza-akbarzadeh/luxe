@@ -52,6 +52,11 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 	salesFeedSvc := NewSalesFeedService(wsHub)
+	wsHub.SetRoomChangeHook(func(roomID string, clientCount int) {
+		if roomID == websocket.SalesFeedRoom {
+			salesFeedSvc.PublishActiveUsers(clientCount)
+		}
+	})
 
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)

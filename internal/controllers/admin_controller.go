@@ -74,6 +74,26 @@ func (ctrl *AdminController) GetDashboardOverview(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, overview)
 }
 
+// GetSalesFeedSnapshot returns today's sales metrics and recent activity for the live feed page.
+// @Summary      Live sales feed snapshot
+// @Description  Returns today's order totals, status breakdown, revenue series, and recent feed events.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminSalesFeedSnapshotResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/sales-feed/snapshot [get]
+func (ctrl *AdminController) GetSalesFeedSnapshot(c *gin.Context) {
+	snapshot, err := ctrl.adminService.GetSalesFeedSnapshot(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get sales feed snapshot")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, snapshot)
+}
+
 // ListUsers returns paginated user list with optional filters (admin only).
 // @Summary      List users (admin)
 // @Description  Returns paginated users with optional filters by email, role, and active status.
