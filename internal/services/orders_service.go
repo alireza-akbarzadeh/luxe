@@ -22,6 +22,9 @@ type OrderServiceInterface interface {
 	UpdateOverdueOrders(ctx context.Context) error
 	UpdateOrderStatus(ctx context.Context, orderID uint, status string, actorID *uint) error
 	BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string, actorID *uint) (updated int64, err error)
+	AvailableTransitions(ctx context.Context, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
+	PerformTransition(ctx context.Context, orderID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
+	GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error)
 }
 
 // orderStatusToStateCode maps a legacy admin status string to a workflow state code.
@@ -426,4 +429,47 @@ func (s *orderService) findOrderByID(ctx context.Context, orderID uint, preloadU
 		return nil, err
 	}
 	return &order, nil
+}
+
+func (s *orderService) GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error) {
+	order, err := s.findOrderByID(ctx, orderID, true)
+	if err != nil {
+		if isRecordNotFound(err) {
+			return nil, utils.ErrNotFound("order not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return order, nil
+}
+
+func (s *orderService) AvailableTransitions(ctx context.Context, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetOrderAdmin(ctx, orderID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityOrder, orderID)
+}
+
+func (s *orderService) PerformTransition(
+	ctx context.Context,
+	orderID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetOrderAdmin(ctx, orderID); err != nil {
+		return nil, err
+	}
+	return s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityOrder,
+		EntityID:    orderID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
 }

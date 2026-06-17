@@ -103,3 +103,15 @@ type OrderResponse struct {
 	Status      string    `json:"status"`
 	CreatedAt   time.Time `json:"created_at"`
 }
+
+// PerformOrderTransitionRequest triggers a workflow event on an order (admin).
+type PerformOrderTransitionRequest struct {
+	Event string `json:"event" validate:"required,min=1,max=64"`
+	Note  string `json:"note"  validate:"omitempty,max=512"`
+}
+
+// OrderTransitionResponse is returned after a successful order workflow transition.
+type OrderTransitionResponse struct {
+	Transition TransitionResultView `json:"transition"`
+	Order      interface{}          `json:"order"` // models.Order in responses
+}

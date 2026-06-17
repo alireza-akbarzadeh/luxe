@@ -28,6 +28,8 @@ func SetupProductRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Co
 	{
 		admin.POST("/", ctrl.Product.Create)
 		admin.POST("/bulk", ctrl.Product.BulkCreate)
+		admin.GET("/:id/available-transitions", ctrl.Product.GetAvailableTransitions)
+		admin.POST("/:id/transition", ctrl.Product.PerformTransition)
 		admin.PUT("/:id", ctrl.Product.Update)
 		admin.DELETE("/:id", ctrl.Product.Delete)
 		admin.DELETE("/bulk", ctrl.Product.BulkDelete)

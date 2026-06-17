@@ -19,6 +19,8 @@ func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	admin.Use(middleware.RequireAdmin())
 	{
 		admin.GET("/", ctrl.Order.ListAllOrders)
+		admin.GET("/:id/available-transitions", ctrl.Order.GetAvailableTransitions)
+		admin.POST("/:id/transition", ctrl.Order.PerformTransition)
 		admin.PUT("/:id/status", ctrl.Order.UpdateOrderStatus)
 	}
 }

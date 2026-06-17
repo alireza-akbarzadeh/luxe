@@ -37,6 +37,8 @@ type ShipmentServiceInterface interface {
 	GetShipmentByID(id uint) (*models.Shipment, error)
 	GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error)
 	UpdateShipmentStatus(id uint, status string) error
+	AvailableTransitions(ctx context.Context, shipmentID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
+	PerformTransition(ctx context.Context, shipmentID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
 	CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error)
 	SimulateDeliveries() error
 
@@ -289,6 +291,38 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 	})
 
 	return nil
+}
+
+func (s *shipmentService) AvailableTransitions(ctx context.Context, shipmentID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetShipmentByID(shipmentID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityShipment, shipmentID)
+}
+
+func (s *shipmentService) PerformTransition(
+	ctx context.Context,
+	shipmentID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetShipmentByID(shipmentID); err != nil {
+		return nil, err
+	}
+	return s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityShipment,
+		EntityID:    shipmentID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
 }
 
 func (s *shipmentService) getShipmentStatusNotificationMessage(status, trackingNumber string) (string, string) {

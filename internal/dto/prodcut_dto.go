@@ -323,3 +323,15 @@ type ProductAttributeResponse struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
 }
+
+// PerformProductTransitionRequest triggers a workflow event on a product (admin).
+type PerformProductTransitionRequest struct {
+	Event string `json:"event" validate:"required,min=1,max=64"`
+	Note  string `json:"note"  validate:"omitempty,max=512"`
+}
+
+// ProductTransitionResponse is returned after a successful product workflow transition.
+type ProductTransitionResponse struct {
+	Transition TransitionResultView `json:"transition"`
+	Product    ProductResponse      `json:"product"`
+}

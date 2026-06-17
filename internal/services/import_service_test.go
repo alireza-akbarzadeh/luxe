@@ -2,11 +2,13 @@ package services
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/xuri/excelize/v2"
 )
@@ -38,6 +40,12 @@ func (m *mockProductSvc) GetRelated(_ uint, _ int) ([]*models.Product, error)   
 func (m *mockProductSvc) GetSuggestions(_ []uint, _ int) ([]*models.Product, error)       { return nil, nil }
 func (m *mockProductSvc) GetByStoreID(_ uint, _ int, _ int, _ dto.ProductListFilters) ([]*models.Product, int64, error) {
 	return nil, 0, nil
+}
+func (m *mockProductSvc) AvailableTransitions(_ context.Context, _ uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	return nil, nil, nil
+}
+func (m *mockProductSvc) PerformTransition(_ context.Context, _ uint, _, _, _ string, _ *uint) (*workflow.TransitionResult, error) {
+	return nil, nil
 }
 
 type mockCategorySvc struct {

@@ -279,3 +279,87 @@ func (ctrl *OrderController) CancelOrder(c *gin.Context) {
 	}
 	utils.SuccessResponse(c, "order cancelled successfully", nil)
 }
+
+// GetAvailableTransitions lists workflow actions allowed for an order (admin).
+// @Summary      List order workflow transitions (admin)
+// @Tags         Orders
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Order ID"
+// @Success      200 {object} utils.Response
+// @Router       /orders/{id}/available-transitions [get]
+func (ctrl *OrderController) GetAvailableTransitions(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.orderService.AvailableTransitions(c.Request.Context(), orderID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load order transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to an order (admin).
+// @Summary      Transition order workflow state (admin)
+// @Description  Fires events such as start_processing, ship, deliver, refund, or cancel with guards and hooks.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Order ID"
+// @Param        request body dto.PerformOrderTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response
+// @Router       /orders/{id}/transition [post]
+func (ctrl *OrderController) PerformTransition(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformOrderTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.orderService.PerformTransition(
+		c.Request.Context(),
+		orderID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition order")
+		return
+	}
+
+	order, err := ctrl.orderService.GetOrderAdmin(c.Request.Context(), orderID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload order")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.OrderTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Order:      order,
+	})
+}

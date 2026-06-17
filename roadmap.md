@@ -82,14 +82,43 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 ## Next focus (long-term)
 - Domain modularization (group by domain, not layer).
 
-## Phase 6: Workflow state machine (in progress)
+---
+
+## Phase 6: Workflow state machine
+
+### 6A — Engine & data (done)
 - [x] DB-driven engine: workflows, states, transitions, audit logs, guards, hooks.
 - [x] Seed definitions for order, product, shipment, return, user lifecycles.
-- [x] Workflow CRUD + transition/history API (`/workflows/*`, `/admin/workflows/*`).
-- [x] Partial service integration: order, product, shipment, checkout use `SetState` sync.
-- [x] Return domain: `ReturnService`, customer + admin routes, workflow transitions.
-- [x] User workflow sync on register, email verify, admin active toggle.
-- [x] Checkout cancel uses validated `Transition("cancel")` with hook-driven notifications.
-- [x] Migrate order/shipment/checkout status writes to event-driven `Transition` (with SetState fallback).
-- [ ] Engine unit tests + integration tests for return/cancel flows.
-- [ ] Frontend: consume workflow definitions for status badges and action buttons.
+- [x] Workflow CRUD + generic API (`/workflows/*`, `/admin/workflows/*`).
+- [x] Makefile/DB setup for existing `docker-psql_bp-1` + `shopping_platform` database.
+
+### 6B — Service integration (done)
+- [x] Order, product, shipment, checkout, return, user lifecycle sync.
+- [x] Event-driven `Transition` with `SetState` fallback + hooks (cancel, paid, shipped, publish, etc.).
+- [x] Return domain: `ReturnService` + customer/admin routes.
+
+### 6C — Admin transition APIs (done)
+- [x] Product: `GET/POST /products/:id/available-transitions|transition`
+- [x] Return: `GET/POST /admin/returns`, `POST /admin/returns/:id/transition`
+- [x] Order: `GET/POST /orders/:id/available-transitions|transition`
+- [x] Shipment: `GET/POST /shipments/:id/available-transitions|transition`
+- [ ] Deprecate legacy `PUT /orders/:id/status` and `PUT /shipments/:id/status` once admin UI uses transitions
+
+### 6D — Tests & docs (next)
+- [ ] Integration tests: order cancel, return refund, product publish (real Postgres, skip if no `DATABASE_URL`)
+- [x] Unit tests: `mirrorStatus`, role checks, nil-engine sync helpers
+- [ ] Document workflow in `documentation/architecture.md`
+- [ ] Regenerate Swagger (`make swagger`)
+
+### 6E — Frontend (luxe-front)
+- [ ] Shared hook: `useWorkflow(key)` → definition + state colors
+- [ ] Admin product table: status badge from workflow state
+- [ ] Admin product detail: action buttons from `available-transitions`
+- [ ] Admin order detail: same pattern
+- [ ] Optional: workflow history timeline component (`GET /workflows/:key/:id/history`)
+
+### Suggested order of work
+1. **Integration tests (6D)** — lock in cancel/refund/publish/deliver flows before frontend work.
+2. **Workflow docs + Swagger (6D)** — `documentation/architecture.md` + `make swagger`.
+3. **Frontend badges + actions (6E)** — highest user-visible value.
+4. **Retire legacy status PUT** — once admin UI uses transitions everywhere.

@@ -20,6 +20,8 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 	adminShipments.Use(middleware.RequireAdmin())
 	{
 		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
+		adminShipments.GET("/:id/available-transitions", ctrl.Shipment.GetAvailableTransitions)
+		adminShipments.POST("/:id/transition", ctrl.Shipment.PerformTransition)
 		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
 		// No DELETE /shipments – that doesn't make sense; shipments are usually not deleted.
 	}

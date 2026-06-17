@@ -197,6 +197,90 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 	utils.SuccessResponse(c, "shipment status updated successfully", nil)
 }
 
+// GetAvailableTransitions lists workflow actions allowed for a shipment (admin).
+// @Summary      List shipment workflow transitions (admin)
+// @Tags         Shipments
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Shipment ID"
+// @Success      200 {object} utils.Response
+// @Router       /shipments/{id}/available-transitions [get]
+func (ctrl *ShipmentController) GetAvailableTransitions(c *gin.Context) {
+	shipmentID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.shipmentService.AvailableTransitions(c.Request.Context(), shipmentID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load shipment transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to a shipment (admin).
+// @Summary      Transition shipment workflow state (admin)
+// @Description  Fires events such as ready, pick_up, depart, out_for_delivery, deliver, or return_to_sender.
+// @Tags         Shipments
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Shipment ID"
+// @Param        request body dto.PerformShipmentTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response
+// @Router       /shipments/{id}/transition [post]
+func (ctrl *ShipmentController) PerformTransition(c *gin.Context) {
+	shipmentID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformShipmentTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.shipmentService.PerformTransition(
+		c.Request.Context(),
+		shipmentID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition shipment")
+		return
+	}
+
+	shipment, err := ctrl.shipmentService.GetShipmentByID(shipmentID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload shipment")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.ShipmentTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Shipment:   shipment,
+	})
+}
+
 // GetShippingProviders godoc
 // @Summary      Get active shipping providers
 // @Description  Returns all active shipping providers (public)

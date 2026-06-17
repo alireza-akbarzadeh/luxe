@@ -13,12 +13,12 @@ import (
 	"gorm.io/gorm"
 )
 
-// productStatusToStateCode maps a legacy product status to a workflow state code.
-var productStatusToStateCode = map[string]string{
-	"draft":    "draft",
-	"active":   "published",
-	"inactive": "discontinued",
-	"archived": "archived",
+// setProductState syncs a product status into the workflow engine (best-effort).
+func (s *productService) setProductState(ctx context.Context, productID uint, status, actorRole string, actorID *uint) {
+	if !applyProductWorkflow(ctx, s.engine, productID, status, actorRole, actorID) {
+		utils.Log.WithField("product_id", productID).WithField("status", status).
+			Debug("product workflow sync skipped or failed")
+	}
 }
 
 type ProductServiceInterface interface {
@@ -34,6 +34,8 @@ type ProductServiceInterface interface {
 	GetRelated(productID uint, limit int) ([]*models.Product, error)
 	GetSuggestions(productIDs []uint, limit int) ([]*models.Product, error)
 	GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
+	AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
+	PerformTransition(ctx context.Context, productID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
 }
 
 type productService struct {
@@ -43,23 +45,6 @@ type productService struct {
 
 func NewProductService(db *gorm.DB, engine *workflow.Engine) ProductServiceInterface {
 	return &productService{db: db, engine: engine}
-}
-
-// setProductState syncs a product status into the workflow engine (best-effort).
-func (s *productService) setProductState(productID uint, status string) {
-	code, ok := productStatusToStateCode[status]
-	if !ok || s.engine == nil {
-		return
-	}
-	if _, err := s.engine.SetState(context.Background(), workflow.SetStateRequest{
-		WorkflowKey:     constants.WorkflowEntityProduct,
-		EntityID:        productID,
-		TargetStateCode: code,
-		Event:           "status_update",
-	}); err != nil {
-		utils.Log.WithError(err).WithField("product_id", productID).
-			Warn("failed to sync product workflow state")
-	}
 }
 
 // UniqSlug ensureUniqueSlug checks and modifies slug to be unique.
@@ -141,7 +126,7 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 	if err := s.db.Create(&product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	s.setProductState(product.ID, product.Status)
+	s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
 	return &product, nil
 }
 
@@ -260,7 +245,7 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		return nil, utils.ErrInternal(err)
 	}
 	if req.Status != nil {
-		s.setProductState(product.ID, product.Status)
+		s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
 	}
 
 	// Replace attributes wholesale if provided
@@ -541,4 +526,49 @@ func (s *productService) GetSuggestions(productIDs []uint, limit int) ([]*models
 func (s *productService) GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error) {
 	filters.StoreID = &storeID
 	return s.List(limit, offset, filters)
+}
+
+func (s *productService) ensureProductExists(ctx context.Context, productID uint) error {
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", productID).Count(&count).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+	if count == 0 {
+		return utils.ErrNotFound("product not found")
+	}
+	return nil
+}
+
+// AvailableTransitions lists workflow actions allowed for a product from its current state.
+func (s *productService) AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(errors.New("workflow engine not configured"))
+	}
+	if err := s.ensureProductExists(ctx, productID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityProduct, productID)
+}
+
+// PerformTransition applies a workflow event to a product (admin or allowed roles per seed rules).
+func (s *productService) PerformTransition(
+	ctx context.Context,
+	productID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(errors.New("workflow engine not configured"))
+	}
+	if err := s.ensureProductExists(ctx, productID); err != nil {
+		return nil, err
+	}
+	return s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityProduct,
+		EntityID:    productID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
 }

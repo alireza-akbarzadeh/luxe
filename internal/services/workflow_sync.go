@@ -136,3 +136,48 @@ func applyShipmentWorkflow(ctx context.Context, engine *workflow.Engine, shipmen
 	}
 	syncWorkflowState(ctx, engine, constants.WorkflowEntityShipment, shipmentID, code, "status_update", nil)
 }
+
+// productStatusToEvent maps legacy product status changes to workflow events (admin actions).
+var productStatusToEvent = map[string]string{
+	constants.ProductStatusActive: "publish",
+}
+
+// productStatusToStateCode maps legacy product status strings to workflow state codes.
+var productStatusToStateCode = map[string]string{
+	"draft":                            "draft",
+	constants.ProductStatusActive:      "published",
+	constants.ProductStatusInactive:    "discontinued",
+	constants.ProductStatusArchived:    "archived",
+}
+
+// applyProductWorkflow tries a validated transition first, then falls back to SetState.
+func applyProductWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	productID uint,
+	status, actorRole string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if event, ok := productStatusToEvent[status]; ok {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityProduct,
+			EntityID:    productID,
+			Event:       event,
+			ActorID:     actorID,
+			ActorRole:   actorRole,
+		}); err == nil {
+			return true
+		}
+	}
+
+	code, ok := productStatusToStateCode[status]
+	if !ok {
+		return false
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityProduct, productID, code, "status_update", actorID)
+	return true
+}

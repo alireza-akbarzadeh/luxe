@@ -386,3 +386,88 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 	}
 	utils.SuccessResponse(c, "suggestions fetched", responses)
 }
+
+// GetAvailableTransitions lists workflow actions allowed for a product (admin).
+// @Summary      List product workflow transitions (admin)
+// @Description  Returns available workflow events from the product's current state (approve, publish, discontinue, etc.).
+// @Tags         Products
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Product ID"
+// @Success      200 {object} utils.Response
+// @Router       /products/{id}/available-transitions [get]
+func (ctrl *ProductController) GetAvailableTransitions(c *gin.Context) {
+	productID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.productService.AvailableTransitions(c.Request.Context(), productID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load product transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to a product (admin).
+// @Summary      Transition product workflow state (admin)
+// @Description  Fires a workflow event such as approve, publish, discontinue, or archive. Updates product status via the engine mirror.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Product ID"
+// @Param        request body dto.PerformProductTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response{data=dto.ProductTransitionResponse}
+// @Router       /products/{id}/transition [post]
+func (ctrl *ProductController) PerformTransition(c *gin.Context) {
+	productID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformProductTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.productService.PerformTransition(
+		c.Request.Context(),
+		productID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition product")
+		return
+	}
+
+	product, err := ctrl.productService.GetByID(productID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload product")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.ProductTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Product:    dto.ToProductResponse(*product),
+	})
+}
