@@ -1,6 +1,6 @@
-# ──────────────────────────────────────────────────────────────────────────────
 # LUXE — Shopping Platform Backend (Go)
 # Cursor / AI rules — follow for every new task
+# See also: AGENTS.md, documentation/architecture.md
 # ──────────────────────────────────────────────────────────────────────────────
 
 # 1. PROJECT OVERVIEW
@@ -32,9 +32,8 @@ architecture:
     This is the standard pattern for most services (brand, checkout, auth, etc.).
 
   repositories: |
-    internal/repositories/ exists only for cart, order, product (read), audit — transitional.
-    Do NOT add new repository files for simple CRUD entities.
-    When touching cart/order/audit, prefer consolidating into services over expanding repos.
+    Removed — all data access lives in services via *gorm.DB.
+    Use private query helpers on the service for complex lists/filters.
 
   service_responsibilities:
     - Domain validation and business rules
@@ -93,7 +92,6 @@ directories:
     jobs/                     # cron
     websocket/
     utils/                    # response, errors, logger, password, email
-    repositories/             # transitional — do not expand without reason
   tests/
     integration/              # real Postgres; setup_test.go TestMain
     e2e/

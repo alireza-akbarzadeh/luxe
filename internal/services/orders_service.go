@@ -8,9 +8,9 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/repositories"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
+	"gorm.io/gorm"
 )
 
 type OrderServiceInterface interface {
@@ -22,20 +22,20 @@ type OrderServiceInterface interface {
 }
 
 type orderService struct {
-	orders              repositories.OrderRepository
+	db                  *gorm.DB
 	notificationService NotificationServiceInterface
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
 }
 
 func NewOrderService(
-	orders repositories.OrderRepository,
+	db *gorm.DB,
 	notificationService NotificationServiceInterface,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
 ) OrderServiceInterface {
 	return &orderService{
-		orders:              orders,
+		db:                  db,
 		notificationService: notificationService,
 		hub:                 hub,
 		salesFeed:           salesFeed,
@@ -46,6 +46,31 @@ const (
 	DefaultShippingProvider = "standard"
 )
 
+type orderListQuery struct {
+	UserID      *uint
+	Status      string
+	FromDate    *time.Time
+	ToDate      *time.Time
+	MinAmount   *float64
+	MaxAmount   *float64
+	Limit       int
+	Offset      int
+	PreloadUser bool
+}
+
+func orderFiltersFromDTO(userID uint, filters dto.OrderListFilters) orderListQuery {
+	return orderListQuery{
+		UserID:    &userID,
+		Status:    filters.Status,
+		FromDate:  filters.FromDate,
+		ToDate:    filters.ToDate,
+		MinAmount: filters.MinAmount,
+		MaxAmount: filters.MaxAmount,
+		Limit:     filters.Limit,
+		Offset:    filters.Offset,
+	}
+}
+
 func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error) {
 	if filters.Limit == 0 {
 		filters.Limit = 20
@@ -54,8 +79,8 @@ func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) 
 		filters.Limit = 100
 	}
 
-	q := repositories.OrderFiltersFromDTO(userID, filters)
-	orders, total, err := s.orders.List(context.Background(), q)
+	q := orderFiltersFromDTO(userID, filters)
+	orders, total, err := s.listOrders(context.Background(), q)
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
@@ -64,9 +89,9 @@ func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) 
 
 func (s *orderService) UpdateOrderStatus(orderID uint, status string) error {
 	ctx := context.Background()
-	order, err := s.orders.FindByID(ctx, orderID, true)
+	order, err := s.findOrderByID(ctx, orderID, true)
 	if err != nil {
-		if repositories.IsRecordNotFound(err) {
+		if isRecordNotFound(err) {
 			return utils.ErrNotFound("order not found")
 		}
 		return utils.ErrInternal(err)
@@ -75,7 +100,7 @@ func (s *orderService) UpdateOrderStatus(orderID uint, status string) error {
 	oldStatus := order.Status
 	order.Status = status
 
-	if err := s.orders.Save(ctx, order); err != nil {
+	if err := s.db.WithContext(ctx).Save(order).Error; err != nil {
 		return utils.ErrInternal(err)
 	}
 
@@ -158,9 +183,9 @@ func (s *orderService) getOrderStatusNotificationMessage(status, orderNumber str
 }
 
 func (s *orderService) GetOrderByID(orderID uint, userID uint) (*models.Order, error) {
-	order, err := s.orders.FindByIDAndUserID(context.Background(), orderID, userID)
+	order, err := s.findOrderByIDAndUserID(context.Background(), orderID, userID)
 	if err != nil {
-		if repositories.IsRecordNotFound(err) {
+		if isRecordNotFound(err) {
 			return nil, utils.ErrNotFound("order not found")
 		}
 		return nil, utils.ErrInternal(err)
@@ -174,7 +199,7 @@ type AdminOrderFilters struct {
 }
 
 func (s *orderService) GetAllOrders(filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
-	q := repositories.OrderListQuery{
+	q := orderListQuery{
 		UserID:      filters.UserID,
 		Status:      filters.Status,
 		FromDate:    filters.FromDate,
@@ -186,7 +211,7 @@ func (s *orderService) GetAllOrders(filters AdminOrderFilters, limit, offset int
 		PreloadUser: true,
 	}
 
-	orders, total, err := s.orders.List(context.Background(), q)
+	orders, total, err := s.listOrders(context.Background(), q)
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
@@ -197,7 +222,11 @@ func (s *orderService) UpdateOverdueOrders() error {
 	ctx := context.Background()
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
 
-	orders, err := s.orders.FindOverduePaid(ctx, cutoff)
+	var orders []models.Order
+	err := s.db.WithContext(ctx).
+		Where("status = ? AND updated_at < ?", constants.OrderStatusPaid, cutoff).
+		Not("status IN (?)", []string{constants.OrderStatusDelivered, constants.OrderStatusCancelled, constants.OrderStatusRefunded}).
+		Find(&orders).Error
 	if err != nil {
 		return utils.ErrInternal(err)
 	}
@@ -210,7 +239,7 @@ func (s *orderService) UpdateOverdueOrders() error {
 	for _, order := range orders {
 		oldStatus := order.Status
 		order.Status = "delayed"
-		if err := s.orders.Save(ctx, &order); err != nil {
+		if err := s.db.WithContext(ctx).Save(&order).Error; err != nil {
 			utils.Log.WithError(err).Errorf("Failed to update order %d to delayed", order.ID)
 			continue
 		}
@@ -233,4 +262,78 @@ func (s *orderService) UpdateOverdueOrders() error {
 		}(order)
 	}
 	return nil
+}
+
+func (s *orderService) applyOrderListFilters(query *gorm.DB, q orderListQuery) *gorm.DB {
+	if q.UserID != nil {
+		query = query.Where("user_id = ?", *q.UserID)
+	}
+	if q.Status != "" {
+		query = query.Where("status = ?", q.Status)
+	}
+	if q.FromDate != nil {
+		query = query.Where("created_at >= ?", q.FromDate)
+	}
+	if q.ToDate != nil {
+		query = query.Where("created_at <= ?", q.ToDate)
+	}
+	if q.MinAmount != nil {
+		query = query.Where("total_amount >= ?", *q.MinAmount)
+	}
+	if q.MaxAmount != nil {
+		query = query.Where("total_amount <= ?", *q.MaxAmount)
+	}
+	return query
+}
+
+func (s *orderService) listOrders(ctx context.Context, q orderListQuery) ([]models.Order, int64, error) {
+	var orders []models.Order
+	var total int64
+
+	query := s.applyOrderListFilters(s.db.WithContext(ctx).Model(&models.Order{}), q)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	listQuery := s.applyOrderListFilters(s.db.WithContext(ctx).Model(&models.Order{}), q)
+	listQuery = listQuery.Limit(q.Limit).Offset(q.Offset).
+		Preload("Items.Product").
+		Preload("Payment").
+		Preload("Shipment").
+		Order("created_at DESC")
+
+	if q.PreloadUser {
+		listQuery = listQuery.Preload("User")
+	}
+
+	if err := listQuery.Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+	return orders, total, nil
+}
+
+func (s *orderService) findOrderByIDAndUserID(ctx context.Context, orderID, userID uint) (*models.Order, error) {
+	var order models.Order
+	err := s.db.WithContext(ctx).
+		Where("id = ? AND user_id = ?", orderID, userID).
+		Preload("Items.Product").
+		Preload("Payment").
+		Preload("Shipment").
+		First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (s *orderService) findOrderByID(ctx context.Context, orderID uint, preloadUser bool) (*models.Order, error) {
+	q := s.db.WithContext(ctx)
+	if preloadUser {
+		q = q.Preload("User")
+	}
+	var order models.Order
+	if err := q.First(&order, orderID).Error; err != nil {
+		return nil, err
+	}
+	return &order, nil
 }

@@ -3,7 +3,6 @@ package services
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/repositories"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
@@ -41,38 +40,22 @@ type Services struct {
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
-	// 1. WebSocket hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
 	salesFeedSvc := NewSalesFeedService(wsHub)
 
-	// 2. Services that depend on hub
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)
-
-	// 3. Payment service
 	paymentSvc := NewPaymentService(db, cfg)
-
-	// Repositories
-	cartRepo := repositories.NewCartRepository(db)
-	productRepo := repositories.NewProductRepository(db)
-	orderRepo := repositories.NewOrderRepository(db)
-	auditRepo := repositories.NewAuditRepository(db)
-
-	// 4. Shipment service (now also receives the hub for delivery broadcasts)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub)
-
-	// 5. Order service with all dependencies
-	orderSvc := NewOrderService(orderRepo, notificationSvc, wsHub, salesFeedSvc)
-	checkoutSvc := NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, jobQueue, wsHub, salesFeedSvc, StripeEnabled(cfg))
 	productSvc := NewProductService(db)
-	auditSvc := NewAuditService(auditRepo)
+
 	return &Services{
 		DB:           db,
 		Auth:         NewAuthServices(db, cfg),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
-		Cart:         NewCartService(cartRepo, productRepo),
+		Cart:         NewCartService(db),
 		NavMenu:      NewNavMenuService(db),
 		Product:      productSvc,
 		Pdp:          NewPdpService(db, notificationSvc, productSvc),
@@ -82,19 +65,19 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Menu:         NewMenuService(db),
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
-		Shipment:     NewShipmentService(db, jobQueue, notificationSvc, wsHub),
+		Shipment:     shipmentSvc,
 		Wallet:       NewWalletService(db),
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),
 		Settings:     NewSettingService(db),
-		Checkout:     checkoutSvc,
-		Order:        orderSvc,
+		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, jobQueue, wsHub, salesFeedSvc, StripeEnabled(cfg)),
+		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
-		Audit:        auditSvc,
+		Audit:        NewAuditService(db),
 		Upload:       NewUploadService(cfg),
 	}
 }

@@ -1,5 +1,9 @@
 # Project Roadmap
 
+> **Note for AI / contributors:** This file is a historical planning doc. Many items below are already done or superseded.
+> **Use `.cursorrules`, `AGENTS.md`, and `documentation/architecture.md` for current conventions.**
+> Verify the codebase before treating unchecked boxes as still required (e.g. repository layer is transitional, not a goal).
+
 ## Goal
 Bring `go-shopping` from a working backend project to a production-ready, maintainable e-commerce platform.
 

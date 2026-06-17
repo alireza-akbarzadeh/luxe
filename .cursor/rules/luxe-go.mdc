@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Luxe Backend — AI Rules
 
+Also read: `AGENTS.md`, `documentation/architecture.md`, full `.cursorrules`.
+
 ## Stack
 Go · Gin · GORM · PostgreSQL · Goose · JWT · Asynq (optional Redis) · Sentry · OTEL (optional)
 
@@ -14,7 +16,7 @@ Controller → Service (*gorm.DB + business logic) → PostgreSQL
 ```
 - **Controllers**: bind DTO, validate, `c.Request.Context()`, `utils.Response` only. No DB, no business rules.
 - **Services**: validation, transactions, orchestration, domain errors (`utils.Err*`).
-- **Do not add** new `internal/repositories/` files for simple CRUD. Existing repos (cart/order/audit) are transitional.
+- **Do not add** `internal/repositories/` — data access lives in services via `*gorm.DB`.
 
 ## New feature order
 migration (schema only) → model → dto → service → register in `services.go` → controller → `container.go` → routes → swagger comments → `make swagger` → tests

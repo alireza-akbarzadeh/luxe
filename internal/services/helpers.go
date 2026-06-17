@@ -10,7 +10,12 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 )
+
+func isRecordNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
 
 func generateSlug(name string) string {
 	slug := strings.ToLower(name)

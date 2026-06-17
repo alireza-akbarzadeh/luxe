@@ -1,5 +1,8 @@
 # Code Review Plan
 
+> **Note for AI / contributors:** Several findings below are outdated (graceful shutdown, health checks, Sentry, OTEL, integration tests, Swagger, and more already exist).
+> **Use `.cursorrules`, `AGENTS.md`, and `documentation/architecture.md` for current standards.**
+
 ## Overview
 This document captures the main code quality findings for the `go-shopping` project and recommends targeted improvements to take the project to the next level.
 
