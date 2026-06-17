@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
@@ -19,10 +20,21 @@ type OrderServiceInterface interface {
 	GetOrderByID(ctx context.Context, orderID uint, userID uint) (*models.Order, error)
 	GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error)
 	UpdateOverdueOrders(ctx context.Context) error
-	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
-	BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string) (updated int64, err error)
+	UpdateOrderStatus(ctx context.Context, orderID uint, status string, actorID *uint) error
+	BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string, actorID *uint) (updated int64, err error)
 }
 
+// orderStatusToStateCode maps a legacy admin status string to a workflow state code.
+var orderStatusToStateCode = map[string]string{
+	constants.OrderStatusPending:   "pending_payment",
+	constants.OrderStatusPaid:      "paid",
+	"processing":                   "processing",
+	constants.OrderStatusShipped:   "shipped",
+	constants.OrderStatusDelivered: "delivered",
+	"completed":                    "completed",
+	constants.OrderStatusCancelled: "cancelled",
+	constants.OrderStatusRefunded:  "refunded",
+}
 
 type orderService struct {
 	db                  *gorm.DB
@@ -30,6 +42,7 @@ type orderService struct {
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
 	jobQueue            tasks.JobQueue
+	engine              *workflow.Engine
 }
 
 func NewOrderService(
@@ -38,6 +51,7 @@ func NewOrderService(
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
 	jobQueue tasks.JobQueue,
+	engine *workflow.Engine,
 ) OrderServiceInterface {
 	return &orderService{
 		db:                  db,
@@ -45,7 +59,32 @@ func NewOrderService(
 		hub:                 hub,
 		salesFeed:           salesFeed,
 		jobQueue:            jobQueue,
+		engine:              engine,
 	}
+}
+
+// applyOrderState persists an order status change through the workflow engine
+// (updating workflow_state_id + status mirror + audit history). Falls back to a
+// direct status write when no state mapping exists (e.g. "delayed") or the engine
+// is unavailable.
+func (s *orderService) applyOrderState(ctx context.Context, order *models.Order, status string, actorID *uint) error {
+	code, ok := orderStatusToStateCode[status]
+	if ok && s.engine != nil {
+		_, err := s.engine.SetState(ctx, workflow.SetStateRequest{
+			WorkflowKey:     constants.WorkflowEntityOrder,
+			EntityID:        order.ID,
+			TargetStateCode: code,
+			Event:           "admin_set",
+			ActorID:         actorID,
+		})
+		if err == nil {
+			order.Status = status
+			return nil
+		}
+		utils.Log.WithError(err).WithField("order_id", order.ID).Warn("engine SetState failed; writing status directly")
+	}
+	order.Status = status
+	return s.db.WithContext(ctx).Model(order).Update("status", status).Error
 }
 
 const (
@@ -93,7 +132,7 @@ func (s *orderService) GetUserOrders(ctx context.Context, userID uint, filters d
 	return orders, total, nil
 }
 
-func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, status string) error {
+func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, status string, actorID *uint) error {
 	order, err := s.findOrderByID(ctx, orderID, true)
 	if err != nil {
 		if isRecordNotFound(err) {
@@ -103,9 +142,8 @@ func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 	}
 
 	oldStatus := order.Status
-	order.Status = status
 
-	if err := s.db.WithContext(ctx).Save(order).Error; err != nil {
+	if err := s.applyOrderState(ctx, order, status, actorID); err != nil {
 		return utils.ErrInternal(err)
 	}
 
@@ -247,7 +285,7 @@ func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilte
 	return orders, total, nil
 }
 
-func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string) (int64, error) {
+func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string, actorID *uint) (int64, error) {
 	if len(orderIDs) == 0 {
 		return 0, utils.ErrBadRequest("no order IDs provided")
 	}
@@ -261,13 +299,29 @@ func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uin
 		return 0, utils.ErrBadRequest("invalid bulk status; allowed: paid, shipped, delivered, cancelled")
 	}
 
-	result := s.db.WithContext(ctx).Model(&models.Order{}).
-		Where("id IN ?", orderIDs).
-		Update("status", status)
-	if result.Error != nil {
-		return 0, utils.ErrInternal(result.Error)
+	code := orderStatusToStateCode[status]
+	var updated int64
+	for _, id := range orderIDs {
+		if s.engine != nil && code != "" {
+			if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
+				WorkflowKey:     constants.WorkflowEntityOrder,
+				EntityID:        id,
+				TargetStateCode: code,
+				Event:           "admin_bulk_set",
+				ActorID:         actorID,
+			}); err != nil {
+				utils.Log.WithError(err).WithField("order_id", id).Warn("bulk SetState failed; skipping")
+				continue
+			}
+			updated++
+			continue
+		}
+		res := s.db.WithContext(ctx).Model(&models.Order{}).Where("id = ?", id).Update("status", status)
+		if res.Error == nil {
+			updated += res.RowsAffected
+		}
 	}
-	return result.RowsAffected, nil
+	return updated, nil
 }
 
 func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {

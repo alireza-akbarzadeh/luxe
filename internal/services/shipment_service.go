@@ -9,11 +9,21 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
+
+// shipmentStatusToStateCode maps a legacy shipment status to a workflow state code.
+var shipmentStatusToStateCode = map[string]string{
+	"pending":    "pending",
+	"processing": "ready_for_pickup",
+	"shipped":    "in_transit",
+	"delivered":  "delivered",
+	"cancelled":  "returned",
+}
 
 type CreateShipmentRequest struct {
 	OrderID        uint    `json:"order_id" validate:"required,gt=0"`
@@ -50,6 +60,7 @@ type shipmentService struct {
 	workerPool          tasks.JobQueue
 	notificationService NotificationServiceInterface
 	wsHub               *websocket.Hub
+	engine              *workflow.Engine
 }
 
 func NewShipmentService(
@@ -57,12 +68,31 @@ func NewShipmentService(
 	workerPool tasks.JobQueue,
 	notificationService NotificationServiceInterface,
 	wsHub *websocket.Hub,
+	engine *workflow.Engine,
 ) ShipmentServiceInterface {
 	return &shipmentService{
 		db:                  db,
 		workerPool:          workerPool,
 		notificationService: notificationService,
 		wsHub:               wsHub,
+		engine:              engine,
+	}
+}
+
+// setShipmentState syncs a shipment status into the workflow engine (best-effort).
+func (s *shipmentService) setShipmentState(ctx context.Context, shipmentID uint, status string) {
+	code, ok := shipmentStatusToStateCode[status]
+	if !ok || s.engine == nil {
+		return
+	}
+	if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
+		WorkflowKey:     constants.WorkflowEntityShipment,
+		EntityID:        shipmentID,
+		TargetStateCode: code,
+		Event:           "status_update",
+	}); err != nil {
+		utils.Log.WithError(err).WithField("shipment_id", shipmentID).
+			Warn("failed to sync shipment workflow state")
 	}
 }
 
@@ -169,6 +199,7 @@ func (s *shipmentService) processShipment(ctx context.Context, shipmentID uint) 
 		Update("status", "processing").Error; err != nil {
 		return err
 	}
+	s.setShipmentState(ctx, shipmentID, "processing")
 
 	utils.Log.Infof("Shipment %d processed in background", shipmentID)
 
@@ -260,6 +291,8 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 	if result.RowsAffected == 0 {
 		return utils.ErrNotFound(constants.ErrShipmentNotFound)
 	}
+
+	s.setShipmentState(context.Background(), id, status)
 
 	// Broadcast status change
 	title, message := s.getShipmentStatusNotificationMessage(status, shipment.TrackingNumber)
@@ -391,6 +424,7 @@ func (s *shipmentService) SimulateDeliveries() error {
 			utils.Log.WithError(err).Errorf("Failed to mark shipment %d as delivered", shipment.ID)
 			continue
 		}
+		s.setShipmentState(context.Background(), shipment.ID, constants.ShipmentStatusDelivered)
 
 		// Broadcast delivery event to the order room
 		s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_delivered", map[string]interface{}{

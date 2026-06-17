@@ -238,7 +238,11 @@ func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.orderService.UpdateOrderStatus(c.Request.Context(), uint(orderID), req.Status); err != nil {
+	var actorID *uint
+	if uid, ok := middleware.GetUserID(c); ok {
+		actorID = &uid
+	}
+	if err := ctrl.orderService.UpdateOrderStatus(c.Request.Context(), orderID, req.Status, actorID); err != nil {
 		RespondServiceError(c, err, "failed to update order status")
 		return
 	}

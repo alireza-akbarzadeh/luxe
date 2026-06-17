@@ -232,6 +232,13 @@ const (
 	WebhookStatusReceived  = "received"
 	WebhookStatusProcessed = "processed"
 	WebhookStatusFailed    = "failed"
+
+	// Workflow entity types (also the workflow keys for the seeded workflows)
+	WorkflowEntityOrder    = "order"
+	WorkflowEntityProduct  = "product"
+	WorkflowEntityShipment = "shipment"
+	WorkflowEntityReturn   = "return"
+	WorkflowEntityUser     = "user"
 )
 
 // ==================== API routes ====================

@@ -7,6 +7,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -166,7 +167,11 @@ func (ctrl *AdminController) BulkUpdateOrderStatus(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	updated, err := ctrl.orderService.BulkUpdateOrderStatus(c.Request.Context(), req.OrderIDs, req.Status)
+	var actorID *uint
+	if uid, ok := middleware.GetUserID(c); ok {
+		actorID = &uid
+	}
+	updated, err := ctrl.orderService.BulkUpdateOrderStatus(c.Request.Context(), req.OrderIDs, req.Status, actorID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "bulk status update failed")
 		return

@@ -9,6 +9,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
@@ -33,6 +34,7 @@ type checkoutService struct {
 	workerPool          tasks.JobQueue
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
+	engine              *workflow.Engine
 	stripeEnabled       bool
 }
 
@@ -46,6 +48,7 @@ func NewCheckoutService(
 	workerPool tasks.JobQueue,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
+	engine *workflow.Engine,
 	stripeEnabled bool,
 ) CheckoutServiceInterface {
 	return &checkoutService{
@@ -58,7 +61,30 @@ func NewCheckoutService(
 		workerPool:          workerPool,
 		hub:                 hub,
 		salesFeed:           salesFeed,
+		engine:              engine,
 		stripeEnabled:       stripeEnabled,
+	}
+}
+
+// setOrderState moves an order to a workflow state via the engine (best-effort:
+// failures are logged but never block the core checkout/payment flow).
+func (s *checkoutService) setOrderState(ctx context.Context, orderID uint, stateCode, event string) {
+	s.setOrderStateActor(ctx, orderID, stateCode, event, nil)
+}
+
+func (s *checkoutService) setOrderStateActor(ctx context.Context, orderID uint, stateCode, event string, actorID *uint) {
+	if s.engine == nil {
+		return
+	}
+	if _, err := s.engine.SetState(ctx, workflow.SetStateRequest{
+		WorkflowKey:     constants.WorkflowEntityOrder,
+		EntityID:        orderID,
+		TargetStateCode: stateCode,
+		Event:           event,
+		ActorID:         actorID,
+	}); err != nil {
+		utils.Log.WithError(err).WithField("order_id", orderID).
+			WithField("state", stateCode).Warn("failed to sync order workflow state")
 	}
 }
 
@@ -122,6 +148,7 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 
 	s.db.WithContext(ctx).Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
 	s.sendOrderCreatedNotification(userID, order)
+	s.setOrderState(ctx, order.ID, "pending_payment", "order_created")
 
 	result := &dto.CheckoutResult{Order: order}
 
@@ -164,6 +191,8 @@ func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) e
 	if err != nil {
 		return err
 	}
+
+	s.setOrderState(ctx, orderID, "paid", "payment_succeeded")
 
 	txnID := ""
 	if order.Payment != nil {
@@ -242,6 +271,8 @@ func (s *checkoutService) ProcessOrder(ctx context.Context, orderID uint, cardIn
 	if err != nil {
 		return err
 	}
+
+	s.setOrderState(ctx, orderID, "paid", "payment_succeeded")
 
 	// Transaction committed – now handle shipment (outside transaction for performance)
 	return s.processShipment(ctx, orderID)
@@ -584,6 +615,8 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 	if err != nil {
 		return err
 	}
+
+	s.setOrderStateActor(ctx, order.ID, "cancelled", "cancel", &userID)
 
 	go func() {
 		_ = s.notificationService.CreateNotification(

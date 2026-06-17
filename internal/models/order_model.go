@@ -12,12 +12,13 @@ type Order struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	UserID      uint    `gorm:"not null;index" json:"user_id"`
-	OrderNumber string  `gorm:"uniqueIndex;not null" json:"order_number"`
-	Status      string  `gorm:"not null;default:'pending'" json:"status"`
-	TotalAmount float64 `gorm:"type:decimal(10,2);not null" json:"total_amount"`
-	Currency    string  `gorm:"not null;default:'USD'" json:"currency"`
-	Notes       string  `json:"notes,omitempty"`
+	UserID          uint    `gorm:"not null;index" json:"user_id"`
+	OrderNumber     string  `gorm:"uniqueIndex;not null" json:"order_number"`
+	Status          string  `gorm:"not null;default:'pending'" json:"status"`
+	WorkflowStateID *uint   `gorm:"index" json:"workflow_state_id,omitempty"`
+	TotalAmount     float64 `gorm:"type:decimal(10,2);not null" json:"total_amount"`
+	Currency        string  `gorm:"not null;default:'USD'" json:"currency"`
+	Notes           string  `json:"notes,omitempty"`
 
 	// Address IDs (separate addresses table could be added later)
 	BillingAddressID  *uint `json:"billing_address_id,omitempty"`

@@ -73,5 +73,11 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [x] Webhook event log: `webhook_events` table, idempotency check on every Stripe delivery, per-event status lifecycle (`received → processed | failed`), `GET /admin/webhooks` list endpoint.
 - [x] Import service unit tests: 9 table-driven tests covering category/product import (happy path, empty-name skip, service error, invalid price, store-ID fallback) and template generation.
 
+## Completed (long-term) — continued
+- [x] User order cancellation: `POST /orders/:id/cancel` — validates ownership + cancellable status (`pending`/`paid`), restores stock per item inside a transaction, refunds wallet-paid orders, cancels any pending shipment.
+- [x] Wallet payment deduction: fixed `ProcessOrder` to call `walletService.DeductForOrder` when `payment.Method == "wallet"` instead of incorrectly routing through mock card gateway.
+- [x] Order status emails: `UpdateOrderStatus` now enqueues async emails (via job queue) for `shipped`, `delivered`, and `cancelled` events using the user's preloaded email address.
+- [x] `webhook_event_service` cleanup: replaced hand-rolled `containsStr`/`stringContains` helpers with `strings.Contains`.
+
 ## Next focus (long-term)
 - Domain modularization (group by domain, not layer).

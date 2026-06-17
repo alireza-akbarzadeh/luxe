@@ -5,6 +5,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
@@ -43,6 +44,7 @@ type Services struct {
 	Admin        AdminServiceInterface
 	Import       ImportServiceInterface
 	WebhookEvent WebhookEventServiceInterface
+	Workflow     WorkflowServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -53,8 +55,13 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	notificationSvc := NewNotificationService(db, wsHub)
 	couponSvc := NewCouponService(db)
 	paymentSvc := NewPaymentService(db, cfg)
-	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub)
-	productSvc := NewProductService(db)
+	walletSvc := NewWalletService(db, cfg)
+
+	workflowEngine := workflow.NewEngine(db)
+	RegisterWorkflowGuardsAndHooks(workflowEngine, db, notificationSvc, walletSvc, jobQueue)
+
+	productSvc := NewProductService(db, workflowEngine)
+	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 
 	return &Services{
 		DB:           db,
@@ -72,13 +79,13 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Review:       NewReviewService(db),
 		UserLike:     NewUserLikeService(db),
 		Shipment:     shipmentSvc,
-		Wallet:       NewWalletService(db, cfg),
+		Wallet:       walletSvc,
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db),
 		Settings:     NewSettingService(db),
-		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, NewWalletService(db, cfg), jobQueue, wsHub, salesFeedSvc, StripeEnabled(cfg)),
-		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue),
+		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, StripeEnabled(cfg)),
+		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
 		WebSocketHub: wsHub,
@@ -88,6 +95,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Admin:        NewAdminService(db),
 		Import:       NewImportService(productSvc, NewCategoryService(db)),
 		WebhookEvent: NewWebhookEventService(db),
+		Workflow:     NewWorkflowService(db, workflowEngine),
 	}
 }
 
