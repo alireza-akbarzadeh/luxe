@@ -19,7 +19,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up stripe-listen dev-setup
+.PHONY: help build run clean test migrate-create migrate-up migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up stripe-listen dev-setup seed-dev
 
 # Default target
 help: ## Show this help message
@@ -47,7 +47,7 @@ run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"
 	go run ./cmd/api
 
-docker-up: ## Start PostgreSQL and Redis (docker compose)
+docker-up: ## Start PostgreSQL, Redis, and Jaeger (docker compose)
 	@echo "${GREEN}Starting PostgreSQL and Redis...${RESET}"
 	docker compose up -d postgres redis
 
@@ -56,6 +56,12 @@ stripe-listen: ## Forward Stripe webhooks to local API (requires Stripe CLI)
 	stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 
 dev-setup: docker-up migrate-up ## Start Postgres, Redis, and run migrations
+
+seed-dev: ## Load dev demo data (local/staging only; requires psql)
+	@echo "${GREEN}Seeding dev demo data...${RESET}"
+	@command -v psql >/dev/null 2>&1 || { echo "${YELLOW}psql not found — install PostgreSQL client or run via docker exec${RESET}"; exit 1; }
+	psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql
+	@echo "${GREEN}Dev seed complete${RESET}"
 
 clean: ## Clean build artifacts
 	@echo "${YELLOW}Cleaning build artifacts...${RESET}"

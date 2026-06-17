@@ -93,9 +93,9 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 		return
 	}
 
-	orders, total, err := ctrl.orderService.GetUserOrders(userID, req)
+	orders, total, err := ctrl.orderService.GetUserOrders(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get orders")
+		RespondServiceError(c, err, "failed to get orders")
 		return
 	}
 
@@ -173,9 +173,9 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 		}
 	}
 
-	orders, total, err := ctrl.orderService.GetAllOrders(filters, limit, offset)
+	orders, total, err := ctrl.orderService.GetAllOrders(c.Request.Context(), filters, limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch orders")
+		RespondServiceError(c, err, "failed to fetch orders")
 		return
 	}
 
@@ -212,9 +212,9 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
 		return
 	}
-	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
+	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), uint(orderID), userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch order")
+		RespondServiceError(c, err, "failed to fetch order")
 		return
 	}
 	utils.SuccessResponse(c, "order retrieved", order)
@@ -252,8 +252,8 @@ func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.orderService.UpdateOrderStatus(uint(orderID), req.Status); err != nil {
-		utils.HandleAppError(c, err, "failed to update order status")
+	if err := ctrl.orderService.UpdateOrderStatus(c.Request.Context(), uint(orderID), req.Status); err != nil {
+		RespondServiceError(c, err, "failed to update order status")
 		return
 	}
 

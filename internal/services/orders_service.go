@@ -14,11 +14,11 @@ import (
 )
 
 type OrderServiceInterface interface {
-	GetUserOrders(userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error)
-	GetOrderByID(orderID uint, userID uint) (*models.Order, error)
-	GetAllOrders(filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error)
-	UpdateOverdueOrders() error
-	UpdateOrderStatus(orderID uint, status string) error
+	GetUserOrders(ctx context.Context, userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error)
+	GetOrderByID(ctx context.Context, orderID uint, userID uint) (*models.Order, error)
+	GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error)
+	UpdateOverdueOrders(ctx context.Context) error
+	UpdateOrderStatus(ctx context.Context, orderID uint, status string) error
 }
 
 type orderService struct {
@@ -71,7 +71,7 @@ func orderFiltersFromDTO(userID uint, filters dto.OrderListFilters) orderListQue
 	}
 }
 
-func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error) {
+func (s *orderService) GetUserOrders(ctx context.Context, userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error) {
 	if filters.Limit == 0 {
 		filters.Limit = 20
 	}
@@ -80,15 +80,14 @@ func (s *orderService) GetUserOrders(userID uint, filters dto.OrderListFilters) 
 	}
 
 	q := orderFiltersFromDTO(userID, filters)
-	orders, total, err := s.listOrders(context.Background(), q)
+	orders, total, err := s.listOrders(ctx, q)
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
 	return orders, total, nil
 }
 
-func (s *orderService) UpdateOrderStatus(orderID uint, status string) error {
-	ctx := context.Background()
+func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, status string) error {
 	order, err := s.findOrderByID(ctx, orderID, true)
 	if err != nil {
 		if isRecordNotFound(err) {
@@ -182,8 +181,8 @@ func (s *orderService) getOrderStatusNotificationMessage(status, orderNumber str
 	}
 }
 
-func (s *orderService) GetOrderByID(orderID uint, userID uint) (*models.Order, error) {
-	order, err := s.findOrderByIDAndUserID(context.Background(), orderID, userID)
+func (s *orderService) GetOrderByID(ctx context.Context, orderID uint, userID uint) (*models.Order, error) {
+	order, err := s.findOrderByIDAndUserID(ctx, orderID, userID)
 	if err != nil {
 		if isRecordNotFound(err) {
 			return nil, utils.ErrNotFound("order not found")
@@ -198,7 +197,7 @@ type AdminOrderFilters struct {
 	UserID *uint `json:"user_id,omitempty"`
 }
 
-func (s *orderService) GetAllOrders(filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
+func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
 	q := orderListQuery{
 		UserID:      filters.UserID,
 		Status:      filters.Status,
@@ -211,15 +210,14 @@ func (s *orderService) GetAllOrders(filters AdminOrderFilters, limit, offset int
 		PreloadUser: true,
 	}
 
-	orders, total, err := s.listOrders(context.Background(), q)
+	orders, total, err := s.listOrders(ctx, q)
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
 	return orders, total, nil
 }
 
-func (s *orderService) UpdateOverdueOrders() error {
-	ctx := context.Background()
+func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
 
 	var orders []models.Order

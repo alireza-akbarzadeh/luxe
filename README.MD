@@ -172,6 +172,43 @@ make test-coverage
 # open coverage.html in your browser
 ```
 
+Run integration tests (requires Postgres):
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable \
+JWT_SECRET=ci_test_secret \
+go test ./tests/integration/...
+```
+
+## Dev demo data
+
+Schema migrations are schema-only. For local PDP demo stores/products, after `make migrate-up`:
+
+```bash
+make seed-dev
+```
+
+Requires `psql` and `DATABASE_URL`. Do not run in production.
+
+## OpenTelemetry tracing (optional)
+
+1. Start Jaeger (included in Docker Compose):
+
+```bash
+docker compose up -d jaeger
+```
+
+2. In `.env`:
+
+```bash
+OTEL_ENABLED=true
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
+```
+
+3. Run the API (`make run`) and send requests.
+
+4. Open the Jaeger UI: [http://localhost:16686](http://localhost:16686) — search service `luxe-api` (or your `SERVICE_NAME`).
+
 ## Project Structure
 
 ```
@@ -245,3 +282,7 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 
 [//]: # (goose -dir ./migrations create add_orders_indexes sql)
+
+
+# Redis — durable background jobs
+REDIS_URL=redis://localhost:6379/0

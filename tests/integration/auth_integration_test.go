@@ -66,3 +66,43 @@ func TestAuth_Login_InvalidPassword(t *testing.T) {
 	defer loginResp.Body.Close()
 	require.Equal(t, http.StatusUnauthorized, loginResp.StatusCode)
 }
+
+func TestAuth_RegisterDuplicateEmail(t *testing.T) {
+	server := newTestServer(t)
+	defer server.Close()
+
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	email := fmt.Sprintf("dup-%s@integration.test", suffix)
+
+	first, err := postJSON(server.URL+"/api/v1/auth/register", dto.RegisterRequest{
+		Email:     email,
+		Password:  "password123",
+		FirstName: "Dup",
+		LastName:  "User",
+	})
+	require.NoError(t, err)
+	defer first.Body.Close()
+	require.Equal(t, http.StatusCreated, first.StatusCode)
+
+	second, err := postJSON(server.URL+"/api/v1/auth/register", dto.RegisterRequest{
+		Email:     email,
+		Password:  "password123",
+		FirstName: "Dup",
+		LastName:  "Again",
+	})
+	require.NoError(t, err)
+	defer second.Body.Close()
+	require.Equal(t, http.StatusConflict, second.StatusCode)
+}
+
+func TestAuth_Login_MissingPassword(t *testing.T) {
+	server := newTestServer(t)
+	defer server.Close()
+
+	resp, err := postJSON(server.URL+"/api/v1/auth/login", dto.LoginRequest{
+		Email: "nobody@integration.test",
+	})
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}

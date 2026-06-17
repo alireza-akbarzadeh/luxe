@@ -70,7 +70,7 @@ func (ac *AccountController) GetAccountSummary(c *gin.Context) {
 	likedCount := len(productIDs)
 
 	// 5. Recent orders
-	recentOrders, _, _ := ac.orderService.GetUserOrders(userID, dto.OrderListFilters{Limit: 3, Offset: 0})
+	recentOrders, _, _ := ac.orderService.GetUserOrders(c.Request.Context(), userID, dto.OrderListFilters{Limit: 3, Offset: 0})
 	orderDTOs := make([]dto.OrderResponse, len(recentOrders))
 	for i, o := range recentOrders {
 		orderDTOs[i] = dto.OrderResponse{
@@ -143,7 +143,7 @@ func (ac *AccountController) GetUserOrderAccount(c *gin.Context) {
 	}
 	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	orders, total, err := ac.orderService.GetUserOrders(userID, dto.OrderListFilters{
+	orders, total, err := ac.orderService.GetUserOrders(c.Request.Context(), userID, dto.OrderListFilters{
 		Limit:  limit,
 		Offset: offset,
 	})

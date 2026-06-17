@@ -25,13 +25,13 @@ type UpdateCartItemRequest struct {
 }
 
 type CartServiceInterface interface {
-	GetOrCreateCart(userID uint) (*models.Cart, error)
-	AddItem(userID uint, req AddItemRequest) (*models.CartItem, error)
-	UpdateCartItem(userID uint, cartItemID uint, req UpdateCartItemRequest) error
-	RemoveItem(userID uint, cartItemID uint) error
-	GetCart(userID uint) (*models.Cart, error)
-	ClearCart(userID uint) error
-	CleanAbandonedCarts() error
+	GetOrCreateCart(ctx context.Context, userID uint) (*models.Cart, error)
+	AddItem(ctx context.Context, userID uint, req AddItemRequest) (*models.CartItem, error)
+	UpdateCartItem(ctx context.Context, userID uint, cartItemID uint, req UpdateCartItemRequest) error
+	RemoveItem(ctx context.Context, userID uint, cartItemID uint) error
+	GetCart(ctx context.Context, userID uint) (*models.Cart, error)
+	ClearCart(ctx context.Context, userID uint) error
+	CleanAbandonedCarts(ctx context.Context) error
 }
 
 type cartService struct {
@@ -42,8 +42,7 @@ func NewCartService(db *gorm.DB) CartServiceInterface {
 	return &cartService{db: db}
 }
 
-func (s *cartService) GetOrCreateCart(userID uint) (*models.Cart, error) {
-	ctx := context.Background()
+func (s *cartService) GetOrCreateCart(ctx context.Context, userID uint) (*models.Cart, error) {
 	cart, err := s.findActiveCart(ctx, userID, true)
 	if err == nil {
 		return cart, nil
@@ -63,12 +62,11 @@ func (s *cartService) GetOrCreateCart(userID uint) (*models.Cart, error) {
 	return &newCart, nil
 }
 
-func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem, error) {
+func (s *cartService) AddItem(ctx context.Context, userID uint, req AddItemRequest) (*models.CartItem, error) {
 	if req.Quantity <= 0 {
 		return nil, utils.ErrBadRequest("quantity must be positive")
 	}
 
-	ctx := context.Background()
 	product, err := s.getProductByID(ctx, req.ProductID)
 	if err != nil {
 		if isRecordNotFound(err) {
@@ -83,7 +81,7 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 		return nil, utils.ErrBadRequest("insufficient stock")
 	}
 
-	cart, err := s.GetOrCreateCart(userID)
+	cart, err := s.GetOrCreateCart(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +114,7 @@ func (s *cartService) AddItem(userID uint, req AddItemRequest) (*models.CartItem
 	return &newItem, nil
 }
 
-func (s *cartService) UpdateCartItem(userID uint, cartItemID uint, req UpdateCartItemRequest) error {
-	ctx := context.Background()
+func (s *cartService) UpdateCartItem(ctx context.Context, userID uint, cartItemID uint, req UpdateCartItemRequest) error {
 	cartItem, err := s.findCartItemForUser(ctx, userID, cartItemID)
 	if err != nil {
 		if isRecordNotFound(err) {
@@ -148,8 +145,7 @@ func (s *cartService) UpdateCartItem(userID uint, cartItemID uint, req UpdateCar
 	return nil
 }
 
-func (s *cartService) RemoveItem(userID uint, cartItemID uint) error {
-	ctx := context.Background()
+func (s *cartService) RemoveItem(ctx context.Context, userID uint, cartItemID uint) error {
 	result := s.db.WithContext(ctx).
 		Where("id = ? AND cart_id IN (SELECT id FROM carts WHERE user_id = ? AND status = ?)",
 			cartItemID, userID, constants.CartStatusActive).
@@ -163,8 +159,8 @@ func (s *cartService) RemoveItem(userID uint, cartItemID uint) error {
 	return nil
 }
 
-func (s *cartService) GetCart(userID uint) (*models.Cart, error) {
-	cart, err := s.findActiveCart(context.Background(), userID, true)
+func (s *cartService) GetCart(ctx context.Context, userID uint) (*models.Cart, error) {
+	cart, err := s.findActiveCart(ctx, userID, true)
 	if err != nil {
 		if isRecordNotFound(err) {
 			return &models.Cart{UserID: userID, Items: []models.CartItem{}}, nil
@@ -174,8 +170,8 @@ func (s *cartService) GetCart(userID uint) (*models.Cart, error) {
 	return cart, nil
 }
 
-func (s *cartService) ClearCart(userID uint) error {
-	err := s.db.WithContext(context.Background()).
+func (s *cartService) ClearCart(ctx context.Context, userID uint) error {
+	err := s.db.WithContext(ctx).
 		Where("cart_id IN (SELECT id FROM carts WHERE user_id = ? AND status = ?)", userID, constants.CartStatusActive).
 		Delete(&models.CartItem{}).Error
 	if err != nil {
@@ -184,8 +180,7 @@ func (s *cartService) ClearCart(userID uint) error {
 	return nil
 }
 
-func (s *cartService) CleanAbandonedCarts() error {
-	ctx := context.Background()
+func (s *cartService) CleanAbandonedCarts(ctx context.Context) error {
 	cutoff := time.Now().Add(-7 * 24 * time.Hour)
 	var carts []models.Cart
 	err := s.db.WithContext(ctx).

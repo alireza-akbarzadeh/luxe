@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"context"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 )
@@ -12,7 +14,7 @@ func (c *CronJobs) registerCartJobs() {
 
 func (c *CronJobs) cleanAbandonedCarts() {
 	utils.Log.Info("Initiating cleanup of abandoned carts...")
-	if err := c.svc.Cart.CleanAbandonedCarts(); err != nil {
+	if err := c.svc.Cart.CleanAbandonedCarts(context.Background()); err != nil {
 		utils.Log.WithError(err).Error("Error cleaning abandoned carts")
 	}
 }

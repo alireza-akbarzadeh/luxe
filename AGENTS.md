@@ -41,6 +41,7 @@ HTTP → Controller → Service (*gorm.DB + business logic) → PostgreSQL
 | `make migrate-create name=<name>` | New migration |
 | `make migrate-up` | Apply migrations |
 | `make swagger` | Regenerate `docs/` (gitignored) |
+| `make seed-dev` | Load dev demo data (local only) |
 | `make test` | Unit tests |
 
 Integration tests:

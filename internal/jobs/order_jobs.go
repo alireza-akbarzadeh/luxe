@@ -1,6 +1,8 @@
 package jobs
 
 import (
+	"context"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 )
@@ -13,7 +15,7 @@ func (c *CronJobs) registerOrderJobs() {
 
 func (c *CronJobs) updateOverdueOrders() {
 	utils.Log.Info("Updating overdue orders...")
-	if err := c.svc.Order.UpdateOverdueOrders(); err != nil {
+	if err := c.svc.Order.UpdateOverdueOrders(context.Background()); err != nil {
 		utils.Log.WithError(err).Error("Overdue orders update failed")
 	}
 }
