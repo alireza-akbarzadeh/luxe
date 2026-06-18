@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
@@ -64,6 +66,76 @@ func (ctrl *ShipmentController) CreateShipment(c *gin.Context) {
 	}
 
 	utils.CreatedResponse(c, constants.MsgCreateSuccess, shipment)
+}
+
+// ListShipmentsAdmin lists all shipments (admin only).
+// @Summary      List shipments (admin)
+// @Tags         Shipments
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status   query string false "Filter by legacy status"
+// @Param        carrier  query string false "Filter by carrier"
+// @Param        order_id query int    false "Filter by order ID"
+// @Param        search   query string false "Search tracking, order #, or carrier"
+// @Param        limit    query int    false "Items per page"
+// @Param        offset   query int    false "Offset"
+// @Success      200 {object} utils.Response{data=dto.AdminShipmentListData}
+// @Router       /admin/shipments [get]
+func (ctrl *ShipmentController) ListShipmentsAdmin(c *gin.Context) {
+	var filters dto.AdminShipmentListFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		utils.ErrorResponse(c, 400, "invalid query parameters")
+		return
+	}
+	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
+
+	shipments, total, err := ctrl.shipmentService.ListAdmin(c.Request.Context(), filters)
+	if err != nil {
+		RespondServiceError(c, err, "failed to list shipments")
+		return
+	}
+
+	items := make([]dto.AdminShipmentListItem, 0, len(shipments))
+	for i := range shipments {
+		items = append(items, toAdminShipmentListItem(&shipments[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.AdminShipmentListData{
+		Shipments: items,
+		Total:     total,
+		Limit:     filters.Limit,
+		Offset:    filters.Offset,
+	})
+}
+
+func toAdminShipmentListItem(s *models.Shipment) dto.AdminShipmentListItem {
+	item := dto.AdminShipmentListItem{
+		ID:             s.ID,
+		OrderID:        s.OrderID,
+		Carrier:        s.Carrier,
+		TrackingNumber: s.TrackingNumber,
+		Status:         s.Status,
+		City:           s.City,
+		Country:        s.Country,
+		CreatedAt:      s.CreatedAt.Format(time.RFC3339),
+	}
+	if s.Order.ID != 0 {
+		item.OrderNumber = s.Order.OrderNumber
+	}
+	if s.User.ID != 0 {
+		item.CustomerName = strings.TrimSpace(s.User.FirstName + " " + s.User.LastName)
+	}
+	if s.EstimatedDelivery != nil {
+		formatted := s.EstimatedDelivery.Format(time.RFC3339)
+		item.EstimatedDelivery = &formatted
+	}
+	if s.ShippedAt != nil {
+		formatted := s.ShippedAt.Format(time.RFC3339)
+		item.ShippedAt = &formatted
+	}
+	if s.WorkflowState != nil {
+		item.State = toStateView(s.WorkflowState)
+	}
+	return item
 }
 
 // GetShipment retrieves a shipment by ID (user sees own, admin sees any).

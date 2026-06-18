@@ -60,7 +60,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev db-info
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-orders-returns db-info
 
 # Default target
 help: ## Show this help message
@@ -178,12 +178,23 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 	@if command -v psql >/dev/null 2>&1; then \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
 	else \
 		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
 	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
+
+seed-orders-returns: ## Load demo orders + returns only (requires catalog seed)
+	@echo "${GREEN}Seeding orders & returns into $(POSTGRES_DB)...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
+	else \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
+	fi
+	@echo "${GREEN}Orders & returns seed complete${RESET}"
 
 clean: ## Clean build artifacts
 	@echo "${YELLOW}Cleaning build artifacts...${RESET}"

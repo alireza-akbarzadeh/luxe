@@ -36,6 +36,7 @@ type ShipmentServiceInterface interface {
 	CreateShipment(req CreateShipmentRequest) (*models.Shipment, error)
 	GetShipmentByID(id uint) (*models.Shipment, error)
 	GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error)
+	ListAdmin(ctx context.Context, filters dto.AdminShipmentListFilters) ([]models.Shipment, int64, error)
 	UpdateShipmentStatus(id uint, status string) error
 	AvailableTransitions(ctx context.Context, shipmentID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
 	PerformTransition(ctx context.Context, shipmentID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
@@ -237,13 +238,84 @@ func (s *shipmentService) CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRe
 
 func (s *shipmentService) GetShipmentByID(id uint) (*models.Shipment, error) {
 	var shipment models.Shipment
-	if err := s.db.First(&shipment, id).Error; err != nil {
+	if err := s.db.
+		Preload("Order").
+		Preload("Provider").
+		Preload("WorkflowState").
+		First(&shipment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound(constants.ErrShipmentNotFound)
 		}
 		return nil, utils.ErrInternal(err)
 	}
 	return &shipment, nil
+}
+
+func (s *shipmentService) ListAdmin(ctx context.Context, filters dto.AdminShipmentListFilters) ([]models.Shipment, int64, error) {
+	limit, offset := filters.Limit, filters.Offset
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	q := s.db.WithContext(ctx).Model(&models.Shipment{})
+	if filters.Status != "" {
+		q = q.Where("shipments.status = ?", filters.Status)
+	}
+	if filters.Carrier != "" {
+		q = q.Where("shipments.carrier ILIKE ?", filters.Carrier)
+	}
+	if filters.OrderID != nil {
+		q = q.Where("shipments.order_id = ?", *filters.OrderID)
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		q = q.Joins("LEFT JOIN orders ON orders.id = shipments.order_id").
+			Where(
+				"shipments.tracking_number ILIKE ? OR orders.order_number ILIKE ? OR shipments.carrier ILIKE ?",
+				term, term, term,
+			)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	var shipments []models.Shipment
+	listQ := s.db.WithContext(ctx).Model(&models.Shipment{})
+	if filters.Status != "" {
+		listQ = listQ.Where("shipments.status = ?", filters.Status)
+	}
+	if filters.Carrier != "" {
+		listQ = listQ.Where("shipments.carrier ILIKE ?", filters.Carrier)
+	}
+	if filters.OrderID != nil {
+		listQ = listQ.Where("shipments.order_id = ?", *filters.OrderID)
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		listQ = listQ.Joins("LEFT JOIN orders ON orders.id = shipments.order_id").
+			Where(
+				"shipments.tracking_number ILIKE ? OR orders.order_number ILIKE ? OR shipments.carrier ILIKE ?",
+				term, term, term,
+			)
+	}
+
+	if err := listQ.
+		Preload("Order").
+		Preload("User").
+		Preload("WorkflowState").
+		Order("shipments.created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&shipments).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	return shipments, total, nil
 }
 
 func (s *shipmentService) GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error) {

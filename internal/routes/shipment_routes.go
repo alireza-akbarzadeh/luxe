@@ -16,14 +16,14 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 	protected.GET("/shipments", ctrl.Shipment.GetShipmentsByOrder)
 
 	// Admin endpoints for shipments
-	adminShipments := protected.Group("/shipments")
+	adminShipments := protected.Group("/admin/shipments")
 	adminShipments.Use(middleware.ModuleGuard("orders"))
 	{
-		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
+		adminShipments.GET("", ctrl.Shipment.ListShipmentsAdmin)
+		adminShipments.POST("", ctrl.Shipment.CreateShipment)
 		adminShipments.GET("/:id/available-transitions", ctrl.Shipment.GetAvailableTransitions)
 		adminShipments.POST("/:id/transition", ctrl.Shipment.PerformTransition)
 		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
-		// No DELETE /shipments – that doesn't make sense; shipments are usually not deleted.
 	}
 
 	// Admin endpoints for shipping providers (CRUD)

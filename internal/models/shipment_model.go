@@ -36,6 +36,7 @@ type Shipment struct {
 	Order    Order              `gorm:"foreignKey:OrderID" json:"-"`
 	User     User               `gorm:"foreignKey:UserID" json:"-"`
 	Provider *ShippingProviders `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
+	WorkflowState *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
 }
 
 type ShippingProviders struct {
