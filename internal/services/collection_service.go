@@ -7,6 +7,8 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -19,11 +21,30 @@ type CollectionServiceInterface interface {
 }
 
 type collectionService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewCollectionService(db *gorm.DB) CollectionServiceInterface {
-	return &collectionService{db: db}
+func NewCollectionService(db *gorm.DB, engine *workflow.Engine) CollectionServiceInterface {
+	return &collectionService{db: db, engine: engine}
+}
+
+func (s *collectionService) syncCollectionWorkflow(ctx context.Context, collectionID uint, status string) {
+	if !applyCollectionWorkflow(ctx, s.engine, collectionID, status, nil) {
+		utils.Log.WithField("collection_id", collectionID).WithField("status", status).
+			Debug("collection workflow sync skipped or failed")
+	}
+}
+
+func (s *collectionService) getCollectionByID(ctx context.Context, id uint) (*models.Collection, error) {
+	var collection models.Collection
+	if err := s.db.WithContext(ctx).Preload("WorkflowState").First(&collection, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &collection, nil
 }
 
 func (s *collectionService) uniqueSlug(baseSlug string, excludeID uint) string {
@@ -85,18 +106,22 @@ func (s *collectionService) Create(ctx context.Context, req *dto.CreateCollectio
 	if err := s.db.WithContext(ctx).Create(&collection).Error; err != nil {
 		return nil, err
 	}
-	return collectionToResponse(&collection), nil
+
+	s.syncCollectionWorkflow(ctx, collection.ID, collection.Status)
+
+	loaded, err := s.getCollectionByID(ctx, collection.ID)
+	if err != nil {
+		return nil, err
+	}
+	return collectionToResponse(loaded), nil
 }
 
 func (s *collectionService) GetByID(ctx context.Context, id uint) (*dto.CollectionResponse, error) {
-	var collection models.Collection
-	if err := s.db.WithContext(ctx).First(&collection, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
+	collection, err := s.getCollectionByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
-	return collectionToResponse(&collection), nil
+	return collectionToResponse(collection), nil
 }
 
 func (s *collectionService) List(ctx context.Context, req *dto.ListCollectionsRequest) ([]dto.CollectionResponse, int64, error) {
@@ -131,6 +156,7 @@ func (s *collectionService) List(ctx context.Context, req *dto.ListCollectionsRe
 	var collections []models.Collection
 	if err := query.Order("sort_order ASC, created_at DESC").
 		Offset(offset).Limit(limit).
+		Preload("WorkflowState").
 		Find(&collections).Error; err != nil {
 		return nil, 0, err
 	}
@@ -143,11 +169,8 @@ func (s *collectionService) List(ctx context.Context, req *dto.ListCollectionsRe
 }
 
 func (s *collectionService) Update(ctx context.Context, id uint, req *dto.UpdateCollectionRequest) (*dto.CollectionResponse, error) {
-	var collection models.Collection
-	if err := s.db.WithContext(ctx).First(&collection, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
+	collection, err := s.getCollectionByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -188,10 +211,19 @@ func (s *collectionService) Update(ctx context.Context, id uint, req *dto.Update
 		collection.PreviewCategoryID = req.PreviewCategoryID
 	}
 
-	if err := s.db.WithContext(ctx).Save(&collection).Error; err != nil {
+	if err := s.db.WithContext(ctx).Save(collection).Error; err != nil {
 		return nil, err
 	}
-	return collectionToResponse(&collection), nil
+
+	if req.Status != nil {
+		s.syncCollectionWorkflow(ctx, id, *req.Status)
+	}
+
+	loaded, err := s.getCollectionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return collectionToResponse(loaded), nil
 }
 
 func (s *collectionService) Delete(ctx context.Context, id uint) error {
@@ -206,7 +238,7 @@ func (s *collectionService) Delete(ctx context.Context, id uint) error {
 }
 
 func collectionToResponse(c *models.Collection) *dto.CollectionResponse {
-	return &dto.CollectionResponse{
+	resp := &dto.CollectionResponse{
 		ID:                c.ID,
 		Slug:              c.Slug,
 		Eyebrow:           c.Eyebrow,
@@ -223,4 +255,8 @@ func collectionToResponse(c *models.Collection) *dto.CollectionResponse {
 		CreatedAt:         c.CreatedAt,
 		UpdatedAt:         c.UpdatedAt,
 	}
+	if c.WorkflowState != nil {
+		resp.WorkflowState = dto.ToStateView(c.WorkflowState)
+	}
+	return resp
 }

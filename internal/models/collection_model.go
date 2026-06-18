@@ -23,6 +23,9 @@ type Collection struct {
 	SortOrder   int    `gorm:"not null;default:0" json:"sort_order"`
 	Status      string `gorm:"not null;default:'draft'" json:"status"`
 
+	WorkflowStateID *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowState   *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
+
 	PreviewSort       string `gorm:"not null;default:''" json:"preview_sort"`
 	PreviewIsNew      *bool  `json:"preview_is_new,omitempty"`
 	PreviewCategoryID *uint  `gorm:"index" json:"preview_category_id,omitempty"`

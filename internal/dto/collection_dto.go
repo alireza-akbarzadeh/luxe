@@ -49,8 +49,9 @@ type CollectionResponse struct {
 	ImageURL          string    `json:"image_url"`
 	CTALabel          string    `json:"cta_label"`
 	SortOrder         int       `json:"sort_order"`
-	Status            string    `json:"status"`
-	PreviewSort       string    `json:"preview_sort"`
+	Status            string     `json:"status"`
+	WorkflowState     *StateView `json:"workflow_state,omitempty"`
+	PreviewSort       string     `json:"preview_sort"`
 	PreviewIsNew      *bool     `json:"preview_is_new,omitempty"`
 	PreviewCategoryID *uint     `json:"preview_category_id,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`

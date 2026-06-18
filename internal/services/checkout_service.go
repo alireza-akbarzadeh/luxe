@@ -35,6 +35,7 @@ type checkoutService struct {
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
 	engine              *workflow.Engine
+	inventoryService    InventoryServiceInterface
 	stripeEnabled       bool
 }
 
@@ -49,6 +50,7 @@ func NewCheckoutService(
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
 	engine *workflow.Engine,
+	inventoryService InventoryServiceInterface,
 	stripeEnabled bool,
 ) CheckoutServiceInterface {
 	return &checkoutService{
@@ -62,6 +64,7 @@ func NewCheckoutService(
 		hub:                 hub,
 		salesFeed:           salesFeed,
 		engine:              engine,
+		inventoryService:    inventoryService,
 		stripeEnabled:       stripeEnabled,
 	}
 }
@@ -99,11 +102,9 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 	carrier := s.getCarrier(req.ShippingProviderID)
 
 	var order *models.Order
+	var stockChanges []deltaResult
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		subtotal, err := s.reserveCartStock(tx, cart.Items)
-		if err != nil {
-			return err
-		}
+		subtotal := cartSubtotal(cart.Items)
 		discount, couponID, err := s.applyCoupon(tx, userID, req.CouponCode, subtotal)
 		if err != nil {
 			return err
@@ -114,6 +115,11 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 		}
 
 		order, err = s.createOrderRecord(tx, userID, totalAmount, address.ID)
+		if err != nil {
+			return err
+		}
+
+		stockChanges, err = s.reserveCartStock(ctx, tx, order.ID, cart.Items)
 		if err != nil {
 			return err
 		}
@@ -140,6 +146,12 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for _, change := range stockChanges {
+		if change.QuantityBefore != change.QuantityAfter {
+			s.inventoryService.RunStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
+		}
 	}
 
 	s.db.WithContext(ctx).Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
@@ -416,30 +428,46 @@ func (s *checkoutService) getCarrier(shippingProviderID *uint) string {
 	return DefaultShippingProvider
 }
 
-// reserveCartStock locks product rows, validates stock, and decrements inventory.
-func (s *checkoutService) reserveCartStock(tx *gorm.DB, cartItems []models.CartItem) (float64, error) {
+// cartSubtotal sums line totals without mutating stock.
+func cartSubtotal(cartItems []models.CartItem) float64 {
 	var subtotal float64
+	for _, item := range cartItems {
+		subtotal += item.Price * float64(item.Quantity)
+	}
+	return subtotal
+}
+
+// reserveCartStock locks product rows, validates stock, and decrements inventory.
+func (s *checkoutService) reserveCartStock(ctx context.Context, tx *gorm.DB, orderID uint, cartItems []models.CartItem) ([]deltaResult, error) {
+	var changes []deltaResult
 	for _, item := range cartItems {
 		var product models.Product
 		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&product, item.ProductID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return 0, utils.ErrBadRequest("product not found")
+				return nil, utils.ErrBadRequest("product not found")
 			}
-			return 0, utils.ErrInternal(err)
+			return nil, utils.ErrInternal(err)
 		}
 		if !isProductStockAvailable(product, item.Quantity) {
-			return 0, utils.ErrBadRequest(
+			return nil, utils.ErrBadRequest(
 				fmt.Sprintf("insufficient stock for product: %s", product.Name))
 		}
 		if shouldDecrementProductStock(product) {
+			if s.inventoryService != nil {
+				change, err := s.inventoryService.DecrementForSale(ctx, tx, orderID, item.ProductID, item.Quantity)
+				if err != nil {
+					return nil, err
+				}
+				changes = append(changes, change)
+				continue
+			}
 			product.Stock -= item.Quantity
 			if err := tx.Save(&product).Error; err != nil {
-				return 0, utils.ErrInternal(err)
+				return nil, utils.ErrInternal(err)
 			}
 		}
-		subtotal += item.Price * float64(item.Quantity)
 	}
-	return subtotal, nil
+	return changes, nil
 }
 
 // applyCoupon validates a coupon code (if provided) and returns the discount amount and coupon ID.
@@ -578,9 +606,17 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 		return utils.ErrBadRequest(fmt.Sprintf("order cannot be cancelled in status %q", order.Status))
 	}
 
+	var restores []deltaResult
 	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Restore stock for each item.
 		for _, item := range order.Items {
+			if s.inventoryService != nil {
+				change, err := s.inventoryService.RestoreForOrderCancel(ctx, tx, order.ID, item.ProductID, item.Quantity)
+				if err != nil {
+					return err
+				}
+				restores = append(restores, change)
+				continue
+			}
 			if err := tx.Model(&models.Product{}).
 				Where("id = ?", item.ProductID).
 				UpdateColumn("stock", gorm.Expr("stock + ?", item.Quantity)).Error; err != nil {
@@ -607,6 +643,12 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 	})
 	if err != nil {
 		return err
+	}
+
+	for _, change := range restores {
+		if change.QuantityBefore != change.QuantityAfter && s.inventoryService != nil {
+			s.inventoryService.RunStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
+		}
 	}
 
 	if err := applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{

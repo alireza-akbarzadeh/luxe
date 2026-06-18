@@ -48,6 +48,7 @@ type Services struct {
 	Workflow     WorkflowServiceInterface
 	Return       ReturnServiceInterface
 	Role         RoleServiceInterface
+	Inventory    InventoryServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -70,6 +71,9 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	roleSvc := NewRoleService(db)
 
 	productSvc := NewProductService(db, workflowEngine)
+	pdpSvc := NewPdpService(db, notificationSvc, productSvc)
+	inventorySvc := NewInventoryService(db, workflowEngine, pdpSvc)
+	productSvc.SetInventory(inventorySvc)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 	categorySvc := NewCategoryService(db, workflowEngine)
 
@@ -81,7 +85,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Cart:         NewCartService(db),
 		NavMenu:      NewNavMenuService(db),
 		Product:      productSvc,
-		Pdp:          NewPdpService(db, notificationSvc, productSvc),
+		Pdp:          pdpSvc,
 		Compare:      NewCompareService(db),
 		Category:     categorySvc,
 		Address:      NewAddressService(db),
@@ -93,9 +97,9 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db, workflowEngine),
-		Collection:   NewCollectionService(db),
+		Collection:   NewCollectionService(db, workflowEngine),
 		Settings:     NewSettingService(db),
-		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, StripeEnabled(cfg)),
+		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, inventorySvc, StripeEnabled(cfg)),
 		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
@@ -109,6 +113,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Workflow:     NewWorkflowService(db, workflowEngine),
 		Return:       NewReturnService(db, workflowEngine),
 		Role:         roleSvc,
+		Inventory:    inventorySvc,
 	}
 }
 

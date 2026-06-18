@@ -84,12 +84,6 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	existing, err := ctrl.productService.GetByID(uint(id))
-	if err != nil {
-		utils.HandleServiceError(c, err, "failed to fetch product")
-		return
-	}
-	oldStock := existing.Stock
 
 	product, err := ctrl.productService.Update(uint(id), req)
 	if err != nil {
@@ -97,9 +91,6 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	if oldStock == 0 && product.Stock > 0 {
-		_ = ctrl.pdpService.NotifyBackInStock(product.ID, product.Name, product.Slug)
-	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(*product))
 }
 

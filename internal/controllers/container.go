@@ -43,6 +43,7 @@ type Container struct {
 	Workflow  *WorkflowController
 	Return    *ReturnController
 	Role      *RoleController
+	Inventory *InventoryController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -82,5 +83,6 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Workflow:  NewWorkflowController(svc.Workflow),
 		Return:    NewReturnController(svc.Return),
 		Role:      NewRoleController(svc.Role),
+		Inventory: NewInventoryController(svc.Inventory),
 	}
 }

@@ -39,6 +39,8 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 		settings.GET("/webhooks", ctrl.Admin.ListWebhookEvents)
 	}
 
+	SetupInventoryRoutes(admin, ctrl)
+
 	roles := admin.Group("")
 	roles.Use(middleware.ModuleGuard("roles"))
 	setupRoleRoutes(roles, ctrl)

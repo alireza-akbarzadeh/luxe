@@ -269,3 +269,42 @@ func applyBrandWorkflow(
 	syncWorkflowState(ctx, engine, constants.WorkflowEntityBrand, brandID, code, "status_update", actorID)
 	return true
 }
+
+// applyCollectionWorkflow syncs legacy collection status into the workflow engine (best-effort).
+func applyCollectionWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	collectionID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"active":   {"activate", "reactivate"},
+		"inactive": {"deactivate"},
+		"archived": {"archive"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCollection,
+				EntityID:    collectionID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := brandStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
+	return true
+}

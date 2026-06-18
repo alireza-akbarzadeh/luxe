@@ -241,7 +241,38 @@ const (
 	WorkflowEntityReturn   = "return"
 	WorkflowEntityUser     = "user"
 	WorkflowEntityCategory = "category"
-	WorkflowEntityBrand    = "brand"
+	WorkflowEntityBrand       = "brand"
+	WorkflowEntityCollection  = "collection"
+)
+
+// Inventory adjustment types (ledger).
+const (
+	InventoryAdjSale         = "sale"
+	InventoryAdjOrderCancel  = "order_cancel"
+	InventoryAdjAdminSet     = "admin_set"
+	InventoryAdjAdminDelta   = "admin_delta"
+	InventoryAdjImport       = "import"
+	InventoryAdjInitial      = "initial"
+	InventoryAdjCorrection   = "correction"
+	InventoryAdjDamage       = "damage"
+	InventoryAdjReceive      = "receive"
+)
+
+// Inventory reference types (ledger).
+const (
+	InventoryRefOrder     = "order"
+	InventoryRefOrderItem = "order_item"
+	InventoryRefProduct   = "product"
+	InventoryRefImport    = "import"
+)
+
+// Inventory list stock_status filter values.
+const (
+	InventoryStockAll        = "all"
+	InventoryStockLow        = "low"
+	InventoryStockOut        = "out"
+	InventoryStockHealthy    = "healthy"
+	InventoryStockNotTracked = "not_tracked"
 )
 
 // ==================== API routes ====================

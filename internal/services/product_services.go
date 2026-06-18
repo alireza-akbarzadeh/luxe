@@ -36,15 +36,22 @@ type ProductServiceInterface interface {
 	GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
 	AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
 	PerformTransition(ctx context.Context, productID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
+	SetInventory(inventory InventoryServiceInterface)
 }
 
 type productService struct {
-	db     *gorm.DB
-	engine *workflow.Engine
+	db        *gorm.DB
+	engine    *workflow.Engine
+	inventory InventoryServiceInterface
 }
 
 func NewProductService(db *gorm.DB, engine *workflow.Engine) ProductServiceInterface {
 	return &productService{db: db, engine: engine}
+}
+
+// SetInventory wires the inventory ledger after DI construction.
+func (s *productService) SetInventory(inventory InventoryServiceInterface) {
+	s.inventory = inventory
 }
 
 // UniqSlug ensureUniqueSlug checks and modifies slug to be unique.
@@ -148,6 +155,9 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		return nil, utils.ErrInternal(err)
 	}
 	s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+	if s.inventory != nil {
+		_ = s.inventory.RecordInitialStock(context.Background(), product.ID, product.Stock)
+	}
 	return &product, nil
 }
 
@@ -224,9 +234,6 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.Barcode != nil {
 		product.Barcode = *req.Barcode
 	}
-	if req.Stock != nil {
-		product.Stock = *req.Stock
-	}
 	if req.LowStockThreshold != nil {
 		product.LowStockThreshold = *req.LowStockThreshold
 	}
@@ -285,11 +292,25 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		product.PublishedAt = req.PublishedAt
 	}
 
+	stockUpdate := req.Stock
+
 	if err := s.db.Save(product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	if req.Status != nil {
 		s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+	}
+
+	if stockUpdate != nil {
+		if s.inventory != nil && product.TrackInventory {
+			if err := s.inventory.SetAbsoluteStock(context.Background(), id, *stockUpdate, nil, "product update", constants.InventoryAdjAdminSet); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := s.db.Model(&product).Update("stock", *stockUpdate).Error; err != nil {
+				return nil, utils.ErrInternal(err)
+			}
+		}
 	}
 
 	// Replace attributes wholesale if provided
@@ -309,7 +330,7 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		product.Attributes = newAttrs
 	}
 
-	return product, nil
+	return s.GetByID(id)
 }
 
 // Delete product
