@@ -212,8 +212,9 @@ const (
 	ShipmentStatusDelivered = "delivered"
 
 	// User roles
-	RoleUser  = "user"
-	RoleAdmin = "admin"
+	RoleUser      = "user"
+	RoleAdmin     = "admin"
+	RoleModerator = "moderator"
 
 	// Product statuses
 	ProductStatusDraft    = "draft"

@@ -152,3 +152,214 @@ JOIN stores s ON s.id = p.store_id
 WHERE p.slug = 'pdp-demo-luxe-watch'
   AND q.body ILIKE '%swim%'
   AND NOT EXISTS (SELECT 1 FROM product_answers a WHERE a.question_id = q.id);
+
+-- Storefront navigation (nav_menus). One row per label; safe to re-run.
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Women',
+  'mega',
+  NULL,
+  NULL,
+  '{"label":"Shop all women''s","href":"/shop"}'::jsonb,
+  '[
+    {"title":"Clothing","links":[
+      {"title":"Dresses","href":"/shop?sortBy=newest"},
+      {"title":"Tops & Blouses","href":"/shop"},
+      {"title":"Knitwear","href":"/shop"},
+      {"title":"Outerwear","href":"/shop"}
+    ]},
+    {"title":"Shoes","links":[
+      {"title":"Heels","href":"/shop"},
+      {"title":"Flats","href":"/shop"},
+      {"title":"Boots","href":"/shop"},
+      {"title":"Sneakers","href":"/shop"}
+    ]},
+    {"title":"Bags","links":[
+      {"title":"Tote Bags","href":"/shop"},
+      {"title":"Crossbody","href":"/shop"},
+      {"title":"Clutches","href":"/shop"},
+      {"title":"Backpacks","href":"/shop"}
+    ]}
+  ]'::jsonb,
+  '[
+    {"title":"Spring Edit","description":"Fresh silhouettes for the season","href":"/collections","image":"https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=500&fit=crop","badge":"New"}
+  ]'::jsonb,
+  1,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Women');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Men',
+  'mega',
+  NULL,
+  NULL,
+  '{"label":"Shop all men''s","href":"/shop"}'::jsonb,
+  '[
+    {"title":"Clothing","links":[
+      {"title":"Shirts","href":"/shop"},
+      {"title":"Trousers","href":"/shop"},
+      {"title":"Jackets","href":"/shop"},
+      {"title":"Activewear","href":"/shop"}
+    ]},
+    {"title":"Shoes","links":[
+      {"title":"Loafers","href":"/shop"},
+      {"title":"Boots","href":"/shop"},
+      {"title":"Sneakers","href":"/shop"},
+      {"title":"Formal","href":"/shop"}
+    ]},
+    {"title":"Watches","links":[
+      {"title":"Dress Watches","href":"/shop"},
+      {"title":"Sport Watches","href":"/shop"},
+      {"title":"Chronographs","href":"/shop"},
+      {"title":"Limited Editions","href":"/shop?sortBy=newest"}
+    ]}
+  ]'::jsonb,
+  '[
+    {"title":"Tailored Essentials","description":"Refined staples for every day","href":"/shop","image":"https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=500&fit=crop","badge":"Featured"}
+  ]'::jsonb,
+  2,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Men');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Accessories',
+  'mega',
+  NULL,
+  NULL,
+  '{"label":"Shop all accessories","href":"/shop"}'::jsonb,
+  '[
+    {"title":"Jewelry","links":[
+      {"title":"Necklaces","href":"/shop"},
+      {"title":"Earrings","href":"/shop"},
+      {"title":"Rings","href":"/shop"},
+      {"title":"Bracelets","href":"/shop"}
+    ]},
+    {"title":"Watches","links":[
+      {"title":"Automatic","href":"/shop"},
+      {"title":"Chronograph","href":"/shop"},
+      {"title":"Dress Watches","href":"/shop"},
+      {"title":"Smart Watches","href":"/shop"}
+    ]},
+    {"title":"Eyewear","links":[
+      {"title":"Sunglasses","href":"/shop"},
+      {"title":"Optical Frames","href":"/shop"},
+      {"title":"Blue Light","href":"/shop"},
+      {"title":"Limited Drops","href":"/shop?sortBy=newest"}
+    ]}
+  ]'::jsonb,
+  '[
+    {"title":"Iconic Timepieces","description":"Curated watches from top sellers","href":"/shop","image":"https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=500&fit=crop","badge":"Trending"}
+  ]'::jsonb,
+  3,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Accessories');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'New Arrivals',
+  'link',
+  '/shop?sortBy=newest',
+  'New',
+  NULL,
+  NULL,
+  NULL,
+  4,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'New Arrivals');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Sale',
+  'link',
+  '/shop?showOnlySale=true',
+  'Sale',
+  NULL,
+  NULL,
+  NULL,
+  5,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Sale');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Collections',
+  'link',
+  '/collections',
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  6,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Collections');
+
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Gift Cards',
+  'link',
+  '/gift-cards',
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  7,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Gift Cards');
+
+-- Roles & permissions (idempotent)
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Administrator', 'admin', 'Full platform access', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'admin');
+
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Customer', 'user', 'Standard storefront account', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'user');
+
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Moderator', 'moderator', 'Limited admin dashboard access', true, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'moderator');
+
+INSERT INTO permissions (key, module, description, created_at, updated_at)
+SELECT v.key, v.module, v.description, NOW(), NOW()
+FROM (VALUES
+  ('users.read', 'users', 'View user accounts'),
+  ('users.write', 'users', 'Manage user accounts and roles'),
+  ('orders.read', 'orders', 'View orders'),
+  ('orders.write', 'orders', 'Update order status'),
+  ('products.read', 'products', 'View products'),
+  ('products.write', 'products', 'Create and edit products'),
+  ('menus.read', 'menus', 'View admin and site menus'),
+  ('menus.write', 'menus', 'Manage admin and site menus'),
+  ('roles.read', 'roles', 'View roles and permissions'),
+  ('roles.write', 'roles', 'Manage roles and permissions'),
+  ('settings.read', 'settings', 'View platform settings'),
+  ('settings.write', 'settings', 'Update platform settings')
+) AS v(key, module, description)
+WHERE NOT EXISTS (SELECT 1 FROM permissions p WHERE p.key = v.key);
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE r.slug = 'admin'
+  AND NOT EXISTS (
+    SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.key IN ('orders.read', 'products.read', 'users.read')
+WHERE r.slug = 'moderator'
+  AND NOT EXISTS (
+    SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );

@@ -17,6 +17,7 @@ func SetupNavMenuRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Co
 	navAdmin := protected.Group("/nav-menus")
 	navAdmin.Use(middleware.RequireAdmin())
 	{
+		navAdmin.PUT("/reorder", ctrl.NavMenu.Reorder)
 		navAdmin.POST("", ctrl.NavMenu.Create)
 		navAdmin.PUT("/:id", ctrl.NavMenu.Update)
 		navAdmin.DELETE("/:id", ctrl.NavMenu.Delete)

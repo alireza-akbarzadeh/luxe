@@ -30,10 +30,11 @@ type AdminServiceInterface interface {
 type adminService struct {
 	db     *gorm.DB
 	engine *workflow.Engine
+	roles  RoleServiceInterface
 }
 
-func NewAdminService(db *gorm.DB, engine *workflow.Engine) AdminServiceInterface {
-	return &adminService{db: db, engine: engine}
+func NewAdminService(db *gorm.DB, engine *workflow.Engine, roles RoleServiceInterface) AdminServiceInterface {
+	return &adminService{db: db, engine: engine, roles: roles}
 }
 
 func (s *adminService) GetStats(ctx context.Context) (*dto.AdminStatsResponse, error) {
@@ -152,8 +153,12 @@ func (s *adminService) ListUsers(ctx context.Context, filters dto.AdminUserFilte
 }
 
 func (s *adminService) UpdateUserRole(ctx context.Context, userID uint, role string) error {
-	if role != constants.RoleAdmin && role != constants.RoleUser {
-		return utils.ErrBadRequest("invalid role: must be 'admin' or 'user'")
+	exists, err := s.roles.RoleSlugExists(ctx, role)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return utils.ErrBadRequest("invalid role: role does not exist")
 	}
 	result := s.db.WithContext(ctx).Model(&models.User{}).Where("id = ?", userID).Update("role", role)
 	if result.Error != nil {

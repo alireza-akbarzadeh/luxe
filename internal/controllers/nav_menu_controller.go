@@ -32,6 +32,7 @@ func (ctrl *NavMenuController) GetAll(c *gin.Context) {
 	menu, err := ctrl.service.GetAll(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch all menu")
+		return
 	}
 	utils.SuccessResponse(c, "menus retrieved", menu)
 }
@@ -46,10 +47,12 @@ func (ctrl *NavMenuController) GetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		utils.HandleServiceError(c, err, "invalid id param")
+		return
 	}
 	menu, err := ctrl.service.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch menu")
+		return
 	}
 	utils.SuccessResponse(c, "menu retrieved", menu)
 }
@@ -101,6 +104,26 @@ func (ctrl *NavMenuController) Update(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, "menu updated", updated)
+}
+
+// Reorder godoc
+// @Summary Reorder navigation menus
+// @Tags Navigation
+// @Accept json
+// @Produce json
+// @Param body body dto.ReorderNavMenusRequest true "Ordered nav item ids"
+// @Success 200 {object} utils.Response
+// @Router /nav-menus/reorder [put]
+func (ctrl *NavMenuController) Reorder(c *gin.Context) {
+	var req dto.ReorderNavMenusRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	if err := ctrl.service.Reorder(c.Request.Context(), &req); err != nil {
+		utils.HandleServiceError(c, err, "failed to reorder menus")
+		return
+	}
+	utils.SuccessResponse(c, "menus reordered", nil)
 }
 
 // Delete godoc
