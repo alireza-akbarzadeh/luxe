@@ -223,3 +223,49 @@ func applyCategoryWorkflow(
 	syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "inactive", "status_update", actorID)
 	return true
 }
+
+var brandStatusToStateCode = map[string]string{
+	"draft":    "draft",
+	"active":   "active",
+	"inactive": "inactive",
+	"archived": "archived",
+}
+
+// applyBrandWorkflow syncs legacy brand status into the workflow engine (best-effort).
+func applyBrandWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	brandID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"active":   {"activate", "reactivate"},
+		"inactive": {"deactivate"},
+		"archived": {"archive"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityBrand,
+				EntityID:    brandID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := brandStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityBrand, brandID, code, "status_update", actorID)
+	return true
+}

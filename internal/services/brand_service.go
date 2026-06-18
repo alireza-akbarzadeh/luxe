@@ -6,6 +6,8 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -18,11 +20,30 @@ type BrandServiceInterface interface {
 }
 
 type brandService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewBrandService(db *gorm.DB) BrandServiceInterface {
-	return &brandService{db: db}
+func NewBrandService(db *gorm.DB, engine *workflow.Engine) BrandServiceInterface {
+	return &brandService{db: db, engine: engine}
+}
+
+func (s *brandService) syncBrandWorkflow(ctx context.Context, brandID uint, status string) {
+	if !applyBrandWorkflow(ctx, s.engine, brandID, status, nil) {
+		utils.Log.WithField("brand_id", brandID).WithField("status", status).
+			Debug("brand workflow sync skipped or failed")
+	}
+}
+
+func (s *brandService) getBrandByID(ctx context.Context, id uint) (*models.Brand, error) {
+	var brand models.Brand
+	if err := s.db.WithContext(ctx).Preload("WorkflowState").First(&brand, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return &brand, nil
 }
 
 func (s *brandService) Create(ctx context.Context, req *dto.CreateBrandRequest) (*dto.BrandResponse, error) {
@@ -43,18 +64,21 @@ func (s *brandService) Create(ctx context.Context, req *dto.CreateBrandRequest) 
 		return nil, err
 	}
 
-	return brandToResponse(&brand), nil
+	s.syncBrandWorkflow(ctx, brand.ID, brand.Status)
+
+	loaded, err := s.getBrandByID(ctx, brand.ID)
+	if err != nil {
+		return nil, err
+	}
+	return brandToResponse(loaded), nil
 }
 
 func (s *brandService) GetByID(ctx context.Context, id uint) (*dto.BrandResponse, error) {
-	var brand models.Brand
-	if err := s.db.WithContext(ctx).First(&brand, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
+	brand, err := s.getBrandByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
-	return brandToResponse(&brand), nil
+	return brandToResponse(brand), nil
 }
 
 func (s *brandService) List(ctx context.Context, req *dto.ListBrandsRequest) ([]dto.BrandResponse, int64, error) {
@@ -76,7 +100,10 @@ func (s *brandService) List(ctx context.Context, req *dto.ListBrandsRequest) ([]
 	}
 
 	offset := (req.Page - 1) * req.Limit
-	if err := query.Offset(offset).Limit(req.Limit).Order("created_at DESC").Find(&brands).Error; err != nil {
+	if err := query.Offset(offset).Limit(req.Limit).
+		Order("created_at DESC").
+		Preload("WorkflowState").
+		Find(&brands).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -88,15 +115,11 @@ func (s *brandService) List(ctx context.Context, req *dto.ListBrandsRequest) ([]
 }
 
 func (s *brandService) Update(ctx context.Context, id uint, req *dto.UpdateBrandRequest) (*dto.BrandResponse, error) {
-	var brand models.Brand
-	if err := s.db.WithContext(ctx).First(&brand, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
+	brand, err := s.getBrandByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
-	// Apply updates only to non-nil fields
 	if req.Name != nil {
 		brand.Name = *req.Name
 	}
@@ -113,11 +136,19 @@ func (s *brandService) Update(ctx context.Context, id uint, req *dto.UpdateBrand
 		brand.Status = *req.Status
 	}
 
-	if err := s.db.WithContext(ctx).Save(&brand).Error; err != nil {
+	if err := s.db.WithContext(ctx).Save(brand).Error; err != nil {
 		return nil, err
 	}
 
-	return brandToResponse(&brand), nil
+	if req.Status != nil {
+		s.syncBrandWorkflow(ctx, id, *req.Status)
+	}
+
+	loaded, err := s.getBrandByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return brandToResponse(loaded), nil
 }
 
 func (s *brandService) Delete(ctx context.Context, id uint) error {
@@ -135,7 +166,7 @@ func (s *brandService) Delete(ctx context.Context, id uint) error {
 var ErrNotFound = errors.New("resource not found")
 
 func brandToResponse(b *models.Brand) *dto.BrandResponse {
-	return &dto.BrandResponse{
+	resp := &dto.BrandResponse{
 		ID:          b.ID,
 		Name:        b.Name,
 		Slug:        b.Slug,
@@ -145,4 +176,8 @@ func brandToResponse(b *models.Brand) *dto.BrandResponse {
 		CreatedAt:   b.CreatedAt,
 		UpdatedAt:   b.UpdatedAt,
 	}
+	if b.WorkflowState != nil {
+		resp.WorkflowState = dto.ToStateView(b.WorkflowState)
+	}
+	return resp
 }

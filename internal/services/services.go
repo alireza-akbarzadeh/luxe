@@ -36,6 +36,7 @@ type Services struct {
 	Compare      CompareServiceInterface
 	NavMenu      NavMenuServiceInterface
 	Brand        BrandServiceInterface
+	Collection   CollectionServiceInterface
 	Settings     SettingServiceInterface
 	Pdp          PdpServiceInterface
 	SalesFeed    *SalesFeedService
@@ -91,7 +92,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Wallet:       walletSvc,
 		Payment:      paymentSvc,
 		Store:        NewStoreService(db),
-		Brand:        NewBrandService(db),
+		Brand:        NewBrandService(db, workflowEngine),
+		Collection:   NewCollectionService(db),
 		Settings:     NewSettingService(db),
 		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, StripeEnabled(cfg)),
 		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),

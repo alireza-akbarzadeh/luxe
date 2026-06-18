@@ -30,8 +30,9 @@ type Container struct {
 	Search   *SearchController
 	Compare  *CompareController
 	NavMenu  *NavMenuController
-	Brand    *BrandController
-	Settings *SettingController
+	Brand      *BrandController
+	Collection *CollectionController
+	Settings   *SettingController
 	Pdp      *PdpController
 	WebSocket *WebSocketController
 	Stripe    *StripeWebhookController
@@ -69,8 +70,9 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Wallet:   NewWallerController(svc.Wallet),
 		Payment:  NewPaymentMethodController(svc.Payment, cfg),
 		NavMenu:  NewNavMenuController(svc.NavMenu),
-		Brand:    NewBrandController(svc.Brand),
-		Settings: NewSettingController(svc.Settings),
+		Brand:      NewBrandController(svc.Brand),
+		Collection: NewCollectionController(svc.Collection),
+		Settings:   NewSettingController(svc.Settings),
 		WebSocket: NewWebSocketController(svc),
 		Stripe:    NewStripeWebhookController(svc.Payment, svc.Checkout, svc.Wallet, svc.WebhookEvent, cfg),
 		Audit:     NewAuditController(svc.Audit),

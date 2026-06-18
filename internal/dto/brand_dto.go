@@ -38,12 +38,13 @@ type BrandListData struct {
 }
 
 type BrandResponse struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description *string   `json:"description,omitempty"`
-	LogoURL     *string   `json:"logo_url,omitempty"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uint       `json:"id"`
+	Name        string     `json:"name"`
+	Slug        string     `json:"slug"`
+	Description *string    `json:"description,omitempty"`
+	LogoURL     *string    `json:"logo_url,omitempty"`
+	Status      string     `json:"status"`
+	WorkflowState *StateView `json:"workflow_state,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }

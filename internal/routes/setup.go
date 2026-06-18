@@ -65,6 +65,7 @@ func (r *Router) Setup() {
 		SetupShipmentRoutes(public, protected, r.controllers)
 		SetupWalletRoutes(protected, r.controllers)
 		SetupBrandRoutes(public, protected, r.controllers)
+		SetupCollectionRoutes(public, protected, r.controllers)
 		SetupUploadRoutes(public, protected, r.controllers)
 		SetupAdminRoutes(protected, r.controllers)
 		SetupImportRoutes(protected, r.controllers)
