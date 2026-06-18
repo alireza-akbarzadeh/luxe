@@ -15,7 +15,7 @@ func SetupUserRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 
 	// Admin user management (no "/admin" prefix – apply role middleware directly)
 	adminUsers := protected.Group("/users")
-	adminUsers.Use(middleware.RequireAdmin())
+	adminUsers.Use(middleware.ModuleGuard("users"))
 	{
 		adminUsers.GET("/", ctrl.User.GetAllUsers)
 	}

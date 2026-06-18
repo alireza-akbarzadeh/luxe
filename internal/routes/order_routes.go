@@ -16,7 +16,7 @@ func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 
 	// Admin order endpoints (require admin role)
 	admin := protected.Group(constants.RouteOrders)
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.ModuleGuard("orders"))
 	{
 		admin.GET("/", ctrl.Order.ListAllOrders)
 		admin.GET("/:id/available-transitions", ctrl.Order.GetAvailableTransitions)

@@ -3,6 +3,7 @@ package controllers
 import (
 	"strconv"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -49,7 +50,7 @@ func (ctrl *RoleController) ListRoles(c *gin.Context) {
 func (ctrl *RoleController) GetRole(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.BadRequest(c, "invalid role id")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	role, err := ctrl.service.GetRole(c.Request.Context(), uint(id))
@@ -79,7 +80,7 @@ func (ctrl *RoleController) CreateRole(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to create role")
 		return
 	}
-	utils.Created(c, "role created", role)
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, role)
 }
 
 // UpdateRole godoc
@@ -95,7 +96,7 @@ func (ctrl *RoleController) CreateRole(c *gin.Context) {
 func (ctrl *RoleController) UpdateRole(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.BadRequest(c, "invalid role id")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	var req dto.UpdateRoleRequest
@@ -120,7 +121,7 @@ func (ctrl *RoleController) UpdateRole(c *gin.Context) {
 func (ctrl *RoleController) DeleteRole(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.BadRequest(c, "invalid role id")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	if err := ctrl.service.DeleteRole(c.Request.Context(), uint(id)); err != nil {
@@ -159,7 +160,7 @@ func (ctrl *RoleController) ListPermissions(c *gin.Context) {
 func (ctrl *RoleController) SetRolePermissions(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.BadRequest(c, "invalid role id")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	var req dto.SetRolePermissionsRequest

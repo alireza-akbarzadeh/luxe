@@ -13,7 +13,7 @@ func SetupSettingRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Co
 
 	// Admin only for write/delete
 	admin := protected.Group("/settings")
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.ModuleGuard("settings"))
 	{
 		admin.PUT("/:key", ctrl.Settings.SetSetting)
 		admin.DELETE("/:key", ctrl.Settings.DeleteSetting)

@@ -136,7 +136,7 @@ func (ctrl *AdminController) ListUsers(c *gin.Context) {
 
 // UpdateUserRole changes the role of a user (admin only).
 // @Summary      Update user role (admin)
-// @Description  Sets the role of a user to 'admin' or 'user'.
+// @Description  Sets the role slug of a user. The slug must exist in the roles table.
 // @Tags         Admin
 // @Accept       json
 // @Produce      json

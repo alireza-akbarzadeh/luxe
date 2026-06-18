@@ -8,7 +8,7 @@ import (
 
 func SetupMenuRoutes(router *gin.RouterGroup, ctrl *controllers.Container) {
 	adminGroup := router.Group("/admin/menu")
-	adminGroup.Use(middleware.RequireAdmin())
+	adminGroup.Use(middleware.ModuleGuard("menus"))
 	{
 		adminGroup.GET("/groups", ctrl.Menu.GetAllGroups)
 		adminGroup.GET("/groups/:id", ctrl.Menu.GetGroupByID)

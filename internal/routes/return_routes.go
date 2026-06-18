@@ -15,7 +15,7 @@ func SetupReturnRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) 
 	}
 
 	admin := protected.Group("/admin/returns")
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.ModuleGuard("orders"))
 	{
 		admin.GET("", ctrl.Return.ListReturnsAdmin)
 		admin.POST("/:id/transition", ctrl.Return.PerformReturnTransition)

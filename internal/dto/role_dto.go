@@ -35,5 +35,5 @@ type UpdateRoleRequest struct {
 }
 
 type SetRolePermissionsRequest struct {
-	PermissionIDs []uint `json:"permission_ids" binding:"required"`
+	PermissionIDs []uint `json:"permission_ids"`
 }

@@ -9,7 +9,7 @@ import (
 // SetupImportRoutes mounts Excel bulk-import endpoints under /admin/import (admin only).
 func SetupImportRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	imp := protected.Group("/admin/import")
-	imp.Use(middleware.RequireAdmin())
+	imp.Use(middleware.ModuleGuard("products"))
 	imp.Use(middleware.StrictRateLimit())
 	{
 		imp.GET("/template/:entity", ctrl.Import.DownloadTemplate)

@@ -54,7 +54,7 @@ func newTestServer(t *testing.T) *httptest.Server {
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())
-	router := routes.NewRouter(engine, ctrl, testCfg, svc.Audit)
+	router := routes.NewRouter(engine, ctrl, testCfg, svc.Audit, svc.Role)
 	router.Setup()
 
 	return httptest.NewServer(engine)

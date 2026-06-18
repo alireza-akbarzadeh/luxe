@@ -97,7 +97,7 @@ func main() {
 
 	ctrl := controllers.NewContainer(db, newServices, cfg)
 	engine := setupGin()
-	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit)
+	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit, newServices.Role)
 	router.Setup()
 
 	bootStrap(engine, cfg, func() {

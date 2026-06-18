@@ -19,7 +19,7 @@ func SetupWorkflowRoutes(protected *gin.RouterGroup, ctrl *controllers.Container
 	}
 
 	admin := protected.Group("/admin/workflows")
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.ModuleGuard("settings"))
 	{
 		admin.GET("", ctrl.Workflow.ListWorkflows)
 		admin.POST("", ctrl.Workflow.CreateWorkflow)

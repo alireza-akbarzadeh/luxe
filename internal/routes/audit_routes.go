@@ -8,7 +8,7 @@ import (
 
 func SetupAuditRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	admin := protected.Group("/admin/audit-logs")
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.ModuleGuard("settings"))
 	{
 		admin.GET("/", ctrl.Audit.List)
 	}

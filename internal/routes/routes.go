@@ -14,13 +14,15 @@ type Router struct {
 	controllers *controllers.Container
 	cfg         *config.Config
 	auditSvc    services.AuditServiceInterface
+	roleSvc     services.RoleServiceInterface
 }
 
-func NewRouter(engine *gin.Engine, ctrl *controllers.Container, cfg *config.Config, auditSvc services.AuditServiceInterface) *Router {
+func NewRouter(engine *gin.Engine, ctrl *controllers.Container, cfg *config.Config, auditSvc services.AuditServiceInterface, roleSvc services.RoleServiceInterface) *Router {
 	return &Router{
 		engine:      engine,
 		controllers: ctrl,
 		cfg:         cfg,
 		auditSvc:    auditSvc,
+		roleSvc:     roleSvc,
 	}
 }

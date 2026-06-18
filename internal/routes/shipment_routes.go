@@ -17,7 +17,7 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 
 	// Admin endpoints for shipments
 	adminShipments := protected.Group("/shipments")
-	adminShipments.Use(middleware.RequireAdmin())
+	adminShipments.Use(middleware.ModuleGuard("orders"))
 	{
 		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
 		adminShipments.GET("/:id/available-transitions", ctrl.Shipment.GetAvailableTransitions)
@@ -28,7 +28,7 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 
 	// Admin endpoints for shipping providers (CRUD)
 	adminProviders := protected.Group("/shipping-providers")
-	adminProviders.Use(middleware.RequireAdmin())
+	adminProviders.Use(middleware.ModuleGuard("orders"))
 	{
 		adminProviders.POST("/", ctrl.Shipment.CreateShippingProvider)
 		adminProviders.PUT("/:id", ctrl.Shipment.UpdateShippingProvider)

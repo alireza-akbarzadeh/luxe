@@ -8,17 +8,38 @@ import (
 
 func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	admin := protected.Group("/admin")
-	admin.Use(middleware.RequireAdmin())
+	admin.Use(middleware.RequireStaff())
+
+	dashboard := admin.Group("")
+	dashboard.Use(middleware.ModuleGuard("orders"))
 	{
-			admin.GET("/stats", ctrl.Admin.GetStats)
-		admin.GET("/dashboard/overview", ctrl.Admin.GetDashboardOverview)
-		admin.GET("/sales-feed/snapshot", ctrl.Admin.GetSalesFeedSnapshot)
-		admin.GET("/users", ctrl.Admin.ListUsers)
-		admin.PATCH("/users/:id/role", ctrl.Admin.UpdateUserRole)
-		admin.PATCH("/users/:id/active", ctrl.Admin.ToggleUserActive)
-		setupRoleRoutes(admin, ctrl)
-		admin.POST("/orders/bulk-status", ctrl.Admin.BulkUpdateOrderStatus)
-		admin.GET("/orders/export", ctrl.Admin.ExportOrdersCSV)
-		admin.GET("/webhooks", ctrl.Admin.ListWebhookEvents)
+		dashboard.GET("/stats", ctrl.Admin.GetStats)
+		dashboard.GET("/dashboard/overview", ctrl.Admin.GetDashboardOverview)
+		dashboard.GET("/sales-feed/snapshot", ctrl.Admin.GetSalesFeedSnapshot)
 	}
+
+	users := admin.Group("")
+	users.Use(middleware.ModuleGuard("users"))
+	{
+		users.GET("/users", ctrl.Admin.ListUsers)
+		users.PATCH("/users/:id/role", ctrl.Admin.UpdateUserRole)
+		users.PATCH("/users/:id/active", ctrl.Admin.ToggleUserActive)
+	}
+
+	orders := admin.Group("")
+	orders.Use(middleware.ModuleGuard("orders"))
+	{
+		orders.POST("/orders/bulk-status", ctrl.Admin.BulkUpdateOrderStatus)
+		orders.GET("/orders/export", ctrl.Admin.ExportOrdersCSV)
+	}
+
+	settings := admin.Group("")
+	settings.Use(middleware.ModuleGuard("settings"))
+	{
+		settings.GET("/webhooks", ctrl.Admin.ListWebhookEvents)
+	}
+
+	roles := admin.Group("")
+	roles.Use(middleware.ModuleGuard("roles"))
+	setupRoleRoutes(roles, ctrl)
 }

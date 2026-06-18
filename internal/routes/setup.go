@@ -11,6 +11,7 @@ import (
 
 func (r *Router) Setup() {
 	r.RegisterMiddlewares()
+	middleware.SetRolePermissionChecker(r.roleSvc)
 
 	r.engine.GET(constants.RouteRoot, r.controllers.Page.LandingPage)
 	r.engine.Static(constants.RouteStatic, "./views/static")

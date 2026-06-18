@@ -363,3 +363,44 @@ WHERE r.slug = 'moderator'
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
+
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Content Manager', 'content-manager', 'Manage catalog, collections, and site navigation', false, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'content-manager');
+
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Support Agent', 'support', 'Handle customer accounts and order lookups', false, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'support');
+
+INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
+SELECT 'Catalog Manager', 'catalog-manager', 'Products, categories, and merchandising', false, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM roles WHERE slug = 'catalog-manager');
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.key IN (
+  'products.read', 'products.write', 'menus.read', 'menus.write', 'orders.read'
+)
+WHERE r.slug = 'content-manager'
+  AND NOT EXISTS (
+    SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.key IN ('users.read', 'orders.read')
+WHERE r.slug = 'support'
+  AND NOT EXISTS (
+    SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON p.key IN ('products.read', 'products.write', 'menus.read')
+WHERE r.slug = 'catalog-manager'
+  AND NOT EXISTS (
+    SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
+  );

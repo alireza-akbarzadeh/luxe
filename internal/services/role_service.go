@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -20,6 +21,7 @@ type RoleServiceInterface interface {
 	ListPermissions(ctx context.Context) ([]dto.PermissionResponse, error)
 	SetRolePermissions(ctx context.Context, roleID uint, permissionIDs []uint) (*dto.RoleResponse, error)
 	RoleSlugExists(ctx context.Context, slug string) (bool, error)
+	HasPermission(ctx context.Context, roleSlug, permissionKey string) (bool, error)
 }
 
 type roleService struct {
@@ -206,6 +208,23 @@ func (s *roleService) SetRolePermissions(ctx context.Context, roleID uint, permi
 func (s *roleService) RoleSlugExists(ctx context.Context, slug string) (bool, error) {
 	var count int64
 	if err := s.db.WithContext(ctx).Model(&models.Role{}).Where("slug = ?", slug).Count(&count).Error; err != nil {
+		return false, utils.ErrInternal(err)
+	}
+	return count > 0, nil
+}
+
+func (s *roleService) HasPermission(ctx context.Context, roleSlug, permissionKey string) (bool, error) {
+	if roleSlug == constants.RoleAdmin {
+		return true, nil
+	}
+	var count int64
+	err := s.db.WithContext(ctx).
+		Table("role_permissions rp").
+		Joins("JOIN roles r ON r.id = rp.role_id").
+		Joins("JOIN permissions p ON p.id = rp.permission_id").
+		Where("r.slug = ? AND p.key = ?", roleSlug, permissionKey).
+		Count(&count).Error
+	if err != nil {
 		return false, utils.ErrInternal(err)
 	}
 	return count > 0, nil

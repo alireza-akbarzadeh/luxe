@@ -40,7 +40,7 @@ type AdminUserResponse struct {
 
 // UpdateUserRoleRequest is the body for PATCH /admin/users/:id/role.
 type UpdateUserRoleRequest struct {
-	Role string `json:"role" validate:"required,oneof=admin user"`
+	Role string `json:"role" validate:"required,min=1,max=80"`
 }
 
 // ToggleUserActiveRequest is the body for PATCH /admin/users/:id/active.
