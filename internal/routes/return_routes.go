@@ -18,6 +18,7 @@ func SetupReturnRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) 
 	admin.Use(middleware.ModuleGuard("orders"))
 	{
 		admin.GET("", ctrl.Return.ListReturnsAdmin)
+		admin.GET("/:id", ctrl.Return.GetReturnAdmin)
 		admin.POST("/:id/transition", ctrl.Return.PerformReturnTransition)
 	}
 }

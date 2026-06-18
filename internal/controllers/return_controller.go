@@ -149,6 +149,28 @@ func (ctrl *ReturnController) ListReturnsAdmin(c *gin.Context) {
 	})
 }
 
+// GetReturnAdmin returns a single return request (admin only).
+// @Summary      Get return by ID (admin)
+// @Tags         Returns
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Return ID"
+// @Success      200 {object} utils.Response{data=dto.ReturnResponse}
+// @Router       /admin/returns/{id} [get]
+func (ctrl *ReturnController) GetReturnAdmin(c *gin.Context) {
+	returnID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	ret, err := ctrl.svc.GetByID(c.Request.Context(), returnID, 0, true)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load return")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, toReturnResponse(ret))
+}
+
 // PerformReturnTransition applies a workflow event to a return (admin only).
 // @Summary      Transition return state (admin)
 // @Tags         Returns
