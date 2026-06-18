@@ -229,6 +229,57 @@ func (cc *CouponController) List(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// ListAdmin returns all coupons for admin management (includes inactive, expired, exhausted).
+// @Summary      List coupons (admin)
+// @Description  Returns a paginated list of all coupons for admin management with optional status filters
+// @Tags         Coupons
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit         query     int     false  "Items per page"  default(20)  minimum(1)  maximum(100)
+// @Param        offset        query     int     false  "Offset"  default(0)  minimum(0)
+// @Param        code          query     string  false  "Filter by coupon code (partial match)"
+// @Param        status        query     string  false  "Filter by lifecycle status (active|inactive|expired|exhausted|all)"
+// @Param        discount_type query     string  false  "Filter by discount type (percentage/fixed)"
+// @Success      200           {object}  dto.CouponListResponse
+// @Failure      400           {object}  utils.Response
+// @Failure      401           {object}  utils.Response
+// @Failure      403           {object}  utils.Response
+// @Failure      500           {object}  utils.Response
+// @Router       /admin/coupons [get]
+func (cc *CouponController) ListAdmin(c *gin.Context) {
+	var filters dto.AdminCouponListFilters
+	if !utils.BindAndValidateQuery(c, &filters, cc.validate) {
+		return
+	}
+
+	coupons, total, err := cc.couponService.ListAdmin(filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list coupons")
+		return
+	}
+
+	limit := filters.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	resp := dto.CouponListResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.CouponListData{
+			Coupons: coupons,
+			Total:   total,
+			Limit:   limit,
+			Offset:  filters.Offset,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // GetMyCoupons returns available coupons for the authenticated user
 // @Summary      Get my available coupons
 // @Description  Retrieve all coupons that are valid and not yet used by the authenticated user

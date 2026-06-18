@@ -250,6 +250,7 @@ const (
 	WorkflowEntityCategory = "category"
 	WorkflowEntityBrand       = "brand"
 	WorkflowEntityCollection  = "collection"
+	WorkflowEntityCoupon      = "coupon"
 )
 
 // Inventory adjustment types (ledger).

@@ -308,3 +308,62 @@ func applyCollectionWorkflow(
 	syncWorkflowState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
 	return true
 }
+
+// applyCouponWorkflow syncs coupon is_active into the workflow engine (best-effort).
+func applyCouponWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	couponID uint,
+	isActive bool,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if isActive {
+		for _, event := range []string{"activate", "resume"} {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCoupon,
+				EntityID:    couponID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+		code := "active"
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, code, "status_update", actorID)
+		return true
+	}
+
+	for _, event := range []string{"pause"} {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityCoupon,
+			EntityID:    couponID,
+			Event:       event,
+			ActorID:     actorID,
+			ActorRole:   constants.RoleAdmin,
+		}); err == nil {
+			return true
+		}
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "paused", "status_update", actorID)
+	return true
+}
+
+// applyCouponExhausted moves a coupon to the exhausted workflow state when usage limit is reached.
+func applyCouponExhausted(ctx context.Context, engine *workflow.Engine, couponID uint) {
+	if engine == nil {
+		return
+	}
+	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityCoupon,
+		EntityID:    couponID,
+		Event:       "mark_exhausted",
+		ActorRole:   constants.RoleAdmin,
+	}); err != nil {
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
+	}
+}

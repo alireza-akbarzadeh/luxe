@@ -63,12 +63,12 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	})
 
 	notificationSvc := NewNotificationService(db, wsHub)
-	couponSvc := NewCouponService(db)
 	paymentSvc := NewPaymentService(db, cfg)
 	walletSvc := NewWalletService(db, cfg)
 
 	workflowEngine := workflow.NewEngine(db)
 	RegisterWorkflowGuardsAndHooks(workflowEngine, db, notificationSvc, walletSvc, jobQueue)
+	couponSvc := NewCouponService(db, workflowEngine)
 	roleSvc := NewRoleService(db)
 
 	productSvc := NewProductService(db, workflowEngine)

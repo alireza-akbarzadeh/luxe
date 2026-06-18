@@ -23,6 +23,8 @@ type Coupon struct {
 	StartDate          time.Time `gorm:"not null" json:"start_date"`
 	EndDate            time.Time `gorm:"not null" json:"end_date"`
 	IsActive           bool      `gorm:"default:true" json:"is_active"`
+	WorkflowStateID    *uint     `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowState      *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
 }
 
 type CouponUsage struct {

@@ -60,7 +60,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-shipping-providers seed-invoices seed-orders-returns db-info
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-shipping-providers seed-invoices seed-coupons seed-orders-returns db-info
 
 # Default target
 help: ## Show this help message
@@ -181,6 +181,7 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-shipping-providers.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-invoices.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-coupons.sql; \
 	else \
 		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
@@ -188,6 +189,7 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-shipping-providers.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-invoices.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
 	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
 
@@ -208,6 +210,15 @@ seed-invoices: ## Load demo invoices from seed orders
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-invoices.sql; \
 	fi
 	@echo "${GREEN}Invoices seed complete${RESET}"
+
+seed-coupons: ## Load demo coupons for admin discounts page
+	@echo "${GREEN}Seeding coupons into $(POSTGRES_DB)...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-coupons.sql; \
+	else \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
+	fi
+	@echo "${GREEN}Coupons seed complete${RESET}"
 
 seed-orders-returns: ## Load demo orders + returns only (requires catalog seed)
 	@echo "${GREEN}Seeding orders & returns into $(POSTGRES_DB)...${RESET}"

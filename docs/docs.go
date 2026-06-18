@@ -1330,6 +1330,441 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/inventory": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated product inventory rows with stock status, waitlist counts, and 30-day velocity",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "List inventory items",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by name or SKU",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "all",
+                            "low",
+                            "out",
+                            "healthy",
+                            "not_tracked"
+                        ],
+                        "type": "string",
+                        "description": "Filter",
+                        "name": "stock_status",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "stock_asc",
+                            "stock_desc",
+                            "name_asc",
+                            "waitlist_desc",
+                            "velocity_desc"
+                        ],
+                        "type": "string",
+                        "description": "Sort",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.InventoryListData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/inventory/adjust": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Apply a signed stock delta with reason (receive, correction, damage, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Adjust product stock",
+                "parameters": [
+                    {
+                        "description": "Adjustment payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdjustInventoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.InventoryItemResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/inventory/adjustments/recent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Latest stock movements across all products",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Recent inventory adjustments",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Max rows",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.InventoryAdjustmentResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/inventory/bulk-adjust": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Apply signed stock deltas for multiple SKUs in one request (receive shipments, corrections, etc.)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Bulk adjust stock by SKU",
+                "parameters": [
+                    {
+                        "description": "Bulk adjustment payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.BulkAdjustInventoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BulkAdjustInventoryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/inventory/overview": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns low-stock, out-of-stock, and waitlist totals for the admin inventory dashboard",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Inventory overview KPIs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.InventoryOverviewResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/inventory/products/{id}/history": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated adjustment ledger for a single product",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "inventory"
+                ],
+                "summary": "Product inventory history",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page size",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.InventoryHistoryData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/menu/groups": {
             "get": {
                 "security": [
@@ -2146,6 +2581,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/returns/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Returns"
+                ],
+                "summary": "Get return by ID (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Return ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ReturnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/returns/{id}/transition": {
             "post": {
                 "security": [
@@ -2531,6 +3011,78 @@ const docTemplate = `{
             }
         },
         "/admin/shipments": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Shipments"
+                ],
+                "summary": "List shipments (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by legacy status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by carrier",
+                        "name": "carrier",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by order ID",
+                        "name": "order_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search tracking, order #, or carrier",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminShipmentListData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -4696,6 +5248,248 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/collections": {
+            "get": {
+                "description": "Returns a paginated list of collections with optional search and status filtering.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "List collections",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by title, slug, or eyebrow",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CollectionListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Creates a curated collection for the storefront collections page.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Create a new collection",
+                "parameters": [
+                    {
+                        "description": "Collection payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateCollectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CollectionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/collections/{id}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Get a collection by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Collection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CollectionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Update a collection",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Collection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCollectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CollectionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Delete a collection",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Collection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -11142,6 +11936,37 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AdjustInventoryRequest": {
+            "type": "object",
+            "required": [
+                "delta",
+                "product_id",
+                "reason"
+            ],
+            "properties": {
+                "delta": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "reason": {
+                    "type": "string",
+                    "enum": [
+                        "receive",
+                        "correction",
+                        "damage",
+                        "shrinkage",
+                        "cycle_count",
+                        "other"
+                    ]
+                }
+            }
+        },
         "dto.AdminAdjustRequest": {
             "type": "object",
             "required": [
@@ -11534,6 +12359,70 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AdminShipmentListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "shipments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminShipmentListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AdminShipmentListItem": {
+            "type": "object",
+            "properties": {
+                "carrier": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_name": {
+                    "type": "string"
+                },
+                "estimated_delivery": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "order_number": {
+                    "type": "string"
+                },
+                "shipped_at": {
+                    "type": "string"
+                },
+                "state": {
+                    "$ref": "#/definitions/dto.StateView"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tracking_number": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AdminStatsResponse": {
             "type": "object",
             "properties": {
@@ -11692,6 +12581,54 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
+                }
+            }
+        },
+        "dto.BulkAdjustInventoryRequest": {
+            "type": "object",
+            "required": [
+                "reason",
+                "rows"
+            ],
+            "properties": {
+                "reason": {
+                    "type": "string",
+                    "enum": [
+                        "receive",
+                        "correction",
+                        "damage",
+                        "shrinkage",
+                        "cycle_count",
+                        "other"
+                    ]
+                },
+                "rows": {
+                    "type": "array",
+                    "maxItems": 500,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dto.BulkInventoryAdjustRow"
+                    }
+                }
+            }
+        },
+        "dto.BulkAdjustInventoryResponse": {
+            "type": "object",
+            "properties": {
+                "applied": {
+                    "type": "integer"
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BulkInventoryAdjustRowResult"
+                    }
                 }
             }
         },
@@ -11735,6 +12672,47 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "dto.BulkInventoryAdjustRow": {
+            "type": "object",
+            "required": [
+                "delta",
+                "sku"
+            ],
+            "properties": {
+                "delta": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "sku": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1
+                }
+            }
+        },
+        "dto.BulkInventoryAdjustRowResult": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -12036,6 +13014,96 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CollectionListData": {
+            "type": "object",
+            "properties": {
+                "collections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CollectionListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.CollectionListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.CollectionResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "cta_label": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "eyebrow": {
+                    "type": "string"
+                },
+                "href": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "preview_category_id": {
+                    "type": "integer"
+                },
+                "preview_is_new": {
+                    "type": "boolean"
+                },
+                "preview_sort": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
+                }
+            }
+        },
         "dto.Column": {
             "type": "object",
             "properties": {
@@ -12214,6 +13282,9 @@ const docTemplate = `{
                 },
                 "weight": {
                     "type": "number"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -12424,6 +13495,67 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.CreateCollectionRequest": {
+            "type": "object",
+            "required": [
+                "slug",
+                "title"
+            ],
+            "properties": {
+                "cta_label": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "eyebrow": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "href": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "preview_category_id": {
+                    "type": "integer"
+                },
+                "preview_is_new": {
+                    "type": "boolean"
+                },
+                "preview_sort": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "inactive",
+                        "archived"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
                 }
             }
         },
@@ -13137,6 +14269,166 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.InventoryAdjustmentResponse": {
+            "type": "object",
+            "properties": {
+                "actor_name": {
+                    "type": "string"
+                },
+                "adjustment_type": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "product_sku": {
+                    "type": "string"
+                },
+                "quantity_after": {
+                    "type": "integer"
+                },
+                "quantity_before": {
+                    "type": "integer"
+                },
+                "quantity_delta": {
+                    "type": "integer"
+                },
+                "reference_id": {
+                    "type": "integer"
+                },
+                "reference_type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.InventoryHistoryData": {
+            "type": "object",
+            "properties": {
+                "adjustments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.InventoryAdjustmentResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.InventoryItemResponse": {
+            "type": "object",
+            "properties": {
+                "allow_backorder": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "low_stock_threshold": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "sku": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "stock_status": {
+                    "type": "string"
+                },
+                "track_inventory": {
+                    "type": "boolean"
+                },
+                "units_sold_30d": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "waitlist_count": {
+                    "type": "integer"
+                },
+                "warehouse_location": {
+                    "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
+                }
+            }
+        },
+        "dto.InventoryListData": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.InventoryItemResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.InventoryOverviewResponse": {
+            "type": "object",
+            "properties": {
+                "low_stock_count": {
+                    "type": "integer"
+                },
+                "not_tracked_count": {
+                    "type": "integer"
+                },
+                "out_of_stock_count": {
+                    "type": "integer"
+                },
+                "total_units_on_hand": {
+                    "type": "integer"
+                },
+                "tracked_sku_count": {
+                    "type": "integer"
+                },
+                "waitlist_total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.Link": {
             "type": "object",
             "properties": {
@@ -13759,6 +15051,9 @@ const docTemplate = `{
                 },
                 "weight": {
                     "type": "number"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -13985,6 +15280,9 @@ const docTemplate = `{
                 },
                 "weight": {
                     "type": "number"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -14175,6 +15473,9 @@ const docTemplate = `{
                 },
                 "weight": {
                     "type": "number"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -14928,6 +16229,63 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateCollectionRequest": {
+            "type": "object",
+            "properties": {
+                "cta_label": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "eyebrow": {
+                    "type": "string",
+                    "maxLength": 128
+                },
+                "href": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "preview_category_id": {
+                    "type": "integer"
+                },
+                "preview_is_new": {
+                    "type": "boolean"
+                },
+                "preview_sort": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "inactive",
+                        "archived"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                }
+            }
+        },
         "dto.UpdateCouponRequest": {
             "type": "object",
             "properties": {
@@ -15676,6 +17034,12 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/models.WorkflowState"
+                },
+                "workflow_state_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -15740,6 +17104,12 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/models.WorkflowState"
+                },
+                "workflow_state_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -16170,6 +17540,9 @@ const docTemplate = `{
                 "weight": {
                     "type": "number"
                 },
+                "workflow_state": {
+                    "$ref": "#/definitions/models.WorkflowState"
+                },
                 "workflow_state_id": {
                     "type": "integer"
                 }
@@ -16277,6 +17650,9 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/models.WorkflowState"
                 },
                 "workflow_state_id": {
                     "type": "integer"
