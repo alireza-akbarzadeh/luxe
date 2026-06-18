@@ -12,6 +12,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -51,16 +52,36 @@ type InventoryServiceInterface interface {
 	RestoreForOrderCancel(ctx context.Context, tx *gorm.DB, orderID uint, productID uint, quantity int) (deltaResult, error)
 	DecrementForSale(ctx context.Context, tx *gorm.DB, orderID uint, productID uint, quantity int) (deltaResult, error)
 	RunStockSideEffects(ctx context.Context, product models.Product, before, after int)
+	BulkAdjustStock(ctx context.Context, actorUserID *uint, req *dto.BulkAdjustInventoryRequest) (*dto.BulkAdjustInventoryResponse, error)
+	SendLowStockAlerts(ctx context.Context) error
+	RestockForReturn(ctx context.Context, returnID uint) error
 }
 
 type inventoryService struct {
-	db       *gorm.DB
-	engine   *workflow.Engine
-	notifier backInStockNotifier
+	db            *gorm.DB
+	engine        *workflow.Engine
+	notifier      backInStockNotifier
+	notifications NotificationServiceInterface
+	jobQueue      tasks.JobQueue
+	alertEmails   []string
 }
 
-func NewInventoryService(db *gorm.DB, engine *workflow.Engine, notifier backInStockNotifier) InventoryServiceInterface {
-	return &inventoryService{db: db, engine: engine, notifier: notifier}
+func NewInventoryService(
+	db *gorm.DB,
+	engine *workflow.Engine,
+	notifier backInStockNotifier,
+	notifications NotificationServiceInterface,
+	jobQueue tasks.JobQueue,
+	alertEmails []string,
+) InventoryServiceInterface {
+	return &inventoryService{
+		db:            db,
+		engine:        engine,
+		notifier:      notifier,
+		notifications: notifications,
+		jobQueue:      jobQueue,
+		alertEmails:   alertEmails,
+	}
 }
 
 func (s *inventoryService) GetOverview(ctx context.Context) (*dto.InventoryOverviewResponse, error) {
@@ -310,6 +331,7 @@ func (s *inventoryService) ApplyDelta(ctx context.Context, tx *gorm.DB, params D
 // RunStockSideEffects applies notification/workflow hooks after a committed stock change.
 func (s *inventoryService) RunStockSideEffects(ctx context.Context, product models.Product, before, after int) {
 	s.handleStockSideEffects(ctx, product, before, after)
+}
 
 func (s *inventoryService) SetAbsoluteStock(ctx context.Context, productID uint, newStock int, actorUserID *uint, note, adjustmentType string) error {
 	if newStock < 0 {
@@ -619,4 +641,241 @@ func mapAdjustmentRows(rows []models.InventoryAdjustment) []dto.InventoryAdjustm
 		out = append(out, resp)
 	}
 	return out
+}
+
+func (s *inventoryService) BulkAdjustStock(
+	ctx context.Context,
+	actorUserID *uint,
+	req *dto.BulkAdjustInventoryRequest,
+) (*dto.BulkAdjustInventoryResponse, error) {
+	resp := &dto.BulkAdjustInventoryResponse{
+		Rows: make([]dto.BulkInventoryAdjustRowResult, 0, len(req.Rows)),
+	}
+
+	for _, row := range req.Rows {
+		sku := strings.TrimSpace(row.SKU)
+		if sku == "" {
+			resp.Failed++
+			resp.Rows = append(resp.Rows, dto.BulkInventoryAdjustRowResult{
+				SKU:     row.SKU,
+				Success: false,
+				Message: "sku is required",
+			})
+			continue
+		}
+		if row.Delta == 0 {
+			resp.Failed++
+			resp.Rows = append(resp.Rows, dto.BulkInventoryAdjustRowResult{
+				SKU:     sku,
+				Success: false,
+				Message: "delta cannot be zero",
+			})
+			continue
+		}
+
+		var product models.Product
+		if err := s.db.WithContext(ctx).Where("sku = ?", sku).First(&product).Error; err != nil {
+			resp.Failed++
+			msg := "product not found"
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				msg = "lookup failed"
+			}
+			resp.Rows = append(resp.Rows, dto.BulkInventoryAdjustRowResult{
+				SKU:     sku,
+				Success: false,
+				Message: msg,
+			})
+			continue
+		}
+
+		note := strings.TrimSpace(row.Note)
+		if note == "" {
+			note = req.Reason
+		}
+
+		item, err := s.AdjustStock(ctx, actorUserID, &dto.AdjustInventoryRequest{
+			ProductID: product.ID,
+			Delta:     row.Delta,
+			Reason:    req.Reason,
+			Note:      note,
+		})
+		if err != nil {
+			resp.Failed++
+			resp.Rows = append(resp.Rows, dto.BulkInventoryAdjustRowResult{
+				SKU:     sku,
+				Success: false,
+				Message: err.Error(),
+			})
+			continue
+		}
+
+		resp.Applied++
+		stock := item.Stock
+		productID := item.ID
+		resp.Rows = append(resp.Rows, dto.BulkInventoryAdjustRowResult{
+			SKU:       sku,
+			Success:   true,
+			ProductID: &productID,
+			Stock:     &stock,
+		})
+	}
+
+	return resp, nil
+}
+
+func (s *inventoryService) SendLowStockAlerts(ctx context.Context) error {
+	var products []models.Product
+	err := s.db.WithContext(ctx).
+		Where("track_inventory = ? AND status = ? AND stock <= low_stock_threshold", true, constants.ProductStatusActive).
+		Order("stock ASC").
+		Find(&products).Error
+	if err != nil {
+		return utils.ErrInternal(err)
+	}
+
+	if len(products) == 0 {
+		utils.Log.Info("inventory alert: no low-stock products")
+		return nil
+	}
+
+	var outOfStock, lowStock []models.Product
+	for _, p := range products {
+		if p.Stock == 0 {
+			outOfStock = append(outOfStock, p)
+		} else {
+			lowStock = append(lowStock, p)
+		}
+	}
+
+	recipients, err := s.resolveAlertRecipients(ctx)
+	if err != nil {
+		return err
+	}
+
+	title := fmt.Sprintf("Inventory alert: %d SKU(s) need attention", len(products))
+	body := buildLowStockEmailBody(lowStock, outOfStock)
+
+	for _, admin := range recipients.admins {
+		_ = s.notifications.CreateNotification(admin.ID, "low_stock_alert", title, body, map[string]interface{}{
+			"low_stock_count":   len(lowStock),
+			"out_of_stock_count": len(outOfStock),
+		})
+	}
+
+	if s.jobQueue != nil {
+		for _, email := range recipients.emails {
+			_ = s.jobQueue.EnqueueSendEmail(ctx, email, title, body)
+		}
+	}
+
+	for _, p := range products {
+		utils.Log.WithFields(map[string]interface{}{
+			"product_id": p.ID,
+			"sku":        p.SKU,
+			"stock":      p.Stock,
+			"threshold":  p.LowStockThreshold,
+		}).Warn("LOW STOCK ALERT")
+	}
+
+	return nil
+}
+
+type alertRecipients struct {
+	admins []models.User
+	emails []string
+}
+
+func (s *inventoryService) resolveAlertRecipients(ctx context.Context) (alertRecipients, error) {
+	var admins []models.User
+	if err := s.db.WithContext(ctx).
+		Where("role = ?", constants.RoleAdmin).
+		Find(&admins).Error; err != nil {
+		return alertRecipients{}, utils.ErrInternal(err)
+	}
+
+	emails := append([]string(nil), s.alertEmails...)
+	if len(emails) == 0 {
+		for _, admin := range admins {
+			if admin.Email != "" {
+				emails = append(emails, admin.Email)
+			}
+		}
+	}
+	return alertRecipients{admins: admins, emails: emails}, nil
+}
+
+func buildLowStockEmailBody(lowStock, outOfStock []models.Product) string {
+	var b strings.Builder
+	b.WriteString("<p>The following products need inventory attention:</p><ul>")
+	for _, p := range outOfStock {
+		fmt.Fprintf(&b, "<li><strong>%s</strong> (%s) — <span style=\"color:#dc2626\">OUT OF STOCK</span></li>", p.Name, p.SKU)
+	}
+	for _, p := range lowStock {
+		fmt.Fprintf(&b, "<li><strong>%s</strong> (%s) — %d left (threshold %d)</li>", p.Name, p.SKU, p.Stock, p.LowStockThreshold)
+	}
+	b.WriteString("</ul><p>Review inventory in the admin dashboard.</p>")
+	return b.String()
+}
+
+func (s *inventoryService) RestockForReturn(ctx context.Context, returnID uint) error {
+	var ret models.Return
+	if err := s.db.WithContext(ctx).Preload("Order.Items").First(&ret, returnID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("return not found")
+		}
+		return utils.ErrInternal(err)
+	}
+	if ret.Order == nil || len(ret.Order.Items) == 0 {
+		return nil
+	}
+
+	var changes []deltaResult
+	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range ret.Order.Items {
+			var product models.Product
+			if err := tx.First(&product, item.ProductID).Error; err != nil {
+				return err
+			}
+			if !shouldDecrementProductStock(product) {
+				continue
+			}
+
+			var existing int64
+			if err := tx.Model(&models.InventoryAdjustment{}).
+				Where("reference_type = ? AND reference_id = ? AND product_id = ? AND adjustment_type = ?",
+					constants.InventoryRefReturn, returnID, item.ProductID, constants.InventoryAdjReturnRestock).
+				Count(&existing).Error; err != nil {
+				return err
+			}
+			if existing > 0 {
+				continue
+			}
+
+			refID := returnID
+			change, err := s.applyDeltaLocked(ctx, tx, DeltaParams{
+				ProductID:             item.ProductID,
+				Delta:                 item.Quantity,
+				AdjustmentType:        constants.InventoryAdjReturnRestock,
+				ReferenceType:         constants.InventoryRefReturn,
+				ReferenceID:           &refID,
+				Note:                  fmt.Sprintf("return %d item received", returnID),
+				SkipAvailabilityCheck: true,
+			})
+			if err != nil {
+				return err
+			}
+			if change.QuantityBefore != change.QuantityAfter {
+				changes = append(changes, change)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	for _, change := range changes {
+		s.handleStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
+	}
+	return nil
 }

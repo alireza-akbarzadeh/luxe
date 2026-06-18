@@ -24,6 +24,7 @@ type Config struct {
 	Email                 Email
 	Stripe                StripeConfig
 	ShipmentDeliveryDelay time.Duration
+	InventoryAlertEmails  []string
 }
 
 type RedisConfig struct {
@@ -172,6 +173,7 @@ func Load() (*Config, error) {
 	viper.SetDefault("EMAIL_USERNAME", "")
 	viper.SetDefault("EMAIL_PASSWORD", "")
 	viper.SetDefault("EMAIL_FROM", "noreply@yourapp.com")
+	viper.SetDefault("INVENTORY_ALERT_EMAILS", "")
 	viper.SetDefault("FRONTEND_URL", "http://localhost:3000")
 
 	viper.SetDefault("STRIPE_SECRET_KEY", "")
@@ -277,6 +279,7 @@ func Load() (*Config, error) {
 			FrontendURL: viper.GetString("FRONTEND_URL"),
 		},
 		ShipmentDeliveryDelay: deliveryDelay,
+		InventoryAlertEmails:  parseCommaSeparatedEmails(viper.GetString("INVENTORY_ALERT_EMAILS")),
 		Stripe: StripeConfig{
 			SecretKey:      viper.GetString("STRIPE_SECRET_KEY"),
 			PublishableKey: viper.GetString("STRIPE_PUBLISHABLE_KEY"),
@@ -337,4 +340,18 @@ func (c *Config) DSN() string {
 
 func (c *Config) IsProduction() bool {
 	return c.AppEnv == "production" || c.Server.Mode == "release"
+}
+
+func parseCommaSeparatedEmails(raw string) []string {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if email := strings.TrimSpace(part); email != "" {
+			out = append(out, email)
+		}
+	}
+	return out
 }

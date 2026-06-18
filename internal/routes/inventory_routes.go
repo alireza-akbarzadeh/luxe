@@ -13,6 +13,7 @@ func SetupInventoryRoutes(admin *gin.RouterGroup, ctrl *controllers.Container) {
 		inventory.GET("/inventory/overview", ctrl.Inventory.GetOverview)
 		inventory.GET("/inventory", ctrl.Inventory.List)
 		inventory.POST("/inventory/adjust", ctrl.Inventory.Adjust)
+		inventory.POST("/inventory/bulk-adjust", ctrl.Inventory.BulkAdjust)
 		inventory.GET("/inventory/products/:id/history", ctrl.Inventory.ListHistory)
 		inventory.GET("/inventory/adjustments/recent", ctrl.Inventory.ListRecent)
 	}

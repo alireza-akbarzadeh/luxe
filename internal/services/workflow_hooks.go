@@ -116,6 +116,16 @@ func RegisterWorkflowGuardsAndHooks(
 	})
 }
 
+// RegisterInventoryWorkflowHooks wires inventory side-effects into return workflow transitions.
+func RegisterInventoryWorkflowHooks(engine *workflow.Engine, inventory InventoryServiceInterface) {
+	if engine == nil || inventory == nil {
+		return
+	}
+	engine.RegisterHook("return_restock_inventory", func(ctx context.Context, returnID uint, _ map[string]interface{}) error {
+		return inventory.RestockForReturn(ctx, returnID)
+	})
+}
+
 // orderNotifyHook builds a hook that loads the order's user + number and sends an
 // in-app notification plus an async email.
 func orderNotifyHook(

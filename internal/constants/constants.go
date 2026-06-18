@@ -256,6 +256,7 @@ const (
 	InventoryAdjCorrection   = "correction"
 	InventoryAdjDamage       = "damage"
 	InventoryAdjReceive      = "receive"
+	InventoryAdjReturnRestock = "return_restock"
 )
 
 // Inventory reference types (ledger).
@@ -264,6 +265,7 @@ const (
 	InventoryRefOrderItem = "order_item"
 	InventoryRefProduct   = "product"
 	InventoryRefImport    = "import"
+	InventoryRefReturn    = "return"
 )
 
 // Inventory list stock_status filter values.

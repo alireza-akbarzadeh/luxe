@@ -17,6 +17,31 @@ type AdjustInventoryRequest struct {
 	Note      string `json:"note" validate:"omitempty,max=500"`
 }
 
+type BulkInventoryAdjustRow struct {
+	SKU   string `json:"sku" validate:"required,min=1,max=64"`
+	Delta int    `json:"delta" validate:"required"`
+	Note  string `json:"note" validate:"omitempty,max=200"`
+}
+
+type BulkAdjustInventoryRequest struct {
+	Reason string                   `json:"reason" validate:"required,oneof=receive correction damage shrinkage cycle_count other"`
+	Rows   []BulkInventoryAdjustRow `json:"rows" validate:"required,min=1,max=500"`
+}
+
+type BulkInventoryAdjustRowResult struct {
+	SKU       string `json:"sku"`
+	Success   bool   `json:"success"`
+	Message   string `json:"message,omitempty"`
+	ProductID *uint  `json:"product_id,omitempty"`
+	Stock     *int   `json:"stock,omitempty"`
+}
+
+type BulkAdjustInventoryResponse struct {
+	Applied int                            `json:"applied"`
+	Failed  int                            `json:"failed"`
+	Rows    []BulkInventoryAdjustRowResult `json:"rows"`
+}
+
 type ListInventoryHistoryRequest struct {
 	Page  int `form:"page,default=1"`
 	Limit int `form:"limit,default=20"`

@@ -72,8 +72,9 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 
 	productSvc := NewProductService(db, workflowEngine)
 	pdpSvc := NewPdpService(db, notificationSvc, productSvc)
-	inventorySvc := NewInventoryService(db, workflowEngine, pdpSvc)
+	inventorySvc := NewInventoryService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
 	productSvc.SetInventory(inventorySvc)
+	RegisterInventoryWorkflowHooks(workflowEngine, inventorySvc)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 	categorySvc := NewCategoryService(db, workflowEngine)
 

@@ -129,6 +129,38 @@ func (ctrl *InventoryController) Adjust(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, item)
 }
 
+// BulkAdjust godoc
+// @Summary      Bulk adjust stock by SKU
+// @Description  Apply signed stock deltas for multiple SKUs in one request (receive shipments, corrections, etc.)
+// @Tags         inventory
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.BulkAdjustInventoryRequest true "Bulk adjustment payload"
+// @Success      200 {object} utils.Response{data=dto.BulkAdjustInventoryResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/inventory/bulk-adjust [post]
+func (ctrl *InventoryController) BulkAdjust(c *gin.Context) {
+	var req dto.BulkAdjustInventoryRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	var actorID *uint
+	if userID, ok := middleware.GetUserID(c); ok {
+		actorID = &userID
+	}
+
+	result, err := ctrl.inventoryService.BulkAdjustStock(c.Request.Context(), actorID, &req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to bulk adjust stock")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, result)
+}
+
 // ListHistory godoc
 // @Summary      Product inventory history
 // @Description  Paginated adjustment ledger for a single product
