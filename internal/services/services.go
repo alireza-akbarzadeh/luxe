@@ -47,6 +47,7 @@ type Services struct {
 	WebhookEvent WebhookEventServiceInterface
 	Workflow     WorkflowServiceInterface
 	Return       ReturnServiceInterface
+	Invoice      InvoiceServiceInterface
 	Role         RoleServiceInterface
 	Inventory    InventoryServiceInterface
 }
@@ -76,6 +77,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	productSvc.SetInventory(inventorySvc)
 	RegisterInventoryWorkflowHooks(workflowEngine, inventorySvc)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
+	invoiceSvc := NewInvoiceService(db, jobQueue, cfg)
 	categorySvc := NewCategoryService(db, workflowEngine)
 
 	return &Services{
@@ -100,7 +102,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Brand:        NewBrandService(db, workflowEngine),
 		Collection:   NewCollectionService(db, workflowEngine),
 		Settings:     NewSettingService(db),
-		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, inventorySvc, StripeEnabled(cfg)),
+		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, invoiceSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, inventorySvc, StripeEnabled(cfg)),
 		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
@@ -113,6 +115,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		WebhookEvent: NewWebhookEventService(db),
 		Workflow:     NewWorkflowService(db, workflowEngine),
 		Return:       NewReturnService(db, workflowEngine),
+		Invoice:      invoiceSvc,
 		Role:         roleSvc,
 		Inventory:    inventorySvc,
 	}

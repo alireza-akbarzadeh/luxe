@@ -1,6 +1,9 @@
 package controllers
 
 import (
+	"fmt"
+	"net/http"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
@@ -110,4 +113,49 @@ func (ctrl *InvoiceController) UpdateInvoiceStatus(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, nil)
+}
+
+// DownloadInvoicePDF returns a PDF document for an invoice (admin only).
+// @Summary      Download invoice PDF (admin)
+// @Tags         Invoices
+// @Produce      application/pdf
+// @Security     BearerAuth
+// @Param        id path int true "Invoice ID"
+// @Success      200 {file} binary
+// @Router       /admin/invoices/{id}/pdf [get]
+func (ctrl *InvoiceController) DownloadInvoicePDF(c *gin.Context) {
+	invoiceID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	data, filename, err := ctrl.svc.GeneratePDF(c.Request.Context(), invoiceID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to generate invoice pdf")
+		return
+	}
+
+	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filename))
+	c.Data(http.StatusOK, "application/pdf", data)
+}
+
+// SendInvoiceEmail emails the invoice summary to the customer (admin only).
+// @Summary      Email invoice to customer (admin)
+// @Tags         Invoices
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Invoice ID"
+// @Success      200 {object} utils.Response
+// @Router       /admin/invoices/{id}/send [post]
+func (ctrl *InvoiceController) SendInvoiceEmail(c *gin.Context) {
+	invoiceID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	if err := ctrl.svc.SendToCustomer(c.Request.Context(), invoiceID); err != nil {
+		RespondServiceError(c, err, "failed to send invoice email")
+		return
+	}
+	utils.SuccessResponse(c, "invoice email queued", nil)
 }

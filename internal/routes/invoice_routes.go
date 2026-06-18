@@ -12,6 +12,8 @@ func SetupInvoiceRoutes(protected *gin.RouterGroup, ctrl *controllers.Container)
 	{
 		admin.GET("", ctrl.Invoice.ListInvoicesAdmin)
 		admin.GET("/:id", ctrl.Invoice.GetInvoiceAdmin)
+		admin.GET("/:id/pdf", ctrl.Invoice.DownloadInvoicePDF)
+		admin.POST("/:id/send", ctrl.Invoice.SendInvoiceEmail)
 		admin.PUT("/:id/status", ctrl.Invoice.UpdateInvoiceStatus)
 	}
 }

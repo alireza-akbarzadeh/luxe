@@ -31,6 +31,7 @@ type checkoutService struct {
 	paymentService      PaymentServiceInterface
 	shipmentService     ShipmentServiceInterface
 	walletService       WalletServiceInterface
+	invoiceService      InvoiceServiceInterface
 	workerPool          tasks.JobQueue
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
@@ -46,6 +47,7 @@ func NewCheckoutService(
 	paymentService PaymentServiceInterface,
 	shipmentService ShipmentServiceInterface,
 	walletService WalletServiceInterface,
+	invoiceService InvoiceServiceInterface,
 	workerPool tasks.JobQueue,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
@@ -60,6 +62,7 @@ func NewCheckoutService(
 		paymentService:      paymentService,
 		shipmentService:     shipmentService,
 		walletService:       walletService,
+		invoiceService:      invoiceService,
 		workerPool:          workerPool,
 		hub:                 hub,
 		salesFeed:           salesFeed,
@@ -186,6 +189,7 @@ func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) e
 	}
 
 	if order.Status == constants.OrderStatusPaid {
+		s.ensureInvoice(ctx, orderID)
 		return nil
 	}
 
@@ -201,6 +205,8 @@ func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) e
 	}
 
 	s.setOrderState(ctx, orderID, "paid", "payment_succeeded")
+
+	s.ensureInvoice(ctx, orderID)
 
 	txnID := ""
 	if order.Payment != nil {
@@ -281,6 +287,8 @@ func (s *checkoutService) ProcessOrder(ctx context.Context, orderID uint, cardIn
 	}
 
 	s.setOrderState(ctx, orderID, "paid", "payment_succeeded")
+
+	s.ensureInvoice(ctx, orderID)
 
 	// Transaction committed – now handle shipment (outside transaction for performance)
 	return s.processShipment(ctx, orderID)
@@ -663,4 +671,13 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 	}
 
 	return nil
+}
+
+func (s *checkoutService) ensureInvoice(ctx context.Context, orderID uint) {
+	if s.invoiceService == nil {
+		return
+	}
+	if _, err := s.invoiceService.CreateFromPaidOrder(ctx, orderID); err != nil {
+		utils.Log.WithError(err).WithField("order_id", orderID).Warn("failed to create invoice for paid order")
+	}
 }
