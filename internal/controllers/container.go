@@ -42,6 +42,7 @@ type Container struct {
 	Import    *ImportController
 	Workflow  *WorkflowController
 	Return    *ReturnController
+	Invoice   *InvoiceController
 	Role      *RoleController
 	Inventory *InventoryController
 }
@@ -82,6 +83,7 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Import:    NewImportController(svc.Import),
 		Workflow:  NewWorkflowController(svc.Workflow),
 		Return:    NewReturnController(svc.Return),
+		Invoice:   NewInvoiceController(svc.Invoice),
 		Role:      NewRoleController(svc.Role),
 		Inventory: NewInventoryController(svc.Inventory),
 	}

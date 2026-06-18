@@ -211,6 +211,13 @@ const (
 	ShipmentStatusShipped   = "shipped"
 	ShipmentStatusDelivered = "delivered"
 
+	// Invoice statuses
+	InvoiceStatusDraft    = "draft"
+	InvoiceStatusIssued   = "issued"
+	InvoiceStatusPaid     = "paid"
+	InvoiceStatusVoid     = "void"
+	InvoiceStatusRefunded = "refunded"
+
 	// User roles
 	RoleUser      = "user"
 	RoleAdmin     = "admin"
