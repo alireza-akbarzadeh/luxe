@@ -25,6 +25,18 @@ type ListBrandsRequest struct {
 	Status string `form:"status"`
 }
 
+type BrandListResponse struct {
+	BaseResponse
+	Data BrandListData `json:"data"`
+}
+
+type BrandListData struct {
+	Brands []BrandResponse `json:"brands"`
+	Total  int64           `json:"total"`
+	Page   int             `json:"page"`
+	Limit  int             `json:"limit"`
+}
+
 type BrandResponse struct {
 	ID          uint      `json:"id"`
 	Name        string    `json:"name"`

@@ -159,6 +159,7 @@ func (s *productService) GetByID(id uint) (*models.Product, error) {
 		Preload("Store").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
@@ -176,6 +177,7 @@ func (s *productService) GetBySlug(slug string) (*models.Product, error) {
 		Preload("Store").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		Where("slug = ?", slug).
 		First(&product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -397,6 +399,7 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 		Preload("Category").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("find products: %w", err)
 	}

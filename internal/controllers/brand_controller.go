@@ -3,7 +3,9 @@ package controllers
 
 import (
 	"errors"
+	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -90,7 +92,7 @@ func (ctrl *BrandController) GetBrand(c *gin.Context) {
 // @Param        limit   query     int     false  "Items per page"        default(20)
 // @Param        search  query     string  false  "Search by name or slug"
 // @Param        status  query     string  false  "Filter by status"
-// @Success      200     {object}  utils.Response{data=[]dto.BrandResponse}  "Brand list"
+// @Success      200     {object}  dto.BrandListResponse  "Brand list"
 // @Failure      500     {object}  utils.Response  "Internal server error"
 // @Router       /brands [get]
 func (ctrl *BrandController) ListBrands(c *gin.Context) {
@@ -105,11 +107,20 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 		return
 	}
 
-	// Optionally include total count in a more structured response
-	// For now we return the slice directly as Data.
-	utils.SuccessResponse(c, "brands retrieved", brands)
-	// If you want total returned, you can wrap: gin.H{"items": brands, "total": total}
-	_ = total // suppress unused variable; adjust as needed
+	resp := dto.BrandListResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.BrandListData{
+			Brands: brands,
+			Total:  total,
+			Page:   req.Page,
+			Limit:  req.Limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateBrand godoc

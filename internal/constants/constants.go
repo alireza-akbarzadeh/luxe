@@ -240,6 +240,7 @@ const (
 	WorkflowEntityShipment = "shipment"
 	WorkflowEntityReturn   = "return"
 	WorkflowEntityUser     = "user"
+	WorkflowEntityCategory = "category"
 )
 
 // ==================== API routes ====================

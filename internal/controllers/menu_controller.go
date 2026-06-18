@@ -8,14 +8,19 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type MenuController struct {
 	menuService services.UserMenuServicesInterface
+	validate    *validator.Validate
 }
 
 func NewMenuController(menuService services.UserMenuServicesInterface) *MenuController {
-	return &MenuController{menuService: menuService}
+	return &MenuController{
+		menuService: menuService,
+		validate:    validator.New(),
+	}
 }
 
 // GetAllGroups returns all menu groups.
@@ -80,7 +85,7 @@ func (ctrl *MenuController) GetGroupByID(c *gin.Context) {
 // @Router       /admin/menu/groups [post]
 func (ctrl *MenuController) CreateGroup(c *gin.Context) {
 	var req dto.CreateMenuGroupRequest
-	if !utils.BindAndValidate(c, &req, nil) { // no validator needed, but can add if needed
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	group, err := ctrl.menuService.CreateGroup(&req)
@@ -112,7 +117,7 @@ func (ctrl *MenuController) UpdateGroup(c *gin.Context) {
 		return
 	}
 	var req dto.UpdateMenuGroupRequest
-	if !utils.BindAndValidate(c, &req, nil) {
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	group, err := ctrl.menuService.UpdateGroup(uint(id), &req)
@@ -219,7 +224,7 @@ func (ctrl *MenuController) GetItemByID(c *gin.Context) {
 // @Router       /admin/menu/items [post]
 func (ctrl *MenuController) CreateItem(c *gin.Context) {
 	var req dto.CreateMenuItemRequest
-	if !utils.BindAndValidate(c, &req, nil) {
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	item, err := ctrl.menuService.CreateItem(&req)
@@ -251,7 +256,7 @@ func (ctrl *MenuController) UpdateItem(c *gin.Context) {
 		return
 	}
 	var req dto.UpdateMenuItemRequest
-	if !utils.BindAndValidate(c, &req, nil) {
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	item, err := ctrl.menuService.UpdateItem(uint(id), &req)

@@ -177,9 +177,11 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 	@echo "${GREEN}Seeding dev demo data into $(POSTGRES_DB) via $(POSTGRES_CONTAINER)...${RESET}"
 	@if command -v psql >/dev/null 2>&1; then \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog.sql; \
 	else \
 		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog.sql; \
 	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
 

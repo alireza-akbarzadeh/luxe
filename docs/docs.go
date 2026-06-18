@@ -658,6 +658,69 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/categories": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new product category. Only accessible by users with the \"admin\" role.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Create a new category",
+                "parameters": [
+                    {
+                        "description": "Category creation data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateCategoryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CategorySingleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/categories/bulk": {
             "post": {
                 "security": [
@@ -3944,22 +4007,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Brand list",
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/utils.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/dto.BrandResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/dto.BrandListResponse"
                         }
                     },
                     "500": {
@@ -4523,67 +4571,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Creates a new product category. Only accessible by users with the \"admin\" role.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Categories"
-                ],
-                "summary": "Create a new category",
-                "parameters": [
-                    {
-                        "description": "Category creation data",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateCategoryRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/dto.CategorySingleResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -11639,6 +11626,43 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.TransitionView"
                     }
+                }
+            }
+        },
+        "dto.BrandListData": {
+            "type": "object",
+            "properties": {
+                "brands": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BrandResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BrandListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.BrandListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },

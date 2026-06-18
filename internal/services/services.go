@@ -70,6 +70,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 
 	productSvc := NewProductService(db, workflowEngine)
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
+	categorySvc := NewCategoryService(db, workflowEngine)
 
 	return &Services{
 		DB:           db,
@@ -81,7 +82,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Product:      productSvc,
 		Pdp:          NewPdpService(db, notificationSvc, productSvc),
 		Compare:      NewCompareService(db),
-		Category:     NewCategoryService(db),
+		Category:     categorySvc,
 		Address:      NewAddressService(db),
 		Menu:         NewMenuService(db),
 		Review:       NewReviewService(db),
@@ -101,7 +102,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Audit:        NewAuditService(db),
 		Upload:       NewUploadService(cfg),
 		Admin:        NewAdminService(db, workflowEngine, roleSvc),
-		Import:       NewImportService(productSvc, NewCategoryService(db)),
+		Import:       NewImportService(productSvc, categorySvc),
 		WebhookEvent: NewWebhookEventService(db),
 		Workflow:     NewWorkflowService(db, workflowEngine),
 		Return:       NewReturnService(db, workflowEngine),

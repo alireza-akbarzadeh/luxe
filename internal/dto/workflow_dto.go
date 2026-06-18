@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
+)
 
 // ─── Workflow definition CRUD ─────────────────────────────────────────────────
 
@@ -71,6 +75,23 @@ type PerformTransitionRequest struct {
 }
 
 // ─── Responses ────────────────────────────────────────────────────────────────
+
+// ToStateView maps a workflow state model to the API-facing view.
+func ToStateView(s *models.WorkflowState) *StateView {
+	if s == nil || s.ID == 0 {
+		return nil
+	}
+	return &StateView{
+		ID:        s.ID,
+		Code:      s.Code,
+		Name:      s.Name,
+		Color:     s.Color,
+		TextColor: s.TextColor,
+		IsInitial: s.IsInitial,
+		IsFinal:   s.IsFinal,
+		SortOrder: s.SortOrder,
+	}
+}
 
 // StateView is the frontend-facing representation of a state with its colors.
 type StateView struct {

@@ -22,7 +22,8 @@ type Product struct {
 	Category          *Category      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	Images            pq.StringArray `gorm:"type:text[]" json:"images"`
 	Status            string         `gorm:"type:text;not null;default:'active'" json:"status"`
-	WorkflowStateID   *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowStateID   *uint           `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowState     *WorkflowState  `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
 	CreatedBy         *uint          `gorm:"index" json:"created_by,omitempty"`
 	UpdatedBy         *uint          `gorm:"index" json:"updated_by,omitempty"`
 	Rating            float64        `gorm:"type:decimal(3,2);default:0.0" json:"rating"`

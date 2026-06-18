@@ -348,6 +348,30 @@ definitions:
           $ref: '#/definitions/dto.TransitionView'
         type: array
     type: object
+  dto.BrandListData:
+    properties:
+      brands:
+        items:
+          $ref: '#/definitions/dto.BrandResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.BrandListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.BrandListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.BrandResponse:
     properties:
       created_at:
@@ -4131,6 +4155,47 @@ paths:
       summary: Audit log summary
       tags:
       - Admin Audit
+  /admin/categories:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product category. Only accessible by users with the
+        "admin" role.
+      parameters:
+      - description: Category creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CategorySingleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new category
+      tags:
+      - Categories
   /admin/categories/{id}:
     delete:
       consumes:
@@ -6175,14 +6240,7 @@ paths:
         "200":
           description: Brand list
           schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dto.BrandResponse'
-                  type: array
-              type: object
+            $ref: '#/definitions/dto.BrandListResponse'
         "500":
           description: Internal server error
           schema:
@@ -6546,46 +6604,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: List categories
-      tags:
-      - Categories
-    post:
-      consumes:
-      - application/json
-      description: Creates a new product category. Only accessible by users with the
-        "admin" role.
-      parameters:
-      - description: Category creation data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateCategoryRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/dto.CategorySingleResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Create a new category
       tags:
       - Categories
   /categories/{identifier}:

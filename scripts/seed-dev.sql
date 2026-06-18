@@ -18,7 +18,10 @@ DECLARE
     prod_oos INT;
     user_id INT;
 BEGIN
-    SELECT id INTO cat_id FROM categories WHERE deleted_at IS NULL ORDER BY id LIMIT 1;
+    SELECT id INTO cat_id FROM categories WHERE slug = 'watches' AND deleted_at IS NULL;
+    IF cat_id IS NULL THEN
+        SELECT id INTO cat_id FROM categories WHERE deleted_at IS NULL ORDER BY id LIMIT 1;
+    END IF;
     SELECT id INTO store_luxe FROM stores WHERE slug = 'luxe-atelier';
     SELECT id INTO store_gold FROM stores WHERE slug = 'gold-market';
     SELECT id INTO store_urban FROM stores WHERE slug = 'urban-essentials';

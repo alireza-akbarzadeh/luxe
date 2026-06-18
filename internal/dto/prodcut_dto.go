@@ -166,6 +166,8 @@ type ProductResponse struct {
 	Tags        []string   `json:"tags,omitempty"`
 	Channels    []string   `json:"channels,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
+
+	WorkflowState *StateView `json:"workflow_state,omitempty"`
 }
 
 // ToProductResponse maps a models.Product to a ProductResponse.
@@ -251,6 +253,10 @@ func ToProductResponse(p models.Product) ProductResponse {
 	}
 	if p.Store != nil && p.Store.ID != 0 {
 		r.Store = ToProductStoreSummary(p.Store)
+	}
+
+	if p.WorkflowState != nil {
+		r.WorkflowState = ToStateView(p.WorkflowState)
 	}
 
 	return r

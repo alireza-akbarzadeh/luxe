@@ -27,6 +27,7 @@ type HookFunc func(ctx context.Context, entityID uint, meta map[string]interface
 type entityConfig struct {
 	table        string
 	statusMirror bool
+	activeMirror bool // mirrors is_active from workflow state code ("active" => true)
 }
 
 var entityConfigs = map[string]entityConfig{
@@ -35,6 +36,7 @@ var entityConfigs = map[string]entityConfig{
 	constants.WorkflowEntityShipment: {table: "shipments", statusMirror: true},
 	constants.WorkflowEntityReturn:   {table: "returns", statusMirror: true},
 	constants.WorkflowEntityUser:     {table: "users", statusMirror: false},
+	constants.WorkflowEntityCategory:  {table: "categories", activeMirror: true},
 }
 
 // statusMirrorMaps translate a workflow state code into the legacy status string.
@@ -60,6 +62,15 @@ func mirrorStatus(entityType, stateCode string) string {
 		}
 	}
 	return stateCode
+}
+
+func applyEntityMirrors(cfg entityConfig, entityType, stateCode string, updates map[string]interface{}) {
+	if cfg.statusMirror {
+		updates["status"] = mirrorStatus(entityType, stateCode)
+	}
+	if cfg.activeMirror {
+		updates["is_active"] = stateCode == "active"
+	}
 }
 
 // Engine is the runtime state-machine processor.
@@ -154,9 +165,7 @@ func (e *Engine) Transition(ctx context.Context, req TransitionRequest) (*Transi
 
 	err = e.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		updates := map[string]interface{}{"workflow_state_id": trans.ToStateID}
-		if cfg.statusMirror {
-			updates["status"] = mirrorStatus(wf.EntityType, toState.Code)
-		}
+		applyEntityMirrors(cfg, wf.EntityType, toState.Code, updates)
 		if uErr := tx.Table(cfg.table).Where("id = ?", req.EntityID).Updates(updates).Error; uErr != nil {
 			return uErr
 		}
@@ -252,9 +261,7 @@ func (e *Engine) SetState(ctx context.Context, req SetStateRequest) (*Transition
 
 	err = e.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		updates := map[string]interface{}{"workflow_state_id": toState.ID}
-		if cfg.statusMirror {
-			updates["status"] = mirrorStatus(wf.EntityType, toState.Code)
-		}
+		applyEntityMirrors(cfg, wf.EntityType, toState.Code, updates)
 		if uErr := tx.Table(cfg.table).Where("id = ?", req.EntityID).Updates(updates).Error; uErr != nil {
 			return uErr
 		}

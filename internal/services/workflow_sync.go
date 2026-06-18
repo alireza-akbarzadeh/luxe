@@ -181,3 +181,45 @@ func applyProductWorkflow(
 	syncWorkflowState(ctx, engine, constants.WorkflowEntityProduct, productID, code, "status_update", actorID)
 	return true
 }
+
+// applyCategoryWorkflow syncs category is_active into the workflow engine (best-effort).
+func applyCategoryWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	categoryID uint,
+	isActive bool,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if isActive {
+		for _, event := range []string{"activate", "reactivate"} {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCategory,
+				EntityID:    categoryID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "active", "status_update", actorID)
+		return true
+	}
+
+	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityCategory,
+		EntityID:    categoryID,
+		Event:       "deactivate",
+		ActorID:     actorID,
+		ActorRole:   constants.RoleAdmin,
+	}); err == nil {
+		return true
+	}
+
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "inactive", "status_update", actorID)
+	return true
+}

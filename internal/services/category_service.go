@@ -1,11 +1,13 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
@@ -22,14 +24,21 @@ type CategoryServiceInterface interface {
 }
 
 type categoryService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 type BulkDeleteCategoryRequest struct {
 	IDs []uint `json:"ids" validate:"required,min=1"`
 }
 
-func NewCategoryService(db *gorm.DB) CategoryServiceInterface {
-	return &categoryService{db: db}
+func NewCategoryService(db *gorm.DB, engine *workflow.Engine) CategoryServiceInterface {
+	return &categoryService{db: db, engine: engine}
+}
+
+func (s *categoryService) syncCategoryWorkflow(ctx context.Context, categoryID uint, isActive bool) {
+	if !applyCategoryWorkflow(ctx, s.engine, categoryID, isActive, nil) {
+		utils.Log.WithField("category_id", categoryID).Debug("category workflow sync skipped or failed")
+	}
 }
 
 func (s *categoryService) uniqueCategorySlug(baseSlug string, excludeID uint) string {
@@ -92,13 +101,14 @@ func (s *categoryService) Create(req dto.CreateCategoryRequest) (*models.Categor
 	if err := s.db.Create(category).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return category, nil
+	s.syncCategoryWorkflow(context.Background(), category.ID, category.IsActive)
+	return s.GetByID(category.ID)
 }
 
 // GetByID retrieve category by id
 func (s *categoryService) GetByID(id uint) (*models.Category, error) {
 	var category models.Category
-	if err := s.db.Preload("Parent").Preload("Children").First(&category, id).Error; err != nil {
+	if err := s.db.Preload("Parent").Preload("Children").Preload("WorkflowState").First(&category, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("category not found")
 		}
@@ -110,7 +120,7 @@ func (s *categoryService) GetByID(id uint) (*models.Category, error) {
 // GetBySlug retrieve category by slug
 func (s *categoryService) GetBySlug(slug string) (*models.Category, error) {
 	var category models.Category
-	if err := s.db.Preload("Parent").Preload("Children").Where("slug = ?", slug).First(&category).Error; err != nil {
+	if err := s.db.Preload("Parent").Preload("Children").Preload("WorkflowState").Where("slug = ?", slug).First(&category).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("category not found")
 		}
@@ -151,7 +161,10 @@ func (s *categoryService) Update(id uint, req dto.UpdateCategoryRequest) (*model
 	if err := s.db.Save(category).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return category, nil
+	if req.IsActive != nil {
+		s.syncCategoryWorkflow(context.Background(), id, *req.IsActive)
+	}
+	return s.GetByID(id)
 }
 
 // Delete remove categories
@@ -215,7 +228,7 @@ func (s *categoryService) List(filters dto.CategoryListFilters) ([]models.Catego
 
 	var categories []models.Category
 	err := fetchQuery.Limit(filters.Limit).Offset(filters.Offset).
-		Preload("Parent").Preload("Children").
+		Preload("Parent").Preload("Children").Preload("WorkflowState").
 		Find(&categories).Error
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)

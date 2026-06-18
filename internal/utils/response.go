@@ -142,6 +142,9 @@ func handleValidationError(c *gin.Context, req interface{}, validate *validator.
 }
 
 func validateStruct(req interface{}, validate *validator.Validate) error {
+	if validate == nil {
+		return nil
+	}
 	value := reflect.ValueOf(req)
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
