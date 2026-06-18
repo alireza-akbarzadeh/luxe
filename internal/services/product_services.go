@@ -116,6 +116,27 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 	if req.StoreID != nil {
 		product.StoreID = *req.StoreID
 	}
+	if req.TrackInventory != nil {
+		product.TrackInventory = *req.TrackInventory
+	}
+	if req.WarehouseLocation != "" {
+		product.WarehouseLocation = req.WarehouseLocation
+	}
+	if req.AllowBackorder != nil {
+		product.AllowBackorder = *req.AllowBackorder
+	}
+	if req.Visibility != "" {
+		product.Visibility = req.Visibility
+	}
+	if len(req.Tags) > 0 {
+		product.Tags = req.Tags
+	}
+	if len(req.Channels) > 0 {
+		product.Channels = req.Channels
+	}
+	if req.PublishedAt != nil {
+		product.PublishedAt = req.PublishedAt
+	}
 	if product.Status == "" {
 		product.Status = "draft"
 	}
@@ -239,6 +260,27 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	}
 	if req.Sizes != nil {
 		product.Sizes = *req.Sizes
+	}
+	if req.TrackInventory != nil {
+		product.TrackInventory = *req.TrackInventory
+	}
+	if req.WarehouseLocation != nil {
+		product.WarehouseLocation = *req.WarehouseLocation
+	}
+	if req.AllowBackorder != nil {
+		product.AllowBackorder = *req.AllowBackorder
+	}
+	if req.Visibility != nil {
+		product.Visibility = *req.Visibility
+	}
+	if req.Tags != nil {
+		product.Tags = *req.Tags
+	}
+	if req.Channels != nil {
+		product.Channels = *req.Channels
+	}
+	if req.PublishedAt != nil {
+		product.PublishedAt = req.PublishedAt
 	}
 
 	if err := s.db.Save(product).Error; err != nil {

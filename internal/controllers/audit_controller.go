@@ -21,6 +21,20 @@ func NewAuditController(auditService services.AuditServiceInterface) *AuditContr
 }
 
 // List returns paginated audit logs (admin only).
+// @Summary List audit logs
+// @Tags Admin Audit
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Page size"
+// @Param offset query int false "Offset"
+// @Param search query string false "Search path, resource, email"
+// @Param action query string false "HTTP action"
+// @Param resource query string false "Resource path filter"
+// @Param user_id query int false "Actor user id"
+// @Param date_from query string false "From date (YYYY-MM-DD or RFC3339)"
+// @Param date_to query string false "To date (YYYY-MM-DD or RFC3339)"
+// @Success 200 {object} utils.Response
+// @Router /admin/audit-logs [get]
 func (ctrl *AuditController) List(c *gin.Context) {
 	var filters dto.AuditLogListFilters
 	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
@@ -32,7 +46,7 @@ func (ctrl *AuditController) List(c *gin.Context) {
 		limit = 20
 	}
 
-	logs, total, err := ctrl.auditService.List(c.Request.Context(), limit, filters.Offset)
+	logs, total, err := ctrl.auditService.List(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list audit logs")
 		return
@@ -60,4 +74,20 @@ func (ctrl *AuditController) List(c *gin.Context) {
 		"limit":  limit,
 		"offset": filters.Offset,
 	})
+}
+
+// Summary returns aggregate audit metrics.
+// @Summary Audit log summary
+// @Tags Admin Audit
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response{data=dto.AuditLogSummaryResponse}
+// @Router /admin/audit-logs/summary [get]
+func (ctrl *AuditController) Summary(c *gin.Context) {
+	summary, err := ctrl.auditService.Summary(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to load audit summary")
+		return
+	}
+	utils.SuccessResponse(c, "audit summary retrieved", summary)
 }

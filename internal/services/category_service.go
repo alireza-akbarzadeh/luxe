@@ -80,7 +80,7 @@ func (s *categoryService) Create(req dto.CreateCategoryRequest) (*models.Categor
 	slug = s.uniqueCategorySlug(slug, uint(0))
 
 	category := &models.Category{
-		Name:        slug,
+		Name:        req.Name,
 		Slug:        slug,
 		Description: req.Description,
 		ParentID:    req.ParentID,

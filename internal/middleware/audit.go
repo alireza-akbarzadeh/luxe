@@ -30,7 +30,7 @@ func AuditMiddleware(auditSvc AuditLogger) gin.HandlerFunc {
 		}
 
 		role, ok := GetUserRole(c)
-		if !ok || role != "admin" {
+		if !ok || role == constants.RoleUser {
 			return
 		}
 

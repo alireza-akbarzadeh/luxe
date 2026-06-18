@@ -38,7 +38,7 @@ func NewCategoryController(categoryService services.CategoryServiceInterface) *C
 // @Failure      401 {object} utils.Response
 // @Failure      403 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /categories [post]
+// @Router       /admin/categories [post]
 func (ctrl *CategoryController) Create(c *gin.Context) {
 	var req dto.CreateCategoryRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {

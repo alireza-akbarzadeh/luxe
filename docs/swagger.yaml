@@ -42,8 +42,256 @@ definitions:
     - description
     - user_id
     type: object
+  dto.AdminDashboardKPI:
+    properties:
+      change_percent:
+        type: number
+      previous_value:
+        type: number
+      value:
+        type: number
+    type: object
+  dto.AdminDashboardKPIs:
+    properties:
+      avg_order_value:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      new_customers:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      orders:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      revenue:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+    type: object
+  dto.AdminDashboardLowStockProduct:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      sku:
+        type: string
+      stock:
+        type: integer
+      threshold:
+        type: integer
+    type: object
+  dto.AdminDashboardOverviewResponse:
+    properties:
+      generated_at:
+        type: string
+      kpis:
+        $ref: '#/definitions/dto.AdminDashboardKPIs'
+      low_stock_products:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardLowStockProduct'
+        type: array
+      orders_by_status:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardStatusCount'
+        type: array
+      period:
+        type: string
+      platform:
+        $ref: '#/definitions/dto.AdminStatsResponse'
+      recent_orders:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardRecentOrder'
+        type: array
+      revenue_series:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardSeriesPoint'
+        type: array
+      top_products:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardTopProduct'
+        type: array
+    type: object
+  dto.AdminDashboardRecentOrder:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      order_number:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  dto.AdminDashboardSeriesPoint:
+    properties:
+      date:
+        type: string
+      orders:
+        type: integer
+      revenue:
+        type: number
+    type: object
+  dto.AdminDashboardStatusCount:
+    properties:
+      count:
+        type: integer
+      status:
+        type: string
+    type: object
+  dto.AdminDashboardTopProduct:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      revenue:
+        type: number
+      sku:
+        type: string
+      stock:
+        type: integer
+      units_sold:
+        type: integer
+    type: object
+  dto.AdminOrderDetailResponse:
+    properties:
+      carrier:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      estimated_delivery:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.AdminOrderItemView'
+        type: array
+      notes:
+        type: string
+      order_number:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+      tracking_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.AdminOrderItemView:
+    properties:
+      category:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      sku:
+        type: string
+      total_price:
+        type: number
+      unit_price:
+        type: number
+    type: object
+  dto.AdminOrderListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      orders:
+        items:
+          $ref: '#/definitions/dto.AdminOrderListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.AdminOrderListItem:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      items_count:
+        type: integer
+      order_number:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  dto.AdminSalesFeedEvent:
+    properties:
+      amount:
+        type: number
+      id:
+        type: string
+      subtitle:
+        type: string
+      timestamp:
+        type: integer
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AdminSalesFeedSnapshotResponse:
+    properties:
+      generated_at:
+        type: string
+      recent_events:
+        items:
+          $ref: '#/definitions/dto.AdminSalesFeedEvent'
+        type: array
+      revenue_series:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardSeriesPoint'
+        type: array
+      status_counts:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardStatusCount'
+        type: array
+      total_orders_today:
+        type: integer
+      total_revenue_today:
+        type: number
+    type: object
   dto.AdminStatsResponse:
     properties:
+      active_users:
+        type: integer
+      admin_users:
+        type: integer
       low_stock_products:
         type: integer
       pending_orders:
@@ -79,6 +327,17 @@ definitions:
         type: string
       role:
         type: string
+    type: object
+  dto.AuditLogSummaryResponse:
+    properties:
+      last_24_hours:
+        type: integer
+      today:
+        type: integer
+      total:
+        type: integer
+      unique_actors:
+        type: integer
     type: object
   dto.AvailableTransitionsView:
     properties:
@@ -799,6 +1058,23 @@ definitions:
     - product_id
     - rating
     type: object
+  dto.CreateRoleRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 80
+        minLength: 1
+        type: string
+      slug:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   dto.CreateShippingProviderRequest:
     properties:
       description:
@@ -1189,8 +1465,12 @@ definitions:
         type: array
       href:
         type: string
+      id:
+        type: integer
       label:
         type: string
+      order:
+        type: integer
       type:
         type: string
       viewAll:
@@ -1334,6 +1614,17 @@ definitions:
         type: string
     required:
     - event
+    type: object
+  dto.PermissionResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      key:
+        type: string
+      module:
+        type: string
     type: object
   dto.PresignUploadRequest:
     properties:
@@ -1811,6 +2102,26 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserResponse'
     type: object
+  dto.ReorderNavMenuItem:
+    properties:
+      id:
+        type: integer
+      order:
+        minimum: 0
+        type: integer
+    required:
+    - id
+    type: object
+  dto.ReorderNavMenusRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.ReorderNavMenuItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
   dto.ResetPasswordRequest:
     properties:
       new_password:
@@ -1872,6 +2183,35 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.RoleResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permission_count:
+        type: integer
+      permission_ids:
+        items:
+          type: integer
+        type: array
+      permission_keys:
+        items:
+          type: string
+        type: array
+      slug:
+        type: string
+      updated_at:
+        type: string
+      user_count:
+        type: integer
+    type: object
   dto.SearchResponse:
     properties:
       categories:
@@ -1888,6 +2228,13 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  dto.SetRolePermissionsRequest:
+    properties:
+      permission_ids:
+        items:
+          type: integer
+        type: array
     type: object
   dto.SetSettingRequest:
     properties:
@@ -2100,6 +2447,16 @@ definitions:
     properties:
       event:
         type: string
+      from_state:
+        $ref: '#/definitions/dto.StateView'
+      guard_key:
+        type: string
+      hook_key:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
       name:
         type: string
       required_role:
@@ -2335,6 +2692,18 @@ definitions:
       title:
         type: string
     type: object
+  dto.UpdateRoleRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
   dto.UpdateShippingProviderRequest:
     properties:
       description:
@@ -2386,9 +2755,8 @@ definitions:
   dto.UpdateUserRoleRequest:
     properties:
       role:
-        enum:
-        - admin
-        - user
+        maxLength: 80
+        minLength: 1
         type: string
     required:
     - role
@@ -3230,6 +3598,95 @@ definitions:
     - first_name
     - last_name
     type: object
+  models.Workflow:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      entity_type:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      key:
+        type: string
+      name:
+        type: string
+      states:
+        items:
+          $ref: '#/definitions/models.WorkflowState'
+        type: array
+      transitions:
+        items:
+          $ref: '#/definitions/models.WorkflowTransition'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  models.WorkflowState:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_final:
+        type: boolean
+      is_initial:
+        type: boolean
+      name:
+        type: string
+      sort_order:
+        type: integer
+      text_color:
+        type: string
+      updated_at:
+        type: string
+      workflow_id:
+        type: integer
+    type: object
+  models.WorkflowTransition:
+    properties:
+      created_at:
+        type: string
+      event:
+        type: string
+      from_state:
+        $ref: '#/definitions/models.WorkflowState'
+      from_state_id:
+        type: integer
+      guard_key:
+        type: string
+      hook_key:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      required_role:
+        type: string
+      sort_order:
+        type: integer
+      to_state:
+        $ref: '#/definitions/models.WorkflowState'
+      to_state_id:
+        type: integer
+      updated_at:
+        type: string
+      workflow_id:
+        type: integer
+    type: object
   services.AddItemRequest:
     properties:
       color:
@@ -3608,6 +4065,72 @@ paths:
       summary: Get default address
       tags:
       - Addresses
+  /admin/audit-logs:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Search path, resource, email
+        in: query
+        name: search
+        type: string
+      - description: HTTP action
+        in: query
+        name: action
+        type: string
+      - description: Resource path filter
+        in: query
+        name: resource
+        type: string
+      - description: Actor user id
+        in: query
+        name: user_id
+        type: integer
+      - description: From date (YYYY-MM-DD or RFC3339)
+        in: query
+        name: date_from
+        type: string
+      - description: To date (YYYY-MM-DD or RFC3339)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List audit logs
+      tags:
+      - Admin Audit
+  /admin/audit-logs/summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuditLogSummaryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Audit log summary
+      tags:
+      - Admin Audit
   /admin/categories/{id}:
     delete:
       consumes:
@@ -3833,6 +4356,44 @@ paths:
       summary: Bulk create categories
       tags:
       - Categories
+  /admin/dashboard/overview:
+    get:
+      description: Returns period KPIs, revenue series, order status breakdown, recent
+        orders, top products, and low-stock alerts.
+      parameters:
+      - description: 'Period: 7d, 30d, or 90d (default 30d)'
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminDashboardOverviewResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin dashboard overview
+      tags:
+      - Admin
   /admin/import/categories:
     post:
       consumes:
@@ -4405,6 +4966,27 @@ paths:
       summary: Export orders CSV (admin)
       tags:
       - Admin
+  /admin/permissions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PermissionResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List permissions
+      tags:
+      - Admin Roles
   /admin/returns:
     get:
       parameters:
@@ -4469,6 +5051,194 @@ paths:
       summary: Transition return state (admin)
       tags:
       - Returns
+  /admin/roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - Admin Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create role
+      tags:
+      - Admin Roles
+  /admin/roles/{id}:
+    delete:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - Admin Roles
+    get:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get role with permissions
+      tags:
+      - Admin Roles
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Role data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update role
+      tags:
+      - Admin Roles
+  /admin/roles/{id}/permissions:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission ids
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetRolePermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Replace permissions assigned to a role
+      tags:
+      - Admin Roles
+  /admin/sales-feed/snapshot:
+    get:
+      description: Returns today's order totals, status breakdown, revenue series,
+        and recent feed events.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminSalesFeedSnapshotResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Live sales feed snapshot
+      tags:
+      - Admin
   /admin/shipments:
     post:
       consumes:
@@ -4603,8 +5373,8 @@ paths:
       - Admin
   /admin/users:
     get:
-      description: Returns paginated users with optional filters by email, role, and
-        active status.
+      description: Returns paginated users with optional filters by search term, email,
+        role, and active status.
       parameters:
       - description: Items per page (default 20)
         in: query
@@ -4614,6 +5384,10 @@ paths:
         in: query
         name: offset
         type: integer
+      - description: Search name or email (partial)
+        in: query
+        name: search
+        type: string
       - description: Email search (partial)
         in: query
         name: email
@@ -4719,7 +5493,8 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Sets the role of a user to 'admin' or 'user'.
+      description: Sets the role slug of a user. The slug must exist in the roles
+        table.
       parameters:
       - description: User ID
         in: path
@@ -4862,7 +5637,14 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/utils.Response'
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Workflow'
+                  type: array
+              type: object
       security:
       - BearerAuth: []
       summary: List workflows (admin)
@@ -6469,6 +7251,27 @@ paths:
       summary: Update navigation menu
       tags:
       - Navigation
+  /nav-menus/reorder:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ordered nav item ids
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReorderNavMenusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Reorder navigation menus
+      tags:
+      - Navigation
   /orders:
     get:
       consumes:
@@ -6510,6 +7313,10 @@ paths:
         in: query
         name: user_id
         type: integer
+      - description: Search order number or customer name/email
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -6520,18 +7327,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  properties:
-                    limit:
-                      type: integer
-                    offset:
-                      type: integer
-                    orders:
-                      items:
-                        $ref: '#/definitions/models.Order'
-                      type: array
-                    total:
-                      type: integer
-                  type: object
+                  $ref: '#/definitions/dto.AdminOrderListData'
               type: object
         "401":
           description: Unauthorized
@@ -6571,7 +7367,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.Order'
+                  $ref: '#/definitions/dto.AdminOrderDetailResponse'
               type: object
         "401":
           description: Unauthorized
