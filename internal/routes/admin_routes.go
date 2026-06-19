@@ -15,6 +15,7 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
 	{
 		dashboard.GET("/stats", ctrl.Admin.GetStats)
 		dashboard.GET("/dashboard/overview", ctrl.Admin.GetDashboardOverview)
+		dashboard.GET("/reports/revenue", ctrl.Admin.GetRevenueReport)
 		dashboard.GET("/sales-feed/snapshot", ctrl.Admin.GetSalesFeedSnapshot)
 	}
 

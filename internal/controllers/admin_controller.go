@@ -74,6 +74,35 @@ func (ctrl *AdminController) GetDashboardOverview(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, overview)
 }
 
+// GetRevenueReport returns a daily revenue breakdown for the admin reports page.
+// @Summary      Daily revenue report (admin)
+// @Description  Returns period summary KPIs and a day-by-day revenue, orders, and AOV breakdown.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "Period: 7d, 30d, or 90d (default 30d)"
+// @Success      200 {object} utils.Response{data=dto.AdminRevenueReportResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/reports/revenue [get]
+func (ctrl *AdminController) GetRevenueReport(c *gin.Context) {
+	var filters dto.AdminRevenueReportFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Period == "" {
+		filters.Period = "30d"
+	}
+
+	report, err := ctrl.adminService.GetRevenueReport(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get revenue report")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
+}
+
 // GetSalesFeedSnapshot returns today's sales metrics and recent activity for the live feed page.
 // @Summary      Live sales feed snapshot
 // @Description  Returns today's order totals, status breakdown, revenue series, and recent feed events.

@@ -157,3 +157,33 @@ type AdminDashboardOverviewResponse struct {
 	LowStockProducts []AdminDashboardLowStockProduct `json:"low_stock_products"`
 	Platform         AdminStatsResponse              `json:"platform"`
 }
+
+// AdminRevenueReportFilters are query params for GET /admin/reports/revenue.
+type AdminRevenueReportFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+}
+
+// AdminRevenueDailyRow is one day in the revenue report breakdown.
+type AdminRevenueDailyRow struct {
+	Date          string  `json:"date"`
+	Revenue       float64 `json:"revenue"`
+	Orders        int64   `json:"orders"`
+	PaidOrders    int64   `json:"paid_orders"`
+	AvgOrderValue float64 `json:"avg_order_value"`
+}
+
+// AdminRevenueReportSummary groups headline metrics for the revenue report.
+type AdminRevenueReportSummary struct {
+	Revenue         AdminDashboardKPI `json:"revenue"`
+	Orders          AdminDashboardKPI `json:"orders"`
+	AvgOrderValue   AdminDashboardKPI `json:"avg_order_value"`
+	AvgDailyRevenue AdminDashboardKPI `json:"avg_daily_revenue"`
+}
+
+// AdminRevenueReportResponse powers the admin daily revenue report page.
+type AdminRevenueReportResponse struct {
+	Period      string                    `json:"period"`
+	GeneratedAt time.Time                 `json:"generated_at"`
+	Summary     AdminRevenueReportSummary `json:"summary"`
+	Daily       []AdminRevenueDailyRow    `json:"daily"`
+}

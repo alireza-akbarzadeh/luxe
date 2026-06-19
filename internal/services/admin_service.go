@@ -20,6 +20,7 @@ import (
 type AdminServiceInterface interface {
 	GetStats(ctx context.Context) (*dto.AdminStatsResponse, error)
 	GetDashboardOverview(ctx context.Context, filters dto.AdminDashboardFilters) (*dto.AdminDashboardOverviewResponse, error)
+	GetRevenueReport(ctx context.Context, filters dto.AdminRevenueReportFilters) (*dto.AdminRevenueReportResponse, error)
 	GetSalesFeedSnapshot(ctx context.Context) (*dto.AdminSalesFeedSnapshotResponse, error)
 	ListUsers(ctx context.Context, filters dto.AdminUserFilters) ([]dto.AdminUserResponse, int64, error)
 	UpdateUserRole(ctx context.Context, userID uint, role string) error
