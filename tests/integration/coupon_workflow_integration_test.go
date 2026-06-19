@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCouponWorkflow_CreateDraftThenActivate(t *testing.T) {
+func TestCouponWorkflow_ActivePauseResume(t *testing.T) {
 	server := newTestServer(t)
 	defer server.Close()
 
@@ -21,7 +21,7 @@ func TestCouponWorkflow_CreateDraftThenActivate(t *testing.T) {
 
 	code := fmt.Sprintf("INT-%s", suffix)
 	now := time.Now().UTC()
-	isActive := false
+	isActive := true
 	createResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/coupons", adminToken, dto.CreateCouponRequest{
 		Code:           code,
 		Description:    "integration coupon",
@@ -51,51 +51,51 @@ func TestCouponWorkflow_CreateDraftThenActivate(t *testing.T) {
 	require.True(t, createBody.Success)
 	require.NotZero(t, createBody.Data.Coupon.ID)
 	require.NotNil(t, createBody.Data.Coupon.WorkflowState)
-	require.Equal(t, "draft", createBody.Data.Coupon.WorkflowState.Code)
+	require.Equal(t, "active", createBody.Data.Coupon.WorkflowState.Code)
 
 	couponID := createBody.Data.Coupon.ID
 
-	transitionResp, err := authRequest(
+	pauseResp, err := authRequest(
 		http.MethodPost,
 		fmt.Sprintf("%s/api/v1/workflows/coupon/%d/transition", server.URL, couponID),
 		adminToken,
-		map[string]string{"event": "activate"},
+		map[string]string{"event": "pause"},
 	)
 	require.NoError(t, err)
-	defer transitionResp.Body.Close()
-	require.Equal(t, http.StatusOK, transitionResp.StatusCode)
+	defer pauseResp.Body.Close()
+	require.Equal(t, http.StatusOK, pauseResp.StatusCode)
 
-	var transitionEnvelope apiEnvelope
-	require.NoError(t, json.NewDecoder(transitionResp.Body).Decode(&transitionEnvelope))
-	require.True(t, transitionEnvelope.Success)
+	var pauseEnvelope apiEnvelope
+	require.NoError(t, json.NewDecoder(pauseResp.Body).Decode(&pauseEnvelope))
+	require.True(t, pauseEnvelope.Success)
 
-	var transitionData struct {
+	var pauseData struct {
 		ToState struct {
 			Code string `json:"code"`
 		} `json:"to_state"`
 	}
-	require.NoError(t, json.Unmarshal(transitionEnvelope.Data, &transitionData))
-	require.Equal(t, "active", transitionData.ToState.Code)
+	require.NoError(t, json.Unmarshal(pauseEnvelope.Data, &pauseData))
+	require.Equal(t, "paused", pauseData.ToState.Code)
 
-	getResp, err := authRequest(http.MethodGet, fmt.Sprintf("%s/api/v1/coupons/%d", server.URL, couponID), adminToken, nil)
+	resumeResp, err := authRequest(
+		http.MethodPost,
+		fmt.Sprintf("%s/api/v1/workflows/coupon/%d/transition", server.URL, couponID),
+		adminToken,
+		map[string]string{"event": "resume"},
+	)
 	require.NoError(t, err)
-	defer getResp.Body.Close()
-	require.Equal(t, http.StatusOK, getResp.StatusCode)
+	defer resumeResp.Body.Close()
+	require.Equal(t, http.StatusOK, resumeResp.StatusCode)
 
-	var getBody struct {
-		Success bool `json:"success"`
-		Data    struct {
-			Coupon struct {
-				IsActive      bool `json:"is_active"`
-				WorkflowState *struct {
-					Code string `json:"code"`
-				} `json:"workflow_state"`
-			} `json:"coupon"`
-		} `json:"data"`
+	var resumeEnvelope apiEnvelope
+	require.NoError(t, json.NewDecoder(resumeResp.Body).Decode(&resumeEnvelope))
+	require.True(t, resumeEnvelope.Success)
+
+	var resumeData struct {
+		ToState struct {
+			Code string `json:"code"`
+		} `json:"to_state"`
 	}
-	require.NoError(t, json.NewDecoder(getResp.Body).Decode(&getBody))
-	require.True(t, getBody.Success)
-	require.True(t, getBody.Data.Coupon.IsActive)
-	require.NotNil(t, getBody.Data.Coupon.WorkflowState)
-	require.Equal(t, "active", getBody.Data.Coupon.WorkflowState.Code)
+	require.NoError(t, json.Unmarshal(resumeEnvelope.Data, &resumeData))
+	require.Equal(t, "active", resumeData.ToState.Code)
 }

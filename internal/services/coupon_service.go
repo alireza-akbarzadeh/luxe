@@ -78,6 +78,12 @@ func (s *couponService) Create(req dto.CreateCouponRequest) (*models.Coupon, err
 	).Create(coupon).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
+	// GORM omits zero-value bools on Create; enforce inactive coupons when requested.
+	if !coupon.IsActive {
+		if err := s.db.Model(coupon).Update("is_active", false).Error; err != nil {
+			return nil, utils.ErrInternal(err)
+		}
+	}
 
 	ctx := context.Background()
 	if coupon.IsActive {

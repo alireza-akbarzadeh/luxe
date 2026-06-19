@@ -156,12 +156,12 @@ What remains is mostly **admin polish**, **menu-linked stubs**, **operational to
 
 These unblock daily operations and prevent regressions.
 
-- [ ] **Fix API import pattern** — audit all `@/services/-admin-*` barrel imports; use generated `-*-get.ts` / `-*-post.ts` files only
+- [x] **Fix API import pattern** — audit all `@/services/-admin-*` barrel imports; use generated `-*-get.ts` / `-*-post.ts` files only
 - [x] **Shipping providers admin** — create/edit/detail, fix navigation, wire Orval mutations
 - [x] **Discounts admin polish** — KPI cards, status filter tabs, delete coupon, loading/error routes
-- [ ] **Deprecate legacy status PUT** — orders/shipments once workflow panel is default everywhere
-- [ ] **Run `pnpm api:gen`** after backend swagger changes; commit Orval output or document regen in CI
-- [ ] **Integration tests** — order cancel, return refund, coupon workflow, invoice on paid order (`DATABASE_URL` in CI)
+- [x] **Deprecate legacy status PUT** — bulk order status removed from list UI; shipment/order status PUT marked deprecated in swagger; workflow panel is sole path on detail
+- [ ] **Run `pnpm api:gen`** after backend swagger changes; commit Orval output or document regen in CI (requires running API at `OPENAPI_BASE_URL`)
+- [x] **Integration tests** — coupon workflow (pause/resume), invoice on paid order, admin wallet adjust (`tests/integration/`)
 
 ### P1 — Admin surfaces for existing APIs (2–3 weeks)
 
@@ -273,7 +273,7 @@ Use this as a **checklist**. Complete each block before jumping ahead unless blo
 
 ### Block A — Housekeeping (now)
 
-1. Fix remaining `-admin-*` barrel imports across front
+1. Fix remaining `-admin-*` barrel imports across front — **done** (admin imports use per-endpoint `@/services/-admin-*` files)
 2. `make swagger` + `pnpm api:gen` after any backend route change
 3. `pnpm check` + `make test` before merging admin features
 4. Document env vars in `.env.example` (both repos)
@@ -283,7 +283,7 @@ Use this as a **checklist**. Complete each block before jumping ahead unless blo
 5. ~~Shipping providers CRUD UI~~ **done**
 6. Discounts admin polish + coupon workflow QA
 7. Invoice + revenue report smoke test on seeded data
-8. Workflow transition as sole path on order/shipment detail (remove duplicate status dropdowns)
+8. Workflow transition as sole path on order/shipment detail (remove duplicate status dropdowns) — **done** (bulk list actions removed; detail uses `EntityWorkflowPanel`)
 
 ### Block C — Wire existing APIs (P1)
 
