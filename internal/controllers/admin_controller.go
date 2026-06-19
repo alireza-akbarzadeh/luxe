@@ -228,8 +228,9 @@ func (ctrl *AdminController) ToggleUserActive(c *gin.Context) {
 }
 
 // BulkUpdateOrderStatus updates the status of multiple orders atomically (admin only).
-// @Summary      Bulk update order status (admin)
-// @Description  Applies the given status to all specified order IDs. Max 500 IDs per call.
+// Deprecated: prefer POST /workflows/order/{id}/transition per order so lifecycle hooks and audit run correctly.
+// @Summary      Bulk update order status (admin) [deprecated]
+// @Description  Deprecated — use workflow transitions on order detail instead. Applies the given status to all specified order IDs. Max 500 IDs per call.
 // @Tags         Admin
 // @Accept       json
 // @Produce      json

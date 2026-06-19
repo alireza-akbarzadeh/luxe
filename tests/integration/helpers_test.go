@@ -7,8 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/routes"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
@@ -94,6 +96,12 @@ func authRequest(method, url, token string, payload interface{}) (*http.Response
 }
 
 func registerUser(t *testing.T, server *httptest.Server, email string) string {
+	token, _ := registerUserWithID(t, server, email)
+	return token
+}
+
+func registerUserWithID(t *testing.T, server *httptest.Server, email string) (token string, userID uint) {
+	t.Helper()
 	resp, err := postJSON(server.URL+"/api/v1/auth/register", dto.RegisterRequest{
 		Email:     email,
 		Password:  "password123",
@@ -108,5 +116,35 @@ func registerUser(t *testing.T, server *httptest.Server, email string) string {
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&reg))
 	require.True(t, reg.Success)
 	require.NotEmpty(t, reg.Data.AccessToken)
-	return reg.Data.AccessToken
+	return reg.Data.AccessToken, reg.Data.User.ID
+}
+
+func loginAdminToken(t *testing.T, server *httptest.Server, email string) string {
+	t.Helper()
+	loginResp, err := postJSON(server.URL+"/api/v1/auth/login", map[string]string{
+		"email":    email,
+		"password": "password123",
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, loginResp.StatusCode)
+
+	var login loginResponse
+	require.NoError(t, json.NewDecoder(loginResp.Body).Decode(&login))
+	loginResp.Body.Close()
+	require.NotEmpty(t, login.Data.AccessToken)
+	return login.Data.AccessToken
+}
+
+func promoteToAdmin(t *testing.T, email string) {
+	t.Helper()
+	require.NoError(t, testDB.Model(&models.User{}).
+		Where("email = ?", email).
+		Update("role", constants.RoleAdmin).Error)
+}
+
+func registerAdmin(t *testing.T, server *httptest.Server, email string) string {
+	t.Helper()
+	registerUser(t, server, email)
+	promoteToAdmin(t, email)
+	return loginAdminToken(t, server, email)
 }

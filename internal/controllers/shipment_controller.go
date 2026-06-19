@@ -231,8 +231,9 @@ func (ctrl *ShipmentController) GetShipmentsByOrder(c *gin.Context) {
 }
 
 // UpdateShipmentStatus updates a shipment's status (admin only).
-// @Summary      Update shipment status (admin)
-// @Description  Updates the status of a shipment and sends real-time notifications.
+// Deprecated: prefer POST /workflows/shipment/{id}/transition so lifecycle hooks and audit run correctly.
+// @Summary      Update shipment status (admin) [deprecated]
+// @Description  Deprecated — use workflow transitions on shipment detail instead. Updates the status of a shipment and sends real-time notifications.
 // @Tags         Shipments
 // @Accept       json
 // @Produce      json

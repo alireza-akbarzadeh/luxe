@@ -71,7 +71,11 @@ func (s *couponService) Create(req dto.CreateCouponRequest) (*models.Coupon, err
 		EndDate:            normalizeCouponEnd(req.StartDate, req.EndDate),
 		IsActive:           couponIsActiveDefault(req.IsActive),
 	}
-	if err := s.db.Create(coupon).Error; err != nil {
+	if err := s.db.Select(
+		"Code", "Description", "DiscountType", "DiscountValue",
+		"MinimumOrderAmount", "MaxDiscountAmount", "UsageLimit",
+		"StartDate", "EndDate", "IsActive",
+	).Create(coupon).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 

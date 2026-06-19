@@ -54,10 +54,10 @@ What remains is mostly **admin polish**, **menu-linked stubs**, **operational to
 | Audit | `/admin/audit-logs` | |
 | Settings | `/settings` | Key/value system config |
 | Menus | Dashboard menu + site nav | DB-driven |
-| Stores | `/stores`, `/admin/stores` | **Admin store CRUD exists in API; no admin UI** |
+| Stores | `/stores`, `/admin/stores` | Admin CRUD UI at `/dashboard/stores` |
 | Upload (R2) | Presigned uploads | Used in forms |
-| Webhooks log | `/admin/webhooks` | Stripe idempotency; **no admin UI** |
-| Wallet admin | `/admin/wallet` adjust | **API only; no admin UI** |
+| Webhooks log | `/admin/webhooks` | Admin viewer at `/dashboard/settings/webhooks` |
+| Wallet admin | `/admin/wallet` adjust | UI at `/dashboard/settings/wallet` |
 | Import | `/admin/import/*` | Categories/products via dialogs |
 | Observability | Sentry, OTEL, `/metrics`, health probes | |
 | Jobs | Asynq (Redis) or in-memory | Order process, shipment, email |
@@ -101,22 +101,22 @@ What remains is mostly **admin polish**, **menu-linked stubs**, **operational to
 
 **Workflow UI** is integrated on: products, orders, shipments, returns, brands, categories, collections, coupons (edit).
 
-**Placeholder pages** (menu links exist; page is empty stub)
+**Placeholder pages** — replaced with real or roadmap UIs (June 2026)
 
 | Route | Status |
 |-------|--------|
-| `/dashboard/marketing/newsletters` | Stub |
-| `/dashboard/reports/traffic` | Stub |
-| `/dashboard/settings/gateways` | Stub |
-| `/dashboard/settings/shipping` | Stub (distinct from shipping-providers) |
-| `/dashboard/suppliers` | Stub |
-| `/dashboard/staff` | Stub |
+| `/dashboard/marketing/newsletters` | Roadmap panel (API pending) |
+| `/dashboard/reports/traffic` | Roadmap panel + link to revenue |
+| `/dashboard/settings/gateways` | **Live** — Stripe + payment methods status |
+| `/dashboard/settings/shipping` | **Live** — hub → providers & shipments |
+| `/dashboard/suppliers` | Roadmap panel (API pending) |
+| `/dashboard/staff` | **Live** — admin users table |
 
 **Known admin gaps**
 
 - Shipping providers: ~~no create/edit/detail routes~~ **done** (admin list includes inactive; create/edit/delete UI)
 - API client barrels (`-admin-invoices`, etc.) **must not** be hand-written — `pnpm api:gen` wipes `src/services/`; import Orval files directly (e.g. `-admin-invoices-get.ts`)
-- Discounts admin: polish (status tabs, delete, KPI cards) partially done
+- Discounts admin: ~~polish (status tabs, delete, KPI cards)~~ **done**
 - Legacy `PUT .../status` still exists alongside workflow transitions (deprecate when UI is 100% on transitions)
 
 ---
@@ -158,7 +158,7 @@ These unblock daily operations and prevent regressions.
 
 - [ ] **Fix API import pattern** — audit all `@/services/-admin-*` barrel imports; use generated `-*-get.ts` / `-*-post.ts` files only
 - [x] **Shipping providers admin** — create/edit/detail, fix navigation, wire Orval mutations
-- [ ] **Discounts admin polish** — KPI cards, status filter tabs, delete coupon, loading/error routes
+- [x] **Discounts admin polish** — KPI cards, status filter tabs, delete coupon, loading/error routes
 - [ ] **Deprecate legacy status PUT** — orders/shipments once workflow panel is default everywhere
 - [ ] **Run `pnpm api:gen`** after backend swagger changes; commit Orval output or document regen in CI
 - [ ] **Integration tests** — order cancel, return refund, coupon workflow, invoice on paid order (`DATABASE_URL` in CI)
@@ -167,9 +167,9 @@ These unblock daily operations and prevent regressions.
 
 Backend already supports these; build UI only.
 
-- [ ] **Store management** — `/dashboard/stores` (CRUD for multi-store / vendor pages)
-- [ ] **Webhook events viewer** — `/dashboard/settings/webhooks` (read-only list from `GET /admin/webhooks`)
-- [ ] **Wallet adjustments** — small admin tool for support credits (`POST /admin/wallet/adjust`)
+- [x] **Store management** — `/dashboard/stores` (CRUD for multi-store / vendor pages)
+- [x] **Webhook events viewer** — `/dashboard/settings/webhooks` (read-only list from `GET /admin/webhooks`)
+- [x] **Wallet adjustments** — small admin tool for support credits (`POST /admin/wallet/adjust`)
 - [ ] **Review moderation** — list/approve/reject (`/dashboard/reviews` + backend admin routes if missing)
 
 ### P2 — Menu stubs → real features (3–4 weeks)
@@ -287,7 +287,7 @@ Use this as a **checklist**. Complete each block before jumping ahead unless blo
 
 ### Block C — Wire existing APIs (P1)
 
-9. Admin stores page
+9. ~~Admin stores page~~ **done**
 10. Webhook events viewer
 11. Wallet adjust tool (support)
 12. Review moderation (if reviews are public on PDP)

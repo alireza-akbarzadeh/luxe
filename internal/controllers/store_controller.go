@@ -201,6 +201,33 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 	})
 }
 
+// GetStoreAdmin returns a store by ID for admin management (includes non-active).
+// @Summary      Get store by ID (admin)
+// @Description  Fetch store details by primary key for admin edit screens
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.StoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/stores/{id} [get]
+func (ctrl *StoreController) GetStoreAdmin(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
+		return
+	}
+	store, err := ctrl.storeService.GetByID(uint(id))
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch store")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(store))
+}
+
 // CreateStore creates a new store (admin only).
 // @Summary      Create store
 // @Description  Create a new store (admin only)
@@ -214,7 +241,7 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 // @Failure      401 {object} utils.Response
 // @Failure      403 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores [post]
+// @Router       /admin/stores [post]
 func (ctrl *StoreController) CreateStore(c *gin.Context) {
 	var req dto.CreateStoreRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
@@ -243,7 +270,7 @@ func (ctrl *StoreController) CreateStore(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores/{id} [put]
+// @Router       /admin/stores/{id} [put]
 func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -276,7 +303,7 @@ func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores/{id} [delete]
+// @Router       /admin/stores/{id} [delete]
 func (ctrl *StoreController) DeleteStore(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
