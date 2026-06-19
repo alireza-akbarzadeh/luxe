@@ -11,6 +11,7 @@ Production Go e-commerce API: **Gin**, **GORM**, **PostgreSQL**, **JWT**, option
 1. **`.cursorrules`** — full conventions (layers, migrations, swagger, tests).
 2. **`.cursor/rules/luxe-go.mdc`** — short always-on summary.
 3. **`documentation/architecture.md`** — system design and wiring.
+4. **`documentation/FEATURES_PLAN.md`** — product roadmap: what exists, gaps, priorities, AI plan.
 
 Do not follow outdated items in `roadmap.md` or `code-review-plan.md` without verifying the codebase.
 

@@ -370,6 +370,25 @@ func (ctrl *ShipmentController) GetShippingProviders(c *gin.Context) {
 	utils.SuccessResponse(c, "shipping providers retrieved", providers)
 }
 
+// ListShippingProvidersAdmin godoc
+// @Summary      List all shipping providers (admin)
+// @Description  Returns every shipping provider including inactive ones for admin management
+// @Tags         Shipping Providers
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=[]models.ShippingProviders}
+// @Failure      500 {object} utils.Response
+// @Router       /admin/shipping-providers [get]
+func (ctrl *ShipmentController) ListShippingProvidersAdmin(c *gin.Context) {
+	providers, err := ctrl.shipmentService.ListShippingProvidersAdmin(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch shipping providers")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, providers)
+}
+
 // DeleteShippingProvider godoc
 // @Summary      Delete a shipping provider
 // @Description  Removes a shipping provider by its ID (admin only)
@@ -421,11 +440,12 @@ func (ctrl *ShipmentController) GetShippingProviderByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid provider id")
+		return
 	}
-	var provider *models.ShippingProviders
-	provider, err = ctrl.shipmentService.GetShippingProviderByID(uint(id))
+	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch shipping provider")
+		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, provider)
 }
@@ -448,12 +468,12 @@ func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	privders, err := ctrl.shipmentService.CreateShippingProvider(req)
+	provider, err := ctrl.shipmentService.CreateShippingProvider(req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create shipping provider")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgCreateSuccess, privders)
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, provider)
 }
 
 // UpdateShippingProvider godoc
@@ -472,15 +492,16 @@ func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
 func (ctrl *ShipmentController) UpdateShippingProvider(c *gin.Context) {
 	providerId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid shipment id")
-	}
-	var req dto.UpdateShippingProviderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid provider id")
 		return
 	}
-	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(providerId))
+	var req dto.UpdateShippingProviderRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	provider, err := ctrl.shipmentService.UpdateShippingProvider(uint(providerId), req)
 	if err != nil {
-		utils.HandleServiceError(c, err, "failed to fetch shipping provider")
+		utils.HandleServiceError(c, err, "failed to update shipping provider")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, provider)

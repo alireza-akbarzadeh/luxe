@@ -46,6 +46,7 @@ type ShipmentServiceInterface interface {
 	DeleteShippingProvider(providerID uint) error
 	GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error)
 	GetShippingProviders() ([]models.ShippingProviders, error)
+	ListShippingProvidersAdmin(ctx context.Context) ([]models.ShippingProviders, error)
 	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
 	UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
 	ProcessShipmentBackground(ctx context.Context, shipmentID uint) error
@@ -417,6 +418,15 @@ func (s *shipmentService) GetShippingProviders() ([]models.ShippingProviders, er
 	var providers []models.ShippingProviders
 	err := s.db.Where("is_active = ?", true).Order("price ASC").Find(&providers).Error
 	return providers, err
+}
+
+func (s *shipmentService) ListShippingProvidersAdmin(ctx context.Context) ([]models.ShippingProviders, error) {
+	var providers []models.ShippingProviders
+	err := s.db.WithContext(ctx).Order("name ASC, id ASC").Find(&providers).Error
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return providers, nil
 }
 
 func (s *shipmentService) GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error) {

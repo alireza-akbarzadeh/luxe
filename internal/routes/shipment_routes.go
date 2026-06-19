@@ -26,11 +26,18 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
 	}
 
-	// Admin endpoints for shipping providers (CRUD)
+	// Admin list — includes inactive providers (public GET is active-only).
+	adminProviderList := protected.Group("/admin/shipping-providers")
+	adminProviderList.Use(middleware.ModuleGuard("orders"))
+	{
+		adminProviderList.GET("", ctrl.Shipment.ListShippingProvidersAdmin)
+	}
+
+	// Admin mutations for shipping providers (CRUD)
 	adminProviders := protected.Group("/shipping-providers")
 	adminProviders.Use(middleware.ModuleGuard("orders"))
 	{
-		adminProviders.POST("/", ctrl.Shipment.CreateShippingProvider)
+		adminProviders.POST("", ctrl.Shipment.CreateShippingProvider)
 		adminProviders.PUT("/:id", ctrl.Shipment.UpdateShippingProvider)
 		adminProviders.DELETE("/:id", ctrl.Shipment.DeleteShippingProvider)
 	}
