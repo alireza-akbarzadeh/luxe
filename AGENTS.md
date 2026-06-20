@@ -9,11 +9,33 @@ Production Go e-commerce API: **Gin**, **GORM**, **PostgreSQL**, **JWT**, option
 ## Authoritative rules
 
 1. **`.cursorrules`** — full conventions (layers, migrations, swagger, tests).
-2. **`.cursor/rules/luxe-go.mdc`** — short always-on summary.
+2. **`.cursor/rules/luxe-go.mdc`** — short always-on summary (Cursor Rules).
 3. **`documentation/architecture.md`** — system design and wiring.
-4. **`documentation/FEATURES_PLAN.md`** — product roadmap: what exists, gaps, priorities, AI plan.
+4. **`.cursor/skills/`** — on-demand workflow skills (see below); invoke with `/skill-name` or let Agent auto-load.
+5. **`documentation/FEATURES_PLAN.md`** — product roadmap: what exists, gaps, priorities, AI plan.
 
 Do not follow outdated items in `roadmap.md` or `code-review-plan.md` without verifying the codebase.
+
+## Cursor AI context (`.cursor/`)
+
+Two layers — hard rules stay here and in `.cursorrules`; step-by-step workflows live in skills.
+
+| Layer | Path | Role |
+|-------|------|------|
+| **Always-on rules** | `.cursorrules`, `.cursor/rules/luxe-go.mdc` | Hard conventions every session |
+| **Agent skills** | `.cursor/skills/<name>/SKILL.md` | Task workflows loaded when relevant |
+| **Skill evals** | `.cursor/skills/<name>/evals/`, `eval-queries.json` | Test description triggering and output quality |
+
+### Project skills (luxe API)
+
+| Skill | Use when |
+|-------|----------|
+| `/new-api-entity` | New table + full domain — migration → model → DTO → service → controller → routes → Swagger |
+| `/add-api-endpoint` | New handler on an **existing** service (bulk action, extra route) — no new entity |
+
+Details: `.cursor/skills/README.md`. Frontend follow-up after Swagger: **`luxe-front`** repo → `/api-gen` → `pnpm api:gen`.
+
+**Boundary:** new database table from scratch → `/new-api-entity`. Single route on existing `*_service.go` → `/add-api-endpoint`.
 
 ## Architecture (one line)
 
@@ -27,12 +49,13 @@ HTTP → Controller → Service (*gorm.DB + business logic) → PostgreSQL
 
 ## New feature checklist
 
-1. `make migrate-create name=...` (schema only) → `make migrate-up`
-2. `internal/models/` → `internal/dto/` → `internal/services/` (+ `services.go`)
-3. `internal/controllers/` (+ `container.go`) → `internal/routes/`
-4. Swagger comments on handlers → `make swagger`
-5. Tests: unit (`internal/services/*_test.go`) or `tests/integration/`
-
+1. Decide scope: **new entity** → `/new-api-entity`; **extra route on existing service** → `/add-api-endpoint`.
+2. `make migrate-create name=...` (schema only) → `make migrate-up` — if new table required.
+3. `internal/models/` → `internal/dto/` → `internal/services/` (+ **`services.go`**).
+4. `internal/controllers/` (+ **`container.go`**) → `internal/routes/`.
+5. Swagger comments on handlers → `make swagger` (never edit `docs/` by hand).
+6. Tests: unit (`internal/services/*_test.go`) or `tests/integration/`.
+7. Restart API; tell frontend to run `pnpm api:gen` in **luxe-front**.
 ## Commands
 
 | Command | Purpose |
@@ -68,6 +91,8 @@ go test ./tests/integration/...
 | `internal/controllers/container.go` | `NewContainer` |
 | `internal/routes/setup.go` | Route groups, middleware |
 | `internal/config/` | Env loading, production validation |
+| `.cursor/skills/` | Agent Skills — `/new-api-entity`, `/add-api-endpoint` |
+| `.cursor/skills/README.md` | Skill index, evals, triggering tests |
 
 ## Env reference
 

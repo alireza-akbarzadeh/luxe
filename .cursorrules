@@ -1,6 +1,6 @@
 # LUXE — Shopping Platform Backend (Go)
 # Cursor / AI rules — follow for every new task
-# See also: AGENTS.md, documentation/architecture.md
+# See also: AGENTS.md, documentation/architecture.md, .cursor/skills/ (/new-api-entity, /add-api-endpoint)
 # ──────────────────────────────────────────────────────────────────────────────
 
 # 1. PROJECT OVERVIEW

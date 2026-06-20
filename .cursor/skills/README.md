@@ -1,7 +1,22 @@
-# Skill description eval queries
+# Luxe API — Agent Skills
 
-See `eval-queries.json` for train/validation prompts testing `new-api-entity` vs `add-api-endpoint` boundaries.
+| Skill | When |
+|-------|------|
+| `new-api-entity` | New table + full domain (migration → Swagger) |
+| `add-api-endpoint` | New handler on an existing service |
 
-Manual check: run should-trigger queries in Cursor Agent and confirm the right skill loads. Revise `description` in each `SKILL.md` using the train set; validate on the held-out split before committing.
+Each skill includes `evals/evals.json` for output-quality testing. Root `eval-queries.json` tests description triggering.
 
-Descriptions must stay under 1024 characters.
+## Output quality evals
+
+1. Read `<skill>/evals/evals.json`
+2. Run each **prompt** in Agent with `/skill-name`
+3. Save outputs under `<skill>-workspace/iteration-1/<eval-name>/with_skill/outputs/`
+4. Baseline: same prompt without skill → `without_skill/outputs/`
+5. Grade **assertions** in `grading.json`; iterate on `SKILL.md`
+
+See [evaluating skill output quality](https://agentskills.io/skill-creation/evaluating-skills).
+
+## Description triggering
+
+Use `eval-queries.json` train/validation splits. Revise `description` in frontmatter only.

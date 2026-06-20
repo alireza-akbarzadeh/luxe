@@ -1,0 +1,28 @@
+{
+  "skill_name": "add-api-endpoint",
+  "evals": [
+    {
+      "id": 1,
+      "name": "categories-bulk-delete",
+      "prompt": "Add bulk delete for admin categories on the existing category controller and service.",
+      "expected_output": "DTO if needed, service method with ctx + db.WithContext, controller bind/validate/utils.Response, route in category routes, make swagger.",
+      "assertions": [
+        "Output adds handler to existing category files rather than new entity scaffold",
+        "Output keeps business logic in service not controller",
+        "Output includes make swagger step",
+        "Output mentions luxe-front pnpm api:gen after restart"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "reject-new-suppliers-entity",
+      "prompt": "Create suppliers table and full REST API from scratch.",
+      "expected_output": "Agent should defer to new-api-entity skill — migration + full domain, not a single endpoint add.",
+      "assertions": [
+        "Response includes migration/create table step",
+        "Response scaffolds full entity not just one handler",
+        "Response does not describe this as a single-route add-api-endpoint task only"
+      ]
+    }
+  ]
+}

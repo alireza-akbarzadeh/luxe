@@ -5,10 +5,19 @@ alwaysApply: true
 
 # Luxe Backend — AI Rules
 
-Also read: `AGENTS.md`, `documentation/architecture.md`, full `.cursorrules`.
+Also read: `AGENTS.md`, `documentation/architecture.md`, full `.cursorrules`. Workflows: `.cursor/skills/` (`/new-api-entity`, `/add-api-endpoint`).
 
 ## Stack
 Go · Gin · GORM · PostgreSQL · Goose · JWT · Asynq (optional Redis) · Sentry · OTEL (optional)
+
+## Cursor skills (on-demand)
+
+| Skill | When |
+|-------|------|
+| `/new-api-entity` | New table + full domain (migration → Swagger) |
+| `/add-api-endpoint` | New handler on existing service — no new entity |
+
+Index: `.cursor/skills/README.md`. Frontend regen: **luxe-front** `/api-gen`.
 
 ## Layering (strict)
 ```
@@ -19,7 +28,12 @@ Controller → Service (*gorm.DB + business logic) → PostgreSQL
 - **Do not add** `internal/repositories/` — data access lives in services via `*gorm.DB`.
 
 ## New feature order
-migration (schema only) → model → dto → service → register in `services.go` → controller → `container.go` → routes → swagger comments → `make swagger` → tests
+
+Use `/new-api-entity` for the full checklist. Summary:
+
+migration (schema only) → model → dto → service → register in **`services.go`** → controller → **`container.go`** → routes → swagger comments → `make swagger` → tests
+
+Single new route on existing domain → `/add-api-endpoint` instead.
 
 ## Migrations
 - Path: `internal/migrations/`
