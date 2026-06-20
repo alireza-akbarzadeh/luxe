@@ -22,7 +22,7 @@ description: >
 - [ ] Swagger @Router @Success utils.Response{data=…}
 - [ ] make swagger
 - [ ] Test the path
-- [ ] Frontend: restart API → pnpm api:gen
+- [ ] Restart API → luxe-front: `pnpm api:gen` → `pnpm check` (mandatory if DTO/route/Swagger changed)
 ```
 
 ## Gotchas
@@ -31,7 +31,7 @@ description: >
 - **Multi-table mutation** → `db.Transaction` in the service.
 - **`utils.Response{data=dto.X}` in @Success** — bare `dto.X` breaks Orval type generation on the frontend.
 - **Constants for statuses/roles** — `internal/constants`.
-- **Both repos:** backend Swagger alone is not enough; luxe-front needs regen after restart.
+- **Both repos:** `make swagger` + **restart** + luxe-front **`pnpm api:gen`** whenever the OpenAPI contract changes (new DTO, renamed field, new/changed route). See `new-api-entity/references/swagger-frontend-sync.md`.
 
 ## Validate
 

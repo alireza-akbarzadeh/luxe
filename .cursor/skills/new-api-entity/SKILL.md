@@ -24,7 +24,7 @@ Follow this order. **Default reference:** pick the closest existing domain (e.g.
 - [ ] internal/routes/{entity}_routes.go + setup.go
 - [ ] Swagger comments → make swagger
 - [ ] go test (unit and/or tests/integration/)
-- [ ] Tell frontend: restart API → pnpm api:gen
+- [ ] Tell frontend: restart API → `pnpm api:gen` → `pnpm check` (see references/swagger-frontend-sync.md)
 ```
 
 ## Gotchas
@@ -36,7 +36,7 @@ Follow this order. **Default reference:** pick the closest existing domain (e.g.
 - **Swagger wraps responses:** `@Success 200 {object} utils.Response{data=dto.EntityResponse}`
 - **Status strings** → `internal/constants`, not literals in business logic.
 - **Multi-table writes** → `db.Transaction`; async order/shipment work → `tasks.JobQueue`, not goroutines.
-- **Windows migrations:** if `make migrate-up` fails, try `make migrate-up-docker`.
+- **Swagger contract changed** → restart API, then luxe-front **`pnpm api:gen`** — required for new/renamed DTOs, fields, routes. Never hand-edit `src/services/`. See [references/swagger-frontend-sync.md](references/swagger-frontend-sync.md).
 
 ## Layer rule (one line)
 

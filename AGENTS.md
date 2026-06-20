@@ -33,7 +33,9 @@ Two layers — hard rules stay here and in `.cursorrules`; step-by-step workflow
 | `/new-api-entity` | New table + full domain — migration → model → DTO → service → controller → routes → Swagger |
 | `/add-api-endpoint` | New handler on an **existing** service (bulk action, extra route) — no new entity |
 
-Details: `.cursor/skills/README.md`. Frontend follow-up after Swagger: **`luxe-front`** repo → `/api-gen` → `pnpm api:gen`.
+Details: `.cursor/skills/README.md`. Frontend follow-up after Swagger: **`luxe-front`** → restart API first → `/api-gen` → `pnpm api:gen`.
+
+**Swagger → frontend rule:** Any OpenAPI contract change (new/renamed DTO, field, route, response shape) requires **`make swagger` → restart API → `pnpm api:gen` in luxe-front**. `make swagger` alone does not update the frontend.
 
 **Boundary:** new database table from scratch → `/new-api-entity`. Single route on existing `*_service.go` → `/add-api-endpoint`.
 
@@ -55,7 +57,7 @@ HTTP → Controller → Service (*gorm.DB + business logic) → PostgreSQL
 4. `internal/controllers/` (+ **`container.go`**) → `internal/routes/`.
 5. Swagger comments on handlers → `make swagger` (never edit `docs/` by hand).
 6. Tests: unit (`internal/services/*_test.go`) or `tests/integration/`.
-7. Restart API; tell frontend to run `pnpm api:gen` in **luxe-front**.
+7. Restart API; in **luxe-front**: `pnpm api:gen` + `pnpm check` (mandatory if DTOs, routes, or Swagger comments changed).
 ## Commands
 
 | Command | Purpose |

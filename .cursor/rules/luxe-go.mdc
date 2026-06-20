@@ -43,7 +43,9 @@ Single new route on existing domain → `/add-api-endpoint` instead.
 
 ## Swagger
 Never edit `docs/docs.go`, `docs/swagger.json`, `docs/swagger.yaml` (generated, gitignored).
-Edit controller `@Summary`/`@Router` comments → `make swagger`.
+Edit controller `@Summary`/`@Router` comments → `make swagger` → **restart API**.
+
+**Frontend sync:** any Swagger/DTO/route change → tell **luxe-front** agent to run `pnpm api:gen` after restart (not optional).
 
 ## Clean code
 - Smallest correct diff; match surrounding style
