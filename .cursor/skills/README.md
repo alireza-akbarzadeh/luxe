@@ -2,6 +2,7 @@
 
 | Skill | When |
 |-------|------|
+| `find-skills` | Discover/install skills — local luxe skills first, then skills.sh |
 | `new-api-entity` | New table + full domain (migration → Swagger) |
 | `add-api-endpoint` | New handler on an existing service |
 

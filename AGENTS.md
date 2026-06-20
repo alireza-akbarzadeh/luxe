@@ -30,6 +30,7 @@ Two layers — hard rules stay here and in `.cursorrules`; step-by-step workflow
 
 | Skill | Use when |
 |-------|----------|
+| `/find-skills` | Find/install agent skills — local skills first, then skills.sh |
 | `/new-api-entity` | New table + full domain — migration → model → DTO → service → controller → routes → Swagger |
 | `/add-api-endpoint` | New handler on an **existing** service (bulk action, extra route) — no new entity |
 

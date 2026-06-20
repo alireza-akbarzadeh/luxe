@@ -14,6 +14,7 @@ Go · Gin · GORM · PostgreSQL · Goose · JWT · Asynq (optional Redis) · Sen
 
 | Skill | When |
 |-------|------|
+| `/find-skills` | Discover/install skills (local luxe skills first) |
 | `/new-api-entity` | New table + full domain (migration → Swagger) |
 | `/add-api-endpoint` | New handler on existing service — no new entity |
 
