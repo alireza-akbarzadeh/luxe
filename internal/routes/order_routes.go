@@ -8,16 +8,19 @@ import (
 )
 
 func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
-	// User order endpoints (authenticated)
 	protected.POST("/checkout", ctrl.Order.Checkout)
 	protected.GET(constants.RouteOrders+constants.RouteOrdersMy, ctrl.Order.GetUserOrders)
-	protected.GET(constants.RouteOrders+"/:id", ctrl.Order.GetOrder)
 
-	// Admin order endpoints (require admin role)
+	// Admin list must use GET "" (not GET "/") so /orders matches without a trailing slash.
 	admin := protected.Group(constants.RouteOrders)
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.ModuleGuard("orders"))
 	{
-		admin.GET("/", ctrl.Order.ListAllOrders)
+		admin.GET("", ctrl.Order.ListAllOrders)
+		admin.GET("/:id/available-transitions", ctrl.Order.GetAvailableTransitions)
+		admin.POST("/:id/transition", ctrl.Order.PerformTransition)
 		admin.PUT("/:id/status", ctrl.Order.UpdateOrderStatus)
 	}
+
+	protected.GET(constants.RouteOrders+"/:id", ctrl.Order.GetOrder)
+	protected.POST(constants.RouteOrders+"/:id/cancel", ctrl.Order.CancelOrder)
 }

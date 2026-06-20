@@ -5,8 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupPaymentRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) {
-	// User order endpoints (authenticated)
+func SetupPaymentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
+	public.GET("/payments/stripe-config", ctrl.Payment.GetStripeConfig)
 	protected.GET("/payment-providers", ctrl.Payment.GetPaymentProviders)
-
 }

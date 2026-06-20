@@ -142,6 +142,9 @@ func handleValidationError(c *gin.Context, req interface{}, validate *validator.
 }
 
 func validateStruct(req interface{}, validate *validator.Validate) error {
+	if validate == nil {
+		return nil
+	}
 	value := reflect.ValueOf(req)
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
@@ -184,4 +187,9 @@ func HandleAppError(c *gin.Context, err error, message string) {
 		return
 	}
 	InternalServerErrorResponse(c, err, message)
+}
+
+// HandleServiceError maps service-layer errors to HTTP responses (alias for HandleAppError).
+func HandleServiceError(c *gin.Context, err error, logMessage string) {
+	HandleAppError(c, err, logMessage)
 }

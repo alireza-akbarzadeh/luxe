@@ -29,8 +29,9 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Cont
 
 	// Admin routes – use a separate prefix to avoid wildcard conflict
 	adminStores := protected.Group("/admin/stores")
-	adminStores.Use(middleware.RequireRole("admin"))
+	adminStores.Use(middleware.ModuleGuard("products"))
 	{
+		adminStores.GET("/:id", ctrl.Store.GetStoreAdmin)
 		adminStores.POST("", ctrl.Store.CreateStore)
 		adminStores.PUT("/:id", ctrl.Store.UpdateStore)
 		adminStores.DELETE("/:id", ctrl.Store.DeleteStore)

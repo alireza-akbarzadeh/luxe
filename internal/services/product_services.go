@@ -1,14 +1,25 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
+
+// setProductState syncs a product status into the workflow engine (best-effort).
+func (s *productService) setProductState(ctx context.Context, productID uint, status, actorRole string, actorID *uint) {
+	if !applyProductWorkflow(ctx, s.engine, productID, status, actorRole, actorID) {
+		utils.Log.WithField("product_id", productID).WithField("status", status).
+			Debug("product workflow sync skipped or failed")
+	}
+}
 
 type ProductServiceInterface interface {
 	List(limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
@@ -23,14 +34,24 @@ type ProductServiceInterface interface {
 	GetRelated(productID uint, limit int) ([]*models.Product, error)
 	GetSuggestions(productIDs []uint, limit int) ([]*models.Product, error)
 	GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error)
+	AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
+	PerformTransition(ctx context.Context, productID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
+	SetInventory(inventory InventoryServiceInterface)
 }
 
 type productService struct {
-	db *gorm.DB
+	db        *gorm.DB
+	engine    *workflow.Engine
+	inventory InventoryServiceInterface
 }
 
-func NewProductService(db *gorm.DB) ProductServiceInterface {
-	return &productService{db: db}
+func NewProductService(db *gorm.DB, engine *workflow.Engine) ProductServiceInterface {
+	return &productService{db: db, engine: engine}
+}
+
+// SetInventory wires the inventory ledger after DI construction.
+func (s *productService) SetInventory(inventory InventoryServiceInterface) {
+	s.inventory = inventory
 }
 
 // UniqSlug ensureUniqueSlug checks and modifies slug to be unique.
@@ -102,6 +123,27 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 	if req.StoreID != nil {
 		product.StoreID = *req.StoreID
 	}
+	if req.TrackInventory != nil {
+		product.TrackInventory = *req.TrackInventory
+	}
+	if req.WarehouseLocation != "" {
+		product.WarehouseLocation = req.WarehouseLocation
+	}
+	if req.AllowBackorder != nil {
+		product.AllowBackorder = *req.AllowBackorder
+	}
+	if req.Visibility != "" {
+		product.Visibility = req.Visibility
+	}
+	if len(req.Tags) > 0 {
+		product.Tags = req.Tags
+	}
+	if len(req.Channels) > 0 {
+		product.Channels = req.Channels
+	}
+	if req.PublishedAt != nil {
+		product.PublishedAt = req.PublishedAt
+	}
 	if product.Status == "" {
 		product.Status = "draft"
 	}
@@ -111,6 +153,10 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 
 	if err := s.db.Create(&product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
+	}
+	s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+	if s.inventory != nil {
+		_ = s.inventory.RecordInitialStock(context.Background(), product.ID, product.Stock)
 	}
 	return &product, nil
 }
@@ -123,6 +169,7 @@ func (s *productService) GetByID(id uint) (*models.Product, error) {
 		Preload("Store").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		First(&product, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
@@ -140,6 +187,7 @@ func (s *productService) GetBySlug(slug string) (*models.Product, error) {
 		Preload("Store").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		Where("slug = ?", slug).
 		First(&product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -186,9 +234,6 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.Barcode != nil {
 		product.Barcode = *req.Barcode
 	}
-	if req.Stock != nil {
-		product.Stock = *req.Stock
-	}
 	if req.LowStockThreshold != nil {
 		product.LowStockThreshold = *req.LowStockThreshold
 	}
@@ -225,9 +270,47 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.Sizes != nil {
 		product.Sizes = *req.Sizes
 	}
+	if req.TrackInventory != nil {
+		product.TrackInventory = *req.TrackInventory
+	}
+	if req.WarehouseLocation != nil {
+		product.WarehouseLocation = *req.WarehouseLocation
+	}
+	if req.AllowBackorder != nil {
+		product.AllowBackorder = *req.AllowBackorder
+	}
+	if req.Visibility != nil {
+		product.Visibility = *req.Visibility
+	}
+	if req.Tags != nil {
+		product.Tags = *req.Tags
+	}
+	if req.Channels != nil {
+		product.Channels = *req.Channels
+	}
+	if req.PublishedAt != nil {
+		product.PublishedAt = req.PublishedAt
+	}
+
+	stockUpdate := req.Stock
 
 	if err := s.db.Save(product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
+	}
+	if req.Status != nil {
+		s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+	}
+
+	if stockUpdate != nil {
+		if s.inventory != nil && product.TrackInventory {
+			if err := s.inventory.SetAbsoluteStock(context.Background(), id, *stockUpdate, nil, "product update", constants.InventoryAdjAdminSet); err != nil {
+				return nil, err
+			}
+		} else {
+			if err := s.db.Model(&product).Update("stock", *stockUpdate).Error; err != nil {
+				return nil, utils.ErrInternal(err)
+			}
+		}
 	}
 
 	// Replace attributes wholesale if provided
@@ -247,7 +330,7 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 		product.Attributes = newAttrs
 	}
 
-	return product, nil
+	return s.GetByID(id)
 }
 
 // Delete product
@@ -337,6 +420,7 @@ func (s *productService) List(limit, offset int, filters dto.ProductListFilters)
 		Preload("Category").
 		Preload("Brand").
 		Preload("Attributes").
+		Preload("WorkflowState").
 		Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("find products: %w", err)
 	}
@@ -433,7 +517,7 @@ func (s *productService) BulkDelete(productIDs []uint) error {
 // and logs a warning for each. Returns an error if the database query fails.
 func (s *productService) CheckLowStockAndAlert() error {
 	var products []models.Product
-	err := s.db.Where("stock <= low_stock_threshold AND status = ?", "active").
+	err := s.db.Where("stock <= low_stock_threshold AND status = ?", constants.ProductStatusActive).
 		Find(&products).Error
 	if err != nil {
 		return utils.ErrInternal(err)
@@ -508,4 +592,49 @@ func (s *productService) GetSuggestions(productIDs []uint, limit int) ([]*models
 func (s *productService) GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error) {
 	filters.StoreID = &storeID
 	return s.List(limit, offset, filters)
+}
+
+func (s *productService) ensureProductExists(ctx context.Context, productID uint) error {
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", productID).Count(&count).Error; err != nil {
+		return utils.ErrInternal(err)
+	}
+	if count == 0 {
+		return utils.ErrNotFound("product not found")
+	}
+	return nil
+}
+
+// AvailableTransitions lists workflow actions allowed for a product from its current state.
+func (s *productService) AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(errors.New("workflow engine not configured"))
+	}
+	if err := s.ensureProductExists(ctx, productID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityProduct, productID)
+}
+
+// PerformTransition applies a workflow event to a product (admin or allowed roles per seed rules).
+func (s *productService) PerformTransition(
+	ctx context.Context,
+	productID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(errors.New("workflow engine not configured"))
+	}
+	if err := s.ensureProductExists(ctx, productID); err != nil {
+		return nil, err
+	}
+	return s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityProduct,
+		EntityID:    productID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
 }

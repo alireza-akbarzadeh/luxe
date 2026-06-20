@@ -16,12 +16,17 @@ func SetupCouponRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Con
 	}
 
 	admin := protected.Group("/coupons")
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.ModuleGuard("products"))
 	{
-		admin.POST("/", ctrl.Coupon.Create)
+		admin.POST("", ctrl.Coupon.Create)
 		admin.PUT("/:id", ctrl.Coupon.Update)
 		admin.DELETE("/:id", ctrl.Coupon.Delete)
 		admin.GET("/:id", ctrl.Coupon.GetCouponByID)
+	}
 
+	adminList := protected.Group("/admin/coupons")
+	adminList.Use(middleware.ModuleGuard("products"))
+	{
+		adminList.GET("", ctrl.Coupon.ListAdmin)
 	}
 }

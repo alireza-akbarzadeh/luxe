@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"regexp"
 	"testing"
 	"time"
@@ -14,6 +15,11 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+func TestMain(m *testing.M) {
+	_ = utils.InitLogger("error")
+	m.Run()
+}
 
 // uint test
 
@@ -47,7 +53,7 @@ func TestAuthService_Login(t *testing.T) {
 
 	t.Run("success login", func(t *testing.T) {
 		gormDB, mock := setupTestDB(t)
-		svc := NewAuthServices(gormDB, cfg)
+		svc := NewAuthServices(gormDB, cfg, nil, nil)
 
 		rows := sqlmock.NewRows([]string{"id", "email", "password_hash", "is_active", "role", "last_login_at"}).
 			AddRow(user.ID, user.Email, user.PasswordHash, user.IsActive, user.Role, nil)
@@ -56,17 +62,19 @@ func TestAuthService_Login(t *testing.T) {
 			WithArgs("test@example.com", sqlmock.AnyArg()).
 			WillReturnRows(rows)
 
+		mock.ExpectBegin()
 		mock.ExpectExec(regexp.QuoteMeta(`UPDATE "users" SET`)+`.*`).
 			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), user.ID).
 			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
 
 		mock.ExpectBegin()
 		mock.ExpectQuery(`INSERT INTO "refresh_tokens"`).
-			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+			WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 		mock.ExpectCommit()
 
-		accessToken, refreshToken, returnedUser, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, returnedUser, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email: "test@example.com", Password: "password123",
 		}, SessionMeta{})
 
@@ -81,10 +89,10 @@ func TestAuthService_Login(t *testing.T) {
 	// user not found
 	t.Run("user not found", func(t *testing.T) {
 		gormDB, mock := setupTestDB(t)
-		svc := NewAuthServices(gormDB, cfg)
+		svc := NewAuthServices(gormDB, cfg, nil, nil)
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnError(gorm.ErrRecordNotFound)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "nonexistent@example.com",
 			Password: "anything",
 		}, SessionMeta{})
@@ -99,12 +107,12 @@ func TestAuthService_Login(t *testing.T) {
 
 	t.Run("invalid password", func(t *testing.T) {
 		gormDB, mock := setupTestDB(t)
-		svc := NewAuthServices(gormDB, cfg)
+		svc := NewAuthServices(gormDB, cfg, nil, nil)
 
 		rows := sqlmock.NewRows([]string{"id", "email", "password_hash", "is_active", "role", "last_login_at"}).AddRow(user.ID, user.Email, hashed, true, "user", nil)
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnRows(rows)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "test@example.con",
 			Password: "123456",
 		}, SessionMeta{})
@@ -119,12 +127,12 @@ func TestAuthService_Login(t *testing.T) {
 
 	t.Run("inactive user", func(t *testing.T) {
 		gormDB, mock := setupTestDB(t)
-		svc := NewAuthServices(gormDB, cfg)
+		svc := NewAuthServices(gormDB, cfg, nil, nil)
 		rows := sqlmock.NewRows([]string{"id", "email", "password_hash", "is_active", "role", "last_login_at"}).
 			AddRow(user.ID, user.Email, user.PasswordHash, false, user.Role, nil) // Set is_active to false here!
 		mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnRows(rows)
 
-		accessToken, refreshToken, user, err := svc.Login(dto.LoginRequest{
+		accessToken, refreshToken, user, err := svc.Login(context.Background(), dto.LoginRequest{
 			Email:    "test@example.com",
 			Password: "password123",
 		}, SessionMeta{})

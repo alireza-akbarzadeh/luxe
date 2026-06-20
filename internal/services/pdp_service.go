@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -94,7 +95,7 @@ func (s *pdpService) GetAlternatives(productID uint, limit int) ([]dto.ProductAl
 
 	var alternatives []*models.Product
 	q := s.db.Preload("Store").Preload("Category").Preload("Brand").Preload("Attributes").
-		Where("barcode = ? AND id != ? AND status = ?", product.Barcode, productID, "active")
+		Where("barcode = ? AND id != ? AND status = ?", product.Barcode, productID, constants.ProductStatusActive)
 	if product.StoreID != 0 {
 		q = q.Where("store_id != ?", product.StoreID)
 	}
@@ -133,10 +134,10 @@ func (s *pdpService) SubscribeStockNotification(userID, productID uint) error {
 	var existing models.StockNotification
 	err = s.db.Where("user_id = ? AND product_id = ?", userID, productID).First(&existing).Error
 	if err == nil {
-		if existing.Status == "active" {
+		if existing.Status == constants.StockNotificationStatusActive {
 			return utils.ErrBadRequest("you are already subscribed")
 		}
-		existing.Status = "active"
+		existing.Status = constants.StockNotificationStatusActive
 		existing.NotifiedAt = nil
 		return s.db.Save(&existing).Error
 	}
@@ -147,13 +148,13 @@ func (s *pdpService) SubscribeStockNotification(userID, productID uint) error {
 	return s.db.Create(&models.StockNotification{
 		UserID:    userID,
 		ProductID: productID,
-		Status:    "active",
+		Status:    constants.StockNotificationStatusActive,
 	}).Error
 }
 
 func (s *pdpService) UnsubscribeStockNotification(userID, productID uint) error {
 	result := s.db.Model(&models.StockNotification{}).
-		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, "active").
+		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, constants.StockNotificationStatusActive).
 		Update("status", "cancelled")
 	if result.Error != nil {
 		return utils.ErrInternal(result.Error)
@@ -167,14 +168,14 @@ func (s *pdpService) UnsubscribeStockNotification(userID, productID uint) error 
 func (s *pdpService) IsStockSubscribed(userID, productID uint) (bool, error) {
 	var count int64
 	err := s.db.Model(&models.StockNotification{}).
-		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, "active").
+		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, constants.StockNotificationStatusActive).
 		Count(&count).Error
 	return count > 0, err
 }
 
 func (s *pdpService) NotifyBackInStock(productID uint, productName, productSlug string) error {
 	var subs []models.StockNotification
-	if err := s.db.Where("product_id = ? AND status = ?", productID, "active").Find(&subs).Error; err != nil {
+	if err := s.db.Where("product_id = ? AND status = ?", productID, constants.StockNotificationStatusActive).Find(&subs).Error; err != nil {
 		return err
 	}
 	now := time.Now()

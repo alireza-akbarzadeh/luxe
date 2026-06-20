@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
+	"github.com/alireza-akbarzadeh/luxe/internal/observability"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -10,6 +11,7 @@ import (
 
 func (r *Router) Setup() {
 	r.RegisterMiddlewares()
+	middleware.SetRolePermissionChecker(r.roleSvc)
 
 	r.engine.GET(constants.RouteRoot, r.controllers.Page.LandingPage)
 	r.engine.Static(constants.RouteStatic, "./views/static")
@@ -25,9 +27,14 @@ func (r *Router) Setup() {
 		c.Data(200, "application/json", spec)
 	})
 
+	r.engine.GET("/metrics", observability.MetricsHandler())
+
 	v1 := r.engine.Group(constants.APIVersionV1)
 	{
 		v1.GET(constants.RouteHealth, r.controllers.Health.Check)
+		v1.GET("/health/live", r.controllers.Health.Live)
+		v1.GET("/health/ready", r.controllers.Health.Ready)
+		SetupStripeRoutes(v1, r.controllers)
 
 		// ✅ PUBLIC (guest + optional auth)
 		public := v1.Group(constants.RouteRoot)
@@ -37,14 +44,15 @@ func (r *Router) Setup() {
 		protected.Use(middleware.AuthMiddleware(r.cfg))
 		// required role protected
 
+		SetupAuditRoutes(protected, r.controllers)
 		SetupAuthRoutes(public, protected, r.controllers)
 		SetupAddressRoutes(protected, r.controllers)
 		SetupSearchRoutes(public, r.controllers)
 		SetupAccountRoutes(protected, r.controllers)
 		SetupProductRoutes(public, protected, r.controllers)
 		SetupCompareRoutes(public, protected, r.controllers)
-		SetupNavMenuRoutes(public, r.controllers)
-		SetupPaymentRoutes(protected, r.controllers)
+		SetupNavMenuRoutes(public, protected, r.controllers)
+		SetupPaymentRoutes(public, protected, r.controllers)
 		SetupCategoryRoutes(public, protected, r.controllers)
 		SetupSettingRoutes(public, protected, r.controllers)
 		SetupStoreRoutes(public, protected, r.controllers)
@@ -57,6 +65,13 @@ func (r *Router) Setup() {
 		SetupShipmentRoutes(public, protected, r.controllers)
 		SetupWalletRoutes(protected, r.controllers)
 		SetupBrandRoutes(public, protected, r.controllers)
+		SetupCollectionRoutes(public, protected, r.controllers)
+		SetupUploadRoutes(public, protected, r.controllers)
+		SetupAdminRoutes(protected, r.controllers)
+		SetupImportRoutes(protected, r.controllers)
+		SetupWorkflowRoutes(protected, r.controllers)
+		SetupReturnRoutes(protected, r.controllers)
+		SetupInvoiceRoutes(protected, r.controllers)
 		SetupWebSocketRoutes(v1, protected, r.controllers, r.cfg)
 	}
 }

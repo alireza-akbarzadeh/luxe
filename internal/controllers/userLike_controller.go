@@ -72,7 +72,7 @@ func (ctrl *UserLikeController) ToggleLike(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to toggle like")
+		utils.HandleServiceError(c, err, "failed to toggle like")
 		return
 	}
 
@@ -113,7 +113,7 @@ func (ctrl *UserLikeController) IsLikedByUser(c *gin.Context) {
 
 	liked, err := ctrl.likeService.IsLikedByUser(userID, uint(productID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to check like status")
+		utils.HandleServiceError(c, err, "failed to check like status")
 		return
 	}
 
@@ -139,7 +139,7 @@ func (ctrl *UserLikeController) GetUserLikedProductIDs(c *gin.Context) {
 
 	ids, err := ctrl.likeService.GetUserLikedProductIDs(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch liked products")
+		utils.HandleServiceError(c, err, "failed to fetch liked products")
 		return
 	}
 

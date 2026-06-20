@@ -15,6 +15,7 @@ type NavMenuServiceInterface interface {
 	GetByID(ctx context.Context, id uint) (*dto.NavItemResponse, error)
 	Create(ctx context.Context, req *dto.UpsertNavMenuRequest) (*dto.NavItemResponse, error)
 	Update(ctx context.Context, id uint, req *dto.UpsertNavMenuRequest) (*dto.NavItemResponse, error)
+	Reorder(ctx context.Context, req *dto.ReorderNavMenusRequest) error
 	Delete(ctx context.Context, id uint) error
 }
 
@@ -29,7 +30,7 @@ func NewNavMenuService(db *gorm.DB) NavMenuServiceInterface {
 // GetAll menu menu items
 func (s *navMenuService) GetAll(ctx context.Context) ([]dto.NavItemResponse, error) {
 	var menus []models.NavMenu
-	if err := s.db.WithContext(ctx).Order("\"order\"").Find(&menus).Error; err != nil {
+	if err := s.db.WithContext(ctx).Order("nav_menus.\"order\" ASC").Find(&menus).Error; err != nil {
 		return nil, err
 	}
 	result := make([]dto.NavItemResponse, 0, len(menus))
@@ -63,7 +64,7 @@ func (s *navMenuService) Create(ctx context.Context, req *dto.UpsertNavMenuReque
 		ViewAll:  datatypes.JSON(viewAllJSON),
 		Columns:  datatypes.JSON(columnsJSON),
 		Featured: datatypes.JSON(featuredJSON),
-		Order:    req.Order,
+		SortOrder: req.Order,
 	}
 	if err := s.db.WithContext(ctx).Create(&menu).Error; err != nil {
 		return nil, err
@@ -88,12 +89,30 @@ func (s *navMenuService) Update(ctx context.Context, id uint, req *dto.UpsertNav
 	menu.ViewAll = viewAllJSON
 	menu.Columns = columnsJSON
 	menu.Featured = featuredJSON
-	menu.Order = req.Order
+	menu.SortOrder = req.Order
 
 	if err := s.db.WithContext(ctx).Save(&menu).Error; err != nil {
 		return nil, err
 	}
 	return dto.ToNavItemResponse(&menu)
+}
+
+// Reorder updates display order for multiple nav items in one transaction.
+func (s *navMenuService) Reorder(ctx context.Context, req *dto.ReorderNavMenusRequest) error {
+	return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range req.Items {
+			result := tx.Model(&models.NavMenu{}).
+				Where("id = ?", item.ID).
+				Update("order", item.Order)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return gorm.ErrRecordNotFound
+			}
+		}
+		return nil
+	})
 }
 
 // Delete removes a nav menu item by ID

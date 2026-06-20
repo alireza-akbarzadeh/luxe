@@ -16,19 +16,28 @@ func SetupShipmentRoutes(public, protected *gin.RouterGroup, ctrl *controllers.C
 	protected.GET("/shipments", ctrl.Shipment.GetShipmentsByOrder)
 
 	// Admin endpoints for shipments
-	adminShipments := protected.Group("/shipments")
-	adminShipments.Use(middleware.RequireRole("admin"))
+	adminShipments := protected.Group("/admin/shipments")
+	adminShipments.Use(middleware.ModuleGuard("orders"))
 	{
-		adminShipments.POST("/", ctrl.Shipment.CreateShipment)
+		adminShipments.GET("", ctrl.Shipment.ListShipmentsAdmin)
+		adminShipments.POST("", ctrl.Shipment.CreateShipment)
+		adminShipments.GET("/:id/available-transitions", ctrl.Shipment.GetAvailableTransitions)
+		adminShipments.POST("/:id/transition", ctrl.Shipment.PerformTransition)
 		adminShipments.PUT("/:id/status", ctrl.Shipment.UpdateShipmentStatus)
-		// No DELETE /shipments – that doesn't make sense; shipments are usually not deleted.
 	}
 
-	// Admin endpoints for shipping providers (CRUD)
-	adminProviders := protected.Group("/shipping-providers")
-	adminProviders.Use(middleware.RequireRole("admin"))
+	// Admin list — includes inactive providers (public GET is active-only).
+	adminProviderList := protected.Group("/admin/shipping-providers")
+	adminProviderList.Use(middleware.ModuleGuard("orders"))
 	{
-		adminProviders.POST("/", ctrl.Shipment.CreateShippingProvider)
+		adminProviderList.GET("", ctrl.Shipment.ListShippingProvidersAdmin)
+	}
+
+	// Admin mutations for shipping providers (CRUD)
+	adminProviders := protected.Group("/shipping-providers")
+	adminProviders.Use(middleware.ModuleGuard("orders"))
+	{
+		adminProviders.POST("", ctrl.Shipment.CreateShippingProvider)
 		adminProviders.PUT("/:id", ctrl.Shipment.UpdateShippingProvider)
 		adminProviders.DELETE("/:id", ctrl.Shipment.DeleteShippingProvider)
 	}

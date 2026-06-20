@@ -42,6 +42,336 @@ definitions:
     - description
     - user_id
     type: object
+  dto.AdminDashboardKPI:
+    properties:
+      change_percent:
+        type: number
+      previous_value:
+        type: number
+      value:
+        type: number
+    type: object
+  dto.AdminDashboardKPIs:
+    properties:
+      avg_order_value:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      new_customers:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      orders:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      revenue:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+    type: object
+  dto.AdminDashboardLowStockProduct:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      sku:
+        type: string
+      stock:
+        type: integer
+      threshold:
+        type: integer
+    type: object
+  dto.AdminDashboardOverviewResponse:
+    properties:
+      generated_at:
+        type: string
+      kpis:
+        $ref: '#/definitions/dto.AdminDashboardKPIs'
+      low_stock_products:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardLowStockProduct'
+        type: array
+      orders_by_status:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardStatusCount'
+        type: array
+      period:
+        type: string
+      platform:
+        $ref: '#/definitions/dto.AdminStatsResponse'
+      recent_orders:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardRecentOrder'
+        type: array
+      revenue_series:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardSeriesPoint'
+        type: array
+      top_products:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardTopProduct'
+        type: array
+    type: object
+  dto.AdminDashboardRecentOrder:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      order_number:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  dto.AdminDashboardSeriesPoint:
+    properties:
+      date:
+        type: string
+      orders:
+        type: integer
+      revenue:
+        type: number
+    type: object
+  dto.AdminDashboardStatusCount:
+    properties:
+      count:
+        type: integer
+      status:
+        type: string
+    type: object
+  dto.AdminDashboardTopProduct:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      revenue:
+        type: number
+      sku:
+        type: string
+      stock:
+        type: integer
+      units_sold:
+        type: integer
+    type: object
+  dto.AdminOrderDetailResponse:
+    properties:
+      carrier:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      estimated_delivery:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.AdminOrderItemView'
+        type: array
+      notes:
+        type: string
+      order_number:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+      tracking_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.AdminOrderItemView:
+    properties:
+      category:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      name:
+        type: string
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      sku:
+        type: string
+      total_price:
+        type: number
+      unit_price:
+        type: number
+    type: object
+  dto.AdminOrderListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      orders:
+        items:
+          $ref: '#/definitions/dto.AdminOrderListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.AdminOrderListItem:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      items_count:
+        type: integer
+      order_number:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  dto.AdminSalesFeedEvent:
+    properties:
+      amount:
+        type: number
+      id:
+        type: string
+      subtitle:
+        type: string
+      timestamp:
+        type: integer
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AdminSalesFeedSnapshotResponse:
+    properties:
+      generated_at:
+        type: string
+      recent_events:
+        items:
+          $ref: '#/definitions/dto.AdminSalesFeedEvent'
+        type: array
+      revenue_series:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardSeriesPoint'
+        type: array
+      status_counts:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardStatusCount'
+        type: array
+      total_orders_today:
+        type: integer
+      total_revenue_today:
+        type: number
+    type: object
+  dto.AdminStatsResponse:
+    properties:
+      active_users:
+        type: integer
+      admin_users:
+        type: integer
+      low_stock_products:
+        type: integer
+      pending_orders:
+        type: integer
+      total_active_products:
+        type: integer
+      total_orders:
+        type: integer
+      total_revenue:
+        type: number
+      total_users:
+        type: integer
+      total_wallet_balance:
+        type: number
+    type: object
+  dto.AdminUserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      email_verified_at:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_login_at:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+    type: object
+  dto.AuditLogSummaryResponse:
+    properties:
+      last_24_hours:
+        type: integer
+      today:
+        type: integer
+      total:
+        type: integer
+      unique_actors:
+        type: integer
+    type: object
+  dto.AvailableTransitionsView:
+    properties:
+      current_state:
+        $ref: '#/definitions/dto.StateView'
+      transitions:
+        items:
+          $ref: '#/definitions/dto.TransitionView'
+        type: array
+    type: object
+  dto.BrandListData:
+    properties:
+      brands:
+        items:
+          $ref: '#/definitions/dto.BrandResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.BrandListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.BrandListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.BrandResponse:
     properties:
       created_at:
@@ -88,6 +418,25 @@ definitions:
         type: array
     required:
     - product_ids
+    type: object
+  dto.BulkUpdateOrderStatusRequest:
+    properties:
+      order_ids:
+        items:
+          type: integer
+        maxItems: 500
+        minItems: 1
+        type: array
+      status:
+        enum:
+        - paid
+        - shipped
+        - delivered
+        - cancelled
+        type: string
+    required:
+    - order_ids
+    - status
     type: object
   dto.CartItemData:
     properties:
@@ -202,10 +551,10 @@ definitions:
   dto.ChangePasswordRequest:
     properties:
       current_password:
-        minLength: 6
+        minLength: 8
         type: string
       new_password:
-        minLength: 6
+        minLength: 8
         type: string
     required:
     - current_password
@@ -245,6 +594,10 @@ definitions:
       newsletter:
         type: boolean
       payment_method:
+        enum:
+        - mock
+        - stripe
+        - wallet
         type: string
       phone:
         type: string
@@ -260,13 +613,9 @@ definitions:
         type: string
     required:
     - address_line1
-    - card_number
     - city
     - country
-    - cvv
     - email
-    - expiry_month
-    - expiry_year
     - first_name
     - last_name
     - phone
@@ -705,6 +1054,18 @@ definitions:
     - price
     - sku
     type: object
+  dto.CreateReturnRequest:
+    properties:
+      order_id:
+        type: integer
+      reason:
+        maxLength: 512
+        minLength: 3
+        type: string
+    required:
+    - order_id
+    - reason
+    type: object
   dto.CreateReviewRequest:
     properties:
       comment:
@@ -720,6 +1081,23 @@ definitions:
     required:
     - product_id
     - rating
+    type: object
+  dto.CreateRoleRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 80
+        minLength: 1
+        type: string
+      slug:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - name
+    - slug
     type: object
   dto.CreateShippingProviderRequest:
     properties:
@@ -773,6 +1151,88 @@ definitions:
     required:
     - comment
     - rating
+    type: object
+  dto.CreateWorkflowRequest:
+    properties:
+      description:
+        maxLength: 512
+        type: string
+      entity_type:
+        maxLength: 64
+        minLength: 2
+        type: string
+      key:
+        maxLength: 64
+        minLength: 2
+        type: string
+      name:
+        maxLength: 128
+        minLength: 2
+        type: string
+    required:
+    - entity_type
+    - key
+    - name
+    type: object
+  dto.CreateWorkflowStateRequest:
+    properties:
+      code:
+        maxLength: 64
+        minLength: 1
+        type: string
+      color:
+        type: string
+      description:
+        maxLength: 512
+        type: string
+      is_final:
+        type: boolean
+      is_initial:
+        type: boolean
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      sort_order:
+        type: integer
+      text_color:
+        type: string
+    required:
+    - code
+    - name
+    type: object
+  dto.CreateWorkflowTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      from_state_code:
+        description: empty = wildcard "any state"
+        maxLength: 64
+        type: string
+      guard_key:
+        maxLength: 64
+        type: string
+      hook_key:
+        maxLength: 64
+        type: string
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      required_role:
+        maxLength: 32
+        type: string
+      sort_order:
+        type: integer
+      to_state_code:
+        maxLength: 64
+        type: string
+    required:
+    - event
+    - name
+    - to_state_code
     type: object
   dto.DashboardSummaryResponse:
     properties:
@@ -831,10 +1291,23 @@ definitions:
       amount:
         type: number
       payment_method:
-        description: for future gateway integration
+        enum:
+        - stripe
+        - mock
         type: string
     required:
     - amount
+    type: object
+  dto.DepositResponse:
+    properties:
+      checkout_url:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      transaction_id:
+        type: integer
     type: object
   dto.EmptyResponse:
     properties:
@@ -864,6 +1337,44 @@ definitions:
         type: string
     required:
     - email
+    type: object
+  dto.ImportRowResult:
+    properties:
+      error:
+        description: human-readable reason (when status=failed/skipped)
+        type: string
+      id:
+        description: ID of the created record (when status=created)
+        type: integer
+      name:
+        description: display value from the row for easy identification
+        type: string
+      row:
+        description: 1-based Excel row number (row 1 = header)
+        type: integer
+      status:
+        description: '"created" | "skipped" | "failed"'
+        type: string
+    type: object
+  dto.ImportSummary:
+    properties:
+      created:
+        description: successfully inserted
+        type: integer
+      failed:
+        description: validation or DB errors
+        type: integer
+      rows:
+        description: per-row detail
+        items:
+          $ref: '#/definitions/dto.ImportRowResult'
+        type: array
+      skipped:
+        description: intentionally skipped (e.g. empty row)
+        type: integer
+      total_rows:
+        description: data rows parsed (header excluded)
+        type: integer
     type: object
   dto.Link:
     properties:
@@ -978,8 +1489,12 @@ definitions:
         type: array
       href:
         type: string
+      id:
+        type: integer
       label:
         type: string
+      order:
+        type: integer
       type:
         type: string
       viewAll:
@@ -1041,6 +1556,13 @@ definitions:
       total_amount:
         type: number
     type: object
+  dto.OrderTransitionResponse:
+    properties:
+      order:
+        description: models.Order in responses
+      transition:
+        $ref: '#/definitions/dto.TransitionResultView'
+    type: object
   dto.PaymentProviderResponse:
     properties:
       description:
@@ -1053,6 +1575,114 @@ definitions:
         type: string
       requires_card:
         type: boolean
+    type: object
+  dto.PerformOrderTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PerformProductTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PerformReturnTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PerformShipmentTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PerformTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      metadata:
+        additionalProperties: true
+        type: object
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
+  dto.PermissionResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      key:
+        type: string
+      module:
+        type: string
+    type: object
+  dto.PresignUploadRequest:
+    properties:
+      content_type:
+        maxLength: 128
+        type: string
+      filename:
+        maxLength: 255
+        type: string
+      purpose:
+        enum:
+        - product
+        - avatar
+        - store
+        - brand
+        - media
+        type: string
+    required:
+    - content_type
+    - filename
+    - purpose
+    type: object
+  dto.PresignUploadResponse:
+    properties:
+      expires_at:
+        type: string
+      key:
+        type: string
+      method:
+        type: string
+      public_url:
+        type: string
+      upload_url:
+        type: string
     type: object
   dto.PriceHistoryPoint:
     properties:
@@ -1338,6 +1968,13 @@ definitions:
       slug:
         type: string
     type: object
+  dto.ProductTransitionResponse:
+    properties:
+      product:
+        $ref: '#/definitions/dto.ProductResponse'
+      transition:
+        $ref: '#/definitions/dto.TransitionResultView'
+    type: object
   dto.ProductWithLike:
     properties:
       allow_backorder:
@@ -1489,16 +2126,61 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserResponse'
     type: object
+  dto.ReorderNavMenuItem:
+    properties:
+      id:
+        type: integer
+      order:
+        minimum: 0
+        type: integer
+    required:
+    - id
+    type: object
+  dto.ReorderNavMenusRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.ReorderNavMenuItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
   dto.ResetPasswordRequest:
     properties:
       new_password:
-        minLength: 6
+        minLength: 8
         type: string
       token:
         type: string
     required:
     - new_password
     - token
+    type: object
+  dto.ReturnResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      reason:
+        type: string
+      refund_amount:
+        type: number
+      state:
+        $ref: '#/definitions/dto.StateView'
+      status:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      workflow_state_id:
+        type: integer
     type: object
   dto.ReviewResponse:
     properties:
@@ -1525,6 +2207,35 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.RoleResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permission_count:
+        type: integer
+      permission_ids:
+        items:
+          type: integer
+        type: array
+      permission_keys:
+        items:
+          type: string
+        type: array
+      slug:
+        type: string
+      updated_at:
+        type: string
+      user_count:
+        type: integer
+    type: object
   dto.SearchResponse:
     properties:
       categories:
@@ -1541,6 +2252,13 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  dto.SetRolePermissionsRequest:
+    properties:
+      permission_ids:
+        items:
+          type: integer
+        type: array
     type: object
   dto.SetSettingRequest:
     properties:
@@ -1564,6 +2282,13 @@ definitions:
       value:
         type: object
     type: object
+  dto.ShipmentTransitionResponse:
+    properties:
+      shipment:
+        description: models.Shipment in responses
+      transition:
+        $ref: '#/definitions/dto.TransitionResultView'
+    type: object
   dto.SidebarGroup:
     properties:
       group:
@@ -1584,6 +2309,25 @@ definitions:
       icon:
         type: string
       label:
+        type: string
+    type: object
+  dto.StateView:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      id:
+        type: integer
+      is_final:
+        type: boolean
+      is_initial:
+        type: boolean
+      name:
+        type: string
+      sort_order:
+        type: integer
+      text_color:
         type: string
     type: object
   dto.StockNotificationStatusResponse:
@@ -1671,8 +2415,6 @@ definitions:
           type: integer
         maxItems: 4
         type: array
-    required:
-    - product_ids
     type: object
   dto.ToggleLikeRequest:
     properties:
@@ -1682,6 +2424,11 @@ definitions:
   dto.ToggleLikeResponse:
     properties:
       liked:
+        type: boolean
+    type: object
+  dto.ToggleUserActiveRequest:
+    properties:
+      is_active:
         type: boolean
     type: object
   dto.TransactionResponse:
@@ -1702,8 +2449,44 @@ definitions:
         type: string
       status:
         type: string
+      stripe_session_id:
+        type: string
       type:
         type: string
+    type: object
+  dto.TransitionResultView:
+    properties:
+      entity_id:
+        type: integer
+      entity_type:
+        type: string
+      event:
+        type: string
+      from_state:
+        $ref: '#/definitions/dto.StateView'
+      to_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.TransitionView:
+    properties:
+      event:
+        type: string
+      from_state:
+        $ref: '#/definitions/dto.StateView'
+      guard_key:
+        type: string
+      hook_key:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      required_role:
+        type: string
+      to_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.TrendingResponse:
     properties:
@@ -1933,6 +2716,18 @@ definitions:
       title:
         type: string
     type: object
+  dto.UpdateRoleRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
   dto.UpdateShippingProviderRequest:
     properties:
       description:
@@ -1979,6 +2774,76 @@ definitions:
       rating:
         maximum: 5
         minimum: 1
+        type: integer
+    type: object
+  dto.UpdateUserRoleRequest:
+    properties:
+      role:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - role
+    type: object
+  dto.UpdateWorkflowRequest:
+    properties:
+      description:
+        maxLength: 512
+        type: string
+      is_active:
+        type: boolean
+      name:
+        maxLength: 128
+        minLength: 2
+        type: string
+    type: object
+  dto.UpdateWorkflowStateRequest:
+    properties:
+      color:
+        type: string
+      description:
+        maxLength: 512
+        type: string
+      is_final:
+        type: boolean
+      is_initial:
+        type: boolean
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      sort_order:
+        type: integer
+      text_color:
+        type: string
+    type: object
+  dto.UpdateWorkflowTransitionRequest:
+    properties:
+      guard_key:
+        maxLength: 64
+        type: string
+      hook_key:
+        maxLength: 64
+        type: string
+      is_active:
+        type: boolean
+      name:
+        maxLength: 128
+        minLength: 1
+        type: string
+      required_role:
+        maxLength: 32
+        type: string
+      sort_order:
+        type: integer
+    type: object
+  dto.UploadConfigResponse:
+    properties:
+      enabled:
+        type: boolean
+      max_size_mb:
+        type: integer
+      presign_ttl_seconds:
         type: integer
     type: object
   dto.UpsertNavMenuRequest:
@@ -2111,6 +2976,29 @@ definitions:
         type: string
     required:
     - amount
+    type: object
+  dto.WorkflowDefinitionView:
+    properties:
+      description:
+        type: string
+      entity_type:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      key:
+        type: string
+      name:
+        type: string
+      states:
+        items:
+          $ref: '#/definitions/dto.StateView'
+        type: array
+      transitions:
+        items:
+          $ref: '#/definitions/dto.TransitionView'
+        type: array
     type: object
   gorm.DeletedAt:
     properties:
@@ -2350,6 +3238,8 @@ definitions:
         type: string
       user_id:
         type: integer
+      workflow_state_id:
+        type: integer
     type: object
   models.OrderItem:
     properties:
@@ -2396,6 +3286,8 @@ definitions:
       order_id:
         type: integer
       status:
+        type: string
+      stripe_session_id:
         type: string
       transaction_id:
         type: string
@@ -2479,10 +3371,6 @@ definitions:
       slug:
         type: string
       status:
-        enum:
-        - active
-        - inactive
-        - archived
         type: string
       stock:
         minimum: 0
@@ -2509,6 +3397,8 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state_id:
+        type: integer
     required:
     - name
     - price
@@ -2584,6 +3474,8 @@ definitions:
       updated_at:
         type: string
       user_id:
+        type: integer
+      workflow_state_id:
         type: integer
     type: object
   models.ShippingProviders:
@@ -2723,10 +3615,101 @@ definitions:
         type: string
       updated_at:
         type: string
+      workflow_state_id:
+        type: integer
     required:
     - email
     - first_name
     - last_name
+    type: object
+  models.Workflow:
+    properties:
+      created_at:
+        type: string
+      deleted_at:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        type: string
+      entity_type:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      key:
+        type: string
+      name:
+        type: string
+      states:
+        items:
+          $ref: '#/definitions/models.WorkflowState'
+        type: array
+      transitions:
+        items:
+          $ref: '#/definitions/models.WorkflowTransition'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  models.WorkflowState:
+    properties:
+      code:
+        type: string
+      color:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      is_final:
+        type: boolean
+      is_initial:
+        type: boolean
+      name:
+        type: string
+      sort_order:
+        type: integer
+      text_color:
+        type: string
+      updated_at:
+        type: string
+      workflow_id:
+        type: integer
+    type: object
+  models.WorkflowTransition:
+    properties:
+      created_at:
+        type: string
+      event:
+        type: string
+      from_state:
+        $ref: '#/definitions/models.WorkflowState'
+      from_state_id:
+        type: integer
+      guard_key:
+        type: string
+      hook_key:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      name:
+        type: string
+      required_role:
+        type: string
+      sort_order:
+        type: integer
+      to_state:
+        $ref: '#/definitions/models.WorkflowState'
+      to_state_id:
+        type: integer
+      updated_at:
+        type: string
+      workflow_id:
+        type: integer
     type: object
   services.AddItemRequest:
     properties:
@@ -3106,6 +4089,113 @@ paths:
       summary: Get default address
       tags:
       - Addresses
+  /admin/audit-logs:
+    get:
+      parameters:
+      - description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Search path, resource, email
+        in: query
+        name: search
+        type: string
+      - description: HTTP action
+        in: query
+        name: action
+        type: string
+      - description: Resource path filter
+        in: query
+        name: resource
+        type: string
+      - description: Actor user id
+        in: query
+        name: user_id
+        type: integer
+      - description: From date (YYYY-MM-DD or RFC3339)
+        in: query
+        name: date_from
+        type: string
+      - description: To date (YYYY-MM-DD or RFC3339)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List audit logs
+      tags:
+      - Admin Audit
+  /admin/audit-logs/summary:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuditLogSummaryResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Audit log summary
+      tags:
+      - Admin Audit
+  /admin/categories:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new product category. Only accessible by users with the
+        "admin" role.
+      parameters:
+      - description: Category creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CategorySingleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a new category
+      tags:
+      - Categories
   /admin/categories/{id}:
     delete:
       consumes:
@@ -3331,6 +4421,175 @@ paths:
       summary: Bulk create categories
       tags:
       - Categories
+  /admin/dashboard/overview:
+    get:
+      description: Returns period KPIs, revenue series, order status breakdown, recent
+        orders, top products, and low-stock alerts.
+      parameters:
+      - description: 'Period: 7d, 30d, or 90d (default 30d)'
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminDashboardOverviewResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin dashboard overview
+      tags:
+      - Admin
+  /admin/import/categories:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an .xlsx file. Row 1 must be the header (name,slug,description,parent_id,is_active).
+        Returns per-row result.
+      parameters:
+      - description: Excel file (.xlsx)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ImportSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Import categories from Excel (admin)
+      tags:
+      - Admin
+      - Import
+  /admin/import/products:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an .xlsx file. Row 1 must be the header (name,sku,price,stock,description,status,category_id,brand_id,store_id,compare_at_price,barcode,low_stock_threshold,weight).
+        Returns per-row result.
+      parameters:
+      - description: Excel file (.xlsx)
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Default store ID for products without one in the file
+        in: query
+        name: store_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ImportSummary'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Import products from Excel (admin)
+      tags:
+      - Admin
+      - Import
+  /admin/import/template/{entity}:
+    get:
+      description: Returns a pre-formatted .xlsx template for the given entity (products
+        | categories).
+      parameters:
+      - description: 'Entity type: products | categories'
+        in: path
+        name: entity
+        required: true
+        type: string
+      produces:
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Download import template (admin)
+      tags:
+      - Admin
+      - Import
   /admin/menu/groups:
     get:
       description: Retrieves all menu groups ordered by display_order
@@ -3682,6 +4941,369 @@ paths:
       summary: Update an existing menu item
       tags:
       - Admin Menu Items
+  /admin/orders/bulk-status:
+    post:
+      consumes:
+      - application/json
+      description: Applies the given status to all specified order IDs. Max 500 IDs
+        per call.
+      parameters:
+      - description: Order IDs and target status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BulkUpdateOrderStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    updated:
+                      type: integer
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk update order status (admin)
+      tags:
+      - Admin
+  /admin/orders/export:
+    get:
+      description: Returns a CSV file of orders filtered by status and date range
+        (max 10 000 rows).
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: from_date
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: to_date
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Export orders CSV (admin)
+      tags:
+      - Admin
+  /admin/permissions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PermissionResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List permissions
+      tags:
+      - Admin Roles
+  /admin/returns:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List returns (admin)
+      tags:
+      - Returns
+  /admin/returns/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Return ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transition event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformReturnTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TransitionResultView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition return state (admin)
+      tags:
+      - Returns
+  /admin/roles:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - Admin Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create role
+      tags:
+      - Admin Roles
+  /admin/roles/{id}:
+    delete:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete role
+      tags:
+      - Admin Roles
+    get:
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get role with permissions
+      tags:
+      - Admin Roles
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Role data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update role
+      tags:
+      - Admin Roles
+  /admin/roles/{id}/permissions:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission ids
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetRolePermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Replace permissions assigned to a role
+      tags:
+      - Admin Roles
+  /admin/sales-feed/snapshot:
+    get:
+      description: Returns today's order totals, status breakdown, revenue series,
+        and recent feed events.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminSalesFeedSnapshotResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Live sales feed snapshot
+      tags:
+      - Admin
   /admin/shipments:
     post:
       consumes:
@@ -3781,6 +5403,207 @@ paths:
       summary: Update shipment status (admin)
       tags:
       - Shipments
+  /admin/stats:
+    get:
+      description: Returns counts of users, orders, products, revenue, wallet balances,
+        and low-stock alerts.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminStatsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Platform stats (admin)
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      description: Returns paginated users with optional filters by search term, email,
+        role, and active status.
+      parameters:
+      - description: Items per page (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Search name or email (partial)
+        in: query
+        name: search
+        type: string
+      - description: Email search (partial)
+        in: query
+        name: email
+        type: string
+      - description: Filter by role (admin|user)
+        in: query
+        name: role
+        type: string
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    total:
+                      type: integer
+                    users:
+                      items:
+                        $ref: '#/definitions/dto.AdminUserResponse'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List users (admin)
+      tags:
+      - Admin
+  /admin/users/{id}/active:
+    patch:
+      consumes:
+      - application/json
+      description: Enables or disables a user account.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Active flag
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ToggleUserActiveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Toggle user active status (admin)
+      tags:
+      - Admin
+  /admin/users/{id}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Sets the role slug of a user. The slug must exist in the roles
+        table.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New role
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update user role (admin)
+      tags:
+      - Admin
   /admin/wallet/adjust:
     post:
       consumes:
@@ -3822,6 +5645,315 @@ paths:
       summary: Admin adjust wallet
       tags:
       - Admin Wallet
+  /admin/webhooks:
+    get:
+      description: Returns paginated Stripe webhook events with optional filters by
+        source, type, and status.
+      parameters:
+      - description: Items per page (default 20)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by source (e.g. stripe)
+        in: query
+        name: source
+        type: string
+      - description: Filter by event type
+        in: query
+        name: event_type
+        type: string
+      - description: Filter by status (received|processed|failed)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List webhook events (admin)
+      tags:
+      - Admin
+  /admin/workflows:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.Workflow'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List workflows (admin)
+      tags:
+      - Workflows
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateWorkflowRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create workflow (admin)
+      tags:
+      - Workflows
+  /admin/workflows/{id}:
+    delete:
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete workflow (admin)
+      tags:
+      - Workflows
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateWorkflowRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update workflow (admin)
+      tags:
+      - Workflows
+  /admin/workflows/{id}/states:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: State
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateWorkflowStateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create workflow state (admin)
+      tags:
+      - Workflows
+  /admin/workflows/{id}/states/{stateId}:
+    delete:
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: State ID
+        in: path
+        name: stateId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete workflow state (admin)
+      tags:
+      - Workflows
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: State ID
+        in: path
+        name: stateId
+        required: true
+        type: integer
+      - description: Fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateWorkflowStateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update workflow state (admin)
+      tags:
+      - Workflows
+  /admin/workflows/{id}/transitions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transition
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateWorkflowTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create workflow transition (admin)
+      tags:
+      - Workflows
+  /admin/workflows/{id}/transitions/{transitionId}:
+    delete:
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transition ID
+        in: path
+        name: transitionId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete workflow transition (admin)
+      tags:
+      - Workflows
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workflow ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transition ID
+        in: path
+        name: transitionId
+        required: true
+        type: integer
+      - description: Fields
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateWorkflowTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update workflow transition (admin)
+      tags:
+      - Workflows
   /auth/change-password:
     post:
       consumes:
@@ -4108,14 +6240,7 @@ paths:
         "200":
           description: Brand list
           schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/dto.BrandResponse'
-                  type: array
-              type: object
+            $ref: '#/definitions/dto.BrandListResponse'
         "500":
           description: Internal server error
           schema:
@@ -4479,46 +6604,6 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: List categories
-      tags:
-      - Categories
-    post:
-      consumes:
-      - application/json
-      description: Creates a new product category. Only accessible by users with the
-        "admin" role.
-      parameters:
-      - description: Category creation data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateCategoryRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/dto.CategorySingleResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Create a new category
       tags:
       - Categories
   /categories/{identifier}:
@@ -5023,7 +7108,8 @@ paths:
       - Coupons
   /health:
     get:
-      description: Returns the health status of the API and database
+      description: Readiness-style check (database + Redis when configured). Same
+        as /health/ready.
       produces:
       - application/json
       responses:
@@ -5038,6 +7124,39 @@ paths:
             additionalProperties: true
             type: object
       summary: Health check
+      tags:
+      - health
+  /health/live:
+    get:
+      description: Returns 200 if the process is alive (no dependency checks).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Liveness probe
+      tags:
+      - health
+  /health/ready:
+    get:
+      description: Returns 200 when database (and Redis if configured) are reachable.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Readiness probe
       tags:
       - health
   /nav-menus:
@@ -5150,6 +7269,27 @@ paths:
       summary: Update navigation menu
       tags:
       - Navigation
+  /nav-menus/reorder:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ordered nav item ids
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReorderNavMenusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Reorder navigation menus
+      tags:
+      - Navigation
   /orders:
     get:
       consumes:
@@ -5191,6 +7331,10 @@ paths:
         in: query
         name: user_id
         type: integer
+      - description: Search order number or customer name/email
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -5201,18 +7345,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  properties:
-                    limit:
-                      type: integer
-                    offset:
-                      type: integer
-                    orders:
-                      items:
-                        $ref: '#/definitions/models.Order'
-                      type: array
-                    total:
-                      type: integer
-                  type: object
+                  $ref: '#/definitions/dto.AdminOrderListData'
               type: object
         "401":
           description: Unauthorized
@@ -5252,7 +7385,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/models.Order'
+                  $ref: '#/definitions/dto.AdminOrderDetailResponse'
               type: object
         "401":
           description: Unauthorized
@@ -5269,6 +7402,69 @@ paths:
       security:
       - BearerAuth: []
       summary: Get order by ID
+      tags:
+      - Orders
+  /orders/{id}/available-transitions:
+    get:
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List order workflow transitions (admin)
+      tags:
+      - Orders
+  /orders/{id}/cancel:
+    post:
+      description: Cancels a pending or paid order, restores stock, and refunds wallet
+        payments.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Cancel order
       tags:
       - Orders
   /orders/{id}/status:
@@ -5318,6 +7514,41 @@ paths:
       security:
       - BearerAuth: []
       summary: Update order status (admin)
+      tags:
+      - Orders
+  /orders/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires events such as start_processing, ship, deliver, refund, or
+        cancel with guards and hooks.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformOrderTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.OrderTransitionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition order workflow state (admin)
       tags:
       - Orders
   /orders/my:
@@ -5739,6 +7970,33 @@ paths:
       summary: Get cross-store product alternatives
       tags:
       - Products
+  /products/{id}/available-transitions:
+    get:
+      description: Returns available workflow events from the product's current state
+        (approve, publish, discontinue, etc.).
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List product workflow transitions (admin)
+      tags:
+      - Products
   /products/{id}/like:
     post:
       consumes:
@@ -6126,6 +8384,41 @@ paths:
       summary: Subscribe to back-in-stock notifications
       tags:
       - Products
+  /products/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires a workflow event such as approve, publish, discontinue, or
+        archive. Updates product status via the engine mirror.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformProductTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductTransitionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition product workflow state (admin)
+      tags:
+      - Products
   /products/bulk:
     delete:
       consumes:
@@ -6363,6 +8656,82 @@ paths:
       summary: Update user profile
       tags:
       - User
+  /returns:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Return details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReturnRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReturnResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create return request
+      tags:
+      - Returns
+  /returns/{id}:
+    get:
+      parameters:
+      - description: Return ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReturnResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get return by ID
+      tags:
+      - Returns
+  /returns/my:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List my returns
+      tags:
+      - Returns
   /reviews:
     get:
       description: Returns paginated reviews and rating summary for a specific product
@@ -6845,6 +9214,66 @@ paths:
       security:
       - BearerAuth: []
       summary: Get shipment by ID
+      tags:
+      - Shipments
+  /shipments/{id}/available-transitions:
+    get:
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List shipment workflow transitions (admin)
+      tags:
+      - Shipments
+  /shipments/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires events such as ready, pick_up, depart, out_for_delivery,
+        deliver, or return_to_sender.
+      parameters:
+      - description: Shipment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformShipmentTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ShipmentTransitionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition shipment workflow state (admin)
       tags:
       - Shipments
   /shipping-providers:
@@ -7559,6 +9988,63 @@ paths:
       summary: Get my store review
       tags:
       - Stores
+  /uploads/config:
+    get:
+      description: Returns direct-upload settings for the storefront (R2 presigned
+        PUT).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UploadConfigResponse'
+              type: object
+      summary: Upload configuration
+      tags:
+      - Uploads
+  /uploads/presign:
+    post:
+      consumes:
+      - application/json
+      description: Returns a short-lived PUT URL; client uploads file bytes to upload_url
+        with Content-Type header.
+      parameters:
+      - description: Upload metadata
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PresignUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PresignUploadResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Presign upload
+      tags:
+      - Uploads
   /user/menu:
     get:
       description: Returns the sidebar menu filtered by user's role and optional search
@@ -7849,8 +10335,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a pending deposit transaction. In production, this would
-        integrate with a payment gateway.
+      description: Creates a pending deposit and returns a Stripe Checkout URL when
+        Stripe is enabled.
       parameters:
       - description: Deposit amount
         in: body
@@ -7868,10 +10354,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  properties:
-                    transaction_id:
-                      type: integer
-                  type: object
+                  $ref: '#/definitions/dto.DepositResponse'
               type: object
         "400":
           description: Bad Request
@@ -8010,6 +10493,155 @@ paths:
       summary: Withdraw funds
       tags:
       - Wallet
+  /workflows/{key}:
+    get:
+      description: Returns a workflow with its states (including color codes) and
+        transitions.
+      parameters:
+      - description: Workflow key (order, product, shipment, return, user)
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.WorkflowDefinitionView'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get workflow definition
+      tags:
+      - Workflows
+  /workflows/{key}/{entityId}/available-transitions:
+    get:
+      parameters:
+      - description: Workflow key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: entityId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List available transitions
+      tags:
+      - Workflows
+  /workflows/{key}/{entityId}/history:
+    get:
+      description: Returns who changed the entity's state, from/to (with colors),
+        when, and any note.
+      parameters:
+      - description: Workflow key / entity type (order, product, shipment, return,
+          user)
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: entityId
+        required: true
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get workflow history
+      tags:
+      - Workflows
+  /workflows/{key}/{entityId}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Moves an entity to a new state by firing an event. Records who
+        changed what, when.
+      parameters:
+      - description: Workflow key
+        in: path
+        name: key
+        required: true
+        type: string
+      - description: Entity ID
+        in: path
+        name: entityId
+        required: true
+        type: integer
+      - description: Transition event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TransitionResultView'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Perform a workflow transition
+      tags:
+      - Workflows
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and the JWT token.

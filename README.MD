@@ -118,27 +118,36 @@ docker-compose down -v
 
 ## Database Migrations
 
-This project uses [Goose](https://github.com/pressly/goose) for schema migrations. All migration files are stored in `./migrations/`.
+This project uses the external [Goose](https://github.com/pressly/goose) CLI. Migration files live in `internal/migrations/`.
+
+Install Goose: `make install-tools` (pins `v3.22.1`).
 
 ### Commands
 
 | Command                                     | Description                                    |
 |---------------------------------------------|------------------------------------------------|
 | `make migrate-create name=<migration_name>` | Create a new migration file (up and down)     |
-| `make migrate-up`                           | Apply all pending migrations                  |
+| `make migrate-up`                           | Apply all pending migrations (host `goose`)   |
+| `make migrate-up-docker`                    | Run `goose` inside Docker network (Windows Docker fallback) |
 | `make migrate-down`                         | Rollback the last migration                   |
 | `make migrate-reset`                        | Rollback all migrations (dangerous)           |
 | `make migrate-status`                       | Show current migration status                 |
 | `make migrate-version`                      | Show the current migration version            |
 | `make migrate-force version=<version>`      | Force set migration version (use with caution)|
 
-**Example:** Create a `create_users_table` migration:
+**Windows + Docker Desktop:** if `make migrate-up` fails with `unexpected EOF` on `localhost:5433`, use:
 
 ```bash
-make migrate-create name=create_users_table
+make migrate-up-docker
 ```
 
-Then edit the generated `.sql` files in `migrations/` and run `make migrate-up`.
+Or full setup:
+
+```bash
+make dev-setup   # docker-up → wait postgres → migrate-up (auto-fallback)
+```
+
+Then edit the generated `.sql` files in `internal/migrations/` and run `make migrate-up`.
 
 ## Environment Variables
 
@@ -147,7 +156,7 @@ Then edit the generated `.sql` files in `migrations/` and run `make migrate-up`.
 | `SERVER_PORT`  | HTTP server port                | `8080`                           |
 | `GIN_MODE`     | Gin mode (`debug`, `release`)   | `debug`                          |
 | `DB_HOST`      | PostgreSQL host                 | `localhost` (Docker: `postgres`) |
-| `DB_PORT`      | PostgreSQL port                 | `5432`                           |
+| `DB_PORT`      | PostgreSQL port                 | `5433` (Docker maps `5433→5432`) |
 | `DB_USER`      | Database user                   | `postgres`                       |
 | `DB_PASSWORD`  | Database password               | `postgres`                       |
 | `DB_NAME`      | Database name                   | `shopping_platform`              |
@@ -171,6 +180,56 @@ Run tests with coverage and generate an HTML report:
 make test-coverage
 # open coverage.html in your browser
 ```
+
+Run integration tests (requires Postgres):
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable \
+JWT_SECRET=ci_test_secret \
+go test ./tests/integration/...
+```
+
+## Dev demo data
+
+Schema migrations are schema-only. For local PDP demo stores/products, after `make migrate-up`:
+
+```bash
+make seed-dev
+```
+
+Requires `psql` and `DATABASE_URL`. Do not run in production.
+
+## OpenTelemetry tracing (optional)
+
+Tracing is optional. The API runs fine with `OTEL_ENABLED=false` or unset.
+
+1. Start Jaeger when Docker Hub is reachable:
+
+```bash
+make docker-up-jaeger
+# or: make docker-up-all
+```
+
+If pull fails (`auth.docker.io` / DNS), fix VPN/network or skip Jaeger — the app still starts with OTEL enabled; traces export only if a collector is listening.
+
+2. In `.env`:
+
+```bash
+OTEL_ENABLED=true
+OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
+```
+
+3. Run the API (`make run`) and send requests.
+
+## Prometheus metrics
+
+The API exposes Prometheus metrics at `GET /metrics` (Go runtime and default HTTP metrics). No authentication is required by default — restrict access in production (reverse proxy or network policy).
+
+```bash
+curl http://localhost:8080/metrics
+```
+
+4. Open the Jaeger UI: [http://localhost:16686](http://localhost:16686) — search service `luxe-api` (or your `SERVICE_NAME`).
 
 ## Project Structure
 
@@ -245,3 +304,21 @@ curl -X POST http://localhost:8080/api/v1/auth/login \
 
 
 [//]: # (goose -dir ./migrations create add_orders_indexes sql)
+
+## Wallet deposits (Stripe)
+
+When `STRIPE_SECRET_KEY` is set, `POST /api/v1/wallet/deposit` returns a Stripe Checkout URL (`checkout_url`) and leaves the transaction `pending` until payment succeeds.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/wallet/deposit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 50}'
+```
+
+Webhook events: `checkout.session.completed` (credit wallet), `checkout.session.expired` (mark failed). Users can also cancel pending deposits via `POST /api/v1/wallet/deposit/{id}/cancel`.
+
+Without Stripe keys, deposits are auto-confirmed for local dev and CI.
+
+# Redis — durable background jobs
+REDIS_URL=redis://localhost:6379/0

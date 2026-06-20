@@ -31,7 +31,8 @@ func NewNavMenuController(service services.NavMenuServiceInterface) *NavMenuCont
 func (ctrl *NavMenuController) GetAll(c *gin.Context) {
 	menu, err := ctrl.service.GetAll(c.Request.Context())
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch all menu")
+		utils.HandleServiceError(c, err, "failed to fetch all menu")
+		return
 	}
 	utils.SuccessResponse(c, "menus retrieved", menu)
 }
@@ -45,11 +46,13 @@ func (ctrl *NavMenuController) GetAll(c *gin.Context) {
 func (ctrl *NavMenuController) GetByID(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.HandleAppError(c, err, "invalid id param")
+		utils.HandleServiceError(c, err, "invalid id param")
+		return
 	}
 	menu, err := ctrl.service.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch menu")
+		utils.HandleServiceError(c, err, "failed to fetch menu")
+		return
 	}
 	utils.SuccessResponse(c, "menu retrieved", menu)
 }
@@ -65,12 +68,12 @@ func (ctrl *NavMenuController) GetByID(c *gin.Context) {
 func (ctrl *NavMenuController) Create(c *gin.Context) {
 	var req dto.UpsertNavMenuRequest
 	if err := c.ShouldBind(&req); err != nil {
-		utils.HandleAppError(c, err, "invalid nav menu")
+		utils.HandleServiceError(c, err, "invalid nav menu")
 		return
 	}
 	created, err := ctrl.service.Create(c.Request.Context(), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create menu")
+		utils.HandleServiceError(c, err, "failed to create menu")
 		return
 	}
 	utils.SuccessResponse(c, "menu created", created)
@@ -88,7 +91,7 @@ func (ctrl *NavMenuController) Create(c *gin.Context) {
 func (ctrl *NavMenuController) Update(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		utils.HandleAppError(c, err, "invalid id param")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	var req dto.UpsertNavMenuRequest
@@ -97,10 +100,30 @@ func (ctrl *NavMenuController) Update(c *gin.Context) {
 	}
 	updated, err := ctrl.service.Update(c.Request.Context(), uint(id), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update menu")
+		utils.HandleServiceError(c, err, "failed to update menu")
 		return
 	}
 	utils.SuccessResponse(c, "menu updated", updated)
+}
+
+// Reorder godoc
+// @Summary Reorder navigation menus
+// @Tags Navigation
+// @Accept json
+// @Produce json
+// @Param body body dto.ReorderNavMenusRequest true "Ordered nav item ids"
+// @Success 200 {object} utils.Response
+// @Router /nav-menus/reorder [put]
+func (ctrl *NavMenuController) Reorder(c *gin.Context) {
+	var req dto.ReorderNavMenusRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	if err := ctrl.service.Reorder(c.Request.Context(), &req); err != nil {
+		utils.HandleServiceError(c, err, "failed to reorder menus")
+		return
+	}
+	utils.SuccessResponse(c, "menus reordered", nil)
 }
 
 // Delete godoc
@@ -113,12 +136,12 @@ func (ctrl *NavMenuController) Delete(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 
 	if err != nil {
-		utils.HandleAppError(c, err, "invalid id param")
+		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
 	err = ctrl.service.Delete(c.Request.Context(), uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete menu")
+		utils.HandleServiceError(c, err, "failed to delete menu")
 		return
 	}
 	utils.SuccessResponse(c, "menu deleted", nil)

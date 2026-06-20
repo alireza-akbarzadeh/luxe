@@ -4,8 +4,8 @@ package controllers
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -46,7 +46,7 @@ func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 
 	brand, err := ctrl.brandService.Create(c.Request.Context(), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create brand")
+		utils.HandleServiceError(c, err, "failed to create brand")
 		return
 	}
 
@@ -65,19 +65,18 @@ func (ctrl *BrandController) CreateBrand(c *gin.Context) {
 // @Failure      500  {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [get]
 func (ctrl *BrandController) GetBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	brand, err := ctrl.brandService.GetByID(c.Request.Context(), uint(id))
+	brand, err := ctrl.brandService.GetByID(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to retrieve brand")
+		utils.HandleServiceError(c, err, "failed to retrieve brand")
 		return
 	}
 
@@ -93,7 +92,7 @@ func (ctrl *BrandController) GetBrand(c *gin.Context) {
 // @Param        limit   query     int     false  "Items per page"        default(20)
 // @Param        search  query     string  false  "Search by name or slug"
 // @Param        status  query     string  false  "Filter by status"
-// @Success      200     {object}  utils.Response{data=[]dto.BrandResponse}  "Brand list"
+// @Success      200     {object}  dto.BrandListResponse  "Brand list"
 // @Failure      500     {object}  utils.Response  "Internal server error"
 // @Router       /brands [get]
 func (ctrl *BrandController) ListBrands(c *gin.Context) {
@@ -104,15 +103,24 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 
 	brands, total, err := ctrl.brandService.List(c.Request.Context(), &req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list brands")
+		utils.HandleServiceError(c, err, "failed to list brands")
 		return
 	}
 
-	// Optionally include total count in a more structured response
-	// For now we return the slice directly as Data.
-	utils.SuccessResponse(c, "brands retrieved", brands)
-	// If you want total returned, you can wrap: gin.H{"items": brands, "total": total}
-	_ = total // suppress unused variable; adjust as needed
+	resp := dto.BrandListResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.BrandListData{
+			Brands: brands,
+			Total:  total,
+			Page:   req.Page,
+			Limit:  req.Limit,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateBrand godoc
@@ -129,9 +137,8 @@ func (ctrl *BrandController) ListBrands(c *gin.Context) {
 // @Failure      500      {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [put]
 func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -140,13 +147,13 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 		return
 	}
 
-	brand, err := ctrl.brandService.Update(c.Request.Context(), uint(id), &req)
+	brand, err := ctrl.brandService.Update(c.Request.Context(), id, &req)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to update brand")
+		utils.HandleServiceError(c, err, "failed to update brand")
 		return
 	}
 
@@ -165,19 +172,18 @@ func (ctrl *BrandController) UpdateBrand(c *gin.Context) {
 // @Failure      500  {object}  utils.Response  "Internal server error"
 // @Router       /brands/{id} [delete]
 func (ctrl *BrandController) DeleteBrand(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid brand id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	err = ctrl.brandService.Delete(c.Request.Context(), uint(id))
+	err := ctrl.brandService.Delete(c.Request.Context(), id)
 	if err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			utils.NotFoundResponse(c, "brand not found")
 			return
 		}
-		utils.HandleAppError(c, err, "failed to delete brand")
+		utils.HandleServiceError(c, err, "failed to delete brand")
 		return
 	}
 

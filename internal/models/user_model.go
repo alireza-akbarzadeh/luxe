@@ -24,9 +24,10 @@ type User struct {
 	LastName  string `gorm:"not null" json:"last_name" validate:"required,min=1,max=100"`
 
 	// Security & status
-	PasswordHash string `gorm:"not null" json:"-"`
-	Role         string `gorm:"not null;default:'user';index" json:"role"`
-	IsActive     bool   `gorm:"not null;default:true;index" json:"is_active"`
+	PasswordHash    string `gorm:"not null" json:"-"`
+	Role            string `gorm:"not null;default:'user';index" json:"role"`
+	IsActive        bool   `gorm:"not null;default:true;index" json:"is_active"`
+	WorkflowStateID *uint  `gorm:"index" json:"workflow_state_id,omitempty"`
 
 	// Audit
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`

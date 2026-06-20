@@ -48,7 +48,7 @@ func (cc *CouponController) Create(c *gin.Context) {
 	}
 	coupon, err := cc.couponService.Create(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create coupon")
+		utils.HandleServiceError(c, err, "failed to create coupon")
 		return
 	}
 	resp := dto.CouponSingleResponse{
@@ -80,18 +80,17 @@ func (cc *CouponController) Create(c *gin.Context) {
 // @Failure      500     {object}  utils.Response
 // @Router       /coupons/{id} [put]
 func (cc *CouponController) Update(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid coupon id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 	var req dto.UpdateCouponRequest
 	if !utils.BindAndValidate(c, &req, cc.validate) {
 		return
 	}
-	coupon, err := cc.couponService.Update(uint(id), req)
+	coupon, err := cc.couponService.Update(id, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update coupon")
+		utils.HandleServiceError(c, err, "failed to update coupon")
 		return
 	}
 	resp := dto.CouponSingleResponse{
@@ -121,14 +120,13 @@ func (cc *CouponController) Update(c *gin.Context) {
 // @Failure      500  {object}  utils.Response
 // @Router       /coupons/{id} [delete]
 func (cc *CouponController) Delete(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid coupon id")
+	id, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	err = cc.couponService.Delete(uint(id))
+	err := cc.couponService.Delete(id)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete coupon")
+		utils.HandleServiceError(c, err, "failed to delete coupon")
 		return
 	}
 	resp := dto.EmptyResponse{
@@ -166,7 +164,7 @@ func (cc *CouponController) Validate(c *gin.Context) {
 	}
 	coupon, discount, err := cc.couponService.ValidateCoupon(req.Code, userID, req.OrderTotal)
 	if err != nil {
-		utils.HandleAppError(c, err, "coupon validation failed")
+		utils.HandleServiceError(c, err, "coupon validation failed")
 		return
 	}
 	resp := dto.CouponValidateResponse{
@@ -212,7 +210,7 @@ func (cc *CouponController) List(c *gin.Context) {
 
 	coupons, total, err := cc.couponService.List(filters)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list coupons")
+		utils.HandleServiceError(c, err, "failed to list coupons")
 		return
 	}
 	resp := dto.CouponListResponse{
@@ -225,6 +223,57 @@ func (cc *CouponController) List(c *gin.Context) {
 			Coupons: coupons,
 			Total:   total,
 			Limit:   filters.Limit,
+			Offset:  filters.Offset,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// ListAdmin returns all coupons for admin management (includes inactive, expired, exhausted).
+// @Summary      List coupons (admin)
+// @Description  Returns a paginated list of all coupons for admin management with optional status filters
+// @Tags         Coupons
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit         query     int     false  "Items per page"  default(20)  minimum(1)  maximum(100)
+// @Param        offset        query     int     false  "Offset"  default(0)  minimum(0)
+// @Param        code          query     string  false  "Filter by coupon code (partial match)"
+// @Param        status        query     string  false  "Filter by lifecycle status (active|inactive|expired|exhausted|all)"
+// @Param        discount_type query     string  false  "Filter by discount type (percentage/fixed)"
+// @Success      200           {object}  dto.CouponListResponse
+// @Failure      400           {object}  utils.Response
+// @Failure      401           {object}  utils.Response
+// @Failure      403           {object}  utils.Response
+// @Failure      500           {object}  utils.Response
+// @Router       /admin/coupons [get]
+func (cc *CouponController) ListAdmin(c *gin.Context) {
+	var filters dto.AdminCouponListFilters
+	if !utils.BindAndValidateQuery(c, &filters, cc.validate) {
+		return
+	}
+
+	coupons, total, err := cc.couponService.ListAdmin(filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list coupons")
+		return
+	}
+
+	limit := filters.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	resp := dto.CouponListResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: constants.MsgFetchSuccess,
+			Code:    http.StatusOK,
+		},
+		Data: dto.CouponListData{
+			Coupons: coupons,
+			Total:   total,
+			Limit:   limit,
 			Offset:  filters.Offset,
 		},
 	}
@@ -259,7 +308,7 @@ func (cc *CouponController) GetMyCoupons(c *gin.Context) {
 	}
 	coupons, err := cc.couponService.GetAvailableCouponsForUser(userID, orderTotal)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch available coupons")
+		utils.HandleServiceError(c, err, "failed to fetch available coupons")
 		return
 	}
 
@@ -291,7 +340,7 @@ func (cc *CouponController) GetCouponByID(c *gin.Context) {
 
 	coupon, err := cc.couponService.GetByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to find coupon")
+		utils.HandleServiceError(c, err, "failed to find coupon")
 		return
 	}
 

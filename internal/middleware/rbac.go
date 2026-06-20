@@ -1,36 +1,19 @@
 package middleware
 
 import (
-	"strings"
-
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
-// FIXME: find out the problem
+// RequireRole ensures the authenticated user has one of the allowed roles.
 func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		path := c.Request.URL.Path
-
-		// Skip role check for user‑facing endpoints (no admin needed)
-		skipPaths := []string{
-			"/api/v1/addresses",
-		}
-		for _, p := range skipPaths {
-			if strings.HasPrefix(path, p) {
-				c.Next()
-				return
-			}
-		}
-
-		// OPTIONS preflight should never require a role
 		if c.Request.Method == "OPTIONS" {
 			c.Next()
 			return
 		}
 
-		// Original role check
 		role, ok := GetUserRole(c)
 		if !ok {
 			utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
@@ -46,4 +29,15 @@ func RequireRole(allowedRoles ...string) gin.HandlerFunc {
 		utils.ForbiddenResponse(c, constants.ErrorForbidden)
 		c.Abort()
 	}
+}
+
+// RequireAdmin restricts access to users with the admin role.
+func RequireAdmin() gin.HandlerFunc {
+	return RequireRole(constants.RoleAdmin)
+}
+
+// IsAdmin reports whether the current request context belongs to an admin user.
+func IsAdmin(c *gin.Context) bool {
+	role, ok := GetUserRole(c)
+	return ok && role == constants.RoleAdmin
 }

@@ -1,83 +1,123 @@
 # Project Roadmap
 
+> **Note for AI / contributors:** This file tracks phase progress. For current conventions use `.cursorrules`, `AGENTS.md`, and `documentation/architecture.md`.
+> Verify the codebase before treating unchecked boxes as still required (repository layer was removed — services + GORM is the target).
+
 ## Goal
-Bring `go-shopping` from a working backend project to a production-ready, maintainable e-commerce platform.
+Bring Luxe from a working backend to a production-ready, maintainable e-commerce platform.
 
 ## Roadmap Phases
 
 ### Phase 1: Stabilize and standardize
-- [ ] Add centralized request validation and binding helpers.
-- [ ] Create a shared error handling layer for `AppError` → HTTP response mapping.
-- [ ] Replace raw string statuses (`active`, `converted`, `abandoned`, `pending`) with typed constants.
-- [ ] Refactor controllers to reduce duplication and improve readability.
-- [ ] Remove any developer-only config defaults from production paths.
+- [x] Add centralized request validation and binding helpers (`utils.BindAndValidate`).
+- [x] Create a shared error handling layer for `AppError` → HTTP response mapping (`HandleServiceError`).
+- [x] Replace raw string statuses with typed constants (cart, order, payment, wallet, product, store).
+- [x] Refactor controllers to reduce duplication (`paginationParams`, `parseUintParam` in `controllers/helpers.go`).
+- [x] Remove developer-only JWT default from production paths (`JWT_SECRET` default only when `APP_ENV=local`).
 
 ### Phase 2: Add test coverage and documentation
-- [ ] Add unit tests for key services: `cart_service`, `orders_service`, `auth_service`.
-- [ ] Add route tests for at least cart and order endpoints.
-- [ ] Add developer docs: architecture overview, component responsibilities, API conventions.
-- [ ] Add `Makefile` targets for `test`, `test-coverage`, and `lint`.
+- [x] Add unit tests for key services: `auth_service`, `cart_service`, `orders_service`, `wallet_service`.
+- [x] Add route/controller tests for auth endpoints.
+- [x] Add developer docs: `documentation/architecture.md`, `AGENTS.md`.
+- [x] Add `Makefile` targets for `test`, `test-coverage`, and `lint` (`go vet`).
 
 ### Phase 3: Harden platform reliability
-- [ ] Implement graceful shutdown for Gin + worker pool + DB connection.
-- [ ] Add health endpoints and readiness probes.
-- [ ] Add DB connection retry logic and proper connection pooling settings.
-- [ ] Add validation for required environment variables, and fail fast if invalid.
+- [x] Implement graceful shutdown for Gin + worker pool + DB connection (`cmd/api/server.go`).
+- [x] Add health endpoints and readiness probes (`/api/v1/health/*`).
+- [x] Add DB connection retry logic on startup (`database.ConnectWithRetry`).
+- [x] Add validation for required environment variables, fail fast in production (`config.Validate`).
 
 ### Phase 4: Improve architecture and extensibility
-- [ ] Introduce a repository/data access layer to isolate GORM from services.
-- [ ] Implement request/response DTOs for public API contracts.
-- [ ] Add OpenAPI/Swagger docs generation from source annotations.
-- [ ] Add role-based permissions middleware and use it consistently.
+- [x] ~~Introduce repository layer~~ — **not planned**; services use `*gorm.DB` directly.
+- [x] Implement request/response DTOs for public API contracts.
+- [x] Add OpenAPI/Swagger docs generation from source annotations.
+- [x] Add role-based permissions middleware and use it consistently across admin routes (`RequireAdmin`, nav menu write protection).
 
 ### Phase 5: Production feature polish
-- [ ] Add full order lifecycle: payment status, shipment tracking, cancellation.
-- [ ] Add inventory reservation and stock locking to prevent overselling.
-- [ ] Add customer account features: address book, order history filters, profile update.
-- [ ] Add admin dashboards or a lightweight admin API.
+- [x] Order lifecycle: payment (Stripe/mock/wallet), shipment tracking, cancellation paths.
+- [x] Inventory checks at checkout; stock decrement on order processing.
+- [x] Customer account: address book, order history filters, profile update.
+- [x] Admin dashboards or expanded lightweight admin API (`GET /api/v1/admin/stats`, `AdminService`).
 
 ## Quick wins
-- Standardize JSON response format across all endpoints.
-- Add a `docs/architecture.md` or `docs/system-design.md` file.
-- Add API version prefix consistently in routes (e.g. `/api/v1`).
-- Add one `README` section for local dev and Docker workflows.
+- [x] Standardize JSON response format (`utils.Response`).
+- [x] Architecture doc (`documentation/architecture.md`).
+- [x] API version prefix `/api/v1`.
+- [x] README local dev section.
 
 ## Long-term vision
-- Modularize by domain: `cart`, `orders`, `products`, `users`, `payments`, `shipments`.
-- Add event-driven or async processing for order fulfillment and inventory updates.
-- Add observability: structured logging, request tracing, metrics, error reporting.
-- Add CI/CD pipeline with linting, tests, migration checks, and deployment previews.
+- Modularize by domain (cart, orders, products, users, payments, shipments).
+- Event-driven / async processing (Asynq job queue when `REDIS_URL` set).
+- [x] Observability: structured logging, OTEL tracing, Prometheus `/metrics`, Sentry.
+- [x] CI/CD pipeline with Postgres, Redis, migrations, tests.
 
 ## Milestones
-1. `M1` — Basic stability: unified responses, no duplicate validation, `go test` coverage.
-2. `M2` — Production readiness: graceful shutdown, config validation, health probes.
-3. `M3` — Feature readiness: checkout resiliency, inventory safety, admin pages.
-4. `M4` — Observability and deployment: metrics, logging, CI/CD.
+1. `M1` — Basic stability: unified responses, validation helpers, service tests. **Mostly done**
+2. `M2` — Production readiness: graceful shutdown, config validation, health probes. **Mostly done**
+3. `M3` — Feature readiness: checkout resiliency, inventory safety, admin APIs. **In progress**
+4. `M4` — Observability and deployment: metrics, logging, CI/CD. **Mostly done**
 
+## Completed this session
+- Controller deduplication: `paginationParams` + `parseUintParam` helpers in `controllers/helpers.go`; applied across `wallet`, `order`, `review`, `account`, `brand`, `category`, `address`, `coupon` controllers.
+- Admin API: `GET /admin/stats`, `GET /admin/users`, `PATCH /admin/users/:id/role`, `PATCH /admin/users/:id/active` — all behind `RequireAdmin` middleware.
+- RBAC integration tests: 401 (no token), 403 (regular user), 200 (admin) for `/admin/stats`.
+- Admin service unit tests: `GetStats`, `ListUsers`, `UpdateUserRole` (valid + invalid), `ToggleUserActive`.
+- Swagger regenerated.
 
-testing strategy
-shopping-platform/
-├── cmd/
-│   └── api/
-│       └── main.go
-├── internal/
-│   ├── controllers/
-│   │   ├── auth.go
-│   │   └── auth_test.go     // ✅ test for auth.go
-│   ├── services/
-│   │   ├── auth_service.go
-│   │   └── auth_service_test.go // ✅ test for auth_service.go
-│   ├── models/
-│   │   ├── user.go
-│   │   └── user_test.go     // ✅ test for user.go
-│   ├── dto/
-│   │   ├── product.go
-│   │   └── product_test.go  // ✅ test for product.go
-│   └── middleware/
-│       ├── auth.go
-│       └── auth_test.go     // ✅ test for auth.go
-├── tests/                    // 🧪 Reserved for integration & E2E tests
-│   ├── integration/
-│   └── e2e/
-├── go.mod
-└── go.sum
+## Completed (long-term)
+- [x] Bulk admin ops: `POST /admin/orders/bulk-status` (up to 500 IDs) + `GET /admin/orders/export` (CSV, 10k rows, date/status filters).
+- [x] Async email: `TypeSendEmail` task added to `JobQueue` interface; password-reset and verification emails now enqueued (Asynq when Redis available, memory queue fallback with inline goroutine safety net).
+
+## Completed (long-term) — continued
+- [x] Rate limiting: `StrictRateLimit` + `StandardRateLimit` named presets; TTL eviction prevents memory leak; applied to auth + import routes.
+- [x] Webhook event log: `webhook_events` table, idempotency check on every Stripe delivery, per-event status lifecycle (`received → processed | failed`), `GET /admin/webhooks` list endpoint.
+- [x] Import service unit tests: 9 table-driven tests covering category/product import (happy path, empty-name skip, service error, invalid price, store-ID fallback) and template generation.
+
+## Completed (long-term) — continued
+- [x] User order cancellation: `POST /orders/:id/cancel` — validates ownership + cancellable status (`pending`/`paid`), restores stock per item inside a transaction, refunds wallet-paid orders, cancels any pending shipment.
+- [x] Wallet payment deduction: fixed `ProcessOrder` to call `walletService.DeductForOrder` when `payment.Method == "wallet"` instead of incorrectly routing through mock card gateway.
+- [x] Order status emails: `UpdateOrderStatus` now enqueues async emails (via job queue) for `shipped`, `delivered`, and `cancelled` events using the user's preloaded email address.
+- [x] `webhook_event_service` cleanup: replaced hand-rolled `containsStr`/`stringContains` helpers with `strings.Contains`.
+
+## Next focus (long-term)
+- Domain modularization (group by domain, not layer).
+
+---
+
+## Phase 6: Workflow state machine
+
+### 6A — Engine & data (done)
+- [x] DB-driven engine: workflows, states, transitions, audit logs, guards, hooks.
+- [x] Seed definitions for order, product, shipment, return, user lifecycles.
+- [x] Workflow CRUD + generic API (`/workflows/*`, `/admin/workflows/*`).
+- [x] Makefile/DB setup for existing `docker-psql_bp-1` + `shopping_platform` database.
+
+### 6B — Service integration (done)
+- [x] Order, product, shipment, checkout, return, user lifecycle sync.
+- [x] Event-driven `Transition` with `SetState` fallback + hooks (cancel, paid, shipped, publish, etc.).
+- [x] Return domain: `ReturnService` + customer/admin routes.
+
+### 6C — Admin transition APIs (done)
+- [x] Product: `GET/POST /products/:id/available-transitions|transition`
+- [x] Return: `GET/POST /admin/returns`, `POST /admin/returns/:id/transition`
+- [x] Order: `GET/POST /orders/:id/available-transitions|transition`
+- [x] Shipment: `GET/POST /shipments/:id/available-transitions|transition`
+- [ ] Deprecate legacy `PUT /orders/:id/status` and `PUT /shipments/:id/status` once admin UI uses transitions
+
+### 6D — Tests & docs
+- [ ] Integration tests: order cancel, return refund, product publish (real Postgres, skip if no `DATABASE_URL`)
+- [x] Unit tests: `mirrorStatus`, role checks, nil-engine sync helpers
+- [x] Document workflow in `documentation/architecture.md`
+- [x] Regenerate Swagger (`make swagger`)
+
+### 6E — Frontend (luxe-front)
+- [ ] Shared hook: `useWorkflow(key)` → definition + state colors
+- [ ] Admin product table: status badge from workflow state
+- [ ] Admin product detail: action buttons from `available-transitions`
+- [ ] Admin order detail: same pattern
+- [ ] Optional: workflow history timeline component (`GET /workflows/:key/:id/history`)
+
+### Suggested order of work
+1. **Integration tests (6D)** — lock in cancel/refund/publish/deliver flows.
+2. **Frontend badges + actions (6E)** — `useWorkflow` hook, admin transition buttons.
+3. **Retire legacy status PUT** — once admin UI uses transitions everywhere.

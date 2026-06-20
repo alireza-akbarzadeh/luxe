@@ -1,18 +1,15 @@
-// Package jobs defines scheduled tasks that run at specified intervals using the robfig/cron library. It includes a CronJobs struct that manages the scheduler and registers various jobs related to cart cleanup, product updates, and order processing. The Recoverer function is a job wrapper that recovers from panics to prevent the scheduler from crashing.
 package jobs
 
 import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/robfig/cron/v3"
 )
 
 type CronJobs struct {
 	scheduler *cron.Cron
-	taskPool  *tasks.WorkerPool
 	svc       *services.Services
 }
 
@@ -28,14 +25,13 @@ func Recoverer(next cron.Job) cron.Job {
 	})
 }
 
-func NewCronJobs(taskPool *tasks.WorkerPool, svc *services.Services) *CronJobs {
+func NewCronJobs(svc *services.Services) *CronJobs {
 	scheduler := cron.New(
 		cron.WithLocation(time.UTC),
 		cron.WithChain(Recoverer),
 	)
 	return &CronJobs{
 		scheduler: scheduler,
-		taskPool:  taskPool,
 		svc:       svc,
 	}
 }

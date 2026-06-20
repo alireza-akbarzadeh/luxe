@@ -1,0 +1,49 @@
+---
+description: Luxe Go backend — architecture, clean code, and AI task rules
+alwaysApply: true
+---
+
+# Luxe Backend — AI Rules
+
+Also read: `AGENTS.md`, `documentation/architecture.md`, full `.cursorrules`.
+
+## Stack
+Go · Gin · GORM · PostgreSQL · Goose · JWT · Asynq (optional Redis) · Sentry · OTEL (optional)
+
+## Layering (strict)
+```
+Controller → Service (*gorm.DB + business logic) → PostgreSQL
+```
+- **Controllers**: bind DTO, validate, `c.Request.Context()`, `utils.Response` only. No DB, no business rules.
+- **Services**: validation, transactions, orchestration, domain errors (`utils.Err*`).
+- **Do not add** `internal/repositories/` — data access lives in services via `*gorm.DB`.
+
+## New feature order
+migration (schema only) → model → dto → service → register in `services.go` → controller → `container.go` → routes → swagger comments → `make swagger` → tests
+
+## Migrations
+- Path: `internal/migrations/`
+- `make migrate-create name=...` then `make migrate-up`
+- **Schema only** — no demo/seed product data in new migrations
+- UP + DOWN, `IF NOT EXISTS`, indexes, `timestamptz`
+
+## Swagger
+Never edit `docs/docs.go`, `docs/swagger.json`, `docs/swagger.yaml` (generated, gitignored).
+Edit controller `@Summary`/`@Router` comments → `make swagger`.
+
+## Clean code
+- Smallest correct diff; match surrounding style
+- `context.Context` first on new service methods; `db.WithContext(ctx)`
+- Constants for statuses — no magic strings
+- DI via constructors; wire in `NewServices` / `NewContainer`
+- Jobs via `tasks.JobQueue`, not raw goroutines for orders/shipments
+
+## Testing
+- Unit: `internal/services/*_test.go`, sqlmock when mocking DB
+- Integration: `tests/integration/`, real Postgres, unique suffix per test fixture
+- `DATABASE_URL` + `JWT_SECRET` for integration runs
+
+## Before done
+- Build passes; relevant tests pass
+- No edits to generated `docs/`
+- New code registered in `services.go` and `container.go` if applicable

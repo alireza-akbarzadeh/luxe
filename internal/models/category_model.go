@@ -21,6 +21,9 @@ type Category struct {
 	Path        string `json:"path,omitempty"`
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
 
+	WorkflowStateID *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowState   *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
+
 	// Associations
 	Parent   *Category  `gorm:"foreignKey:ParentID" json:"parent,omitempty"`
 	Children []Category `gorm:"foreignKey:ParentID" json:"children,omitempty"`

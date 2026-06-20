@@ -181,26 +181,108 @@ const (
 	OrderStatusDelivered = "delivered"
 	OrderStatusCancelled = "cancelled"
 	OrderStatusRefunded  = "refunded"
+	OrderStatusDelayed   = "delayed"
 
 	// Payment statuses
 	PaymentStatusPending   = "pending"
 	PaymentStatusCompleted = "completed"
+	PaymentStatusSucceeded = "succeeded"
 	PaymentStatusFailed    = "failed"
+	PaymentStatusRefunded  = "refunded"
+
+	// Wallet transaction types
+	WalletTxTypeDeposit     = "deposit"
+	WalletTxTypePayment     = "payment"
+	WalletTxTypeRefund      = "refund"
+	WalletTxTypeAdjustment  = "adjustment"
+
+	// Wallet transaction statuses
+	WalletTxStatusPending   = "pending"
+	WalletTxStatusCompleted = "completed"
+	WalletTxStatusFailed    = "failed"
+	WalletTxStatusCancelled = "cancelled"
+
+	// Wallet reference types
+	WalletRefTypeOrder = "order"
+	WalletRefTypeAdmin = "admin"
 
 	// Shipment statuses
 	ShipmentStatusPending   = "pending"
 	ShipmentStatusShipped   = "shipped"
 	ShipmentStatusDelivered = "delivered"
 
+	// Invoice statuses
+	InvoiceStatusDraft    = "draft"
+	InvoiceStatusIssued   = "issued"
+	InvoiceStatusPaid     = "paid"
+	InvoiceStatusVoid     = "void"
+	InvoiceStatusRefunded = "refunded"
+
 	// User roles
-	RoleUser  = "user"
-	RoleAdmin = "admin"
+	RoleUser      = "user"
+	RoleAdmin     = "admin"
+	RoleModerator = "moderator"
 
 	// Product statuses
 	ProductStatusDraft    = "draft"
 	ProductStatusActive   = "active"
 	ProductStatusInactive = "inactive"
 	ProductStatusArchived = "archived"
+
+	// Store statuses
+	StoreStatusActive = "active"
+
+	// Chat / stock notification statuses
+	ChatRoomStatusActive          = "active"
+	StockNotificationStatusActive = "active"
+
+	// Webhook event statuses
+	WebhookStatusReceived  = "received"
+	WebhookStatusProcessed = "processed"
+	WebhookStatusFailed    = "failed"
+
+	// Workflow entity types (also the workflow keys for the seeded workflows)
+	WorkflowEntityOrder    = "order"
+	WorkflowEntityProduct  = "product"
+	WorkflowEntityShipment = "shipment"
+	WorkflowEntityReturn   = "return"
+	WorkflowEntityUser     = "user"
+	WorkflowEntityCategory = "category"
+	WorkflowEntityBrand       = "brand"
+	WorkflowEntityCollection  = "collection"
+	WorkflowEntityCoupon      = "coupon"
+)
+
+// Inventory adjustment types (ledger).
+const (
+	InventoryAdjSale         = "sale"
+	InventoryAdjOrderCancel  = "order_cancel"
+	InventoryAdjAdminSet     = "admin_set"
+	InventoryAdjAdminDelta   = "admin_delta"
+	InventoryAdjImport       = "import"
+	InventoryAdjInitial      = "initial"
+	InventoryAdjCorrection   = "correction"
+	InventoryAdjDamage       = "damage"
+	InventoryAdjReceive      = "receive"
+	InventoryAdjReturnRestock = "return_restock"
+)
+
+// Inventory reference types (ledger).
+const (
+	InventoryRefOrder     = "order"
+	InventoryRefOrderItem = "order_item"
+	InventoryRefProduct   = "product"
+	InventoryRefImport    = "import"
+	InventoryRefReturn    = "return"
+)
+
+// Inventory list stock_status filter values.
+const (
+	InventoryStockAll        = "all"
+	InventoryStockLow        = "low"
+	InventoryStockOut        = "out"
+	InventoryStockHealthy    = "healthy"
+	InventoryStockNotTracked = "not_tracked"
 )
 
 // ==================== API routes ====================

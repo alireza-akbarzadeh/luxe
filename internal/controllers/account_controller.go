@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"strconv"
-
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
@@ -53,7 +51,7 @@ func (ac *AccountController) GetAccountSummary(c *gin.Context) {
 	// 1. Get user profile (from userService – you need to inject it)
 	user, err := ac.userService.GetUserByID(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch user")
+		utils.HandleServiceError(c, err, "failed to fetch user")
 		return
 	}
 
@@ -70,7 +68,7 @@ func (ac *AccountController) GetAccountSummary(c *gin.Context) {
 	likedCount := len(productIDs)
 
 	// 5. Recent orders
-	recentOrders, _, _ := ac.orderService.GetUserOrders(userID, dto.OrderListFilters{Limit: 3, Offset: 0})
+	recentOrders, _, _ := ac.orderService.GetUserOrders(c.Request.Context(), userID, dto.OrderListFilters{Limit: 3, Offset: 0})
 	orderDTOs := make([]dto.OrderResponse, len(recentOrders))
 	for i, o := range recentOrders {
 		orderDTOs[i] = dto.OrderResponse{
@@ -137,18 +135,17 @@ func (ac *AccountController) GetUserOrderAccount(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limit, offset := paginationParams(c, 10)
 	if limit > 50 {
 		limit = 50
 	}
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 
-	orders, total, err := ac.orderService.GetUserOrders(userID, dto.OrderListFilters{
+	orders, total, err := ac.orderService.GetUserOrders(c.Request.Context(), userID, dto.OrderListFilters{
 		Limit:  limit,
 		Offset: offset,
 	})
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch orders")
+		utils.HandleServiceError(c, err, "failed to fetch orders")
 		return
 	}
 
@@ -204,17 +201,16 @@ func (ac *AccountController) GetUserWishlist(c *gin.Context) {
 		return
 	}
 
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limit, offset := paginationParams(c, 10)
 	if limit > 50 {
 		limit = 50
 	}
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 	sortBy := c.Query("sort") // Reads ?sort=price-asc etc.
 
 	// Pass sortBy parameters straight to the service worker
 	products, total, err := ac.likeService.GetUserWishlist(userID, limit, offset, sortBy)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch wishlist")
+		utils.HandleServiceError(c, err, "failed to fetch wishlist")
 		return
 	}
 

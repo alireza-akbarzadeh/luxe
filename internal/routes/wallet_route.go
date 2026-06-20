@@ -17,7 +17,7 @@ func SetupWalletRoutes(protected *gin.RouterGroup, ctrl *controllers.Container) 
 
 	// Admin wallet management
 	admin := protected.Group("/admin/wallet")
-	admin.Use(middleware.RequireRole("admin"))
+	admin.Use(middleware.ModuleGuard("users"))
 	{
 		admin.POST("/adjust", ctrl.Wallet.AdminAdjust)
 	}

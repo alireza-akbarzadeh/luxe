@@ -4,13 +4,12 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/time/rate"
 )
 
 // SetupAuthRoutes registers all authentication routes (public + protected)
 func SetupAuthRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Container) {
 	authPublic := public.Group("/auth")
-	authPublic.Use(middleware.RateLimitMiddleware(rate.Limit(1), 5))
+	authPublic.Use(middleware.StrictRateLimit())
 	{
 		authPublic.POST("/register", ctrl.Auth.Register)
 		authPublic.POST("/login", ctrl.Auth.Login)

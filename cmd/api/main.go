@@ -7,6 +7,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
 	"github.com/alireza-akbarzadeh/luxe/internal/jobs"
+	"github.com/alireza-akbarzadeh/luxe/internal/observability"
 	"github.com/alireza-akbarzadeh/luxe/internal/routes"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
@@ -33,44 +34,75 @@ import (
 // @name Authorization
 // @description Type "Bearer" followed by a space and the JWT token.
 func main() {
-	// 1. Load configuration
 	cfg, err := config.Load()
 	if err != nil {
 		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
-	// 2. Initialize logger
-	if err := utils.InitLogger(cfg.Log.Level); err != nil {
+	if err := utils.InitLoggerWithConfig(utils.LoggerConfig{
+		Level:          cfg.Log.Level,
+		AppEnv:         cfg.AppEnv,
+		ServiceName:    cfg.Observability.ServiceName,
+		ServiceVersion: cfg.Observability.ServiceVersion,
+	}); err != nil {
 		panic(fmt.Sprintf("failed to init logger: %v", err))
 	}
 
-	// 3. Set Gin mode
+	sentryShutdown, err := observability.Init(cfg, utils.Log)
+	if err != nil {
+		utils.Log.WithError(err).Fatal("failed to init observability")
+	}
+	if sentryShutdown != nil {
+		defer sentryShutdown()
+		utils.Log.WithFields(map[string]interface{}{
+			"environment": cfg.Observability.SentryEnvironment,
+			"release":     cfg.Observability.ServiceVersion,
+		}).Info("Sentry enabled")
+	}
+
+	tracingShutdown, err := observability.InitTracing(cfg)
+	if err != nil {
+		utils.Log.WithError(err).Fatal("failed to init tracing")
+	}
+	if tracingShutdown != nil {
+		defer tracingShutdown()
+		utils.Log.Info("OpenTelemetry tracing enabled")
+	}
+
 	gin.SetMode(cfg.Server.Mode)
 
-	// 4. Connect to database
 	db := connectDatabase(cfg)
 	defer closeDatabase(db)
 
-	// 1. Start the Worker Pool (for async tasks)
-	workerPool := tasks.NewWorkerPool(5, 100)
-	workerPool.Start()
-	defer workerPool.Stop()
+	jobQueue, err := tasks.NewJobQueue(cfg, tasks.Handlers{})
+	if err != nil {
+		utils.Log.WithError(err).Fatal("failed to initialize job queue")
+	}
 
-	// 5. Initialize newServices
-	newServices := services.NewServices(db, cfg, workerPool)
+	newServices := services.NewServices(db, cfg, jobQueue)
+	tasks.BindHandlers(jobQueue, newServices.JobHandlers())
 
-	// 2. Start the Cron Service (for scheduled tasks)
-	cronService := jobs.NewCronJobs(workerPool, newServices)
+	if err := jobQueue.Start(); err != nil {
+		utils.Log.WithError(err).Fatal("failed to start job queue")
+	}
+
+	utils.Log.WithField("job_backend", jobQueue.Backend()).Info("background workers ready")
+
+	if newServices.Upload.IsEnabled() {
+		utils.Log.Info("R2 presigned uploads enabled")
+	}
+
+	cronService := jobs.NewCronJobs(newServices)
 	cronService.Start()
-	defer cronService.Stop()
 
-	// 6. Initialize controllers
-	ctrl := controllers.NewContainer(db, newServices)
-	// 7. Setup Gin engine and routes
+	ctrl := controllers.NewContainer(db, newServices, cfg)
 	engine := setupGin()
-	router := routes.NewRouter(engine, ctrl, cfg)
+	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit, newServices.Role)
 	router.Setup()
 
-	// 8. Start server
-	bootStrap(engine, cfg)
+	bootStrap(engine, cfg, func() {
+		utils.Log.Info("stopping background workers")
+		cronService.Stop()
+		jobQueue.Shutdown()
+	})
 }

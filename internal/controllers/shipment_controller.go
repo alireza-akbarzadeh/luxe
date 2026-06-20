@@ -3,6 +3,8 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
@@ -59,11 +61,81 @@ func (ctrl *ShipmentController) CreateShipment(c *gin.Context) {
 
 	shipment, err := ctrl.shipmentService.CreateShipment(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create shipment")
+		utils.HandleServiceError(c, err, "failed to create shipment")
 		return
 	}
 
 	utils.CreatedResponse(c, constants.MsgCreateSuccess, shipment)
+}
+
+// ListShipmentsAdmin lists all shipments (admin only).
+// @Summary      List shipments (admin)
+// @Tags         Shipments
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status   query string false "Filter by legacy status"
+// @Param        carrier  query string false "Filter by carrier"
+// @Param        order_id query int    false "Filter by order ID"
+// @Param        search   query string false "Search tracking, order #, or carrier"
+// @Param        limit    query int    false "Items per page"
+// @Param        offset   query int    false "Offset"
+// @Success      200 {object} utils.Response{data=dto.AdminShipmentListData}
+// @Router       /admin/shipments [get]
+func (ctrl *ShipmentController) ListShipmentsAdmin(c *gin.Context) {
+	var filters dto.AdminShipmentListFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		utils.ErrorResponse(c, 400, "invalid query parameters")
+		return
+	}
+	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
+
+	shipments, total, err := ctrl.shipmentService.ListAdmin(c.Request.Context(), filters)
+	if err != nil {
+		RespondServiceError(c, err, "failed to list shipments")
+		return
+	}
+
+	items := make([]dto.AdminShipmentListItem, 0, len(shipments))
+	for i := range shipments {
+		items = append(items, toAdminShipmentListItem(&shipments[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.AdminShipmentListData{
+		Shipments: items,
+		Total:     total,
+		Limit:     filters.Limit,
+		Offset:    filters.Offset,
+	})
+}
+
+func toAdminShipmentListItem(s *models.Shipment) dto.AdminShipmentListItem {
+	item := dto.AdminShipmentListItem{
+		ID:             s.ID,
+		OrderID:        s.OrderID,
+		Carrier:        s.Carrier,
+		TrackingNumber: s.TrackingNumber,
+		Status:         s.Status,
+		City:           s.City,
+		Country:        s.Country,
+		CreatedAt:      s.CreatedAt.Format(time.RFC3339),
+	}
+	if s.Order.ID != 0 {
+		item.OrderNumber = s.Order.OrderNumber
+	}
+	if s.User.ID != 0 {
+		item.CustomerName = strings.TrimSpace(s.User.FirstName + " " + s.User.LastName)
+	}
+	if s.EstimatedDelivery != nil {
+		formatted := s.EstimatedDelivery.Format(time.RFC3339)
+		item.EstimatedDelivery = &formatted
+	}
+	if s.ShippedAt != nil {
+		formatted := s.ShippedAt.Format(time.RFC3339)
+		item.ShippedAt = &formatted
+	}
+	if s.WorkflowState != nil {
+		item.State = toStateView(s.WorkflowState)
+	}
+	return item
 }
 
 // GetShipment retrieves a shipment by ID (user sees own, admin sees any).
@@ -85,11 +157,6 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	role, ok := middleware.GetUserRole(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
-		return
-	}
 
 	shipmentID, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -99,12 +166,12 @@ func (ctrl *ShipmentController) GetShipment(c *gin.Context) {
 
 	shipment, err := ctrl.shipmentService.GetShipmentByID(uint(shipmentID))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipment")
+		utils.HandleServiceError(c, err, "failed to fetch shipment")
 		return
 	}
 
 	// Authorisation: admin can see all, users only their own
-	if role != "admin" && shipment.UserID != userID {
+	if !middleware.IsAdmin(c) && shipment.UserID != userID {
 		utils.ForbiddenResponse(c, constants.ErrForbidden)
 		return
 	}
@@ -148,7 +215,7 @@ func (ctrl *ShipmentController) GetShipmentsByOrder(c *gin.Context) {
 	// Alternatively, we can query order directly. We'll assume the service enforces ownership.
 	shipments, err := ctrl.shipmentService.GetShipmentsByOrderID(req.OrderID)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch shipments")
+		utils.HandleServiceError(c, err, "failed to fetch shipments")
 		return
 	}
 
@@ -164,8 +231,9 @@ func (ctrl *ShipmentController) GetShipmentsByOrder(c *gin.Context) {
 }
 
 // UpdateShipmentStatus updates a shipment's status (admin only).
-// @Summary      Update shipment status (admin)
-// @Description  Updates the status of a shipment and sends real-time notifications.
+// Deprecated: prefer POST /workflows/shipment/{id}/transition so lifecycle hooks and audit run correctly.
+// @Summary      Update shipment status (admin) [deprecated]
+// @Description  Deprecated — use workflow transitions on shipment detail instead. Updates the status of a shipment and sends real-time notifications.
 // @Tags         Shipments
 // @Accept       json
 // @Produce      json
@@ -195,11 +263,95 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 	}
 
 	if err := ctrl.shipmentService.UpdateShipmentStatus(uint(shipmentID), req.Status); err != nil {
-		utils.HandleAppError(c, err, "failed to update shipment status")
+		utils.HandleServiceError(c, err, "failed to update shipment status")
 		return
 	}
 
 	utils.SuccessResponse(c, "shipment status updated successfully", nil)
+}
+
+// GetAvailableTransitions lists workflow actions allowed for a shipment (admin).
+// @Summary      List shipment workflow transitions (admin)
+// @Tags         Shipments
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Shipment ID"
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
+// @Router       /shipments/{id}/available-transitions [get]
+func (ctrl *ShipmentController) GetAvailableTransitions(c *gin.Context) {
+	shipmentID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.shipmentService.AvailableTransitions(c.Request.Context(), shipmentID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load shipment transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to a shipment (admin).
+// @Summary      Transition shipment workflow state (admin)
+// @Description  Fires events such as ready, pick_up, depart, out_for_delivery, deliver, or return_to_sender.
+// @Tags         Shipments
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Shipment ID"
+// @Param        request body dto.PerformShipmentTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response{data=dto.ShipmentTransitionResponse}
+// @Router       /shipments/{id}/transition [post]
+func (ctrl *ShipmentController) PerformTransition(c *gin.Context) {
+	shipmentID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformShipmentTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.shipmentService.PerformTransition(
+		c.Request.Context(),
+		shipmentID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition shipment")
+		return
+	}
+
+	shipment, err := ctrl.shipmentService.GetShipmentByID(shipmentID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload shipment")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.ShipmentTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Shipment:   shipment,
+	})
 }
 
 // GetShippingProviders godoc
@@ -213,10 +365,29 @@ func (ctrl *ShipmentController) UpdateShipmentStatus(c *gin.Context) {
 func (ctrl *ShipmentController) GetShippingProviders(c *gin.Context) {
 	providers, err := ctrl.shipmentService.GetShippingProviders()
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping providers")
+		utils.HandleServiceError(c, err, "failed to fetch shipping providers")
 		return
 	}
 	utils.SuccessResponse(c, "shipping providers retrieved", providers)
+}
+
+// ListShippingProvidersAdmin godoc
+// @Summary      List all shipping providers (admin)
+// @Description  Returns every shipping provider including inactive ones for admin management
+// @Tags         Shipping Providers
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=[]models.ShippingProviders}
+// @Failure      500 {object} utils.Response
+// @Router       /admin/shipping-providers [get]
+func (ctrl *ShipmentController) ListShippingProvidersAdmin(c *gin.Context) {
+	providers, err := ctrl.shipmentService.ListShippingProvidersAdmin(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch shipping providers")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, providers)
 }
 
 // DeleteShippingProvider godoc
@@ -245,7 +416,7 @@ func (ctrl *ShipmentController) DeleteShippingProvider(c *gin.Context) {
 	// Call the service
 	err = ctrl.shipmentService.DeleteShippingProvider(providerId)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to delete shipping provider")
+		utils.HandleServiceError(c, err, "failed to delete shipping provider")
 		return
 	}
 
@@ -270,11 +441,12 @@ func (ctrl *ShipmentController) GetShippingProviderByID(c *gin.Context) {
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid provider id")
+		return
 	}
-	var provider *models.ShippingProviders
-	provider, err = ctrl.shipmentService.GetShippingProviderByID(uint(id))
+	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(id))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+		utils.HandleServiceError(c, err, "failed to fetch shipping provider")
+		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, provider)
 }
@@ -297,12 +469,12 @@ func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	privders, err := ctrl.shipmentService.CreateShippingProvider(req)
+	provider, err := ctrl.shipmentService.CreateShippingProvider(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create shipping provider")
+		utils.HandleServiceError(c, err, "failed to create shipping provider")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgCreateSuccess, privders)
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, provider)
 }
 
 // UpdateShippingProvider godoc
@@ -321,15 +493,16 @@ func (ctrl *ShipmentController) CreateShippingProvider(c *gin.Context) {
 func (ctrl *ShipmentController) UpdateShippingProvider(c *gin.Context) {
 	providerId, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid shipment id")
-	}
-	var req dto.UpdateShippingProviderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid provider id")
 		return
 	}
-	provider, err := ctrl.shipmentService.GetShippingProviderByID(uint(providerId))
+	var req dto.UpdateShippingProviderRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	provider, err := ctrl.shipmentService.UpdateShippingProvider(uint(providerId), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch shipping provider")
+		utils.HandleServiceError(c, err, "failed to update shipping provider")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, provider)

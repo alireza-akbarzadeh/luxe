@@ -17,6 +17,7 @@ type Shipment struct {
 	Carrier           string     `gorm:"not null" json:"carrier"`
 	TrackingNumber    string     `json:"tracking_number,omitempty"`
 	Status            string     `gorm:"not null;default:'pending'" json:"status"`
+	WorkflowStateID   *uint      `gorm:"index" json:"workflow_state_id,omitempty"`
 	ShippedAt         *time.Time `json:"shipped_at,omitempty"`
 	DeliveredAt       *time.Time `json:"delivered_at,omitempty"`
 	EstimatedDelivery *time.Time `json:"estimated_delivery,omitempty"`
@@ -35,6 +36,7 @@ type Shipment struct {
 	Order    Order              `gorm:"foreignKey:OrderID" json:"-"`
 	User     User               `gorm:"foreignKey:UserID" json:"-"`
 	Provider *ShippingProviders `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
+	WorkflowState *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
 }
 
 type ShippingProviders struct {

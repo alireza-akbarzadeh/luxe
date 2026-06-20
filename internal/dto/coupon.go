@@ -14,8 +14,18 @@ type CreateCouponRequest struct {
 	MinimumOrderAmount float64   `json:"minimum_order_amount"`
 	MaxDiscountAmount  *float64  `json:"max_discount_amount,omitempty"`
 	UsageLimit         int       `json:"usage_limit"`
-	StartDate          time.Time `json:"start_date" validate:"required"`
-	EndDate            time.Time `json:"end_date" validate:"required,gtfield=StartDate"`
+	IsActive           *bool     `json:"is_active,omitempty"`
+	StartDate          time.Time `json:"start_date"`
+	EndDate            time.Time `json:"end_date"`
+}
+
+// AdminCouponListFilters supports admin coupon management listing.
+type AdminCouponListFilters struct {
+	Limit        int    `form:"limit" validate:"omitempty,min=1,max=100"`
+	Offset       int    `form:"offset" validate:"omitempty,min=0"`
+	Code         string `form:"code" validate:"omitempty"`
+	Status       string `form:"status" validate:"omitempty,oneof=active inactive expired exhausted all"`
+	DiscountType string `form:"discount_type" validate:"omitempty,oneof=percentage fixed"`
 }
 
 type UpdateCouponRequest struct {

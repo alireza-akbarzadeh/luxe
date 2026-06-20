@@ -18,7 +18,7 @@ func SetupWebSocketRoutes(v1 *gin.RouterGroup, protected *gin.RouterGroup, ctrl 
 		ws.PUT("/notifications/read-all", ctrl.WebSocket.MarkAllNotificationsAsRead)
 
 		wsAdmin := ws.Group("")
-		wsAdmin.Use(middleware.RequireRole("admin"))
+		wsAdmin.Use(middleware.ModuleGuard("settings"))
 		{
 			wsAdmin.POST("/notifications/test", ctrl.WebSocket.SendTestNotification)
 		}

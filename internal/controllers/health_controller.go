@@ -3,42 +3,79 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/health"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type HealthController struct {
-	db *gorm.DB
+	checker *health.Checker
 }
 
-func NewHealthController(db *gorm.DB) *HealthController {
-	return &HealthController{db: db}
+func NewHealthController(checker *health.Checker) *HealthController {
+	return &HealthController{checker: checker}
 }
 
 // Check godoc
 // @Summary      Health check
-// @Description  Returns the health status of the API and database
+// @Description  Readiness-style check (database + Redis when configured). Same as /health/ready.
 // @Tags         health
 // @Produce      json
-// @Success      200  {object}  map[string]interface{}
-// @Failure      503  {object}  map[string]interface{}
+// @Success      200  {object} map[string]interface{}
+// @Failure      503  {object} map[string]interface{}
 // @Router       /health [get]
 func (hc *HealthController) Check(c *gin.Context) {
+	hc.respondReady(c)
+}
+
+// Live godoc
+// @Summary      Liveness probe
+// @Description  Returns 200 if the process is alive (no dependency checks).
+// @Tags         health
+// @Produce      json
+// @Success      200  {object} map[string]interface{}
+// @Router       /health/live [get]
+func (hc *HealthController) Live(c *gin.Context) {
+	status := hc.checker.Live()
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "ok",
+		"message": "alive",
+		"checks":  status.Checks,
+	})
+}
+
+// Ready godoc
+// @Summary      Readiness probe
+// @Description  Returns 200 when database (and Redis if configured) are reachable.
+// @Tags         health
+// @Produce      json
+// @Success      200  {object} map[string]interface{}
+// @Failure      503  {object} map[string]interface{}
+// @Router       /health/ready [get]
+func (hc *HealthController) Ready(c *gin.Context) {
+	hc.respondReady(c)
+}
+
+func (hc *HealthController) respondReady(c *gin.Context) {
+	status := hc.checker.Ready(c.Request.Context())
+
 	response := gin.H{
 		"status":  "ok",
-		"message": "Service is up and running",
+		"message": "ready",
+		"checks":  status.Checks,
 	}
-
-	// Check database connectivity
-	var result int
-	if err := hc.db.Raw("SELECT 1").Scan(&result).Error; err != nil {
+	if !status.OK {
+		if !status.Checks["database"] {
+			utils.Log.Error("readiness check: database unavailable")
+		}
+		if c, ok := status.Checks["redis"]; ok && !c {
+			utils.Log.Error("readiness check: redis unavailable")
+		}
 		response["status"] = "degraded"
-		response["db_ok"] = false
-		response["db_error"] = err.Error()
+		response["message"] = "not ready"
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}
 
-	response["db_ok"] = true
 	c.JSON(http.StatusOK, response)
 }

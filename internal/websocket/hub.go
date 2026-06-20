@@ -7,6 +7,8 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 )
 
+type RoomChangeHook func(roomID string, clientCount int)
+
 type Hub struct {
 	// Connected clients
 	clients map[*Client]bool
@@ -21,6 +23,8 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 
+	onRoomChange RoomChangeHook
+
 	mu sync.RWMutex
 }
 
@@ -34,6 +38,31 @@ func NewHub() *Hub {
 	}
 }
 
+// SetRoomChangeHook notifies when room membership changes (e.g. live feed viewer count).
+func (h *Hub) SetRoomChangeHook(hook RoomChangeHook) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.onRoomChange = hook
+}
+
+// ClientCountInRoom returns the number of connected clients in a room.
+func (h *Hub) ClientCountInRoom(roomID string) int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.rooms[roomID])
+}
+
+func (h *Hub) emitRoomChange(roomID string) {
+	h.mu.RLock()
+	hook := h.onRoomChange
+	count := len(h.rooms[roomID])
+	h.mu.RUnlock()
+
+	if hook != nil {
+		hook(roomID, count)
+	}
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
@@ -43,16 +72,22 @@ func (h *Hub) Run() {
 			h.mu.Unlock()
 
 		case client := <-h.unregister:
+			changedRooms := make([]string, 0, len(client.Rooms))
 			h.mu.Lock()
 			if _, ok := h.clients[client]; ok {
 				delete(h.clients, client)
-				// Remove client from all rooms
 				for room := range client.Rooms {
+					changedRooms = append(changedRooms, room)
+				}
+				for _, room := range changedRooms {
 					h.removeClientFromRoom(client, room)
 				}
 				close(client.Send)
 			}
 			h.mu.Unlock()
+			for _, room := range changedRooms {
+				h.emitRoomChange(room)
+			}
 
 		case message := <-h.broadcast:
 			// broadcast to all clients (optional)
@@ -71,20 +106,21 @@ func (h *Hub) Run() {
 // JoinRoom adds a client to a chat room.
 func (h *Hub) JoinRoom(client *Client, roomID string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	if h.rooms[roomID] == nil {
 		h.rooms[roomID] = make(map[*Client]bool)
 	}
 	h.rooms[roomID][client] = true
 	client.Rooms[roomID] = true
+	h.mu.Unlock()
+	h.emitRoomChange(roomID)
 }
 
 // LeaveRoom removes a client from a room.
 func (h *Hub) LeaveRoom(client *Client, roomID string) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 	h.removeClientFromRoom(client, roomID)
+	h.mu.Unlock()
+	h.emitRoomChange(roomID)
 }
 
 // removeClientFromRoom (caller must hold lock)

@@ -21,6 +21,7 @@ type Payment struct {
 	Method          string         `gorm:"not null" json:"method"`
 	Status          string         `gorm:"not null;default:'pending'" json:"status"`
 	TransactionID   string         `gorm:"uniqueIndex" json:"transaction_id,omitempty"`
+	StripeSessionID string         `gorm:"column:stripe_session_id;index" json:"stripe_session_id,omitempty"`
 	GatewayResponse datatypes.JSON `gorm:"type:jsonb" json:"gateway_response,omitempty"`
 
 	Order Order `gorm:"foreignKey:OrderID" json:"-"`

@@ -51,7 +51,7 @@ func (ctrl *ProductController) Create(c *gin.Context) {
 	}
 	product, err := ctrl.productService.Create(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create product")
+		utils.HandleServiceError(c, err, "failed to create product")
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
@@ -84,22 +84,13 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	existing, err := ctrl.productService.GetByID(uint(id))
-	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch product")
-		return
-	}
-	oldStock := existing.Stock
 
 	product, err := ctrl.productService.Update(uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update product")
+		utils.HandleServiceError(c, err, "failed to update product")
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	if oldStock == 0 && product.Stock > 0 {
-		_ = ctrl.pdpService.NotifyBackInStock(product.ID, product.Name, product.Slug)
-	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(*product))
 }
 
@@ -124,7 +115,7 @@ func (ctrl *ProductController) Delete(c *gin.Context) {
 		return
 	}
 	if err := ctrl.productService.Delete(uint(id)); err != nil {
-		utils.HandleAppError(c, err, "failed to delete product")
+		utils.HandleServiceError(c, err, "failed to delete product")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
@@ -154,7 +145,7 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 		product, err = ctrl.productService.GetBySlug(identifier)
 	}
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch product")
+		utils.HandleServiceError(c, err, "failed to fetch product")
 		return
 	}
 
@@ -225,7 +216,7 @@ func (ctrl *ProductController) List(c *gin.Context) {
 
 	products, total, err := ctrl.productService.List(limit, offset, filters)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to list products")
+		utils.HandleServiceError(c, err, "failed to list products")
 		return
 	}
 
@@ -279,7 +270,7 @@ func (ctrl *ProductController) BulkCreate(c *gin.Context) {
 	}
 	products, err := ctrl.productService.BulkCreate(reqs)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to bulk create products")
+		utils.HandleServiceError(c, err, "failed to bulk create products")
 		return
 	}
 	responses := make([]dto.ProductResponse, len(products))
@@ -309,7 +300,7 @@ func (ctrl *ProductController) BulkDelete(c *gin.Context) {
 		return
 	}
 	if err := ctrl.productService.BulkDelete(req.ProductIDs); err != nil {
-		utils.HandleAppError(c, err, "failed to delete products")
+		utils.HandleServiceError(c, err, "failed to delete products")
 		return
 	}
 	utils.SuccessResponse(c, "products deleted successfully", nil)
@@ -346,7 +337,7 @@ func (ctrl *ProductController) GetRelated(c *gin.Context) {
 
 	products, err := ctrl.productService.GetRelated(uint(id), limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch related products")
+		utils.HandleServiceError(c, err, "failed to fetch related products")
 		return
 	}
 	responses := make([]dto.ProductResponse, len(products))
@@ -376,7 +367,7 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 
 	suggestions, err := ctrl.productService.GetSuggestions(req.ProductIDs, req.Limit)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get suggestions")
+		utils.HandleServiceError(c, err, "failed to get suggestions")
 		return
 	}
 
@@ -385,4 +376,89 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 		responses[i] = dto.ToProductResponse(*p)
 	}
 	utils.SuccessResponse(c, "suggestions fetched", responses)
+}
+
+// GetAvailableTransitions lists workflow actions allowed for a product (admin).
+// @Summary      List product workflow transitions (admin)
+// @Description  Returns available workflow events from the product's current state (approve, publish, discontinue, etc.).
+// @Tags         Products
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Product ID"
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
+// @Router       /products/{id}/available-transitions [get]
+func (ctrl *ProductController) GetAvailableTransitions(c *gin.Context) {
+	productID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.productService.AvailableTransitions(c.Request.Context(), productID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load product transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to a product (admin).
+// @Summary      Transition product workflow state (admin)
+// @Description  Fires a workflow event such as approve, publish, discontinue, or archive. Updates product status via the engine mirror.
+// @Tags         Products
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Product ID"
+// @Param        request body dto.PerformProductTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response{data=dto.ProductTransitionResponse}
+// @Router       /products/{id}/transition [post]
+func (ctrl *ProductController) PerformTransition(c *gin.Context) {
+	productID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformProductTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.productService.PerformTransition(
+		c.Request.Context(),
+		productID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition product")
+		return
+	}
+
+	product, err := ctrl.productService.GetByID(productID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload product")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.ProductTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Product:    dto.ToProductResponse(*product),
+	})
 }

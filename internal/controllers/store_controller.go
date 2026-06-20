@@ -64,7 +64,7 @@ func (ctrl *StoreController) ListStores(c *gin.Context) {
 	}
 	stores, total, err := ctrl.storeService.ListStores(limit, offset, filters)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list stores")
+		utils.HandleServiceError(c, err, "failed to list stores")
 		return
 	}
 	responses := make([]dto.StoreResponse, len(stores))
@@ -116,7 +116,7 @@ func (ctrl *StoreController) GetStore(c *gin.Context) {
 
 	store, err := ctrl.storeService.GetBySlug(slug)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch store")
+		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
 	}
 	resp := dto.ToStoreResponse(store)
@@ -161,7 +161,7 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 
 	store, err := ctrl.storeService.GetBySlug(slug)
 	if err != nil {
-		utils.HandleAppError(c, err, "store not found")
+		utils.HandleServiceError(c, err, "store not found")
 		return
 	}
 
@@ -184,7 +184,7 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 
 	products, total, err := ctrl.productService.GetByStoreID(store.ID, limit, offset, filters)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch store products")
+		utils.HandleServiceError(c, err, "failed to fetch store products")
 		return
 	}
 
@@ -201,6 +201,33 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 	})
 }
 
+// GetStoreAdmin returns a store by ID for admin management (includes non-active).
+// @Summary      Get store by ID (admin)
+// @Description  Fetch store details by primary key for admin edit screens
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.StoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/stores/{id} [get]
+func (ctrl *StoreController) GetStoreAdmin(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
+		return
+	}
+	store, err := ctrl.storeService.GetByID(uint(id))
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch store")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(store))
+}
+
 // CreateStore creates a new store (admin only).
 // @Summary      Create store
 // @Description  Create a new store (admin only)
@@ -214,7 +241,7 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 // @Failure      401 {object} utils.Response
 // @Failure      403 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores [post]
+// @Router       /admin/stores [post]
 func (ctrl *StoreController) CreateStore(c *gin.Context) {
 	var req dto.CreateStoreRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
@@ -222,7 +249,7 @@ func (ctrl *StoreController) CreateStore(c *gin.Context) {
 	}
 	store, err := ctrl.storeService.Create(req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create store")
+		utils.HandleServiceError(c, err, "failed to create store")
 		return
 	}
 	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(store))
@@ -243,7 +270,7 @@ func (ctrl *StoreController) CreateStore(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores/{id} [put]
+// @Router       /admin/stores/{id} [put]
 func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -256,7 +283,7 @@ func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 	}
 	store, err := ctrl.storeService.Update(uint(id), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update store")
+		utils.HandleServiceError(c, err, "failed to update store")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreResponse(store))
@@ -276,7 +303,7 @@ func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 // @Failure      403 {object} utils.Response
 // @Failure      404 {object} utils.Response
 // @Failure      500 {object} utils.Response
-// @Router       /stores/{id} [delete]
+// @Router       /admin/stores/{id} [delete]
 func (ctrl *StoreController) DeleteStore(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
@@ -284,7 +311,7 @@ func (ctrl *StoreController) DeleteStore(c *gin.Context) {
 		return
 	}
 	if err := ctrl.storeService.Delete(uint(id)); err != nil {
-		utils.HandleAppError(c, err, "failed to delete store")
+		utils.HandleServiceError(c, err, "failed to delete store")
 		return
 	}
 	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
@@ -312,11 +339,11 @@ func (ctrl *StoreController) FollowStore(c *gin.Context) {
 	slug := c.Param("slug")
 	store, err := ctrl.storeService.GetBySlug(slug)
 	if err != nil {
-		utils.HandleAppError(c, err, "store not found")
+		utils.HandleServiceError(c, err, "store not found")
 		return
 	}
 	if err := ctrl.storeService.FollowStore(userID, store.ID); err != nil {
-		utils.HandleAppError(c, err, "failed to follow store")
+		utils.HandleServiceError(c, err, "failed to follow store")
 		return
 	}
 	utils.SuccessResponse(c, "followed store successfully", nil)
@@ -344,11 +371,11 @@ func (ctrl *StoreController) UnfollowStore(c *gin.Context) {
 	slug := c.Param("slug")
 	store, err := ctrl.storeService.GetBySlug(slug)
 	if err != nil {
-		utils.HandleAppError(c, err, "store not found")
+		utils.HandleServiceError(c, err, "store not found")
 		return
 	}
 	if err := ctrl.storeService.UnfollowStore(userID, store.ID); err != nil {
-		utils.HandleAppError(c, err, "failed to unfollow store")
+		utils.HandleServiceError(c, err, "failed to unfollow store")
 		return
 	}
 	utils.SuccessResponse(c, "unfollowed store successfully", nil)
@@ -377,7 +404,7 @@ func (ctrl *StoreController) loadStoreBySlug(c *gin.Context) (*models.Store, boo
 	}
 	store, err := ctrl.storeService.GetBySlug(slug)
 	if err != nil {
-		utils.HandleAppError(c, err, "store not found")
+		utils.HandleServiceError(c, err, "store not found")
 		return nil, false
 	}
 	return store, true
@@ -402,7 +429,7 @@ func (ctrl *StoreController) GetStoreReviews(c *gin.Context) {
 
 	reviews, total, summary, err := ctrl.storeService.ListStoreReviews(store.ID, limit, offset)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch store reviews")
+		utils.HandleServiceError(c, err, "failed to fetch store reviews")
 		return
 	}
 
@@ -443,7 +470,7 @@ func (ctrl *StoreController) GetMyStoreReview(c *gin.Context) {
 
 	review, err := ctrl.storeService.GetUserStoreReview(userID, store.ID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch review")
+		utils.HandleServiceError(c, err, "failed to fetch review")
 		return
 	}
 	if review == nil {
@@ -484,7 +511,7 @@ func (ctrl *StoreController) CreateStoreReview(c *gin.Context) {
 
 	review, err := ctrl.storeService.CreateStoreReview(userID, store.ID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create review")
+		utils.HandleServiceError(c, err, "failed to create review")
 		return
 	}
 
@@ -526,7 +553,7 @@ func (ctrl *StoreController) UpdateStoreReview(c *gin.Context) {
 
 	review, err := ctrl.storeService.UpdateStoreReview(userID, uint(reviewID), req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to update review")
+		utils.HandleServiceError(c, err, "failed to update review")
 		return
 	}
 
@@ -559,7 +586,7 @@ func (ctrl *StoreController) DeleteStoreReview(c *gin.Context) {
 	}
 
 	if err := ctrl.storeService.DeleteStoreReview(userID, uint(reviewID)); err != nil {
-		utils.HandleAppError(c, err, "failed to delete review")
+		utils.HandleServiceError(c, err, "failed to delete review")
 		return
 	}
 

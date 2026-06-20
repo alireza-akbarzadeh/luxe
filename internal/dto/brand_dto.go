@@ -25,13 +25,26 @@ type ListBrandsRequest struct {
 	Status string `form:"status"`
 }
 
+type BrandListResponse struct {
+	BaseResponse
+	Data BrandListData `json:"data"`
+}
+
+type BrandListData struct {
+	Brands []BrandResponse `json:"brands"`
+	Total  int64           `json:"total"`
+	Page   int             `json:"page"`
+	Limit  int             `json:"limit"`
+}
+
 type BrandResponse struct {
-	ID          uint      `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description *string   `json:"description,omitempty"`
-	LogoURL     *string   `json:"logo_url,omitempty"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          uint       `json:"id"`
+	Name        string     `json:"name"`
+	Slug        string     `json:"slug"`
+	Description *string    `json:"description,omitempty"`
+	LogoURL     *string    `json:"logo_url,omitempty"`
+	Status      string     `json:"status"`
+	WorkflowState *StateView `json:"workflow_state,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }

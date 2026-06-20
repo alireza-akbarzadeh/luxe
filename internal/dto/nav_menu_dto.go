@@ -7,13 +7,24 @@ import (
 )
 
 type NavItemResponse struct {
+	ID       uint           `json:"id"`
 	Type     string         `json:"type"`
 	Label    string         `json:"label"`
 	Href     *string        `json:"href,omitempty"`
 	Badge    *string        `json:"badge,omitempty"`
+	Order    int            `json:"order"`
 	ViewAll  *ViewAll       `json:"viewAll,omitempty"`
 	Columns  []Column       `json:"columns,omitempty"`
 	Featured []FeaturedItem `json:"featured,omitempty"`
+}
+
+type ReorderNavMenuItem struct {
+	ID    uint `json:"id" binding:"required"`
+	Order int  `json:"order" binding:"gte=0"`
+}
+
+type ReorderNavMenusRequest struct {
+	Items []ReorderNavMenuItem `json:"items" binding:"required,min=1,dive"`
 }
 
 type ViewAll struct {
@@ -53,10 +64,12 @@ type UpsertNavMenuRequest struct {
 // ToNavItemResponse Helper to convert model to DTO (flatten JSONB)
 func ToNavItemResponse(m *models.NavMenu) (*NavItemResponse, error) {
 	resp := &NavItemResponse{
+		ID:    m.ID,
 		Type:  m.Type,
 		Label: m.Label,
 		Href:  m.Href,
 		Badge: m.Badge,
+		Order: m.SortOrder,
 	}
 	if m.ViewAll != nil {
 		var va ViewAll

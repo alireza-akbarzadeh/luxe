@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"net/http"
 	"strconv"
 	"time"
 
@@ -54,20 +53,18 @@ func (ctrl *OrderController) Checkout(c *gin.Context) {
 		return
 	}
 
-	// Validate struct (tags + custom logic)
 	if err := ctrl.validate.Struct(req); err != nil {
 		utils.ErrorResponse(c, 400, err.Error())
 		return
 	}
 
-	order, err := ctrl.checkoutSvc.Checkout(userID, req)
+	result, err := ctrl.checkoutSvc.Checkout(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to create order")
+		RespondServiceError(c, err, "failed to create order")
 		return
 	}
 
-	// The response includes the order so the frontend can immediately join the WebSocket room.
-	utils.CreatedResponse(c, "order created successfully", order)
+	utils.CreatedResponse(c, "order created successfully", result)
 }
 
 // GetUserOrders returns paginated orders for the authenticated user.
@@ -95,9 +92,9 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 		return
 	}
 
-	orders, total, err := ctrl.orderService.GetUserOrders(userID, req)
+	orders, total, err := ctrl.orderService.GetUserOrders(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get orders")
+		RespondServiceError(c, err, "failed to get orders")
 		return
 	}
 
@@ -125,24 +122,14 @@ func (ctrl *OrderController) GetUserOrders(c *gin.Context) {
 // @Param        min_amount  query   number  false  "Minimum amount"
 // @Param        max_amount  query   number  false  "Maximum amount"
 // @Param        user_id     query   int     false  "Filter by user ID"
-// @Success      200         {object} utils.Response{data=object{orders=[]models.Order,total=int,limit=int,offset=int}}
+// @Param        search      query   string  false  "Search order number or customer name/email"
+// @Success      200         {object} utils.Response{data=dto.AdminOrderListData}
 // @Failure      401         {object} utils.Response
 // @Failure      403         {object} utils.Response
 // @Failure      500         {object} utils.Response
 // @Router       /orders [get]
 func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
-	// Pagination
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
 
 	// Filters
 	filters := services.AdminOrderFilters{}
@@ -174,18 +161,21 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 			filters.UserID = &[]uint{uint(id)}[0]
 		}
 	}
+	if search := c.Query("search"); search != "" {
+		filters.Search = search
+	}
 
-	orders, total, err := ctrl.orderService.GetAllOrders(filters, limit, offset)
+	orders, total, err := ctrl.orderService.GetAllOrders(c.Request.Context(), filters, limit, offset)
 	if err != nil {
-		utils.InternalServerErrorResponse(c, err, "failed to fetch orders")
+		RespondServiceError(c, err, "failed to fetch orders")
 		return
 	}
 
-	data := gin.H{
-		"orders": orders,
-		"total":  total,
-		"limit":  limit,
-		"offset": offset,
+	data := dto.AdminOrderListData{
+		Orders: dto.ToAdminOrderListItems(orders),
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
 }
@@ -198,25 +188,36 @@ func (ctrl *OrderController) ListAllOrders(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      int  true  "Order ID"
-// @Success      200  {object}  utils.Response{data=models.Order}
+// @Success      200  {object}  utils.Response{data=dto.AdminOrderDetailResponse}
 // @Failure      401  {object}  utils.Response
 // @Failure      404  {object}  utils.Response
 // @Failure      500  {object}  utils.Response
 // @Router       /orders/{id} [get]
 func (ctrl *OrderController) GetOrder(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	role, _ := middleware.GetUserRole(c)
+	if role == constants.RoleAdmin {
+		order, err := ctrl.orderService.GetOrderAdmin(c.Request.Context(), orderID)
+		if err != nil {
+			RespondServiceError(c, err, "failed to fetch order")
+			return
+		}
+		utils.SuccessResponse(c, "order retrieved", dto.ToAdminOrderDetail(*order))
+		return
+	}
+
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.UnauthorizedResponse(c, "unauthorized")
 		return
 	}
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	order, err := ctrl.orderService.GetOrderByID(c.Request.Context(), orderID, userID)
 	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "invalid order id")
-		return
-	}
-	order, err := ctrl.orderService.GetOrderByID(uint(orderID), userID)
-	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch order")
+		RespondServiceError(c, err, "failed to fetch order")
 		return
 	}
 	utils.SuccessResponse(c, "order retrieved", order)
@@ -239,9 +240,8 @@ func (ctrl *OrderController) GetOrder(c *gin.Context) {
 // @Failure      500     {object} utils.Response
 // @Router       /orders/{id}/status [put]
 func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
-	orderID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid order id")
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
@@ -254,10 +254,128 @@ func (ctrl *OrderController) UpdateOrderStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.orderService.UpdateOrderStatus(uint(orderID), req.Status); err != nil {
-		utils.HandleAppError(c, err, "failed to update order status")
+	var actorID *uint
+	if uid, ok := middleware.GetUserID(c); ok {
+		actorID = &uid
+	}
+	if err := ctrl.orderService.UpdateOrderStatus(c.Request.Context(), orderID, req.Status, actorID); err != nil {
+		RespondServiceError(c, err, "failed to update order status")
 		return
 	}
 
 	utils.SuccessResponse(c, "order status updated successfully", nil)
+}
+
+// CancelOrder cancels an order belonging to the current user.
+// @Summary      Cancel order
+// @Description  Cancels a pending or paid order, restores stock, and refunds wallet payments.
+// @Tags         Orders
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path  int  true  "Order ID"
+// @Success      200 {object} utils.Response
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /orders/{id}/cancel [post]
+func (ctrl *OrderController) CancelOrder(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
+		return
+	}
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	if err := ctrl.checkoutSvc.CancelOrder(c.Request.Context(), orderID, userID); err != nil {
+		RespondServiceError(c, err, "failed to cancel order")
+		return
+	}
+	utils.SuccessResponse(c, "order cancelled successfully", nil)
+}
+
+// GetAvailableTransitions lists workflow actions allowed for an order (admin).
+// @Summary      List order workflow transitions (admin)
+// @Tags         Orders
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Order ID"
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
+// @Router       /orders/{id}/available-transitions [get]
+func (ctrl *OrderController) GetAvailableTransitions(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.orderService.AvailableTransitions(c.Request.Context(), orderID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load order transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformTransition applies a workflow event to an order (admin).
+// @Summary      Transition order workflow state (admin)
+// @Description  Fires events such as start_processing, ship, deliver, refund, or cancel with guards and hooks.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Order ID"
+// @Param        request body dto.PerformOrderTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response{data=dto.OrderTransitionResponse}
+// @Router       /orders/{id}/transition [post]
+func (ctrl *OrderController) PerformTransition(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformOrderTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := ctrl.orderService.PerformTransition(
+		c.Request.Context(),
+		orderID,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition order")
+		return
+	}
+
+	order, err := ctrl.orderService.GetOrderAdmin(c.Request.Context(), orderID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload order")
+		return
+	}
+
+	utils.SuccessResponse(c, "transition applied", dto.OrderTransitionResponse{
+		Transition: toTransitionResultView(result),
+		Order:      order,
+	})
 }

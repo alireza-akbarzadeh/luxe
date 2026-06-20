@@ -18,17 +18,17 @@ type LoginRequest struct {
 
 // ChangePasswordRequest input
 type ChangePasswordRequest struct {
-	CurrentPassword string `json:"current_password" binding:"required,min=6"`
-	NewPassword     string `json:"new_password" binding:"required,min=6"`
+	CurrentPassword string `json:"current_password" validate:"required,min=8"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email" validate:"required,email"`
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	Token       string `json:"token" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=8"`
 }
 
 type SessionResponse struct {

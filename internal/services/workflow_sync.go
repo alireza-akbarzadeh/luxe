@@ -1,0 +1,369 @@
+package services
+
+import (
+	"context"
+
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+)
+
+// applyWorkflowEvent runs a validated transition. Returns the engine error when
+// the transition is rejected; nil when the engine is unset.
+func applyWorkflowEvent(ctx context.Context, engine *workflow.Engine, req workflow.TransitionRequest) error {
+	if engine == nil {
+		return nil
+	}
+	_, err := engine.Transition(ctx, req)
+	return err
+}
+
+// syncWorkflowState forces an entity to a target state (audit-only, no guards/hooks).
+func syncWorkflowState(ctx context.Context, engine *workflow.Engine, workflowKey string, entityID uint, stateCode, event string, actorID *uint) {
+	if engine == nil {
+		return
+	}
+	if _, err := engine.SetState(ctx, workflow.SetStateRequest{
+		WorkflowKey:     workflowKey,
+		EntityID:        entityID,
+		TargetStateCode: stateCode,
+		Event:           event,
+		ActorID:         actorID,
+	}); err != nil {
+		utils.Log.WithError(err).
+			WithField("workflow", workflowKey).
+			WithField("entity_id", entityID).
+			WithField("state", stateCode).
+			Warn("failed to sync workflow state")
+	}
+}
+
+// syncUserWorkflowState updates the user account workflow pointer (best-effort).
+func syncUserWorkflowState(ctx context.Context, engine *workflow.Engine, userID uint, stateCode, event string, actorID *uint) {
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityUser, userID, stateCode, event, actorID)
+}
+
+// orderStatusToEvent maps legacy admin status strings to seeded workflow events.
+var orderStatusToEvent = map[string]string{
+	constants.OrderStatusPaid:      "payment_succeeded",
+	"processing":                   "start_processing",
+	constants.OrderStatusShipped:   "ship",
+	constants.OrderStatusDelivered: "deliver",
+	"completed":                    "complete",
+	constants.OrderStatusCancelled: "cancel",
+	constants.OrderStatusRefunded:  "refund",
+}
+
+// applyOrderWorkflow tries a validated transition first, then falls back to SetState.
+// Returns true when the engine updated the order (status mirror included).
+func applyOrderWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	orderID uint,
+	status, actorRole string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if event, ok := orderStatusToEvent[status]; ok {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityOrder,
+			EntityID:    orderID,
+			Event:       event,
+			ActorID:     actorID,
+			ActorRole:   actorRole,
+		}); err == nil {
+			return true
+		}
+	}
+
+	code, ok := map[string]string{
+		constants.OrderStatusPending:   "pending_payment",
+		constants.OrderStatusPaid:      "paid",
+		"processing":                   "processing",
+		constants.OrderStatusShipped:   "shipped",
+		constants.OrderStatusDelivered: "delivered",
+		"completed":                    "completed",
+		constants.OrderStatusCancelled: "cancelled",
+		constants.OrderStatusRefunded:  "refunded",
+	}[status]
+	if !ok {
+		return false
+	}
+
+	_, err := engine.SetState(ctx, workflow.SetStateRequest{
+		WorkflowKey:     constants.WorkflowEntityOrder,
+		EntityID:        orderID,
+		TargetStateCode: code,
+		Event:           "admin_set",
+		ActorID:         actorID,
+	})
+	return err == nil
+}
+
+// shipmentStatusToEvent maps legacy shipment statuses to workflow events.
+var shipmentStatusToEvent = map[string]string{
+	"processing": "ready",
+	"shipped":    "depart",
+	"delivered":  "deliver",
+}
+
+// applyShipmentWorkflow tries transition then SetState for a legacy shipment status.
+func applyShipmentWorkflow(ctx context.Context, engine *workflow.Engine, shipmentID uint, status string) {
+	if engine == nil {
+		return
+	}
+	if event, ok := shipmentStatusToEvent[status]; ok {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityShipment,
+			EntityID:    shipmentID,
+			Event:       event,
+		}); err == nil {
+			return
+		}
+	}
+	code, ok := map[string]string{
+		"pending":    "pending",
+		"processing": "ready_for_pickup",
+		"shipped":    "in_transit",
+		"delivered":  "delivered",
+		"cancelled":  "returned",
+	}[status]
+	if !ok {
+		return
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityShipment, shipmentID, code, "status_update", nil)
+}
+
+// productStatusToEvent maps legacy product status changes to workflow events (admin actions).
+var productStatusToEvent = map[string]string{
+	constants.ProductStatusActive: "publish",
+}
+
+// productStatusToStateCode maps legacy product status strings to workflow state codes.
+var productStatusToStateCode = map[string]string{
+	"draft":                            "draft",
+	constants.ProductStatusActive:      "published",
+	constants.ProductStatusInactive:    "discontinued",
+	constants.ProductStatusArchived:    "archived",
+}
+
+// applyProductWorkflow tries a validated transition first, then falls back to SetState.
+func applyProductWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	productID uint,
+	status, actorRole string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if event, ok := productStatusToEvent[status]; ok {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityProduct,
+			EntityID:    productID,
+			Event:       event,
+			ActorID:     actorID,
+			ActorRole:   actorRole,
+		}); err == nil {
+			return true
+		}
+	}
+
+	code, ok := productStatusToStateCode[status]
+	if !ok {
+		return false
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityProduct, productID, code, "status_update", actorID)
+	return true
+}
+
+// applyCategoryWorkflow syncs category is_active into the workflow engine (best-effort).
+func applyCategoryWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	categoryID uint,
+	isActive bool,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if isActive {
+		for _, event := range []string{"activate", "reactivate"} {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCategory,
+				EntityID:    categoryID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "active", "status_update", actorID)
+		return true
+	}
+
+	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityCategory,
+		EntityID:    categoryID,
+		Event:       "deactivate",
+		ActorID:     actorID,
+		ActorRole:   constants.RoleAdmin,
+	}); err == nil {
+		return true
+	}
+
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "inactive", "status_update", actorID)
+	return true
+}
+
+var brandStatusToStateCode = map[string]string{
+	"draft":    "draft",
+	"active":   "active",
+	"inactive": "inactive",
+	"archived": "archived",
+}
+
+// applyBrandWorkflow syncs legacy brand status into the workflow engine (best-effort).
+func applyBrandWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	brandID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"active":   {"activate", "reactivate"},
+		"inactive": {"deactivate"},
+		"archived": {"archive"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityBrand,
+				EntityID:    brandID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := brandStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityBrand, brandID, code, "status_update", actorID)
+	return true
+}
+
+// applyCollectionWorkflow syncs legacy collection status into the workflow engine (best-effort).
+func applyCollectionWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	collectionID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"active":   {"activate", "reactivate"},
+		"inactive": {"deactivate"},
+		"archived": {"archive"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCollection,
+				EntityID:    collectionID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := brandStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
+	return true
+}
+
+// applyCouponWorkflow syncs coupon is_active into the workflow engine (best-effort).
+func applyCouponWorkflow(
+	ctx context.Context,
+	engine *workflow.Engine,
+	couponID uint,
+	isActive bool,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	if isActive {
+		for _, event := range []string{"activate", "resume"} {
+			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityCoupon,
+				EntityID:    couponID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+		code := "active"
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, code, "status_update", actorID)
+		return true
+	}
+
+	for _, event := range []string{"pause"} {
+		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			WorkflowKey: constants.WorkflowEntityCoupon,
+			EntityID:    couponID,
+			Event:       event,
+			ActorID:     actorID,
+			ActorRole:   constants.RoleAdmin,
+		}); err == nil {
+			return true
+		}
+	}
+	syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "paused", "status_update", actorID)
+	return true
+}
+
+// applyCouponExhausted moves a coupon to the exhausted workflow state when usage limit is reached.
+func applyCouponExhausted(ctx context.Context, engine *workflow.Engine, couponID uint) {
+	if engine == nil {
+		return
+	}
+	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityCoupon,
+		EntityID:    couponID,
+		Event:       "mark_exhausted",
+		ActorRole:   constants.RoleAdmin,
+	}); err != nil {
+		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
+	}
+}

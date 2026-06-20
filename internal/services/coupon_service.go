@@ -1,11 +1,14 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
@@ -17,17 +20,36 @@ type CouponServiceInterface interface {
 	Update(id uint, req dto.UpdateCouponRequest) (*models.Coupon, error)
 	Delete(id uint) error
 	List(dto.CouponListFilters) ([]models.Coupon, int64, error)
+	ListAdmin(dto.AdminCouponListFilters) ([]models.Coupon, int64, error)
 	ValidateCoupon(code string, userID uint, orderTotal float64) (*models.Coupon, float64, error)
 	ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error
 	GetAvailableCouponsForUser(userID uint, orderTotal float64) ([]models.Coupon, error)
 }
 
 type couponService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewCouponService(db *gorm.DB) CouponServiceInterface {
-	return &couponService{db: db}
+func NewCouponService(db *gorm.DB, engine *workflow.Engine) CouponServiceInterface {
+	return &couponService{db: db, engine: engine}
+}
+
+func (s *couponService) syncCouponWorkflow(ctx context.Context, couponID uint, isActive bool) {
+	if !applyCouponWorkflow(ctx, s.engine, couponID, isActive, nil) {
+		utils.Log.WithField("coupon_id", couponID).Debug("coupon workflow sync skipped or failed")
+	}
+}
+
+func (s *couponService) getCouponByID(id uint) (*models.Coupon, error) {
+	var coupon models.Coupon
+	if err := s.db.Preload("WorkflowState").First(&coupon, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("coupon not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return &coupon, nil
 }
 
 // Create – store new coupon
@@ -45,25 +67,45 @@ func (s *couponService) Create(req dto.CreateCouponRequest) (*models.Coupon, err
 		MinimumOrderAmount: req.MinimumOrderAmount,
 		MaxDiscountAmount:  req.MaxDiscountAmount,
 		UsageLimit:         req.UsageLimit,
-		StartDate:          req.StartDate,
-		EndDate:            req.EndDate,
+		StartDate:          normalizeCouponStart(req.StartDate),
+		EndDate:            normalizeCouponEnd(req.StartDate, req.EndDate),
+		IsActive:           couponIsActiveDefault(req.IsActive),
 	}
-	if err := s.db.Create(coupon).Error; err != nil {
+	if err := s.db.Select(
+		"Code", "Description", "DiscountType", "DiscountValue",
+		"MinimumOrderAmount", "MaxDiscountAmount", "UsageLimit",
+		"StartDate", "EndDate", "IsActive",
+	).Create(coupon).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return coupon, nil
+	// GORM omits zero-value bools on Create; enforce inactive coupons when requested.
+	if !coupon.IsActive {
+		if err := s.db.Model(coupon).Update("is_active", false).Error; err != nil {
+			return nil, utils.ErrInternal(err)
+		}
+	}
+
+	ctx := context.Background()
+	if coupon.IsActive {
+		s.syncCouponWorkflow(ctx, coupon.ID, true)
+	} else {
+		syncWorkflowState(ctx, s.engine, constants.WorkflowEntityCoupon, coupon.ID, "draft", "created", nil)
+	}
+
+	return s.getCouponByID(coupon.ID)
 }
 
 // ValidateCoupon checks if coupon is usable for a user and order total
 func (s *couponService) ValidateCoupon(code string, userID uint, orderTotal float64) (*models.Coupon, float64, error) {
 	var coupon models.Coupon
 	now := time.Now()
-	err := s.db.Where("code = ? AND is_active = ? AND start_date <= ? AND end_date >= ?", code, true, now, now).
+	err := s.db.Where("code = ? AND is_active = ?", code, true).
+		Where("(start_date IS NULL OR start_date <= ?) AND (end_date IS NULL OR end_date >= ?)", now, now).
 		First(&coupon).Error
 	if err != nil {
 		return nil, 0, utils.ErrBadRequest("invalid or expired coupon")
 	}
-	if coupon.UsedCount >= coupon.UsageLimit {
+	if coupon.UsedCount >= coupon.UsageLimit && coupon.UsageLimit > 0 {
 		return nil, 0, utils.ErrBadRequest("coupon usage limit exceeded")
 	}
 	if orderTotal < coupon.MinimumOrderAmount {
@@ -104,6 +146,10 @@ func (s *couponService) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, coup
 		tx.Rollback()
 		return utils.ErrInternal(err)
 	}
+
+	if coupon.UsageLimit > 0 && coupon.UsedCount+1 >= coupon.UsageLimit {
+		applyCouponExhausted(context.Background(), s.engine, coupon.ID)
+	}
 	// create usage record
 	usage := &models.CouponUsage{
 		CouponID:       coupon.ID,
@@ -126,15 +172,7 @@ func (s *couponService) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, coup
 // GetByID retrieves a coupon by its ID.
 
 func (s *couponService) GetByID(couponID uint) (*models.Coupon, error) {
-	var coupon models.Coupon
-	err := s.db.First(&coupon, couponID).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrNotFound("coupon not found")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	return &coupon, nil
+	return s.getCouponByID(couponID)
 }
 
 // GetByCode retrieves a coupon by its code.
@@ -187,6 +225,7 @@ func (s *couponService) Update(id uint, req dto.UpdateCouponRequest) (*models.Co
 	if req.EndDate != nil {
 		coupon.EndDate = *req.EndDate
 	}
+	wasActive := coupon.IsActive
 	if req.IsActive != nil {
 		coupon.IsActive = *req.IsActive
 	}
@@ -194,7 +233,10 @@ func (s *couponService) Update(id uint, req dto.UpdateCouponRequest) (*models.Co
 	if err := s.db.Save(coupon).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return coupon, nil
+	if req.IsActive != nil && wasActive != *req.IsActive {
+		s.syncCouponWorkflow(context.Background(), coupon.ID, *req.IsActive)
+	}
+	return s.getCouponByID(coupon.ID)
 }
 
 // Delete soft-deletes a coupon.
@@ -260,6 +302,107 @@ func (s *couponService) List(filters dto.CouponListFilters) ([]models.Coupon, in
 	}
 
 	return coupons, total, nil
+}
+
+// ListAdmin returns all coupons for admin management with optional status filters.
+func (s *couponService) ListAdmin(filters dto.AdminCouponListFilters) ([]models.Coupon, int64, error) {
+	limit, offset := filters.Limit, filters.Offset
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	now := time.Now()
+	query := s.db.Model(&models.Coupon{})
+
+	switch filters.Status {
+	case "active":
+		query = query.Where(
+			`EXISTS (
+				SELECT 1 FROM workflow_states ws
+				WHERE ws.id = coupons.workflow_state_id AND ws.code = ?
+			) OR (coupons.workflow_state_id IS NULL AND coupons.is_active = ?)`,
+			"active", true,
+		)
+	case "inactive":
+		query = query.Where(
+			`EXISTS (
+				SELECT 1 FROM workflow_states ws
+				WHERE ws.id = coupons.workflow_state_id AND ws.code IN ?
+			) OR (coupons.workflow_state_id IS NULL AND coupons.is_active = ?)`,
+			[]string{"draft", "paused"}, false,
+		)
+	case "expired":
+		query = query.Where(
+			`EXISTS (
+				SELECT 1 FROM workflow_states ws
+				WHERE ws.id = coupons.workflow_state_id AND ws.code = ?
+			) OR coupons.end_date < ?`,
+			"expired", now,
+		)
+	case "exhausted":
+		query = query.Where(
+			`EXISTS (
+				SELECT 1 FROM workflow_states ws
+				WHERE ws.id = coupons.workflow_state_id AND ws.code = ?
+			) OR (coupons.usage_limit > 0 AND coupons.used_count >= coupons.usage_limit)`,
+			"exhausted",
+		)
+	case "", "all":
+		// no extra filter
+	default:
+		return nil, 0, utils.ErrBadRequest("invalid status filter")
+	}
+
+	if filters.Code != "" {
+		query = query.Where("code ILIKE ?", "%"+filters.Code+"%")
+	}
+	if filters.DiscountType != "" {
+		query = query.Where("discount_type = ?", filters.DiscountType)
+	}
+
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	var coupons []models.Coupon
+	if err := query.Preload("WorkflowState").
+		Order("created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&coupons).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	return coupons, total, nil
+}
+
+func normalizeCouponStart(t time.Time) time.Time {
+	if t.IsZero() {
+		return time.Now()
+	}
+	return t
+}
+
+func normalizeCouponEnd(start, end time.Time) time.Time {
+	if !end.IsZero() {
+		return end
+	}
+	base := start
+	if base.IsZero() {
+		base = time.Now()
+	}
+	return base.AddDate(1, 0, 0)
+}
+
+func couponIsActiveDefault(isActive *bool) bool {
+	if isActive == nil {
+		return false
+	}
+	return *isActive
 }
 
 // RecordUsage is the core function to atomically increment used count and create usage.

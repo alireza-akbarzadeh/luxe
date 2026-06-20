@@ -44,9 +44,9 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, user, err := ctrl.authService.Register(req, sessionMetaFromContext(c))
+	accessToken, refreshToken, user, err := ctrl.authService.Register(c.Request.Context(), req, sessionMetaFromContext(c))
 	if err != nil {
-		utils.HandleAppError(c, err, constants.MsgRegistrationFailed)
+		utils.HandleServiceError(c, err, constants.MsgRegistrationFailed)
 		return
 	}
 
@@ -86,9 +86,9 @@ func (ctrl *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	accessToken, refreshToken, user, err := ctrl.authService.Login(req, sessionMetaFromContext(c))
+	accessToken, refreshToken, user, err := ctrl.authService.Login(c.Request.Context(), req, sessionMetaFromContext(c))
 	if err != nil {
-		utils.HandleAppError(c, err, constants.MsgLoginFailed)
+		utils.HandleServiceError(c, err, constants.MsgLoginFailed)
 		return
 	}
 
@@ -134,9 +134,9 @@ func (ctrl *AuthController) Refresh(c *gin.Context) {
 		return
 	}
 
-	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(req.RefreshToken, sessionMetaFromContext(c))
+	newAccessToken, newRefreshToken, err := ctrl.authService.RefreshTokens(c.Request.Context(), req.RefreshToken, sessionMetaFromContext(c))
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to refresh tokens")
+		utils.HandleServiceError(c, err, "failed to refresh tokens")
 		return
 	}
 	refreshExpiry := config.AppConfig.JWT.RefreshTokenExpiry
@@ -182,8 +182,8 @@ func (ctrl *AuthController) Logout(c *gin.Context) {
 	var req services.LogoutRequest
 	_ = c.ShouldBindJSON(&req)
 
-	if err := ctrl.authService.Logout(userID, req); err != nil {
-		utils.InternalServerErrorResponse(c, err, "logout failed")
+	if err := ctrl.authService.Logout(c.Request.Context(), userID, req); err != nil {
+		utils.HandleServiceError(c, err, "logout failed")
 		return
 	}
 
@@ -218,9 +218,9 @@ func (ctrl *AuthController) ChangePassword(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	err := ctrl.authService.ChangePassword(userID, req)
+	err := ctrl.authService.ChangePassword(c.Request.Context(), userID, req)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to change password")
+		utils.HandleServiceError(c, err, "failed to change password")
 		return
 	}
 	resp := dto.MessageResponse{
@@ -245,9 +245,9 @@ func (ctrl *AuthController) ResetPassword(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	err := ctrl.authService.ResetPassword(req.Token, req.NewPassword)
+	err := ctrl.authService.ResetPassword(c.Request.Context(), req.Token, req.NewPassword)
 	if err != nil {
-		utils.HandleAppError(c, err, "reset password failed")
+		utils.HandleServiceError(c, err, "reset password failed")
 		return
 	}
 	resp := dto.MessageResponse{
@@ -272,7 +272,7 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	_ = ctrl.authService.ForgotPassword(req.Email)
+	_ = ctrl.authService.ForgotPassword(c.Request.Context(), req.Email)
 	// Always return success to avoid email enumeration
 	resp := dto.MessageResponse{
 		Success: true,
@@ -297,9 +297,9 @@ func (ctrl *AuthController) VerifyEmail(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "token is required")
 		return
 	}
-	err := ctrl.authService.VerifyEmail(token)
+	err := ctrl.authService.VerifyEmail(c.Request.Context(), token)
 	if err != nil {
-		utils.HandleAppError(c, err, "email verification failed")
+		utils.HandleServiceError(c, err, "email verification failed")
 		return
 	}
 	resp := dto.MessageResponse{
@@ -326,9 +326,9 @@ func (ctrl *AuthController) SendVerificationEmail(c *gin.Context) {
 		utils.UnauthorizedResponse(c, "user not authenticated")
 		return
 	}
-	err := ctrl.authService.SendVerificationEmail(userID)
+	err := ctrl.authService.SendVerificationEmail(c.Request.Context(), userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to send verification email")
+		utils.HandleServiceError(c, err, "failed to send verification email")
 		return
 	}
 	resp := dto.MessageResponse{
@@ -365,9 +365,9 @@ func (ctrl *AuthController) ListSessions(c *gin.Context) {
 	}
 
 	currentRefreshToken, _ := c.Cookie("refresh_token")
-	sessions, err := ctrl.authService.ListSessions(userID, currentRefreshToken)
+	sessions, err := ctrl.authService.ListSessions(c.Request.Context(), userID, currentRefreshToken)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to list sessions")
+		utils.HandleServiceError(c, err, "failed to list sessions")
 		return
 	}
 
@@ -395,8 +395,8 @@ func (ctrl *AuthController) RevokeSession(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.authService.RevokeSession(userID, sessionID); err != nil {
-		utils.HandleAppError(c, err, "failed to revoke session")
+	if err := ctrl.authService.RevokeSession(c.Request.Context(), userID, sessionID); err != nil {
+		utils.HandleServiceError(c, err, "failed to revoke session")
 		return
 	}
 
@@ -423,8 +423,8 @@ func (ctrl *AuthController) RevokeOtherSessions(c *gin.Context) {
 		currentRefreshToken, _ = c.Cookie("refresh_token")
 	}
 
-	if err := ctrl.authService.RevokeOtherSessions(userID, currentRefreshToken); err != nil {
-		utils.HandleAppError(c, err, "failed to revoke other sessions")
+	if err := ctrl.authService.RevokeOtherSessions(c.Request.Context(), userID, currentRefreshToken); err != nil {
+		utils.HandleServiceError(c, err, "failed to revoke other sessions")
 		return
 	}
 

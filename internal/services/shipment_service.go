@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -8,11 +9,14 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
+
+// shipmentService manages shipment records and carrier simulation.
 
 type CreateShipmentRequest struct {
 	OrderID        uint    `json:"order_id" validate:"required,gt=0"`
@@ -32,36 +36,49 @@ type ShipmentServiceInterface interface {
 	CreateShipment(req CreateShipmentRequest) (*models.Shipment, error)
 	GetShipmentByID(id uint) (*models.Shipment, error)
 	GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error)
+	ListAdmin(ctx context.Context, filters dto.AdminShipmentListFilters) ([]models.Shipment, int64, error)
 	UpdateShipmentStatus(id uint, status string) error
+	AvailableTransitions(ctx context.Context, shipmentID uint) (*models.WorkflowState, []models.WorkflowTransition, error)
+	PerformTransition(ctx context.Context, shipmentID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
 	CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRequest) (*models.Shipment, error)
 	SimulateDeliveries() error
 
 	DeleteShippingProvider(providerID uint) error
 	GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error)
 	GetShippingProviders() ([]models.ShippingProviders, error)
+	ListShippingProvidersAdmin(ctx context.Context) ([]models.ShippingProviders, error)
 	CreateShippingProvider(req dto.CreateShippingProviderRequest) (*models.ShippingProviders, error)
 	UpdateShippingProvider(providerID uint, req dto.UpdateShippingProviderRequest) (*models.ShippingProviders, error)
+	ProcessShipmentBackground(ctx context.Context, shipmentID uint) error
 }
 
 type shipmentService struct {
 	db                  *gorm.DB
-	workerPool          *tasks.WorkerPool
+	workerPool          tasks.JobQueue
 	notificationService NotificationServiceInterface
 	wsHub               *websocket.Hub
+	engine              *workflow.Engine
 }
 
 func NewShipmentService(
 	db *gorm.DB,
-	workerPool *tasks.WorkerPool,
+	workerPool tasks.JobQueue,
 	notificationService NotificationServiceInterface,
 	wsHub *websocket.Hub,
+	engine *workflow.Engine,
 ) ShipmentServiceInterface {
 	return &shipmentService{
 		db:                  db,
 		workerPool:          workerPool,
 		notificationService: notificationService,
 		wsHub:               wsHub,
+		engine:              engine,
 	}
+}
+
+// setShipmentState syncs a shipment status into the workflow engine (best-effort).
+func (s *shipmentService) setShipmentState(ctx context.Context, shipmentID uint, status string) {
+	applyShipmentWorkflow(ctx, s.engine, shipmentID, status)
 }
 
 // ─── WebSocket + Notification helper ─────────────────────────────────────
@@ -129,12 +146,9 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 	}
 
 	// Enqueue background job
-	job := tasks.Job{
-		ID:      fmt.Sprintf("shipment_%d", shipment.ID),
-		Payload: shipment.ID,
-		Handler: s.processShipment,
+	if err := s.workerPool.EnqueueProcessShipment(context.Background(), shipment.ID); err != nil {
+		utils.Log.WithError(err).WithField("shipment_id", shipment.ID).Error("failed to enqueue shipment processing job")
 	}
-	s.workerPool.Enqueue(job)
 
 	// Broadcast creation event
 	s.broadcastShipmentUpdate(order.ID, order.UserID, "shipment_created", map[string]interface{}{
@@ -150,26 +164,27 @@ func (s *shipmentService) CreateShipment(req CreateShipmentRequest) (*models.Shi
 	return shipment, nil
 }
 
-// processShipment is the background job handler (standalone flow only).
-func (s *shipmentService) processShipment(payload interface{}) error {
-	shipmentID, ok := payload.(uint)
-	if !ok {
-		return fmt.Errorf("invalid payload type")
-	}
+// ProcessShipmentBackground runs async shipment processing (carrier simulation).
+func (s *shipmentService) ProcessShipmentBackground(ctx context.Context, shipmentID uint) error {
+	return s.processShipment(ctx, shipmentID)
+}
 
+// processShipment is the background job handler (standalone flow only).
+func (s *shipmentService) processShipment(ctx context.Context, shipmentID uint) error {
 	time.Sleep(2 * time.Second) // simulate carrier API
 
 	var shipment models.Shipment
-	if err := s.db.First(&shipment, shipmentID).Error; err != nil {
+	if err := s.db.WithContext(ctx).First(&shipment, shipmentID).Error; err != nil {
 		return err
 	}
 
 	oldStatus := shipment.Status
 
-	if err := s.db.Model(&models.Shipment{}).Where("id = ?", shipmentID).
+	if err := s.db.WithContext(ctx).Model(&models.Shipment{}).Where("id = ?", shipmentID).
 		Update("status", "processing").Error; err != nil {
 		return err
 	}
+	s.setShipmentState(ctx, shipmentID, "processing")
 
 	utils.Log.Infof("Shipment %d processed in background", shipmentID)
 
@@ -224,13 +239,84 @@ func (s *shipmentService) CreateShipmentRecord(tx *gorm.DB, req CreateShipmentRe
 
 func (s *shipmentService) GetShipmentByID(id uint) (*models.Shipment, error) {
 	var shipment models.Shipment
-	if err := s.db.First(&shipment, id).Error; err != nil {
+	if err := s.db.
+		Preload("Order").
+		Preload("Provider").
+		Preload("WorkflowState").
+		First(&shipment, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound(constants.ErrShipmentNotFound)
 		}
 		return nil, utils.ErrInternal(err)
 	}
 	return &shipment, nil
+}
+
+func (s *shipmentService) ListAdmin(ctx context.Context, filters dto.AdminShipmentListFilters) ([]models.Shipment, int64, error) {
+	limit, offset := filters.Limit, filters.Offset
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	q := s.db.WithContext(ctx).Model(&models.Shipment{})
+	if filters.Status != "" {
+		q = q.Where("shipments.status = ?", filters.Status)
+	}
+	if filters.Carrier != "" {
+		q = q.Where("shipments.carrier ILIKE ?", filters.Carrier)
+	}
+	if filters.OrderID != nil {
+		q = q.Where("shipments.order_id = ?", *filters.OrderID)
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		q = q.Joins("LEFT JOIN orders ON orders.id = shipments.order_id").
+			Where(
+				"shipments.tracking_number ILIKE ? OR orders.order_number ILIKE ? OR shipments.carrier ILIKE ?",
+				term, term, term,
+			)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	var shipments []models.Shipment
+	listQ := s.db.WithContext(ctx).Model(&models.Shipment{})
+	if filters.Status != "" {
+		listQ = listQ.Where("shipments.status = ?", filters.Status)
+	}
+	if filters.Carrier != "" {
+		listQ = listQ.Where("shipments.carrier ILIKE ?", filters.Carrier)
+	}
+	if filters.OrderID != nil {
+		listQ = listQ.Where("shipments.order_id = ?", *filters.OrderID)
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		listQ = listQ.Joins("LEFT JOIN orders ON orders.id = shipments.order_id").
+			Where(
+				"shipments.tracking_number ILIKE ? OR orders.order_number ILIKE ? OR shipments.carrier ILIKE ?",
+				term, term, term,
+			)
+	}
+
+	if err := listQ.
+		Preload("Order").
+		Preload("User").
+		Preload("WorkflowState").
+		Order("shipments.created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&shipments).Error; err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	return shipments, total, nil
 }
 
 func (s *shipmentService) GetShipmentsByOrderID(orderID uint) ([]models.Shipment, error) {
@@ -262,6 +348,8 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 		return utils.ErrNotFound(constants.ErrShipmentNotFound)
 	}
 
+	s.setShipmentState(context.Background(), id, status)
+
 	// Broadcast status change
 	title, message := s.getShipmentStatusNotificationMessage(status, shipment.TrackingNumber)
 	s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_status_update", map[string]interface{}{
@@ -276,6 +364,38 @@ func (s *shipmentService) UpdateShipmentStatus(id uint, status string) error {
 	})
 
 	return nil
+}
+
+func (s *shipmentService) AvailableTransitions(ctx context.Context, shipmentID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetShipmentByID(shipmentID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityShipment, shipmentID)
+}
+
+func (s *shipmentService) PerformTransition(
+	ctx context.Context,
+	shipmentID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetShipmentByID(shipmentID); err != nil {
+		return nil, err
+	}
+	return s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityShipment,
+		EntityID:    shipmentID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
 }
 
 func (s *shipmentService) getShipmentStatusNotificationMessage(status, trackingNumber string) (string, string) {
@@ -298,6 +418,15 @@ func (s *shipmentService) GetShippingProviders() ([]models.ShippingProviders, er
 	var providers []models.ShippingProviders
 	err := s.db.Where("is_active = ?", true).Order("price ASC").Find(&providers).Error
 	return providers, err
+}
+
+func (s *shipmentService) ListShippingProvidersAdmin(ctx context.Context) ([]models.ShippingProviders, error) {
+	var providers []models.ShippingProviders
+	err := s.db.WithContext(ctx).Order("name ASC, id ASC").Find(&providers).Error
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return providers, nil
 }
 
 func (s *shipmentService) GetShippingProviderByID(providerID uint) (*models.ShippingProviders, error) {
@@ -392,6 +521,7 @@ func (s *shipmentService) SimulateDeliveries() error {
 			utils.Log.WithError(err).Errorf("Failed to mark shipment %d as delivered", shipment.ID)
 			continue
 		}
+		s.setShipmentState(context.Background(), shipment.ID, constants.ShipmentStatusDelivered)
 
 		// Broadcast delivery event to the order room
 		s.broadcastShipmentUpdate(shipment.OrderID, shipment.UserID, "shipment_delivered", map[string]interface{}{

@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"strconv"
-
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
@@ -43,36 +41,30 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
 		return
 	}
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "20"))
-	if err != nil || limit < 1 {
-		limit = 20
-	}
-	offset, err := strconv.Atoi(c.DefaultQuery("offset", "0"))
-	if err != nil || offset < 0 {
-		offset = 0
-	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
 	filters := dto.WalletListFilters{
 		Offset: offset,
 		Limit:  limit,
 	}
 	balance, err := ctrl.walletService.GetBalance(userID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to get wallet balance")
+		utils.HandleServiceError(c, err, "failed to get wallet balance")
 		return
 	}
 	transactions, total, err := ctrl.walletService.GetTransactions(userID, filters)
 	txResponses := make([]dto.TransactionResponse, len(transactions))
 	for i, tx := range transactions {
 		txResponses[i] = dto.TransactionResponse{
-			ID:            tx.ID,
-			CreatedAt:     tx.CreatedAt,
-			Amount:        tx.Amount,
-			Type:          tx.Type,
-			ReferenceType: tx.ReferenceType,
-			ReferenceID:   tx.ReferenceID,
-			Description:   tx.Description,
-			BalanceAfter:  tx.BalanceAfter,
-			Status:        tx.Status,
+			ID:              tx.ID,
+			CreatedAt:       tx.CreatedAt,
+			Amount:          tx.Amount,
+			Type:            tx.Type,
+			ReferenceType:   tx.ReferenceType,
+			ReferenceID:     tx.ReferenceID,
+			Description:     tx.Description,
+			BalanceAfter:    tx.BalanceAfter,
+			Status:          tx.Status,
+			StripeSessionID: tx.StripeSessionID,
 		}
 	}
 	data := dto.WalletDetailResponse{
@@ -86,15 +78,15 @@ func (ctrl *WalletController) GetWallet(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
 }
 
-// Deposit initiates a wallet deposit (requires payment gateway integration).
+// Deposit initiates a wallet deposit via Stripe Checkout (or mock confirm when Stripe is disabled).
 // @Summary      Deposit funds
-// @Description  Create a pending deposit transaction. In production, this would integrate with a payment gateway.
+// @Description  Creates a pending deposit and returns a Stripe Checkout URL when Stripe is enabled.
 // @Tags         Wallet
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body dto.DepositRequest true "Deposit amount"
-// @Success      200 {object} utils.Response{data=object{transaction_id=uint}}
+// @Success      200 {object} utils.Response{data=dto.DepositResponse}
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
 // @Failure      500 {object} utils.Response
@@ -109,20 +101,23 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	// Create pending transaction
-	txID, err := ctrl.walletService.CreatePendingDeposit(userID, req.Amount, "Online deposit via payment gateway")
+
+	customerEmail := ""
+	if emailVal, exists := c.Get("user_email"); exists {
+		customerEmail, _ = emailVal.(string)
+	}
+
+	result, err := ctrl.walletService.InitiateDeposit(userID, req.Amount, customerEmail)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to deposit")
+		utils.HandleServiceError(c, err, "failed to deposit")
 		return
 	}
-	if err := ctrl.walletService.ConfirmDeposit(txID); err != nil {
-		utils.HandleAppError(c, err, "failed to confirm deposit")
-		return
+
+	message := "deposit completed"
+	if result.Status == constants.WalletTxStatusPending {
+		message = "deposit initiated — complete payment at checkout_url"
 	}
-	utils.SuccessResponse(c, "deposit initiated", gin.H{
-		"transaction_id": txID,
-		"status":         "completed",
-	})
+	utils.SuccessResponse(c, message, result)
 }
 
 // AdminAdjust adjusts a user's wallet balance (admin only).
@@ -140,17 +135,13 @@ func (ctrl *WalletController) Deposit(c *gin.Context) {
 // @Failure      500 {object} utils.Response
 // @Router       /admin/wallet/adjust [post]
 func (ctrl *WalletController) AdminAdjust(c *gin.Context) {
-	role, ok := middleware.GetUserRole(c)
-	if !ok || role != "admin" {
-		utils.ForbiddenResponse(c, constants.ErrorForbidden)
-		return
-	}
 	var req dto.AdminAdjustRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
 	if err := ctrl.walletService.AdminAdjust(req.UserID, req.Amount, req.Description); err != nil {
-		utils.HandleAppError(c, err, "adjustment failed")
+		utils.HandleServiceError(c, err, "adjustment failed")
+		return
 	}
 	utils.SuccessResponse(c, "wallet adjusted successfully", nil)
 }
@@ -180,7 +171,7 @@ func (ctrl *WalletController) Withdraw(c *gin.Context) {
 	}
 	err := ctrl.walletService.Withdraw(userID, req.Amount, "user_withdrawal", nil, req.Description)
 	if err != nil {
-		utils.HandleAppError(c, err, "withdrawal failed")
+		utils.HandleServiceError(c, err, "withdrawal failed")
 		return
 	}
 	utils.SuccessResponse(c, "withdrawal successful", nil)
@@ -205,26 +196,26 @@ func (ctrl *WalletController) GetTransaction(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
 		return
 	}
-	txID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid transaction id")
+	txID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
-	tx, err := ctrl.walletService.GetTransaction(userID, uint(txID))
+	tx, err := ctrl.walletService.GetTransaction(userID, txID)
 	if err != nil {
-		utils.HandleAppError(c, err, "failed to fetch transaction")
+		utils.HandleServiceError(c, err, "failed to fetch transaction")
 		return
 	}
 	resp := dto.TransactionResponse{
-		ID:            tx.ID,
-		CreatedAt:     tx.CreatedAt,
-		Amount:        tx.Amount,
-		Type:          tx.Type,
-		ReferenceType: tx.ReferenceType,
-		ReferenceID:   tx.ReferenceID,
-		Description:   tx.Description,
-		BalanceAfter:  tx.BalanceAfter,
-		Status:        tx.Status,
+		ID:              tx.ID,
+		CreatedAt:       tx.CreatedAt,
+		Amount:          tx.Amount,
+		Type:            tx.Type,
+		ReferenceType:   tx.ReferenceType,
+		ReferenceID:     tx.ReferenceID,
+		Description:     tx.Description,
+		BalanceAfter:    tx.BalanceAfter,
+		Status:          tx.Status,
+		StripeSessionID: tx.StripeSessionID,
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, resp)
 }
@@ -249,17 +240,13 @@ func (ctrl *WalletController) CancelPendingDeposit(c *gin.Context) {
 		return
 	}
 
-	txID, err := strconv.ParseUint(c.Param("id"), 10, 64)
-	if err != nil {
-		utils.ErrorResponse(c, 400, "invalid transaction id")
+	txID, ok := parseUintParam(c, "id")
+	if !ok {
 		return
 	}
 
-	// Add a service method to cancel pending deposit.
-	// Service should verify ownership and status.
-	err = ctrl.walletService.CancelPendingDeposit(userID, uint(txID))
-	if err != nil {
-		utils.HandleAppError(c, err, "failed to cancel deposit")
+	if err := ctrl.walletService.CancelPendingDeposit(userID, txID); err != nil {
+		utils.HandleServiceError(c, err, "failed to cancel deposit")
 		return
 	}
 

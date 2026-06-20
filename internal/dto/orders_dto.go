@@ -1,10 +1,39 @@
 package dto
 
 import (
+	"encoding/json"
+	"strings"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
+
+// CheckoutResult is returned from checkout; MarshalJSON flattens the order for backward-compatible API responses.
+type CheckoutResult struct {
+	Order           *models.Order
+	CheckoutURL     string
+	StripeSessionID string
+}
+
+func (r CheckoutResult) MarshalJSON() ([]byte, error) {
+	if r.Order == nil {
+		return json.Marshal(map[string]interface{}{})
+	}
+	raw, err := json.Marshal(r.Order)
+	if err != nil {
+		return nil, err
+	}
+	payload := map[string]interface{}{}
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+	if r.CheckoutURL != "" {
+		payload["checkout_url"] = r.CheckoutURL
+		payload["stripe_session_id"] = r.StripeSessionID
+	}
+	return json.Marshal(payload)
+}
 
 type CheckoutRequest struct {
 	CouponCode     string `json:"coupon_code,omitempty"`
@@ -19,16 +48,28 @@ type CheckoutRequest struct {
 	Country        string `json:"country" validate:"required"`
 	Phone          string `json:"phone" validate:"required"`
 	ShippingMethod string `json:"shipping_method"`
-	PaymentMethod  string `json:"payment_method"`
+	PaymentMethod  string `json:"payment_method" validate:"omitempty,oneof=mock stripe wallet"`
 	SaveInfo       bool   `json:"save_info"`
 	Newsletter     bool   `json:"newsletter"`
 	CardLast4      string `json:"card_last4,omitempty"`
 
 	ShippingProviderID *uint  `json:"shipping_provider_id,omitempty"`
-	CardNumber         string `json:"card_number" validate:"required,len=16"`
-	ExpiryMonth        int    `json:"expiry_month" validate:"required,min=1,max=12"`
-	ExpiryYear         int    `json:"expiry_year" validate:"required,min=2025"`
-	CVV                string `json:"cvv" validate:"required,len=3"`
+	CardNumber         string `json:"card_number" validate:"required_if=PaymentMethod mock,omitempty,len=16"`
+	ExpiryMonth        int    `json:"expiry_month" validate:"required_if=PaymentMethod mock,omitempty,min=1,max=12"`
+	ExpiryYear         int    `json:"expiry_year" validate:"required_if=PaymentMethod mock,omitempty,min=2025"`
+	CVV                string `json:"cvv" validate:"required_if=PaymentMethod mock,omitempty,len=3"`
+}
+
+// NormalizePaymentMethod sets a default payment method based on Stripe availability.
+func (r *CheckoutRequest) NormalizePaymentMethod(stripeEnabled bool) {
+	if r.PaymentMethod != "" {
+		return
+	}
+	if stripeEnabled {
+		r.PaymentMethod = "stripe"
+	} else {
+		r.PaymentMethod = "mock"
+	}
 }
 
 // CardInfo used internally (no JSON tags needed)
@@ -63,4 +104,178 @@ type OrderResponse struct {
 	TotalAmount float64   `json:"total_amount"`
 	Status      string    `json:"status"`
 	CreatedAt   time.Time `json:"created_at"`
+}
+
+// AdminOrderListItem is a row in the admin orders table.
+type AdminOrderListItem struct {
+	ID            uint      `json:"id"`
+	OrderNumber   string    `json:"order_number"`
+	Status        string    `json:"status"`
+	PaymentStatus string    `json:"payment_status"`
+	TotalAmount   float64   `json:"total_amount"`
+	Currency      string    `json:"currency"`
+	CustomerName  string    `json:"customer_name"`
+	CustomerEmail string    `json:"customer_email"`
+	ItemsCount    int       `json:"items_count"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// AdminOrderListData wraps paginated admin order rows.
+type AdminOrderListData struct {
+	Orders []AdminOrderListItem `json:"orders"`
+	Total  int64                `json:"total"`
+	Limit  int                  `json:"limit"`
+	Offset int                  `json:"offset"`
+}
+
+// ToAdminOrderListItem maps an order model (with User preloaded) to an admin list row.
+func ToAdminOrderListItem(order models.Order) AdminOrderListItem {
+	name := strings.TrimSpace(order.User.FirstName + " " + order.User.LastName)
+	if name == "" {
+		name = order.User.Email
+	}
+
+	paymentStatus := constants.PaymentStatusPending
+	if order.Payment != nil && order.Payment.Status != "" {
+		paymentStatus = order.Payment.Status
+	}
+
+	return AdminOrderListItem{
+		ID:            order.ID,
+		OrderNumber:   order.OrderNumber,
+		Status:        order.Status,
+		PaymentStatus: paymentStatus,
+		TotalAmount:   order.TotalAmount,
+		Currency:      order.Currency,
+		CustomerName:  name,
+		CustomerEmail: order.User.Email,
+		ItemsCount:    len(order.Items),
+		CreatedAt:     order.CreatedAt,
+	}
+}
+
+// ToAdminOrderListItems maps orders to admin list rows.
+func ToAdminOrderListItems(orders []models.Order) []AdminOrderListItem {
+	items := make([]AdminOrderListItem, len(orders))
+	for i, order := range orders {
+		items[i] = ToAdminOrderListItem(order)
+	}
+	return items
+}
+
+// AdminOrderItemView is a line item on the admin order detail page.
+type AdminOrderItemView struct {
+	ID         uint    `json:"id"`
+	ProductID  uint    `json:"product_id"`
+	Name       string  `json:"name"`
+	SKU        string  `json:"sku"`
+	Image      string  `json:"image,omitempty"`
+	Quantity   int     `json:"quantity"`
+	UnitPrice  float64 `json:"unit_price"`
+	TotalPrice float64 `json:"total_price"`
+	Category   string  `json:"category,omitempty"`
+}
+
+// AdminOrderDetailResponse powers the admin order detail page.
+type AdminOrderDetailResponse struct {
+	ID              uint                 `json:"id"`
+	OrderNumber     string               `json:"order_number"`
+	Status          string               `json:"status"`
+	PaymentStatus   string               `json:"payment_status"`
+	PaymentMethod   string               `json:"payment_method,omitempty"`
+	TotalAmount     float64              `json:"total_amount"`
+	Currency        string               `json:"currency"`
+	Notes           string               `json:"notes,omitempty"`
+	CustomerName    string               `json:"customer_name"`
+	CustomerEmail   string               `json:"customer_email"`
+	TrackingNumber  string               `json:"tracking_number,omitempty"`
+	Carrier         string               `json:"carrier,omitempty"`
+	EstimatedDelivery *time.Time         `json:"estimated_delivery,omitempty"`
+	CreatedAt       time.Time            `json:"created_at"`
+	UpdatedAt       time.Time            `json:"updated_at"`
+	Items           []AdminOrderItemView `json:"items"`
+}
+
+// ToAdminOrderDetail maps a fully preloaded order to the admin detail response.
+func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
+	name := strings.TrimSpace(order.User.FirstName + " " + order.User.LastName)
+	if name == "" {
+		name = order.User.Email
+	}
+
+	paymentStatus := constants.PaymentStatusPending
+	paymentMethod := ""
+	if order.Payment != nil {
+		if order.Payment.Status != "" {
+			paymentStatus = order.Payment.Status
+		}
+		paymentMethod = order.Payment.Method
+	}
+
+	items := make([]AdminOrderItemView, len(order.Items))
+	for i, item := range order.Items {
+		image := ""
+		name := "Product"
+		sku := ""
+		category := ""
+		if item.Product.ID != 0 {
+			name = item.Product.Name
+			sku = item.Product.SKU
+			if len(item.Product.Images) > 0 {
+				image = item.Product.Images[0]
+			}
+			if item.Product.Category.Name != "" {
+				category = item.Product.Category.Name
+			}
+		}
+		items[i] = AdminOrderItemView{
+			ID:         item.ID,
+			ProductID:  item.ProductID,
+			Name:       name,
+			SKU:        sku,
+			Image:      image,
+			Quantity:   item.Quantity,
+			UnitPrice:  item.Price,
+			TotalPrice: item.Total,
+			Category:   category,
+		}
+	}
+
+	detail := AdminOrderDetailResponse{
+		ID:            order.ID,
+		OrderNumber:   order.OrderNumber,
+		Status:        order.Status,
+		PaymentStatus: paymentStatus,
+		PaymentMethod: paymentMethod,
+		TotalAmount:   order.TotalAmount,
+		Currency:      order.Currency,
+		Notes:         order.Notes,
+		CustomerName:  name,
+		CustomerEmail: order.User.Email,
+		CreatedAt:     order.CreatedAt,
+		UpdatedAt:     order.UpdatedAt,
+		Items:         items,
+	}
+
+	if order.Shipment != nil {
+		detail.TrackingNumber = order.Shipment.TrackingNumber
+		detail.Carrier = order.Shipment.Carrier
+		if order.Shipment.EstimatedDelivery != nil {
+			detail.EstimatedDelivery = order.Shipment.EstimatedDelivery
+		}
+	}
+
+	return detail
+}
+
+// PerformOrderTransitionRequest triggers a workflow event on an order (admin).
+type PerformOrderTransitionRequest struct {
+	Event string `json:"event" validate:"required,min=1,max=64"`
+	Note  string `json:"note"  validate:"omitempty,max=512"`
+}
+
+// OrderTransitionResponse is returned after a successful order workflow transition.
+type OrderTransitionResponse struct {
+	Transition TransitionResultView `json:"transition"`
+	Order      interface{}          `json:"order"` // models.Order in responses
 }

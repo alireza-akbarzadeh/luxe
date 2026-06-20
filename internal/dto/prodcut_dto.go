@@ -166,6 +166,8 @@ type ProductResponse struct {
 	Tags        []string   `json:"tags,omitempty"`
 	Channels    []string   `json:"channels,omitempty"`
 	PublishedAt *time.Time `json:"published_at,omitempty"`
+
+	WorkflowState *StateView `json:"workflow_state,omitempty"`
 }
 
 // ToProductResponse maps a models.Product to a ProductResponse.
@@ -253,6 +255,10 @@ func ToProductResponse(p models.Product) ProductResponse {
 		r.Store = ToProductStoreSummary(p.Store)
 	}
 
+	if p.WorkflowState != nil {
+		r.WorkflowState = ToStateView(p.WorkflowState)
+	}
+
 	return r
 }
 
@@ -322,4 +328,16 @@ type ToggleLikeResponse struct {
 type ProductAttributeResponse struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
+}
+
+// PerformProductTransitionRequest triggers a workflow event on a product (admin).
+type PerformProductTransitionRequest struct {
+	Event string `json:"event" validate:"required,min=1,max=64"`
+	Note  string `json:"note"  validate:"omitempty,max=512"`
+}
+
+// ProductTransitionResponse is returned after a successful product workflow transition.
+type ProductTransitionResponse struct {
+	Transition TransitionResultView `json:"transition"`
+	Product    ProductResponse      `json:"product"`
 }
