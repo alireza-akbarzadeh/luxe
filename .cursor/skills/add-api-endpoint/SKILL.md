@@ -1,0 +1,38 @@
+---
+name: add-api-endpoint
+description: Adds an HTTP endpoint to an existing luxe Go service — DTO, service method, controller, route, Swagger. Use when extending APIs, new actions on existing resources, or admin/store routes without a new table.
+---
+
+# Add API endpoint
+
+**Default:** copy the nearest handler in the same `*_controller.go` / `*_service.go`.
+
+## Checklist
+
+```text
+- [ ] DTO in internal/dto/ (if new request/response shapes)
+- [ ] Service method — ctx first, db.WithContext(ctx)
+- [ ] Controller — bind, validate, utils.Response, no business logic
+- [ ] Route in existing *_routes.go
+- [ ] Swagger @Router @Success utils.Response{data=…}
+- [ ] make swagger
+- [ ] Test the path
+- [ ] Frontend: restart API → pnpm api:gen
+```
+
+## Gotchas
+
+- **New columns/tables needed?** Stop — run `/new-api-entity` migration first.
+- **Multi-table mutation** → `db.Transaction` in the service.
+- **`utils.Response{data=dto.X}` in @Success** — bare `dto.X` breaks Orval type generation on the frontend.
+- **Constants for statuses/roles** — `internal/constants`.
+- **Both repos:** backend Swagger alone is not enough; luxe-front needs regen after restart.
+
+## Validate
+
+```bash
+go test ./internal/services/... -run TestYourFeature
+make swagger && go build ./...
+```
+
+Handler template: see [references/handler-pattern.md](../new-api-entity/references/handler-pattern.md) in the `new-api-entity` skill.
