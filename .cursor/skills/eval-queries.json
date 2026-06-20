@@ -1,0 +1,66 @@
+[
+  {
+    "skill": "new-api-entity",
+    "query": "add a full CRUD API for gift_cards — new postgres table, model, service, admin routes",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "skill": "new-api-entity",
+    "query": "we need a suppliers domain from scratch with goose migration and swagger",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "skill": "new-api-entity",
+    "query": "create the backend for staff invitations — new entity, jwt-protected admin endpoints",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "skill": "new-api-entity",
+    "query": "add POST /admin/categories/bulk-delete to the existing category service",
+    "should_trigger": false,
+    "split": "train",
+    "note": "near-miss: existing entity — add-api-endpoint"
+  },
+  {
+    "skill": "new-api-entity",
+    "query": "regenerate orval after I updated swagger",
+    "should_trigger": false,
+    "split": "validation",
+    "note": "frontend api-gen"
+  },
+  {
+    "skill": "add-api-endpoint",
+    "query": "add bulk delete for admin categories on the existing category controller",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "skill": "add-api-endpoint",
+    "query": "extend orders service with a cancel-shipment action — no new tables",
+    "should_trigger": true,
+    "split": "train"
+  },
+  {
+    "skill": "add-api-endpoint",
+    "query": "new GET /admin/workflows/{id}/history on the workflow service we already have",
+    "should_trigger": true,
+    "split": "validation"
+  },
+  {
+    "skill": "add-api-endpoint",
+    "query": "create suppliers table and full REST API from scratch",
+    "should_trigger": false,
+    "split": "train",
+    "note": "near-miss: new entity"
+  },
+  {
+    "skill": "add-api-endpoint",
+    "query": "add deleted_at column to products and filter soft deletes in list queries",
+    "should_trigger": false,
+    "split": "validation",
+    "note": "migration + service change may need new-api-entity migration step first"
+  }
+]

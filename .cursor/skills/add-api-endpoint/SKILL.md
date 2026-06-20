@@ -1,6 +1,11 @@
 ---
 name: add-api-endpoint
-description: Adds an HTTP endpoint to an existing luxe Go service — DTO, service method, controller, route, Swagger. Use when extending APIs, new actions on existing resources, or admin/store routes without a new table.
+description: >
+  Use when adding a new HTTP handler to an existing luxe Go service — extra action,
+  admin route, bulk operation, or method on a resource that already has a model.
+  Apply when extending categories, orders, coupons, etc. without a new database table.
+  Do not use for new entities/migrations from scratch (use new-api-entity) or
+  luxe-front Orval regen alone.
 ---
 
 # Add API endpoint

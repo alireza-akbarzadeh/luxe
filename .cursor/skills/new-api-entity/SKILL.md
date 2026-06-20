@@ -1,6 +1,11 @@
 ---
 name: new-api-entity
-description: Creates a new Go domain entity in luxe — Goose migration, model, DTO, service, controller, routes, Swagger. Use when adding database tables, REST resources, CRUD APIs, or new backend modules.
+description: >
+  Use when introducing a new luxe backend domain from scratch — Goose migration,
+  GORM model, DTO, service, controller, routes, and Swagger for a new table or REST
+  resource. Apply when the user asks for a new entity, CRUD API, database table, or
+  full-stack feature starting on the backend. Do not use for a single new route on an
+  existing service (use add-api-endpoint) or luxe-front-only work.
 ---
 
 # New API entity
