@@ -62,6 +62,12 @@ func (h *PaymentProviderController) GetPaymentProviders(c *gin.Context) {
 }
 
 // GetStripeConfig returns public Stripe client configuration for the frontend.
+// @Summary      Get Stripe client configuration
+// @Description  Returns whether Stripe is enabled and the publishable key for client-side checkout.
+// @Tags         Payment
+// @Produce      json
+// @Success      200 {object} utils.Response{data=dto.StripeConfigResponse}
+// @Router       /payments/stripe-config [get]
 func (h *PaymentProviderController) GetStripeConfig(c *gin.Context) {
 	enabled := h.cfg != nil && h.cfg.Stripe.Enabled
 	resp := dto.StripeConfigResponse{Enabled: enabled}

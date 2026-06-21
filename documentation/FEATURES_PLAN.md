@@ -160,7 +160,7 @@ These unblock daily operations and prevent regressions.
 - [x] **Shipping providers admin** — create/edit/detail, fix navigation, wire Orval mutations
 - [x] **Discounts admin polish** — KPI cards, status filter tabs, delete coupon, loading/error routes
 - [x] **Deprecate legacy status PUT** — bulk order status removed from list UI; shipment/order status PUT marked deprecated in swagger; workflow panel is sole path on detail
-- [ ] **Run `pnpm api:gen`** after backend swagger changes; commit Orval output or document regen in CI (requires running API at `OPENAPI_BASE_URL`)
+- [x] **Run `pnpm api:gen`** after backend swagger changes; commit Orval output or document regen in CI (`OPENAPI_BASE_URL=http://localhost:8080 pnpm api:gen`)
 - [x] **Integration tests** — coupon workflow (pause/resume), invoice on paid order, admin wallet adjust (`tests/integration/`)
 
 ### P1 — Admin surfaces for existing APIs (2–3 weeks)
@@ -274,7 +274,7 @@ Use this as a **checklist**. Complete each block before jumping ahead unless blo
 ### Block A — Housekeeping (now)
 
 1. Fix remaining `-admin-*` barrel imports across front — **done** (admin imports use per-endpoint `@/services/-admin-*` files)
-2. `make swagger` + `pnpm api:gen` after any backend route change
+2. `make swagger` + `pnpm api:gen` after any backend route change — **done** (stripe-config swagger + full Orval regen)
 3. `pnpm check` + `make test` before merging admin features
 4. Document env vars in `.env.example` (both repos)
 

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -30,6 +31,7 @@ type StoreServiceInterface interface {
 	CreateStoreReview(userID, storeID uint, req dto.CreateStoreReviewRequest) (*models.StoreReview, error)
 	UpdateStoreReview(userID, reviewID uint, req dto.UpdateStoreReviewRequest) (*models.StoreReview, error)
 	DeleteStoreReview(userID, reviewID uint) error
+	ListVendorStores(ctx context.Context, userID uint, role string) ([]*models.Store, error)
 }
 
 type storeService struct {
@@ -102,6 +104,23 @@ func (s *storeService) ListStores(limit, offset int, filters dto.StoreFilter) ([
 	}
 
 	return stores, total, nil
+}
+
+// ListVendorStores returns stores the current user can manage in the vendor panel.
+// Admins and moderators see all stores; sellers see stores they own.
+func (s *storeService) ListVendorStores(ctx context.Context, userID uint, role string) ([]*models.Store, error) {
+	query := s.db.WithContext(ctx).Model(&models.Store{}).Preload("Categories").Order("name ASC")
+
+	if role != constants.RoleAdmin && role != constants.RoleModerator {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	var stores []*models.Store
+	if err := query.Find(&stores).Error; err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	return stores, nil
 }
 
 // GetByID retrieves a store by its primary key.

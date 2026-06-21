@@ -592,3 +592,37 @@ func (ctrl *StoreController) DeleteStoreReview(c *gin.Context) {
 
 	utils.SuccessResponse(c, constants.MsgDeleteSuccess, nil)
 }
+
+// ListVendorStores returns stores the authenticated user can manage in the vendor panel.
+// @Summary      List vendor stores
+// @Description  Returns stores owned by the current seller, or all stores for admins/moderators
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=[]dto.StoreResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /vendor/stores [get]
+func (ctrl *StoreController) ListVendorStores(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	role, _ := middleware.GetUserRole(c)
+
+	stores, err := ctrl.storeService.ListVendorStores(c.Request.Context(), userID, role)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list vendor stores")
+		return
+	}
+
+	responses := make([]dto.StoreResponse, len(stores))
+	for i, store := range stores {
+		responses[i] = dto.ToStoreResponse(store)
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)
+}

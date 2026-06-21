@@ -36,4 +36,9 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Cont
 		adminStores.PUT("/:id", ctrl.Store.UpdateStore)
 		adminStores.DELETE("/:id", ctrl.Store.DeleteStore)
 	}
+
+	vendorStores := protected.Group("/vendor/stores")
+	{
+		vendorStores.GET("", ctrl.Store.ListVendorStores)
+	}
 }
