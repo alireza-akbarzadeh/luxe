@@ -49,5 +49,12 @@
   "field_invalid_email": "باید یک آدرس ایمیل معتبر باشد",
   "field_too_short": "مقدار کوتاه است",
   "field_too_long": "مقدار بلند است",
-  "field_invalid_phone": "شماره تلفن باید با فرمت E.164 باشد (مثلاً +1234567890)"
+  "field_invalid_phone": "شماره تلفن باید با فرمت E.164 باشد (مثلاً +1234567890)",
+  "permission_required": "مجوز لازم را ندارید",
+  "role_required": "نقش لازم را ندارید",
+  "invalid_token_error": "خطای توکن نامعتبر",
+  "invalid_authorization_format_bearer": "هدر احراز هویت باید به صورت Bearer {token} باشد",
+  "too_many_requests_slow_down": "درخواست‌های زیاد — آهسته‌تر ارسال کنید و دوباره تلاش کنید",
+  "registration_failed": "ثبت‌نام ناموفق بود",
+  "login_failed": "ورود ناموفق بود"
 }

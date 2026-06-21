@@ -94,6 +94,19 @@ func FormatValidationErrors(err error) map[string]string {
 	return errorsMap
 }
 
+// FormatValidationErrorsLocalized converts validation errors to localized field messages.
+func FormatValidationErrorsLocalized(c *gin.Context, err error) map[string]string {
+	errorsMap := FormatValidationErrors(err)
+	if c == nil || c.Request == nil {
+		return errorsMap
+	}
+	ctx := c.Request.Context()
+	for field, tag := range errorsMap {
+		errorsMap[field] = i18n.TranslateFieldError(ctx, tag)
+	}
+	return errorsMap
+}
+
 // ValidationErrorResponse sends a 400 Bad Request with validation details.
 func ValidationErrorResponse(c *gin.Context, errs interface{}) {
 	c.JSON(http.StatusBadRequest, Response{
@@ -123,7 +136,7 @@ func BindAndValidateQuery(c *gin.Context, req interface{}, validate *validator.V
 func handleBindingError(c *gin.Context, err error) bool {
 	var ve validator.ValidationErrors
 	if errors.As(err, &ve) {
-		ValidationErrorResponse(c, FormatValidationErrors(ve))
+		ValidationErrorResponse(c, FormatValidationErrorsLocalized(c, ve))
 		return false
 	}
 	ValidationErrorResponse(c, err.Error())

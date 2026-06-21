@@ -9,6 +9,7 @@ import (
 func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.RequestID())
 	r.engine.Use(middleware.Locale())
+	r.engine.Use(middleware.LocalizeResponse())
 	if r.cfg.Observability.OTELEnabled {
 		name := r.cfg.Observability.ServiceName
 		if name == "" {

@@ -143,6 +143,16 @@ func buildEnglishToKey() map[string]string {
 		constants.ErrInvalidQuantity:          "invalid_quantity",
 		constants.ErrPaymentFailed:            "payment_failed",
 		constants.ErrShipmentNotFound:         "shipment_not_found",
+		constants.ErrorMissingAuthHeader:      "authorization_header_missing",
+		constants.ErrMissingAuthHeader:        "authorization_header_missing",
+		constants.ErrorInvalidAuthFormat:      "invalid_authorization_format_bearer",
+		constants.ErrInvalidAuthFormat:        "invalid_authorization_format",
+		constants.ErrorUnauthorized:           "permission_required",
+		constants.ErrorForbidden:              "role_required",
+		constants.ErrorInvalidToken:           "invalid_token_error",
+		constants.MsgRegistrationFailed:       "registration_failed",
+		constants.MsgLoginFailed:              "login_failed",
+		"too many requests — slow down and retry": "too_many_requests_slow_down",
 	}
 
 	for tag, english := range constants.ValidationTagMessages {

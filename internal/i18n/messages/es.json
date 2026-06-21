@@ -49,5 +49,12 @@
   "field_invalid_email": "debe ser una dirección de correo válida",
   "field_too_short": "el valor es demasiado corto",
   "field_too_long": "el valor es demasiado largo",
-  "field_invalid_phone": "el número de teléfono debe estar en formato E.164 (p. ej., +1234567890)"
+  "field_invalid_phone": "el número de teléfono debe estar en formato E.164 (p. ej., +1234567890)",
+  "permission_required": "No tiene el permiso necesario",
+  "role_required": "No tiene el rol necesario",
+  "invalid_token_error": "error de token inválido",
+  "invalid_authorization_format_bearer": "el encabezado de autorización debe tener el formato: Bearer {token}",
+  "too_many_requests_slow_down": "demasiadas solicitudes — reduzca la velocidad e inténtelo de nuevo",
+  "registration_failed": "error en el registro",
+  "login_failed": "error al iniciar sesión"
 }
