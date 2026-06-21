@@ -25,6 +25,7 @@ type Config struct {
 	Stripe                StripeConfig
 	ShipmentDeliveryDelay time.Duration
 	InventoryAlertEmails  []string
+	Push                  PushConfig
 }
 
 type RedisConfig struct {
@@ -98,6 +99,12 @@ type StripeConfig struct {
 	PublishableKey string
 	WebhookSecret  string
 	Enabled        bool
+}
+
+type PushConfig struct {
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubject    string
 }
 
 var AppConfig *Config
@@ -179,6 +186,10 @@ func Load() (*Config, error) {
 	viper.SetDefault("STRIPE_SECRET_KEY", "")
 	viper.SetDefault("STRIPE_PUBLISHABLE_KEY", "")
 	viper.SetDefault("STRIPE_WEBHOOK_SECRET", "")
+
+	viper.SetDefault("VAPID_PUBLIC_KEY", "")
+	viper.SetDefault("VAPID_PRIVATE_KEY", "")
+	viper.SetDefault("VAPID_SUBJECT", "mailto:noreply@yourapp.com")
 
 	accessExpiry, err := time.ParseDuration(viper.GetString("JWT_ACCESS_TOKEN_EXPIRY"))
 	if err != nil {
@@ -285,6 +296,11 @@ func Load() (*Config, error) {
 			PublishableKey: viper.GetString("STRIPE_PUBLISHABLE_KEY"),
 			WebhookSecret:  viper.GetString("STRIPE_WEBHOOK_SECRET"),
 			Enabled:        viper.GetString("STRIPE_SECRET_KEY") != "",
+		},
+		Push: PushConfig{
+			VAPIDPublicKey:  viper.GetString("VAPID_PUBLIC_KEY"),
+			VAPIDPrivateKey: viper.GetString("VAPID_PRIVATE_KEY"),
+			VAPIDSubject:    viper.GetString("VAPID_SUBJECT"),
 		},
 	}
 

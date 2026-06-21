@@ -22,6 +22,7 @@ type Services struct {
 	Order        OrderServiceInterface
 	Shipment     ShipmentServiceInterface
 	Notification NotificationServiceInterface
+	Push         PushServiceInterface
 	WebSocketHub *websocket.Hub
 	Coupon       CouponServiceInterface
 	Address      AddressServiceInterface
@@ -62,7 +63,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		}
 	})
 
-	notificationSvc := NewNotificationService(db, wsHub)
+	pushSvc := NewPushService(db, cfg)
+	notificationSvc := NewNotificationService(db, wsHub, pushSvc)
 	paymentSvc := NewPaymentService(db, cfg)
 	walletSvc := NewWalletService(db, cfg)
 
@@ -107,6 +109,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,
 		Notification: notificationSvc,
+		Push:         pushSvc,
 		WebSocketHub: wsHub,
 		SalesFeed:    salesFeedSvc,
 		Audit:        NewAuditService(db),

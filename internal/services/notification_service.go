@@ -27,13 +27,15 @@ type NotificationServiceInterface interface {
 type notificationService struct {
 	db    *gorm.DB
 	wsHub *websocket.Hub
+	push  PushServiceInterface
 }
 
 // NewNotificationService creates a new notification service
-func NewNotificationService(db *gorm.DB, wsHub *websocket.Hub) NotificationServiceInterface {
+func NewNotificationService(db *gorm.DB, wsHub *websocket.Hub, push PushServiceInterface) NotificationServiceInterface {
 	return &notificationService{
 		db:    db,
 		wsHub: wsHub,
+		push:  push,
 	}
 }
 
@@ -68,6 +70,12 @@ func (s *notificationService) CreateNotification(userID uint, notificationType, 
 		"data":       data,
 		"created_at": notification.CreatedAt,
 	})
+
+	if s.push != nil && s.push.Enabled() {
+		go func(uid uint, nType, nTitle, nMessage string, nData interface{}, nID uint) {
+			_ = s.push.SendNotificationToUser(uid, nType, nTitle, nMessage, nData, nID)
+		}(userID, notificationType, title, message, data, notification.ID)
+	}
 
 	return nil
 }
