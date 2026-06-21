@@ -118,7 +118,7 @@ func (s *pushService) SendNotificationToUser(
 		"body":  message,
 		"url":   s.notificationURL(data),
 		"tag":   fmt.Sprintf("luxe-%s-%d", notificationType, notificationID),
-		"icon":  "/icons/icon-192.png",
+		"icon":  "/favicon.svg",
 	})
 	if err != nil {
 		return utils.ErrInternal(err)

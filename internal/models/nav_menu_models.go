@@ -9,9 +9,11 @@ import (
 type NavMenu struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	Label     string         `gorm:"size:100;not null" json:"label"`
+	LabelI18n datatypes.JSON `gorm:"column:label_i18n;type:jsonb" json:"labelI18n,omitempty"`
 	Type      string         `gorm:"size:20;not null" json:"type"`
 	Href      *string        `gorm:"size:500" json:"href,omitempty"`
 	Badge     *string        `gorm:"size:50" json:"badge,omitempty"`
+	BadgeI18n datatypes.JSON `gorm:"column:badge_i18n;type:jsonb" json:"badgeI18n,omitempty"`
 	ViewAll   datatypes.JSON `gorm:"column:view_all;type:jsonb" json:"viewAll,omitempty"`
 	Columns   datatypes.JSON `gorm:"type:jsonb" json:"columns,omitempty"`
 	Featured  datatypes.JSON `gorm:"type:jsonb" json:"featured,omitempty"`
