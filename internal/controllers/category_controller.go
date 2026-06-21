@@ -49,6 +49,7 @@ func (ctrl *CategoryController) Create(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to create category")
 		return
 	}
+	dto.LocalizeCategoryModel(c.Request.Context(), category)
 	resp := dto.CategorySingleResponse{
 		BaseResponse: dto.BaseResponse{
 			Success: true,
@@ -92,6 +93,7 @@ func (ctrl *CategoryController) Update(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to update category")
 		return
 	}
+	dto.LocalizeCategoryModel(c.Request.Context(), category)
 	resp := dto.CategorySingleResponse{
 		BaseResponse: dto.BaseResponse{
 			Success: true,
@@ -164,6 +166,7 @@ func (ctrl *CategoryController) GetOne(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to fetch category")
 		return
 	}
+	dto.LocalizeCategoryModel(c.Request.Context(), category)
 	resp := dto.CategorySingleResponse{
 		BaseResponse: dto.BaseResponse{
 			Success: true,
@@ -202,6 +205,7 @@ func (ctrl *CategoryController) List(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to list categories")
 		return
 	}
+	dto.LocalizeCategoryModels(c.Request.Context(), categories)
 
 	resp := dto.CategoryListResponse{
 		BaseResponse: dto.BaseResponse{
@@ -246,6 +250,9 @@ func (ctrl *CategoryController) BulkCreate(c *gin.Context) {
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to bulk create categories")
 		return
+	}
+	for _, cat := range categories {
+		dto.LocalizeCategoryModel(c.Request.Context(), cat)
 	}
 	resp := dto.BulkCreateCategoryResponse{
 		BaseResponse: dto.BaseResponse{
@@ -321,6 +328,7 @@ func (ctrl *CategoryController) GetCategoryByID(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to find category")
 		return
 	}
+	dto.LocalizeCategoryModel(c.Request.Context(), category)
 
 	// Return same DTO format as other admin endpoints
 	resp := dto.CategorySingleResponse{

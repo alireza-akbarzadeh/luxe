@@ -69,7 +69,7 @@ func (ctrl *SearchController) GlobalSearch(c *gin.Context) {
 		go ctrl.searchService.LogSearch(req.Query, userIDPtr)
 	}
 
-	result, err := ctrl.searchService.GlobalSearch(req)
+	result, err := ctrl.searchService.GlobalSearch(c.Request.Context(), req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "search failed")
 		return
@@ -102,7 +102,7 @@ func (ctrl *SearchController) Suggestions(c *gin.Context) {
 			limit = l
 		}
 	}
-	suggestions, err := ctrl.searchService.Suggestions(q, limit)
+	suggestions, err := ctrl.searchService.Suggestions(c.Request.Context(), q, limit)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get suggestions")
 		return

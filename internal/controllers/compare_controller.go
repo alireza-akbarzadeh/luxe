@@ -38,7 +38,7 @@ func (ctrl *CompareController) CompareProducts(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	products, err := ctrl.compareService.GetForCompare(req.ProductIDs)
+	products, err := ctrl.compareService.GetForCompare(c.Request.Context(), req.ProductIDs)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch products for comparison")
 		return

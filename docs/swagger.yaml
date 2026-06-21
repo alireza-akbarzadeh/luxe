@@ -29,6 +29,29 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.AdjustInventoryRequest:
+    properties:
+      delta:
+        type: integer
+      note:
+        maxLength: 500
+        type: string
+      product_id:
+        type: integer
+      reason:
+        enum:
+        - receive
+        - correction
+        - damage
+        - shrinkage
+        - cycle_count
+        - other
+        type: string
+    required:
+    - delta
+    - product_id
+    - reason
+    type: object
   dto.AdminAdjustRequest:
     properties:
       amount:
@@ -156,6 +179,48 @@ definitions:
       units_sold:
         type: integer
     type: object
+  dto.AdminInvoiceListData:
+    properties:
+      invoices:
+        items:
+          $ref: '#/definitions/dto.AdminInvoiceListItem'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.AdminInvoiceListItem:
+    properties:
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      invoice_number:
+        type: string
+      issued_at:
+        type: string
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      paid_at:
+        type: string
+      status:
+        type: string
+      total_amount:
+        type: number
+      user_id:
+        type: integer
+    type: object
   dto.AdminOrderDetailResponse:
     properties:
       carrier:
@@ -250,6 +315,43 @@ definitions:
       total_amount:
         type: number
     type: object
+  dto.AdminRevenueDailyRow:
+    properties:
+      avg_order_value:
+        type: number
+      date:
+        type: string
+      orders:
+        type: integer
+      paid_orders:
+        type: integer
+      revenue:
+        type: number
+    type: object
+  dto.AdminRevenueReportResponse:
+    properties:
+      daily:
+        items:
+          $ref: '#/definitions/dto.AdminRevenueDailyRow'
+        type: array
+      generated_at:
+        type: string
+      period:
+        type: string
+      summary:
+        $ref: '#/definitions/dto.AdminRevenueReportSummary'
+    type: object
+  dto.AdminRevenueReportSummary:
+    properties:
+      avg_daily_revenue:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      avg_order_value:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      orders:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+      revenue:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
+    type: object
   dto.AdminSalesFeedEvent:
     properties:
       amount:
@@ -285,6 +387,48 @@ definitions:
         type: integer
       total_revenue_today:
         type: number
+    type: object
+  dto.AdminShipmentListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      shipments:
+        items:
+          $ref: '#/definitions/dto.AdminShipmentListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.AdminShipmentListItem:
+    properties:
+      carrier:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      created_at:
+        type: string
+      customer_name:
+        type: string
+      estimated_delivery:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      shipped_at:
+        type: string
+      state:
+        $ref: '#/definitions/dto.StateView'
+      status:
+        type: string
+      tracking_number:
+        type: string
     type: object
   dto.AdminStatsResponse:
     properties:
@@ -390,6 +534,40 @@ definitions:
         type: string
       updated_at:
         type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.BulkAdjustInventoryRequest:
+    properties:
+      reason:
+        enum:
+        - receive
+        - correction
+        - damage
+        - shrinkage
+        - cycle_count
+        - other
+        type: string
+      rows:
+        items:
+          $ref: '#/definitions/dto.BulkInventoryAdjustRow'
+        maxItems: 500
+        minItems: 1
+        type: array
+    required:
+    - reason
+    - rows
+    type: object
+  dto.BulkAdjustInventoryResponse:
+    properties:
+      applied:
+        type: integer
+      failed:
+        type: integer
+      rows:
+        items:
+          $ref: '#/definitions/dto.BulkInventoryAdjustRowResult'
+        type: array
     type: object
   dto.BulkCategoryData:
     properties:
@@ -418,6 +596,34 @@ definitions:
         type: array
     required:
     - product_ids
+    type: object
+  dto.BulkInventoryAdjustRow:
+    properties:
+      delta:
+        type: integer
+      note:
+        maxLength: 200
+        type: string
+      sku:
+        maxLength: 64
+        minLength: 1
+        type: string
+    required:
+    - delta
+    - sku
+    type: object
+  dto.BulkInventoryAdjustRowResult:
+    properties:
+      message:
+        type: string
+      product_id:
+        type: integer
+      sku:
+        type: string
+      stock:
+        type: integer
+      success:
+        type: boolean
     type: object
   dto.BulkUpdateOrderStatusRequest:
     properties:
@@ -622,6 +828,65 @@ definitions:
     - state
     - zip
     type: object
+  dto.CollectionListData:
+    properties:
+      collections:
+        items:
+          $ref: '#/definitions/dto.CollectionResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.CollectionListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.CollectionListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.CollectionResponse:
+    properties:
+      created_at:
+        type: string
+      cta_label:
+        type: string
+      description:
+        type: string
+      eyebrow:
+        type: string
+      href:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      preview_category_id:
+        type: integer
+      preview_is_new:
+        type: boolean
+      preview_sort:
+        type: string
+      slug:
+        type: string
+      sort_order:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
   dto.Column:
     properties:
       links:
@@ -630,6 +895,8 @@ definitions:
         type: array
       title:
         type: string
+      titleI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
     type: object
   dto.CompareListResponse:
     properties:
@@ -741,6 +1008,8 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.CompareRequest:
     properties:
@@ -883,6 +1152,51 @@ definitions:
     required:
     - name
     type: object
+  dto.CreateCollectionRequest:
+    properties:
+      cta_label:
+        maxLength: 128
+        type: string
+      description:
+        maxLength: 2000
+        type: string
+      eyebrow:
+        maxLength: 128
+        type: string
+      href:
+        maxLength: 512
+        type: string
+      image_url:
+        maxLength: 2048
+        type: string
+      preview_category_id:
+        type: integer
+      preview_is_new:
+        type: boolean
+      preview_sort:
+        maxLength: 64
+        type: string
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      sort_order:
+        type: integer
+      status:
+        enum:
+        - draft
+        - active
+        - inactive
+        - archived
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+    required:
+    - slug
+    - title
+    type: object
   dto.CreateCouponRequest:
     properties:
       code:
@@ -900,6 +1214,8 @@ definitions:
         type: number
       end_date:
         type: string
+      is_active:
+        type: boolean
       max_discount_amount:
         type: number
       minimum_order_amount:
@@ -912,8 +1228,6 @@ definitions:
     - code
     - discount_type
     - discount_value
-    - end_date
-    - start_date
     type: object
   dto.CreateMenuGroupRequest:
     properties:
@@ -1286,6 +1600,13 @@ definitions:
       state:
         type: string
     type: object
+  dto.DeletePushSubscriptionRequest:
+    properties:
+      endpoint:
+        type: string
+    required:
+    - endpoint
+    type: object
   dto.DepositRequest:
     properties:
       amount:
@@ -1322,14 +1643,20 @@ definitions:
     properties:
       badge:
         type: string
+      badgeI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       href:
         type: string
       image:
         type: string
       title:
         type: string
+      titleI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
     type: object
   dto.ForgotPasswordRequest:
     properties:
@@ -1376,12 +1703,168 @@ definitions:
         description: data rows parsed (header excluded)
         type: integer
     type: object
+  dto.InventoryAdjustmentResponse:
+    properties:
+      actor_name:
+        type: string
+      adjustment_type:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      note:
+        type: string
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      product_sku:
+        type: string
+      quantity_after:
+        type: integer
+      quantity_before:
+        type: integer
+      quantity_delta:
+        type: integer
+      reference_id:
+        type: integer
+      reference_type:
+        type: string
+    type: object
+  dto.InventoryHistoryData:
+    properties:
+      adjustments:
+        items:
+          $ref: '#/definitions/dto.InventoryAdjustmentResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.InventoryItemResponse:
+    properties:
+      allow_backorder:
+        type: boolean
+      id:
+        type: integer
+      image_url:
+        type: string
+      low_stock_threshold:
+        type: integer
+      name:
+        type: string
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+      stock_status:
+        type: string
+      track_inventory:
+        type: boolean
+      units_sold_30d:
+        type: integer
+      updated_at:
+        type: string
+      waitlist_count:
+        type: integer
+      warehouse_location:
+        type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.InventoryListData:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.InventoryItemResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.InventoryOverviewResponse:
+    properties:
+      low_stock_count:
+        type: integer
+      not_tracked_count:
+        type: integer
+      out_of_stock_count:
+        type: integer
+      total_units_on_hand:
+        type: integer
+      tracked_sku_count:
+        type: integer
+      waitlist_total:
+        type: integer
+    type: object
+  dto.InvoiceDetailResponse:
+    properties:
+      billing_email:
+        type: string
+      billing_name:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      due_at:
+        type: string
+      id:
+        type: integer
+      invoice_number:
+        type: string
+      issued_at:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.AdminOrderItemView'
+        type: array
+      notes:
+        type: string
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      paid_at:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      shipping_amount:
+        type: number
+      status:
+        type: string
+      subtotal:
+        type: number
+      tax_amount:
+        type: number
+      total_amount:
+        type: number
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
   dto.Link:
     properties:
       href:
         type: string
       title:
         type: string
+      titleI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
     type: object
   dto.LoginRequest:
     properties:
@@ -1479,6 +1962,8 @@ definitions:
     properties:
       badge:
         type: string
+      badgeI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       columns:
         items:
           $ref: '#/definitions/dto.Column'
@@ -1493,6 +1978,8 @@ definitions:
         type: integer
       label:
         type: string
+      labelI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       order:
         type: integer
       type:
@@ -1792,6 +2279,8 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.ProductAnswerResponse:
     properties:
@@ -1942,6 +2431,8 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.ProductStoreSummary:
     properties:
@@ -2068,6 +2559,18 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.PushSubscriptionKeys:
+    properties:
+      auth:
+        type: string
+      p256dh:
+        type: string
+    required:
+    - auth
+    - p256dh
     type: object
   dto.RefreshResponse:
     properties:
@@ -2085,8 +2588,22 @@ definitions:
       refresh_token:
         type: string
     type: object
+  dto.RegisterPushSubscriptionRequest:
+    properties:
+      endpoint:
+        type: string
+      keys:
+        $ref: '#/definitions/dto.PushSubscriptionKeys'
+    required:
+    - endpoint
+    - keys
+    type: object
   dto.RegisterRequest:
     properties:
+      accept_privacy:
+        type: boolean
+      accept_terms:
+        type: boolean
       email:
         type: string
       first_name:
@@ -2103,6 +2620,8 @@ definitions:
       phone:
         type: string
     required:
+    - accept_privacy
+    - accept_terms
     - email
     - first_name
     - last_name
@@ -2372,6 +2891,13 @@ definitions:
       slug:
         type: string
     type: object
+  dto.StripeConfigResponse:
+    properties:
+      enabled:
+        type: boolean
+      publishable_key:
+        type: string
+    type: object
   dto.SuggestionItem:
     properties:
       id:
@@ -2565,6 +3091,48 @@ definitions:
       slug:
         type: string
     type: object
+  dto.UpdateCollectionRequest:
+    properties:
+      cta_label:
+        maxLength: 128
+        type: string
+      description:
+        maxLength: 2000
+        type: string
+      eyebrow:
+        maxLength: 128
+        type: string
+      href:
+        maxLength: 512
+        type: string
+      image_url:
+        maxLength: 2048
+        type: string
+      preview_category_id:
+        type: integer
+      preview_is_new:
+        type: boolean
+      preview_sort:
+        maxLength: 64
+        type: string
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      sort_order:
+        type: integer
+      status:
+        enum:
+        - draft
+        - active
+        - inactive
+        - archived
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+    type: object
   dto.UpdateCouponRequest:
     properties:
       code:
@@ -2587,6 +3155,19 @@ definitions:
         type: string
       usage_limit:
         type: integer
+    type: object
+  dto.UpdateInvoiceStatusRequest:
+    properties:
+      status:
+        enum:
+        - draft
+        - issued
+        - paid
+        - void
+        - refunded
+        type: string
+    required:
+    - status
     type: object
   dto.UpdateMenuGroupRequest:
     properties:
@@ -2850,6 +3431,8 @@ definitions:
     properties:
       badge:
         type: string
+      badgeI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       columns:
         items:
           $ref: '#/definitions/dto.Column'
@@ -2862,6 +3445,8 @@ definitions:
         type: string
       label:
         type: string
+      labelI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       order:
         type: integer
       type:
@@ -2900,12 +3485,21 @@ definitions:
     - code
     - order_total
     type: object
+  dto.VapidPublicKeyResponse:
+    properties:
+      enabled:
+        type: boolean
+      public_key:
+        type: string
+    type: object
   dto.ViewAll:
     properties:
       href:
         type: string
       label:
         type: string
+      labelI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
     type: object
   dto.WalletDetailResponse:
     properties:
@@ -3008,6 +3602,10 @@ definitions:
         description: Valid is true if Time is not NULL
         type: boolean
     type: object
+  i18n.LocalizedMap:
+    additionalProperties:
+      type: string
+    type: object
   models.Address:
     properties:
       address_line1:
@@ -3072,6 +3670,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
+      workflow_state_id:
+        type: integer
     type: object
   models.Category:
     properties:
@@ -3111,6 +3713,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
+      workflow_state_id:
+        type: integer
     required:
     - name
     - slug
@@ -3151,6 +3757,10 @@ definitions:
       usage_limit:
         type: integer
       used_count:
+        type: integer
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
+      workflow_state_id:
         type: integer
     required:
     - code
@@ -3397,6 +4007,8 @@ definitions:
         type: string
       weight:
         type: number
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
       workflow_state_id:
         type: integer
     required:
@@ -3475,6 +4087,8 @@ definitions:
         type: string
       user_id:
         type: integer
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
       workflow_state_id:
         type: integer
     type: object
@@ -3611,7 +4225,16 @@ definitions:
         type: string
       phone:
         type: string
+      privacy_accepted_at:
+        type: string
+      privacy_version:
+        type: string
       role:
+        type: string
+      terms_accepted_at:
+        description: Legal acceptance (set at registration)
+        type: string
+      terms_version:
         type: string
       updated_at:
         type: string
@@ -3794,6 +4417,94 @@ paths:
       summary: Get user order history
       tags:
       - Account
+  /account/push/subscriptions:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a Web Push subscription by endpoint for the current user
+      parameters:
+      - description: Push subscription endpoint
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DeletePushSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete push subscription
+      tags:
+      - Push
+    post:
+      consumes:
+      - application/json
+      description: Stores a Web Push subscription endpoint and keys for the current
+        user
+      parameters:
+      - description: Push subscription
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterPushSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Register push subscription
+      tags:
+      - Push
+  /account/push/test:
+    post:
+      description: Sends a test push notification to all registered devices for the
+        current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Send test push notification
+      tags:
+      - Push
   /account/summary:
     get:
       consumes:
@@ -4421,6 +5132,66 @@ paths:
       summary: Bulk create categories
       tags:
       - Categories
+  /admin/coupons:
+    get:
+      consumes:
+      - application/json
+      description: Returns a paginated list of all coupons for admin management with
+        optional status filters
+      parameters:
+      - default: 20
+        description: Items per page
+        in: query
+        maximum: 100
+        minimum: 1
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        minimum: 0
+        name: offset
+        type: integer
+      - description: Filter by coupon code (partial match)
+        in: query
+        name: code
+        type: string
+      - description: Filter by lifecycle status (active|inactive|expired|exhausted|all)
+        in: query
+        name: status
+        type: string
+      - description: Filter by discount type (percentage/fixed)
+        in: query
+        name: discount_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CouponListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List coupons (admin)
+      tags:
+      - Coupons
   /admin/dashboard/overview:
     get:
       description: Returns period KPIs, revenue series, order status breakdown, recent
@@ -4590,6 +5361,420 @@ paths:
       tags:
       - Admin
       - Import
+  /admin/inventory:
+    get:
+      description: Paginated product inventory rows with stock status, waitlist counts,
+        and 30-day velocity
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: limit
+        type: integer
+      - description: Search by name or SKU
+        in: query
+        name: search
+        type: string
+      - description: Filter
+        enum:
+        - all
+        - low
+        - out
+        - healthy
+        - not_tracked
+        in: query
+        name: stock_status
+        type: string
+      - description: Sort
+        enum:
+        - stock_asc
+        - stock_desc
+        - name_asc
+        - waitlist_desc
+        - velocity_desc
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.InventoryListData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List inventory items
+      tags:
+      - inventory
+  /admin/inventory/adjust:
+    post:
+      consumes:
+      - application/json
+      description: Apply a signed stock delta with reason (receive, correction, damage,
+        etc.)
+      parameters:
+      - description: Adjustment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdjustInventoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.InventoryItemResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Adjust product stock
+      tags:
+      - inventory
+  /admin/inventory/adjustments/recent:
+    get:
+      description: Latest stock movements across all products
+      parameters:
+      - default: 10
+        description: Max rows
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.InventoryAdjustmentResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Recent inventory adjustments
+      tags:
+      - inventory
+  /admin/inventory/bulk-adjust:
+    post:
+      consumes:
+      - application/json
+      description: Apply signed stock deltas for multiple SKUs in one request (receive
+        shipments, corrections, etc.)
+      parameters:
+      - description: Bulk adjustment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.BulkAdjustInventoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BulkAdjustInventoryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk adjust stock by SKU
+      tags:
+      - inventory
+  /admin/inventory/overview:
+    get:
+      description: Returns low-stock, out-of-stock, and waitlist totals for the admin
+        inventory dashboard
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.InventoryOverviewResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Inventory overview KPIs
+      tags:
+      - inventory
+  /admin/inventory/products/{id}/history:
+    get:
+      description: Paginated adjustment ledger for a single product
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Page size
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.InventoryHistoryData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Product inventory history
+      tags:
+      - inventory
+  /admin/invoices:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Filter by order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: 'Search invoice #, order #, or customer'
+        in: query
+        name: search
+        type: string
+      - description: Start date (RFC3339)
+        in: query
+        name: from_date
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: to_date
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminInvoiceListData'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List invoices (admin)
+      tags:
+      - Invoices
+  /admin/invoices/{id}:
+    get:
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.InvoiceDetailResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get invoice by ID (admin)
+      tags:
+      - Invoices
+  /admin/invoices/{id}/pdf:
+    get:
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+      security:
+      - BearerAuth: []
+      summary: Download invoice PDF (admin)
+      tags:
+      - Invoices
+  /admin/invoices/{id}/send:
+    post:
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Email invoice to customer (admin)
+      tags:
+      - Invoices
+  /admin/invoices/{id}/status:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateInvoiceStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update invoice status (admin)
+      tags:
+      - Invoices
   /admin/menu/groups:
     get:
       description: Retrieves all menu groups ordered by display_order
@@ -4945,8 +6130,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Applies the given status to all specified order IDs. Max 500 IDs
-        per call.
+      description: Deprecated — use workflow transitions on order detail instead.
+        Applies the given status to all specified order IDs. Max 500 IDs per call.
       parameters:
       - description: Order IDs and target status
         in: body
@@ -4987,7 +6172,7 @@ paths:
             $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
-      summary: Bulk update order status (admin)
+      summary: Bulk update order status (admin) [deprecated]
       tags:
       - Admin
   /admin/orders/export:
@@ -5052,6 +6237,44 @@ paths:
       summary: List permissions
       tags:
       - Admin Roles
+  /admin/reports/revenue:
+    get:
+      description: Returns period summary KPIs and a day-by-day revenue, orders, and
+        AOV breakdown.
+      parameters:
+      - description: 'Period: 7d, 30d, or 90d (default 30d)'
+        in: query
+        name: period
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminRevenueReportResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Daily revenue report (admin)
+      tags:
+      - Admin
   /admin/returns:
     get:
       parameters:
@@ -5081,6 +6304,31 @@ paths:
       security:
       - BearerAuth: []
       summary: List returns (admin)
+      tags:
+      - Returns
+  /admin/returns/{id}:
+    get:
+      parameters:
+      - description: Return ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReturnResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get return by ID (admin)
       tags:
       - Returns
   /admin/returns/{id}/transition:
@@ -5305,6 +6553,49 @@ paths:
       tags:
       - Admin
   /admin/shipments:
+    get:
+      parameters:
+      - description: Filter by legacy status
+        in: query
+        name: status
+        type: string
+      - description: Filter by carrier
+        in: query
+        name: carrier
+        type: string
+      - description: Filter by order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: 'Search tracking, order #, or carrier'
+        in: query
+        name: search
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminShipmentListData'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List shipments (admin)
+      tags:
+      - Shipments
     post:
       consumes:
       - application/json
@@ -5358,7 +6649,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates the status of a shipment and sends real-time notifications.
+      description: Deprecated — use workflow transitions on shipment detail instead.
+        Updates the status of a shipment and sends real-time notifications.
       parameters:
       - description: Shipment ID
         in: path
@@ -5400,9 +6692,38 @@ paths:
             $ref: '#/definitions/utils.Response'
       security:
       - BearerAuth: []
-      summary: Update shipment status (admin)
+      summary: Update shipment status (admin) [deprecated]
       tags:
       - Shipments
+  /admin/shipping-providers:
+    get:
+      consumes:
+      - application/json
+      description: Returns every shipping provider including inactive ones for admin
+        management
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.ShippingProviders'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List all shipping providers (admin)
+      tags:
+      - Shipping Providers
   /admin/stats:
     get:
       description: Returns counts of users, orders, products, revenue, wallet balances,
@@ -5436,6 +6757,186 @@ paths:
       summary: Platform stats (admin)
       tags:
       - Admin
+  /admin/stores:
+    post:
+      consumes:
+      - application/json
+      description: Create a new store (admin only)
+      parameters:
+      - description: Store details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create store
+      tags:
+      - Stores
+  /admin/stores/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete a store (admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete store
+      tags:
+      - Stores
+    get:
+      consumes:
+      - application/json
+      description: Fetch store details by primary key for admin edit screens
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get store by ID (admin)
+      tags:
+      - Stores
+    put:
+      consumes:
+      - application/json
+      description: Update store details (admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated store data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update store
+      tags:
+      - Stores
   /admin/users:
     get:
       description: Returns paginated users with optional filters by search term, email,
@@ -6682,6 +8183,157 @@ paths:
       summary: Checkout
       tags:
       - Orders
+  /collections:
+    get:
+      description: Returns a paginated list of collections with optional search and
+        status filtering.
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search by title, slug, or eyebrow
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CollectionListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List collections
+      tags:
+      - collections
+    post:
+      consumes:
+      - application/json
+      description: Creates a curated collection for the storefront collections page.
+      parameters:
+      - description: Collection payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCollectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CollectionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Create a new collection
+      tags:
+      - collections
+  /collections/{id}:
+    delete:
+      parameters:
+      - description: Collection ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Delete a collection
+      tags:
+      - collections
+    get:
+      parameters:
+      - description: Collection ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CollectionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a collection by ID
+      tags:
+      - collections
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Collection ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCollectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CollectionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Update a collection
+      tags:
+      - collections
   /compare:
     get:
       consumes:
@@ -7633,6 +9285,25 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Get payment providers
+      tags:
+      - Payment
+  /payments/stripe-config:
+    get:
+      description: Returns whether Stripe is enabled and the publishable key for client-side
+        checkout.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StripeConfigResponse'
+              type: object
+      summary: Get Stripe client configuration
       tags:
       - Payment
   /products:
@@ -8656,6 +10327,24 @@ paths:
       summary: Update user profile
       tags:
       - User
+  /push/vapid-public-key:
+    get:
+      description: Returns the public VAPID key used by the browser PushManager.subscribe()
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VapidPublicKeyResponse'
+              type: object
+      summary: Get VAPID public key
+      tags:
+      - Push
   /returns:
     post:
       consumes:
@@ -9521,146 +11210,6 @@ paths:
       summary: List stores
       tags:
       - Stores
-    post:
-      consumes:
-      - application/json
-      description: Create a new store (admin only)
-      parameters:
-      - description: Store details
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.CreateStoreRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.StoreResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Create store
-      tags:
-      - Stores
-  /stores/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Soft delete a store (admin only)
-      parameters:
-      - description: Store ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Delete store
-      tags:
-      - Stores
-    put:
-      consumes:
-      - application/json
-      description: Update store details (admin only)
-      parameters:
-      - description: Store ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Updated store data
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateStoreRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/utils.Response'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.StoreResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.Response'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.Response'
-      security:
-      - BearerAuth: []
-      summary: Update store
-      tags:
-      - Stores
   /stores/{slug}:
     get:
       consumes:
@@ -10289,6 +11838,38 @@ paths:
       summary: Get user's liked product IDs
       tags:
       - Product Likes
+  /vendor/stores:
+    get:
+      consumes:
+      - application/json
+      description: Returns stores owned by the current seller, or all stores for admins/moderators
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.StoreResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List vendor stores
+      tags:
+      - Vendor
   /wallet:
     get:
       consumes:

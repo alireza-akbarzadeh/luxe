@@ -60,7 +60,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-shipping-providers seed-invoices seed-coupons seed-orders-returns db-info
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-shipping-providers seed-invoices seed-coupons seed-nav-menus-i18n seed-catalog-i18n seed-orders-returns db-info
 
 # Default target
 help: ## Show this help message
@@ -182,6 +182,8 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-invoices.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-coupons.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-nav-menus-i18n.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog-i18n.sql; \
 	else \
 		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
@@ -190,6 +192,8 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-invoices.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-nav-menus-i18n.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog-i18n.sql; \
 	fi
 	@echo "${GREEN}Dev seed complete${RESET}"
 
@@ -219,6 +223,24 @@ seed-coupons: ## Load demo coupons for admin discounts page
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
 	fi
 	@echo "${GREEN}Coupons seed complete${RESET}"
+
+seed-nav-menus-i18n: ## Load fa/es translations for storefront nav menus
+	@echo "${GREEN}Seeding nav menu i18n into $(POSTGRES_DB)...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-nav-menus-i18n.sql; \
+	else \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-nav-menus-i18n.sql; \
+	fi
+	@echo "${GREEN}Nav menu i18n seed complete${RESET}"
+
+seed-catalog-i18n: ## Load fa/es translations for products and categories
+	@echo "${GREEN}Seeding catalog i18n into $(POSTGRES_DB)...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog-i18n.sql; \
+	else \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog-i18n.sql; \
+	fi
+	@echo "${GREEN}Catalog i18n seed complete${RESET}"
 
 seed-orders-returns: ## Load demo orders + returns only (requires catalog seed)
 	@echo "${GREEN}Seeding orders & returns into $(POSTGRES_DB)...${RESET}"

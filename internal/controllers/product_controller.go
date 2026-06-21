@@ -55,7 +55,7 @@ func (ctrl *ProductController) Create(c *gin.Context) {
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToProductResponse(*product))
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToProductResponse(c.Request.Context(),*product))
 }
 
 // Update product (admin only)
@@ -91,7 +91,7 @@ func (ctrl *ProductController) Update(c *gin.Context) {
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(*product))
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(c.Request.Context(),*product))
 }
 
 // Delete product (admin only)
@@ -163,7 +163,7 @@ func (ctrl *ProductController) GetOne(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
-		"product":           dto.ToProductResponse(*product),
+		"product":           dto.ToProductResponse(c.Request.Context(),*product),
 		"is_liked":          isLiked,
 		"stock_subscribed":  stockSubscribed,
 	})
@@ -234,7 +234,7 @@ func (ctrl *ProductController) List(c *gin.Context) {
 	productsWithLike := make([]dto.ProductWithLike, len(products))
 	for i, p := range products {
 		productsWithLike[i] = dto.ProductWithLike{
-			ProductResponse: dto.ToProductResponse(*p),
+			ProductResponse: dto.ToProductResponse(c.Request.Context(),*p),
 			IsLiked:         likedMap[p.ID],
 		}
 	}
@@ -275,7 +275,7 @@ func (ctrl *ProductController) BulkCreate(c *gin.Context) {
 	}
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ToProductResponse(*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
 	}
 	utils.CreatedResponse(c, "products created successfully", responses)
 }
@@ -342,7 +342,7 @@ func (ctrl *ProductController) GetRelated(c *gin.Context) {
 	}
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ToProductResponse(*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)
 }
@@ -373,7 +373,7 @@ func (ctrl *ProductController) GetProductSuggestions(c *gin.Context) {
 
 	responses := make([]dto.ProductResponse, len(suggestions))
 	for i, p := range suggestions {
-		responses[i] = dto.ToProductResponse(*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
 	}
 	utils.SuccessResponse(c, "suggestions fetched", responses)
 }
@@ -459,6 +459,6 @@ func (ctrl *ProductController) PerformTransition(c *gin.Context) {
 
 	utils.SuccessResponse(c, "transition applied", dto.ProductTransitionResponse{
 		Transition: toTransitionResultView(result),
-		Product:    dto.ToProductResponse(*product),
+		Product:    dto.ToProductResponse(c.Request.Context(),*product),
 	})
 }

@@ -1,8 +1,11 @@
 package services
 
 import (
+	"context"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
@@ -11,8 +14,8 @@ import (
 const searchFacetLimit = 10
 
 type SearchServiceInterface interface {
-	GlobalSearch(req dto.SearchRequest) (*dto.SearchResponse, error)
-	Suggestions(query string, limit int) (*dto.SuggestionsResponse, error)
+	GlobalSearch(ctx context.Context, req dto.SearchRequest) (*dto.SearchResponse, error)
+	Suggestions(ctx context.Context, query string, limit int) (*dto.SuggestionsResponse, error)
 	Trending(limit int) ([]dto.TrendingSearch, error)
 	LogSearch(query string, userID *uint) error
 }
@@ -25,9 +28,30 @@ func NewSearchService(db *gorm.DB) SearchServiceInterface {
 	return &searchService{db: db}
 }
 
+func catalogSearchWhere(query string) (string, []any) {
+	normalized := i18n.NormalizeSearchQuery(query)
+	if normalized == "" {
+		return "1=0", nil
+	}
+	like := "%" + normalized + "%"
+	return `search_vector @@ plainto_tsquery('simple', ?)
+		OR search_document ILIKE ?
+		OR similarity(search_document, ?) > 0.25`, []any{normalized, like, normalized}
+}
+
+func storeSearchWhere(query string) (string, []any) {
+	normalized := i18n.NormalizeSearchQuery(query)
+	if normalized == "" {
+		return "1=0", nil
+	}
+	like := "%" + normalized + "%"
+	return `search_vector @@ plainto_tsquery('english', ?) OR name ILIKE ?`, []any{normalized, like}
+}
+
 func (s *searchService) applyProductFilters(query *gorm.DB, req dto.SearchRequest) *gorm.DB {
 	if req.Query != "" {
-		query = query.Where("search_vector @@ plainto_tsquery('english', ?)", req.Query)
+		clause, args := catalogSearchWhere(req.Query)
+		query = query.Where(clause, args...)
 	} else {
 		query = query.Where("status = ?", constants.ProductStatusActive)
 	}
@@ -81,20 +105,24 @@ func (s *searchService) applyProductSort(query *gorm.DB, req dto.SearchRequest) 
 		return query.Order("reviews_count DESC, rating DESC")
 	default:
 		if req.Query != "" {
-			return query.Order(gorm.Expr("ts_rank(search_vector, plainto_tsquery('english', ?)) DESC", req.Query))
+			normalized := i18n.NormalizeSearchQuery(req.Query)
+			return query.Order(gorm.Expr(
+				`ts_rank(search_vector, plainto_tsquery('simple', ?)) DESC, similarity(search_document, ?) DESC`,
+				normalized, normalized,
+			))
 		}
 		return query.Order("created_at DESC")
 	}
 }
 
 // GlobalSearch performs full-text search on products, stores, and categories concurrently.
-func (s *searchService) GlobalSearch(req dto.SearchRequest) (*dto.SearchResponse, error) {
+func (s *searchService) GlobalSearch(ctx context.Context, req dto.SearchRequest) (*dto.SearchResponse, error) {
 	type result struct {
-		products   []*models.Product
+		products     []*models.Product
 		productTotal int64
-		stores     []*models.Store
-		categories []*models.Category
-		err        error
+		stores       []*models.Store
+		categories   []*models.Category
+		err          error
 	}
 	ch := make(chan result, 3)
 
@@ -123,10 +151,10 @@ func (s *searchService) GlobalSearch(req dto.SearchRequest) (*dto.SearchResponse
 			return
 		}
 
+		clause, args := storeSearchWhere(req.Query)
+
 		var stores []*models.Store
-		err := s.db.
-			Where("search_vector @@ plainto_tsquery('english', ?)", req.Query).
-			Order(gorm.Expr("ts_rank(search_vector, plainto_tsquery('english', ?)) DESC", req.Query)).
+		err := s.db.Where(clause, args...).
 			Limit(searchFacetLimit).
 			Preload("Categories").
 			Find(&stores).Error
@@ -139,10 +167,15 @@ func (s *searchService) GlobalSearch(req dto.SearchRequest) (*dto.SearchResponse
 			return
 		}
 
+		clause, args := catalogSearchWhere(req.Query)
+		normalized := i18n.NormalizeSearchQuery(req.Query)
+
 		var categories []*models.Category
-		err := s.db.
-			Where("search_vector @@ plainto_tsquery('english', ?)", req.Query).
-			Order(gorm.Expr("ts_rank(search_vector, plainto_tsquery('english', ?)) DESC", req.Query)).
+		err := s.db.Where(clause, args...).
+			Order(gorm.Expr(
+				`ts_rank(search_vector, plainto_tsquery('simple', ?)) DESC, similarity(search_document, ?) DESC`,
+				normalized, normalized,
+			)).
 			Limit(searchFacetLimit).
 			Find(&categories).Error
 		ch <- result{categories: categories, err: err}
@@ -166,30 +199,32 @@ func (s *searchService) GlobalSearch(req dto.SearchRequest) (*dto.SearchResponse
 	}
 
 	return &dto.SearchResponse{
-		Products:   dto.ToProductResponses(products),
-		Stores:     dto.ToStoreResponses(stores),
-		Categories: dto.ToCategoryResponses(categories),
+		Products:   dto.ToProductResponses(ctx, products),
+		Stores:     dto.ToStoreResponses(ctx, stores),
+		Categories: dto.ToCategoryResponses(ctx, categories),
 		Total:      productTotal,
 	}, nil
 }
 
-// Suggestions returns a small list of matches for autocomplete (uses faster ILIKE with trigram).
-func (s *searchService) Suggestions(query string, limit int) (*dto.SuggestionsResponse, error) {
+// Suggestions returns autocomplete matches across localized catalog text.
+func (s *searchService) Suggestions(ctx context.Context, query string, limit int) (*dto.SuggestionsResponse, error) {
 	if query == "" {
 		return &dto.SuggestionsResponse{}, nil
 	}
-	limitPerType := limit/3 + 1 // ensure we have enough
+	limitPerType := limit/3 + 1
+
+	normalized := i18n.NormalizeSearchQuery(query)
+	like := "%" + normalized + "%"
+	catalogClause, catalogArgs := catalogSearchWhere(query)
 
 	var suggestions []dto.SuggestionItem
 
-	// Product suggestions (name only, ILIKE with trigram index)
 	var products []models.Product
-	if err := s.db.Where("name ILIKE ?", "%"+query+"%").
-		Limit(limitPerType).
-		Find(&products).Error; err != nil {
+	if err := s.db.Where(catalogClause, catalogArgs...).Limit(limitPerType).Find(&products).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	for _, p := range products {
+		nameMap := dto.DecodeCatalogNameI18n(p.NameI18n, p.Name)
 		var img *string
 		if len(p.Images) > 0 {
 			img = &p.Images[0]
@@ -197,18 +232,15 @@ func (s *searchService) Suggestions(query string, limit int) (*dto.SuggestionsRe
 		suggestions = append(suggestions, dto.SuggestionItem{
 			Type:  "product",
 			ID:    &p.ID,
-			Name:  p.Name,
+			Name:  nameMap.Resolve(ctx, p.Name),
 			Slug:  p.Slug,
 			Image: img,
 			Price: &p.Price,
 		})
 	}
 
-	// Store suggestions
 	var stores []models.Store
-	if err := s.db.Where("name ILIKE ?", "%"+query+"%").
-		Limit(limitPerType).
-		Find(&stores).Error; err != nil {
+	if err := s.db.Where("name ILIKE ?", like).Limit(limitPerType).Find(&stores).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	for _, st := range stores {
@@ -221,18 +253,16 @@ func (s *searchService) Suggestions(query string, limit int) (*dto.SuggestionsRe
 		})
 	}
 
-	// Category suggestions
 	var categories []models.Category
-	if err := s.db.Where("name ILIKE ?", "%"+query+"%").
-		Limit(limitPerType).
-		Find(&categories).Error; err != nil {
+	if err := s.db.Where(catalogClause, catalogArgs...).Limit(limitPerType).Find(&categories).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	for _, cat := range categories {
+		nameMap := dto.DecodeCatalogNameI18n(cat.NameI18n, cat.Name)
 		suggestions = append(suggestions, dto.SuggestionItem{
 			Type: "category",
 			ID:   &cat.ID,
-			Name: cat.Name,
+			Name: nameMap.Resolve(ctx, cat.Name),
 			Slug: cat.Slug,
 		})
 	}

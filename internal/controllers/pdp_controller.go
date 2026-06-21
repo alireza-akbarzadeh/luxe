@@ -91,7 +91,7 @@ func (ctrl *PdpController) GetAlternatives(c *gin.Context) {
 		return
 	}
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "6"))
-	items, err := ctrl.pdpService.GetAlternatives(productID, limit)
+	items, err := ctrl.pdpService.GetAlternatives(c.Request.Context(), productID, limit)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch alternatives")
 		return

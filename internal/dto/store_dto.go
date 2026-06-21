@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"context"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -60,14 +61,10 @@ type StoreResponse struct {
 	IsFollowed    *bool              `json:"is_followed,omitempty"`
 }
 
-func ToStoreResponse(store *models.Store) StoreResponse {
+func ToStoreResponse(ctx context.Context, store *models.Store) StoreResponse {
 	cats := make([]CategoryResponse, len(store.Categories))
-	for i, c := range store.Categories {
-		cats[i] = CategoryResponse{
-			ID:   c.ID,
-			Name: c.Name,
-			Slug: c.Slug,
-		}
+	for i := range store.Categories {
+		cats[i] = ToCategoryResponse(ctx, store.Categories[i])
 	}
 	return StoreResponse{
 		ID:            store.ID,

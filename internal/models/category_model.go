@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -13,9 +14,12 @@ type Category struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	Name        string `gorm:"not null" json:"name" validate:"required,min=2,max=100"`
-	Slug        string `gorm:"uniqueIndex;not null" json:"slug" validate:"required,slug"`
-	Description string `json:"description,omitempty"`
+	Name            string         `gorm:"not null" json:"name" validate:"required,min=2,max=100"`
+	NameI18n        datatypes.JSON `gorm:"column:name_i18n;type:jsonb" json:"nameI18n,omitempty"`
+	Slug            string         `gorm:"uniqueIndex;not null" json:"slug" validate:"required,slug"`
+	Description     string         `json:"description,omitempty"`
+	DescriptionI18n datatypes.JSON `gorm:"column:description_i18n;type:jsonb" json:"descriptionI18n,omitempty"`
+	SearchDocument  string         `gorm:"column:search_document;type:text" json:"-"`
 	ParentID    *uint  `json:"parent_id,omitempty"`
 	Level       int    `gorm:"default:0" json:"level"`
 	Path        string `json:"path,omitempty"`

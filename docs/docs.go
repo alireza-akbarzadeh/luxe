@@ -83,6 +83,143 @@ const docTemplate = `{
                 }
             }
         },
+        "/account/push/subscriptions": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Stores a Web Push subscription endpoint and keys for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Push"
+                ],
+                "summary": "Register push subscription",
+                "parameters": [
+                    {
+                        "description": "Push subscription",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterPushSubscriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Removes a Web Push subscription by endpoint for the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Push"
+                ],
+                "summary": "Delete push subscription",
+                "parameters": [
+                    {
+                        "description": "Push subscription endpoint",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.DeletePushSubscriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/account/push/test": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sends a test push notification to all registered devices for the current user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Push"
+                ],
+                "summary": "Send test push notification",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/account/summary": {
             "get": {
                 "security": [
@@ -9435,6 +9572,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/push/vapid-public-key": {
+            "get": {
+                "description": "Returns the public VAPID key used by the browser PushManager.subscribe()",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Push"
+                ],
+                "summary": "Get VAPID public key",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.VapidPublicKeyResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/returns": {
             "post": {
                 "security": [
@@ -11858,6 +12027,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/vendor/stores": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns stores owned by the current seller, or all stores for admins/moderators",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Vendor"
+                ],
+                "summary": "List vendor stores",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.StoreResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/wallet": {
             "get": {
                 "security": [
@@ -13778,6 +14002,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "titleI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 }
             }
         },
@@ -14800,6 +15027,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.DeletePushSubscriptionRequest": {
+            "type": "object",
+            "required": [
+                "endpoint"
+            ],
+            "properties": {
+                "endpoint": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.DepositRequest": {
             "type": "object",
             "required": [
@@ -14855,8 +15093,14 @@ const docTemplate = `{
                 "badge": {
                     "type": "string"
                 },
+                "badgeI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "description": {
                     "type": "string"
+                },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "href": {
                     "type": "string"
@@ -14866,6 +15110,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "titleI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 }
             }
         },
@@ -15175,6 +15422,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "titleI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 }
             }
         },
@@ -15325,6 +15575,9 @@ const docTemplate = `{
                 "badge": {
                     "type": "string"
                 },
+                "badgeI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "columns": {
                     "type": "array",
                     "items": {
@@ -15345,6 +15598,9 @@ const docTemplate = `{
                 },
                 "label": {
                     "type": "string"
+                },
+                "labelI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "order": {
                     "type": "integer"
@@ -16217,6 +16473,21 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PushSubscriptionKeys": {
+            "type": "object",
+            "required": [
+                "auth",
+                "p256dh"
+            ],
+            "properties": {
+                "auth": {
+                    "type": "string"
+                },
+                "p256dh": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.RefreshResponse": {
             "type": "object",
             "properties": {
@@ -16242,15 +16513,38 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegisterPushSubscriptionRequest": {
+            "type": "object",
+            "required": [
+                "endpoint",
+                "keys"
+            ],
+            "properties": {
+                "endpoint": {
+                    "type": "string"
+                },
+                "keys": {
+                    "$ref": "#/definitions/dto.PushSubscriptionKeys"
+                }
+            }
+        },
         "dto.RegisterRequest": {
             "type": "object",
             "required": [
+                "accept_privacy",
+                "accept_terms",
                 "email",
                 "first_name",
                 "last_name",
                 "password"
             ],
             "properties": {
+                "accept_privacy": {
+                    "type": "boolean"
+                },
+                "accept_terms": {
+                    "type": "boolean"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -17473,6 +17767,9 @@ const docTemplate = `{
                 "badge": {
                     "type": "string"
                 },
+                "badgeI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "columns": {
                     "type": "array",
                     "items": {
@@ -17490,6 +17787,9 @@ const docTemplate = `{
                 },
                 "label": {
                     "type": "string"
+                },
+                "labelI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "order": {
                     "type": "integer"
@@ -17544,6 +17844,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.VapidPublicKeyResponse": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "public_key": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ViewAll": {
             "type": "object",
             "properties": {
@@ -17552,6 +17863,9 @@ const docTemplate = `{
                 },
                 "label": {
                     "type": "string"
+                },
+                "labelI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 }
             }
         },
@@ -17707,6 +18021,12 @@ const docTemplate = `{
                     "description": "Valid is true if Time is not NULL",
                     "type": "boolean"
                 }
+            }
+        },
+        "i18n.LocalizedMap": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "string"
             }
         },
         "models.Address": {
@@ -18636,7 +18956,20 @@ const docTemplate = `{
                 "phone": {
                     "type": "string"
                 },
+                "privacy_accepted_at": {
+                    "type": "string"
+                },
+                "privacy_version": {
+                    "type": "string"
+                },
                 "role": {
+                    "type": "string"
+                },
+                "terms_accepted_at": {
+                    "description": "Legal acceptance (set at registration)",
+                    "type": "string"
+                },
+                "terms_version": {
                     "type": "string"
                 },
                 "updated_at": {

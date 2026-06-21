@@ -1,8 +1,10 @@
 package dto
 
 import (
+	"context"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
@@ -19,7 +21,10 @@ type ProductAttributeInput struct {
 
 type CreateProductRequest struct {
 	Name              string                  `json:"name" validate:"required,min=3,max=255"`
+	NameI18n          i18n.LocalizedMap       `json:"nameI18n,omitempty"`
 	Description       string                  `json:"description,omitempty"`
+	DescriptionI18n   i18n.LocalizedMap       `json:"descriptionI18n,omitempty"`
+	SearchAliases     []string                `json:"searchAliases,omitempty"`
 	Price             float64                 `json:"price" validate:"required,gte=0"`
 	CompareAtPrice    *float64                `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
 	Cost              *float64                `json:"cost,omitempty" validate:"omitempty,gte=0"`
@@ -51,8 +56,11 @@ type CreateProductRequest struct {
 }
 
 type UpdateProductRequest struct {
-	Name              *string   `json:"name,omitempty" validate:"omitempty,min=3,max=255"`
-	Description       *string   `json:"description,omitempty"`
+	Name              *string            `json:"name,omitempty" validate:"omitempty,min=3,max=255"`
+	NameI18n          i18n.LocalizedMap  `json:"nameI18n,omitempty"`
+	Description       *string            `json:"description,omitempty"`
+	DescriptionI18n   i18n.LocalizedMap  `json:"descriptionI18n,omitempty"`
+	SearchAliases     *[]string          `json:"searchAliases,omitempty"`
 	Price             *float64  `json:"price,omitempty" validate:"omitempty,gte=0"`
 	CompareAtPrice    *float64  `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
 	Cost              *float64  `json:"cost,omitempty" validate:"omitempty,gte=0"`
@@ -111,14 +119,16 @@ type ProductListFilters struct {
 
 // CategoryResponse is a flat, GORM-free category shape for API responses.
 type CategoryResponse struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	Slug        string `json:"slug"`
-	Description string `json:"description,omitempty"`
-	Level       int    `json:"level"`
-	Path        string `json:"path,omitempty"`
-	IsActive    bool   `json:"is_active"`
-	ParentID    *uint  `json:"parent_id,omitempty"`
+	ID              uint              `json:"id"`
+	Name            string            `json:"name"`
+	NameI18n        i18n.LocalizedMap `json:"nameI18n,omitempty"`
+	Slug            string            `json:"slug"`
+	Description     string            `json:"description,omitempty"`
+	DescriptionI18n i18n.LocalizedMap `json:"descriptionI18n,omitempty"`
+	Level           int               `json:"level"`
+	Path            string            `json:"path,omitempty"`
+	IsActive        bool              `json:"is_active"`
+	ParentID        *uint             `json:"parent_id,omitempty"`
 }
 
 // ProductResponse is a flat, GORM-free product shape for API responses.
@@ -126,10 +136,12 @@ type CategoryResponse struct {
 type ProductResponse struct {
 	ID                uint              `json:"id"`
 	Name              string            `json:"name"`
+	NameI18n          i18n.LocalizedMap `json:"nameI18n,omitempty"`
 	Slug              string            `json:"slug"`
 	SKU               string            `json:"sku"`
 	Barcode           string            `json:"barcode,omitempty"`
 	Description       string            `json:"description,omitempty"`
+	DescriptionI18n   i18n.LocalizedMap `json:"descriptionI18n,omitempty"`
 	Price             float64           `json:"price"`
 	CompareAtPrice    *float64          `json:"compare_at_price,omitempty"`
 	Cost              *float64          `json:"cost,omitempty"`
@@ -170,16 +182,13 @@ type ProductResponse struct {
 	WorkflowState *StateView `json:"workflow_state,omitempty"`
 }
 
-// ToProductResponse maps a models.Product to a ProductResponse.
-// Call this in controllers instead of passing *models.Product directly.
-func ToProductResponse(p models.Product) ProductResponse {
+// ToProductResponse maps a models.Product to a locale-aware ProductResponse.
+func ToProductResponse(ctx context.Context, p models.Product) ProductResponse {
 	r := ProductResponse{
 		ID:                p.ID,
-		Name:              p.Name,
 		Slug:              p.Slug,
 		SKU:               p.SKU,
 		Barcode:           p.Barcode,
-		Description:       p.Description,
 		Price:             p.Price,
 		CompareAtPrice:    p.CompareAtPrice,
 		Cost:              p.Cost,
@@ -206,6 +215,7 @@ func ToProductResponse(p models.Product) ProductResponse {
 		Channels:          p.Channels,
 		PublishedAt:       p.PublishedAt,
 	}
+	applyProductI18nFields(ctx, &p, &r)
 
 	if p.CategoryID != nil {
 		r.CategoryID = p.CategoryID
@@ -235,16 +245,7 @@ func ToProductResponse(p models.Product) ProductResponse {
 	}
 
 	if p.Category != nil && p.Category.ID != 0 {
-		cat := CategoryResponse{
-			ID:          p.Category.ID,
-			Name:        p.Category.Name,
-			Slug:        p.Category.Slug,
-			Description: p.Category.Description,
-			Level:       p.Category.Level,
-			Path:        p.Category.Path,
-			IsActive:    p.Category.IsActive,
-			ParentID:    p.Category.ParentID,
-		}
+		cat := resolvedCategoryResponse(ctx, p.Category)
 		r.Category = &cat
 	}
 
@@ -263,13 +264,12 @@ func ToProductResponse(p models.Product) ProductResponse {
 }
 
 // ToProductResponses maps a slice of *models.Product to []ProductResponse.
-func ToProductResponses(products []*models.Product) []ProductResponse {
+func ToProductResponses(ctx context.Context, products []*models.Product) []ProductResponse {
 	result := make([]ProductResponse, 0, len(products))
 	for _, p := range products {
-		result = append(result, ToProductResponse(*p))
+		result = append(result, ToProductResponse(ctx, *p))
 	}
 	return result
-
 }
 
 // ─── Envelope types (what Swag and Orval see for success responses) ──────────

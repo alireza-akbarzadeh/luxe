@@ -69,7 +69,7 @@ func (ctrl *StoreController) ListStores(c *gin.Context) {
 	}
 	responses := make([]dto.StoreResponse, len(stores))
 	for i, s := range stores {
-		responses[i] = dto.ToStoreResponse(s)
+		responses[i] = dto.ToStoreResponse(c.Request.Context(),s)
 	}
 
 	if userID, ok := middleware.GetUserID(c); ok && len(stores) > 0 {
@@ -119,7 +119,7 @@ func (ctrl *StoreController) GetStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
 	}
-	resp := dto.ToStoreResponse(store)
+	resp := dto.ToStoreResponse(c.Request.Context(),store)
 
 	if userID, ok := middleware.GetUserID(c); ok {
 		followed, err := ctrl.storeService.IsFollowing(userID, store.ID)
@@ -190,7 +190,7 @@ func (ctrl *StoreController) GetStoreProducts(c *gin.Context) {
 
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ToProductResponse(*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(), *p)
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
@@ -225,7 +225,7 @@ func (ctrl *StoreController) GetStoreAdmin(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(store))
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(c.Request.Context(),store))
 }
 
 // CreateStore creates a new store (admin only).
@@ -252,7 +252,7 @@ func (ctrl *StoreController) CreateStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to create store")
 		return
 	}
-	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(store))
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(c.Request.Context(),store))
 }
 
 // UpdateStore updates an existing store (admin only).
@@ -286,7 +286,7 @@ func (ctrl *StoreController) UpdateStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to update store")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreResponse(store))
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreResponse(c.Request.Context(),store))
 }
 
 // DeleteStore deletes a store (admin only).
@@ -621,7 +621,7 @@ func (ctrl *StoreController) ListVendorStores(c *gin.Context) {
 
 	responses := make([]dto.StoreResponse, len(stores))
 	for i, store := range stores {
-		responses[i] = dto.ToStoreResponse(store)
+		responses[i] = dto.ToStoreResponse(c.Request.Context(),store)
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)

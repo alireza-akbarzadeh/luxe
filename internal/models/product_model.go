@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,11 @@ type Product struct {
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
 	Name              string         `gorm:"type:text;not null" json:"name" validate:"required,min=2,max=255"`
+	NameI18n          datatypes.JSON `gorm:"column:name_i18n;type:jsonb" json:"nameI18n,omitempty"`
 	Description       string         `gorm:"type:text" json:"description"`
+	DescriptionI18n   datatypes.JSON `gorm:"column:description_i18n;type:jsonb" json:"descriptionI18n,omitempty"`
+	SearchAliases     datatypes.JSON `gorm:"column:search_aliases;type:jsonb;default:'[]'" json:"searchAliases,omitempty"`
+	SearchDocument    string         `gorm:"column:search_document;type:text" json:"-"`
 	Price             float64        `gorm:"type:decimal(10,2);not null;check:price >= 0" json:"price" validate:"required,gt=0"`
 	Stock             int            `gorm:"not null;default:0;check:stock >= 0" json:"stock" validate:"gte=0"`
 	SKU               string         `gorm:"type:text;not null;uniqueIndex" json:"sku" validate:"required"`

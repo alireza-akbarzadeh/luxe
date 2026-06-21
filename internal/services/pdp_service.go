@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -16,7 +17,7 @@ import (
 type PdpServiceInterface interface {
 	RecordPriceSnapshot(product *models.Product) error
 	GetPriceHistory(productID uint, days int) ([]dto.PriceHistoryPoint, error)
-	GetAlternatives(productID uint, limit int) ([]dto.ProductAlternativeResponse, error)
+	GetAlternatives(ctx context.Context, productID uint, limit int) ([]dto.ProductAlternativeResponse, error)
 	SubscribeStockNotification(userID, productID uint) error
 	UnsubscribeStockNotification(userID, productID uint) error
 	IsStockSubscribed(userID, productID uint) (bool, error)
@@ -77,7 +78,7 @@ func (s *pdpService) GetPriceHistory(productID uint, days int) ([]dto.PriceHisto
 	return points, nil
 }
 
-func (s *pdpService) GetAlternatives(productID uint, limit int) ([]dto.ProductAlternativeResponse, error) {
+func (s *pdpService) GetAlternatives(ctx context.Context, productID uint, limit int) ([]dto.ProductAlternativeResponse, error) {
 	if limit <= 0 {
 		limit = 6
 	}
@@ -106,7 +107,7 @@ func (s *pdpService) GetAlternatives(productID uint, limit int) ([]dto.ProductAl
 	result := make([]dto.ProductAlternativeResponse, 0, len(alternatives))
 	for _, alt := range alternatives {
 		item := dto.ProductAlternativeResponse{
-			ProductResponse: dto.ToProductResponse(*alt),
+			ProductResponse: dto.ToProductResponse(ctx, *alt),
 			StoreName:       "",
 			StoreSlug:       "",
 			StoreRating:     0,

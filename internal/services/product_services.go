@@ -151,6 +151,11 @@ func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, 
 		product.LowStockThreshold = 5
 	}
 
+	product.NameI18n = dto.EncodeCatalogI18n(product.NameI18n, req.NameI18n, product.Name)
+	product.DescriptionI18n = dto.EncodeCatalogI18n(product.DescriptionI18n, req.DescriptionI18n, product.Description)
+	product.SearchAliases = dto.EncodeSearchAliases(req.SearchAliases)
+	product.SearchDocument = s.buildProductSearchDocument(&product)
+
 	if err := s.db.Create(&product).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
@@ -291,6 +296,17 @@ func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.
 	if req.PublishedAt != nil {
 		product.PublishedAt = req.PublishedAt
 	}
+
+	if req.Name != nil || len(req.NameI18n) > 0 {
+		product.NameI18n = dto.EncodeCatalogI18n(product.NameI18n, req.NameI18n, product.Name)
+	}
+	if req.Description != nil || len(req.DescriptionI18n) > 0 {
+		product.DescriptionI18n = dto.EncodeCatalogI18n(product.DescriptionI18n, req.DescriptionI18n, product.Description)
+	}
+	if req.SearchAliases != nil {
+		product.SearchAliases = dto.MergeSearchAliases(product.SearchAliases, *req.SearchAliases)
+	}
+	product.SearchDocument = s.buildProductSearchDocument(product)
 
 	stockUpdate := req.Stock
 
@@ -637,4 +653,15 @@ func (s *productService) PerformTransition(
 		ActorRole:   actorRole,
 		Note:        note,
 	})
+}
+
+func (s *productService) buildProductSearchDocument(product *models.Product) string {
+	var category *models.Category
+	if product.CategoryID != nil {
+		var cat models.Category
+		if err := s.db.Select("id", "name", "name_i18n", "slug").First(&cat, *product.CategoryID).Error; err == nil {
+			category = &cat
+		}
+	}
+	return dto.BuildProductSearchDocument(product, category)
 }

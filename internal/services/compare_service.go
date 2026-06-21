@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
@@ -12,7 +13,7 @@ import (
 type CompareServiceInterface interface {
 	GetCompareList(userID uint) ([]uint, error)
 	SyncCompareList(userID uint, productIDs []uint) error
-	GetForCompare(productIDs []uint) ([]*dto.CompareProductResponse, error)
+	GetForCompare(ctx context.Context, productIDs []uint) ([]*dto.CompareProductResponse, error)
 }
 
 type compareService struct {
@@ -23,7 +24,7 @@ func NewCompareService(db *gorm.DB) CompareServiceInterface {
 	return &compareService{db: db}
 }
 
-func (s *compareService) GetForCompare(productIDs []uint) ([]*dto.CompareProductResponse, error) {
+func (s *compareService) GetForCompare(ctx context.Context, productIDs []uint) ([]*dto.CompareProductResponse, error) {
 	if len(productIDs) < 2 || len(productIDs) > 4 {
 		return nil, utils.ErrBadRequest("product count must be between 2 and 4")
 	}
@@ -59,7 +60,7 @@ func (s *compareService) GetForCompare(productIDs []uint) ([]*dto.CompareProduct
 		}
 
 		resp := dto.CompareProductResponse{
-			ProductResponse: dto.ToProductResponse(p),
+			ProductResponse: dto.ToProductResponse(ctx, p),
 			StoreName:       storeName,
 			StoreSlug:       storeSlug,
 			StoreLogo:       storeLogo,

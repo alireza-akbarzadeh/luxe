@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
@@ -98,6 +99,9 @@ func (s *categoryService) Create(req dto.CreateCategoryRequest) (*models.Categor
 	if err := s.updateLevelAndPath(category); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
+	category.NameI18n = dto.EncodeCatalogI18n(category.NameI18n, req.NameI18n, category.Name)
+	category.DescriptionI18n = dto.EncodeCatalogI18n(category.DescriptionI18n, req.DescriptionI18n, category.Description)
+	category.SearchDocument = dto.BuildCategorySearchDocument(category)
 	if err := s.db.Create(category).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
@@ -158,13 +162,37 @@ func (s *categoryService) Update(id uint, req dto.UpdateCategoryRequest) (*model
 		category.IsActive = *req.IsActive
 	}
 
+	if req.Name != nil || len(req.NameI18n) > 0 {
+		category.NameI18n = dto.EncodeCatalogI18n(category.NameI18n, req.NameI18n, category.Name)
+	}
+	if req.Description != nil || len(req.DescriptionI18n) > 0 {
+		category.DescriptionI18n = dto.EncodeCatalogI18n(category.DescriptionI18n, req.DescriptionI18n, category.Description)
+	}
+	category.SearchDocument = dto.BuildCategorySearchDocument(category)
+
 	if err := s.db.Save(category).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	if req.IsActive != nil {
 		s.syncCategoryWorkflow(context.Background(), id, *req.IsActive)
 	}
+	s.refreshProductSearchDocuments(id)
 	return s.GetByID(id)
+}
+
+func (s *categoryService) refreshProductSearchDocuments(categoryID uint) {
+	var category models.Category
+	if err := s.db.Select("id", "name", "name_i18n", "slug").First(&category, categoryID).Error; err != nil {
+		return
+	}
+	var products []models.Product
+	if err := s.db.Where("category_id = ?", categoryID).Find(&products).Error; err != nil {
+		return
+	}
+	for i := range products {
+		doc := dto.BuildProductSearchDocument(&products[i], &category)
+		_ = s.db.Model(&products[i]).Update("search_document", doc).Error
+	}
 }
 
 // Delete remove categories
@@ -203,7 +231,9 @@ func (s *categoryService) List(filters dto.CategoryListFilters) ([]models.Catego
 		baseQuery = baseQuery.Where("parent_id = ?", *filters.ParentID)
 	}
 	if filters.Search != "" {
-		baseQuery = baseQuery.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Search+"%")
+		normalized := i18n.NormalizeSearchQuery(filters.Search)
+		like := "%" + normalized + "%"
+		baseQuery = baseQuery.Where("search_document ILIKE ? OR LOWER(name) LIKE LOWER(?)", like, like)
 	}
 
 	// Total count (now includes search)
@@ -258,6 +288,9 @@ func (s *categoryService) BulkCreate(categories []dto.CreateCategoryRequest) ([]
 				ParentID:    req.ParentID,
 				IsActive:    req.IsActive,
 			}
+			cat.NameI18n = dto.EncodeCatalogI18n(cat.NameI18n, req.NameI18n, cat.Name)
+			cat.DescriptionI18n = dto.EncodeCatalogI18n(cat.DescriptionI18n, req.DescriptionI18n, cat.Description)
+			cat.SearchDocument = dto.BuildCategorySearchDocument(cat)
 			if err := s.updateLevelAndPath(cat); err != nil {
 				return err
 			}
