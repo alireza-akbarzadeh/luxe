@@ -147,7 +147,7 @@ func handleValidationError(c *gin.Context, req interface{}, validate *validator.
 	if err := validateStruct(req, validate); err != nil {
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			ValidationErrorResponse(c, FormatValidationErrors(ve))
+			ValidationErrorResponse(c, FormatValidationErrorsLocalized(c, ve))
 			return false
 		}
 		ValidationErrorResponse(c, err.Error())
