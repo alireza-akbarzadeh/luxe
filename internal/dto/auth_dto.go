@@ -3,11 +3,13 @@ package dto
 
 // RegisterRequest defines input for registration.
 type RegisterRequest struct {
-	Email     string `json:"email" validate:"required,email"`
-	Password  string `json:"password" validate:"required,min=8"`
-	FirstName string `json:"first_name" validate:"required,min=1,max=100"`
-	LastName  string `json:"last_name" validate:"required,min=1,max=100"`
-	Phone     string `json:"phone,omitempty" validate:"omitempty,e164"`
+	Email         string `json:"email" validate:"required,email"`
+	Password      string `json:"password" validate:"required,min=8"`
+	FirstName     string `json:"first_name" validate:"required,min=1,max=100"`
+	LastName      string `json:"last_name" validate:"required,min=1,max=100"`
+	Phone         string `json:"phone,omitempty" validate:"omitempty,e164"`
+	AcceptTerms   bool   `json:"accept_terms" validate:"required"`
+	AcceptPrivacy bool   `json:"accept_privacy" validate:"required"`
 }
 
 // LoginRequest defines input for login.

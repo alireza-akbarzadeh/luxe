@@ -79,10 +79,11 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	shipmentSvc := NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 	invoiceSvc := NewInvoiceService(db, jobQueue, cfg)
 	categorySvc := NewCategoryService(db, workflowEngine)
+	settingsSvc := NewSettingService(db)
 
 	return &Services{
 		DB:           db,
-		Auth:         NewAuthServices(db, cfg, jobQueue, workflowEngine),
+		Auth:         NewAuthServices(db, cfg, jobQueue, workflowEngine, settingsSvc),
 		Search:       NewSearchService(db),
 		User:         NewUserService(db, cfg),
 		Cart:         NewCartService(db),
@@ -101,7 +102,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Store:        NewStoreService(db),
 		Brand:        NewBrandService(db, workflowEngine),
 		Collection:   NewCollectionService(db, workflowEngine),
-		Settings:     NewSettingService(db),
+		Settings:     settingsSvc,
 		Checkout:     NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, invoiceSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, inventorySvc, StripeEnabled(cfg)),
 		Order:        NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
 		Coupon:       couponSvc,

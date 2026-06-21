@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -46,15 +47,45 @@ type AuthService struct {
 	cfg      *config.Config
 	jobQueue tasks.JobQueue
 	engine   *workflow.Engine
+	settings SettingServiceInterface
 }
 
-func NewAuthServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue, engine *workflow.Engine) *AuthService {
-	return &AuthService{db: db, cfg: cfg, jobQueue: jobQueue, engine: engine}
+func NewAuthServices(
+	db *gorm.DB,
+	cfg *config.Config,
+	jobQueue tasks.JobQueue,
+	engine *workflow.Engine,
+	settings SettingServiceInterface,
+) *AuthService {
+	return &AuthService{db: db, cfg: cfg, jobQueue: jobQueue, engine: engine, settings: settings}
+}
+
+type legalDocumentMeta struct {
+	Version string `json:"version"`
+}
+
+func legalVersionFromSetting(ctx context.Context, settings SettingServiceInterface, key string) string {
+	if settings == nil {
+		return "unknown"
+	}
+	setting, err := settings.Get(ctx, key)
+	if err != nil || setting == nil {
+		return "unknown"
+	}
+	var meta legalDocumentMeta
+	if err := json.Unmarshal(setting.Value, &meta); err != nil || meta.Version == "" {
+		return "unknown"
+	}
+	return meta.Version
 }
 
 // Register creates a new user and returns token pair.
 func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest, meta SessionMeta) (string, string, *models.User, error) {
 	db := s.db.WithContext(ctx)
+
+	if !req.AcceptTerms || !req.AcceptPrivacy {
+		return "", "", nil, utils.ErrBadRequest(constants.ErrLegalAcceptanceRequired)
+	}
 
 	var existingUser models.User
 	if err := db.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
@@ -68,14 +99,22 @@ func (s *AuthService) Register(ctx context.Context, req dto.RegisterRequest, met
 		return "", "", nil, utils.ErrInternal(err)
 	}
 
+	now := time.Now()
+	termsVersion := legalVersionFromSetting(ctx, s.settings, constants.SettingKeyLegalTerms)
+	privacyVersion := legalVersionFromSetting(ctx, s.settings, constants.SettingKeyLegalPrivacy)
+
 	user := &models.User{
-		Email:        req.Email,
-		PasswordHash: hashedPassword,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		Phone:        req.Phone,
-		Role:         constants.RoleUser,
-		IsActive:     true,
+		Email:             req.Email,
+		PasswordHash:      hashedPassword,
+		FirstName:         req.FirstName,
+		LastName:          req.LastName,
+		Phone:             req.Phone,
+		Role:              constants.RoleUser,
+		IsActive:          true,
+		TermsAcceptedAt:   &now,
+		PrivacyAcceptedAt: &now,
+		TermsVersion:      &termsVersion,
+		PrivacyVersion:    &privacyVersion,
 	}
 
 	if err := db.Create(user).Error; err != nil {

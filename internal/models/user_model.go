@@ -31,6 +31,12 @@ type User struct {
 
 	// Audit
 	LastLoginAt *time.Time `json:"last_login_at,omitempty"`
+
+	// Legal acceptance (set at registration)
+	TermsAcceptedAt   *time.Time `json:"terms_accepted_at,omitempty"`
+	PrivacyAcceptedAt *time.Time `json:"privacy_accepted_at,omitempty"`
+	TermsVersion      *string    `json:"terms_version,omitempty"`
+	PrivacyVersion    *string    `json:"privacy_version,omitempty"`
 }
 
 type PasswordResetToken struct {
