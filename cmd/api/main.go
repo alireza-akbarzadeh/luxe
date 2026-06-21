@@ -6,6 +6,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/jobs"
 	"github.com/alireza-akbarzadeh/luxe/internal/observability"
 	"github.com/alireza-akbarzadeh/luxe/internal/routes"
@@ -46,6 +47,10 @@ func main() {
 		ServiceVersion: cfg.Observability.ServiceVersion,
 	}); err != nil {
 		panic(fmt.Sprintf("failed to init logger: %v", err))
+	}
+
+	if err := i18n.Init(); err != nil {
+		panic(fmt.Sprintf("failed to init i18n: %v", err))
 	}
 
 	sentryShutdown, err := observability.Init(cfg, utils.Log)

@@ -8,6 +8,7 @@ import (
 // RegisterMiddlewares attaches any custom middleware not already applied globally
 func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.RequestID())
+	r.engine.Use(middleware.Locale())
 	if r.cfg.Observability.OTELEnabled {
 		name := r.cfg.Observability.ServiceName
 		if name == "" {

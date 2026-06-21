@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
@@ -27,7 +29,7 @@ type Response struct {
 func SuccessResponse(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusOK, Response{
 		Success: true,
-		Message: message,
+		Message: localizedMessage(c, message),
 		Data:    data,
 	})
 }
@@ -36,7 +38,7 @@ func SuccessResponse(c *gin.Context, message string, data interface{}) {
 func CreatedResponse(c *gin.Context, message string, data interface{}) {
 	c.JSON(http.StatusCreated, Response{
 		Success: true,
-		Message: message,
+		Message: localizedMessage(c, message),
 		Data:    data,
 	})
 }
@@ -45,7 +47,7 @@ func CreatedResponse(c *gin.Context, message string, data interface{}) {
 func ErrorResponse(c *gin.Context, status int, message string) {
 	c.JSON(status, Response{
 		Success: false,
-		Message: message,
+		Message: localizedMessage(c, message),
 		Code:    status,
 	})
 }
@@ -77,7 +79,7 @@ func InternalServerErrorResponse(c *gin.Context, err error, message string) {
 	} else {
 		Log.Error(message)
 	}
-	ErrorResponse(c, http.StatusInternalServerError, "internal server error")
+	ErrorResponse(c, http.StatusInternalServerError, localizedMessage(c, constants.MsgInternalServer))
 }
 
 // FormatValidationErrors converts validator.ValidationErrors to a map of field → tag.
@@ -96,7 +98,7 @@ func FormatValidationErrors(err error) map[string]string {
 func ValidationErrorResponse(c *gin.Context, errs interface{}) {
 	c.JSON(http.StatusBadRequest, Response{
 		Success: false,
-		Message: "validation failed",
+		Message: localizedMessage(c, constants.ErrValidationFailed),
 		Errors:  errs,
 		Code:    http.StatusBadRequest,
 	})
@@ -192,4 +194,11 @@ func HandleAppError(c *gin.Context, err error, message string) {
 // HandleServiceError maps service-layer errors to HTTP responses (alias for HandleAppError).
 func HandleServiceError(c *gin.Context, err error, logMessage string) {
 	HandleAppError(c, err, logMessage)
+}
+
+func localizedMessage(c *gin.Context, message string) string {
+	if c == nil || c.Request == nil {
+		return message
+	}
+	return i18n.Translate(c.Request.Context(), message)
 }

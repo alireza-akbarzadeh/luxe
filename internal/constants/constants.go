@@ -85,8 +85,9 @@ const (
 )
 
 var (
-	RequestIDKey ContextKey = "request_id"
-	UserIDKey    ContextKey = "uid"
+	RequestIDKey  ContextKey = "request_id"
+	UserIDKey     ContextKey = "uid"
+	LocaleContextKey ContextKey = "locale"
 )
 
 // ==================== Output messages ====================
