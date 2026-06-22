@@ -98,7 +98,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Category:     categorySvc,
 		Address:      NewAddressService(db),
 		Menu:         NewMenuService(db),
-		Review:       NewReviewService(db),
+		Review:       NewReviewService(db, workflowEngine),
 		UserLike:     NewUserLikeService(db),
 		Shipment:     shipmentSvc,
 		Wallet:       walletSvc,

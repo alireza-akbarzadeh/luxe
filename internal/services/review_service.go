@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
@@ -19,22 +20,42 @@ type ReviewServiceInterface interface {
 	GetProductReviews(productID uint, limit, offset int) ([]models.Review, int64, dto.ReviewSummary, error)
 	GetUserReviewForProduct(userID, productID uint) (*models.Review, error)
 	ListAdmin(ctx context.Context, filters dto.AdminReviewListFilters) ([]models.Review, int64, error)
-	Moderate(ctx context.Context, reviewID uint, status string) (*models.Review, error)
+	PerformTransition(ctx context.Context, reviewID uint, event, note, actorRole string, actorID *uint) (*workflow.TransitionResult, error)
 }
 
 type reviewService struct {
-	db *gorm.DB
+	db     *gorm.DB
+	engine *workflow.Engine
 }
 
-func NewReviewService(db *gorm.DB) ReviewServiceInterface {
-	return &reviewService{db: db}
+func NewReviewService(db *gorm.DB, engine *workflow.Engine) ReviewServiceInterface {
+	return &reviewService{db: db, engine: engine}
 }
 
 func approvedReviewScope(db *gorm.DB) *gorm.DB {
-	return db.Where("status = ?", constants.ReviewStatusApproved)
+	return db.Where(`reviews.workflow_state_id IN (
+		SELECT ws.id FROM workflow_states ws
+		INNER JOIN workflows w ON w.id = ws.workflow_id
+		WHERE w.key = ? AND ws.code = 'approved'
+	)`, constants.WorkflowEntityReview)
 }
 
-// Create review with pending moderation status.
+func (s *reviewService) getReviewByID(id uint) (*models.Review, error) {
+	var review models.Review
+	if err := s.db.Preload("User").Preload("Product").Preload("WorkflowState").First(&review, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("review not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return &review, nil
+}
+
+func (s *reviewService) isApprovedStatus(status string) bool {
+	return status == "approved"
+}
+
+// Create review and enqueue it in the review workflow (pending moderation).
 func (s *reviewService) Create(userID uint, req dto.CreateReviewRequest) (*models.Review, error) {
 	var existing models.Review
 	err := s.db.Where("user_id = ? AND product_id = ?", userID, req.ProductID).First(&existing).Error
@@ -50,24 +71,25 @@ func (s *reviewService) Create(userID uint, req dto.CreateReviewRequest) (*model
 		Rating:    req.Rating,
 		Comment:   req.Comment,
 		Title:     req.Title,
-		Status:    constants.ReviewStatusPending,
 	}
 	if err := s.db.Create(review).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 
-	return review, nil
+	ctx := context.Background()
+	syncWorkflowState(ctx, s.engine, constants.WorkflowEntityReview, review.ID, "pending", "submitted", &userID)
+
+	return s.getReviewByID(review.ID)
 }
 
-// Update review; resets moderation when content changes.
+// Update review; resets workflow to pending when content changes.
 func (s *reviewService) Update(userID, reviewID uint, req dto.UpdateReviewRequest) (*models.Review, error) {
-	var review models.Review
-	err := s.db.Preload("User").Where("id = ? AND user_id = ?", reviewID, userID).First(&review).Error
+	review, err := s.getReviewByID(reviewID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrNotFound("review not found")
-		}
-		return nil, utils.ErrInternal(err)
+		return nil, err
+	}
+	if review.UserID != userID {
+		return nil, utils.ErrNotFound("review not found")
 	}
 
 	previousStatus := review.Status
@@ -86,19 +108,20 @@ func (s *reviewService) Update(userID, reviewID uint, req dto.UpdateReviewReques
 		contentChanged = true
 	}
 
-	if contentChanged && review.Status != constants.ReviewStatusPending {
-		review.Status = constants.ReviewStatusPending
-	}
-
-	if err := s.db.Save(&review).Error; err != nil {
+	if err := s.db.Save(review).Error; err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 
-	if previousStatus == constants.ReviewStatusApproved || review.Status == constants.ReviewStatusApproved {
+	if contentChanged && previousStatus != "pending" {
+		ctx := context.Background()
+		syncWorkflowState(ctx, s.engine, constants.WorkflowEntityReview, review.ID, "pending", "resubmitted", &userID)
+	}
+
+	if s.isApprovedStatus(previousStatus) || contentChanged {
 		s.updateProductStats(review.ProductID)
 	}
 
-	return &review, nil
+	return s.getReviewByID(review.ID)
 }
 
 // Delete review and recalc product stats when an approved review is removed.
@@ -112,7 +135,7 @@ func (s *reviewService) Delete(userID, reviewID uint) error {
 		return utils.ErrInternal(err)
 	}
 
-	wasApproved := review.Status == constants.ReviewStatusApproved
+	wasApproved := s.isApprovedStatus(review.Status)
 	productID := review.ProductID
 
 	if err := s.db.Delete(&review).Error; err != nil {
@@ -196,7 +219,7 @@ func (s *reviewService) GetProductReviews(productID uint, limit, offset int) ([]
 		Where("product_id = ?", productID).
 		Scopes(approvedReviewScope)
 
-	if err := query.Preload("User").Order("created_at DESC").Limit(limit).Offset(offset).Find(&reviews).Error; err != nil {
+	if err := query.Preload("User").Preload("WorkflowState").Order("created_at DESC").Limit(limit).Offset(offset).Find(&reviews).Error; err != nil {
 		return nil, 0, summary, utils.ErrInternal(err)
 	}
 
@@ -206,7 +229,8 @@ func (s *reviewService) GetProductReviews(productID uint, limit, offset int) ([]
 // GetUserReviewForProduct returns the authenticated user's review for a product (if any).
 func (s *reviewService) GetUserReviewForProduct(userID, productID uint) (*models.Review, error) {
 	var review models.Review
-	err := s.db.Preload("User").Where("user_id = ? AND product_id = ?", userID, productID).First(&review).Error
+	err := s.db.Preload("User").Preload("WorkflowState").
+		Where("user_id = ? AND product_id = ?", userID, productID).First(&review).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -236,6 +260,7 @@ func (s *reviewService) ListAdmin(ctx context.Context, filters dto.AdminReviewLi
 	if err := query.
 		Preload("User").
 		Preload("Product").
+		Preload("WorkflowState").
 		Order("created_at DESC").
 		Limit(filters.Limit).
 		Offset(filters.Offset).
@@ -246,38 +271,41 @@ func (s *reviewService) ListAdmin(ctx context.Context, filters dto.AdminReviewLi
 	return reviews, total, nil
 }
 
-// Moderate approves or rejects a review and recalculates product stats when needed.
-func (s *reviewService) Moderate(ctx context.Context, reviewID uint, status string) (*models.Review, error) {
-	if status != constants.ReviewStatusApproved && status != constants.ReviewStatusRejected {
-		return nil, utils.ErrBadRequest("invalid review status")
+// PerformTransition applies a workflow event to a product review (admin moderation).
+func (s *reviewService) PerformTransition(
+	ctx context.Context,
+	reviewID uint,
+	event, note, actorRole string,
+	actorID *uint,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(errors.New("workflow engine not configured"))
 	}
 
 	var review models.Review
-	err := s.db.WithContext(ctx).
-		Preload("User").
-		Preload("Product").
-		Where("id = ?", reviewID).
-		First(&review).Error
-	if err != nil {
+	if err := s.db.WithContext(ctx).Select("product_id", "status").First(&review, reviewID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("review not found")
 		}
 		return nil, utils.ErrInternal(err)
 	}
+	previousApproved := s.isApprovedStatus(review.Status)
 
-	previousStatus := review.Status
-	if previousStatus == status {
-		return &review, nil
+	result, err := s.engine.Transition(ctx, workflow.TransitionRequest{
+		WorkflowKey: constants.WorkflowEntityReview,
+		EntityID:    reviewID,
+		Event:       event,
+		ActorID:     actorID,
+		ActorRole:   actorRole,
+		Note:        note,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	review.Status = status
-	if err := s.db.WithContext(ctx).Save(&review).Error; err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-
-	if previousStatus == constants.ReviewStatusApproved || status == constants.ReviewStatusApproved {
+	if previousApproved || result.To.Code == "approved" {
 		s.updateProductStats(review.ProductID)
 	}
 
-	return &review, nil
+	return result, nil
 }

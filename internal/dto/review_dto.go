@@ -20,18 +20,20 @@ type UpdateReviewRequest struct {
 }
 
 type ReviewResponse struct {
-	ID         uint      `json:"id"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	ProductID  uint      `json:"product_id"`
-	UserID     uint      `json:"user_id"`
-	Rating     int       `json:"rating"`
-	Comment    string    `json:"comment,omitempty"`
-	IsVerified bool      `json:"is_verified"`
-	Title      string    `json:"title"`
-	Status     string    `json:"status"`
-	Author     string    `json:"author"`
-	IsOwner    bool      `json:"is_owner,omitempty"`
+	ID              uint       `json:"id"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	ProductID       uint       `json:"product_id"`
+	UserID          uint       `json:"user_id"`
+	Rating          int        `json:"rating"`
+	Comment         string     `json:"comment,omitempty"`
+	IsVerified      bool       `json:"is_verified"`
+	Title           string     `json:"title"`
+	Status          string     `json:"status"`
+	WorkflowStateID *uint      `json:"workflow_state_id,omitempty"`
+	State           *StateView `json:"state,omitempty"`
+	Author          string     `json:"author"`
+	IsOwner         bool       `json:"is_owner,omitempty"`
 }
 
 type AdminReviewResponse struct {
@@ -46,8 +48,10 @@ type AdminReviewListFilters struct {
 	Offset    int    `form:"offset"`
 }
 
-type ModerateReviewRequest struct {
-	Status string `json:"status" validate:"required,oneof=approved rejected"`
+// PerformReviewTransitionRequest is an admin workflow action on a product review.
+type PerformReviewTransitionRequest struct {
+	Event string `json:"event" validate:"required,min=1,max=64"`
+	Note  string `json:"note"  validate:"omitempty,max=512"`
 }
 
 type ReviewSummary struct {
@@ -66,24 +70,35 @@ func ToReviewResponse(review *models.Review, viewerUserID uint) ReviewResponse {
 	}
 
 	return ReviewResponse{
-		ID:         review.ID,
-		CreatedAt:  review.CreatedAt,
-		UpdatedAt:  review.UpdatedAt,
-		ProductID:  review.ProductID,
-		UserID:     review.UserID,
-		Rating:     review.Rating,
-		Comment:    review.Comment,
-		IsVerified: review.IsVerified,
-		Title:      review.Title,
-		Status:     review.Status,
-		Author:     author,
-		IsOwner:    viewerUserID != 0 && review.UserID == viewerUserID,
+		ID:              review.ID,
+		CreatedAt:       review.CreatedAt,
+		UpdatedAt:       review.UpdatedAt,
+		ProductID:       review.ProductID,
+		UserID:          review.UserID,
+		Rating:          review.Rating,
+		Comment:         review.Comment,
+		IsVerified:      review.IsVerified,
+		Title:           review.Title,
+		Status:          review.Status,
+		WorkflowStateID: review.WorkflowStateID,
+		Author:          author,
+		IsOwner:         viewerUserID != 0 && review.UserID == viewerUserID,
 	}
+}
+
+func EnrichReviewResponse(resp ReviewResponse, review *models.Review) ReviewResponse {
+	if review.WorkflowState != nil {
+		resp.State = ToStateView(review.WorkflowState)
+		if resp.Status == "" {
+			resp.Status = review.WorkflowState.Code
+		}
+	}
+	return resp
 }
 
 func ToAdminReviewResponse(review *models.Review) AdminReviewResponse {
 	resp := AdminReviewResponse{
-		ReviewResponse: ToReviewResponse(review, 0),
+		ReviewResponse: EnrichReviewResponse(ToReviewResponse(review, 0), review),
 	}
 	if review.Product.ID != 0 {
 		resp.ProductName = review.Product.Name

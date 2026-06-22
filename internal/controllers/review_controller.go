@@ -53,7 +53,7 @@ func (rc *ReviewController) Create(c *gin.Context) {
 		return
 	}
 	review.UserID = userID
-	utils.CreatedResponse(c, "review submitted for moderation", dto.ToReviewResponse(review, userID))
+	utils.CreatedResponse(c, "review submitted for moderation", dto.EnrichReviewResponse(dto.ToReviewResponse(review, userID), review))
 }
 
 // Update a review
@@ -86,7 +86,7 @@ func (rc *ReviewController) Update(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to update review")
 		return
 	}
-	utils.SuccessResponse(c, "review updated", dto.ToReviewResponse(review, userID))
+	utils.SuccessResponse(c, "review updated", dto.EnrichReviewResponse(dto.ToReviewResponse(review, userID), review))
 }
 
 // Delete a review
@@ -141,7 +141,7 @@ func (rc *ReviewController) GetProductReviews(c *gin.Context) {
 	viewerID, _ := middleware.GetUserID(c)
 	responseReviews := make([]dto.ReviewResponse, len(reviews))
 	for i := range reviews {
-		responseReviews[i] = dto.ToReviewResponse(&reviews[i], viewerID)
+		responseReviews[i] = dto.EnrichReviewResponse(dto.ToReviewResponse(&reviews[i], viewerID), &reviews[i])
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
@@ -185,7 +185,7 @@ func (rc *ReviewController) GetMyProductReview(c *gin.Context) {
 		return
 	}
 
-	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToReviewResponse(review, userID))
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.EnrichReviewResponse(dto.ToReviewResponse(review, userID), review))
 }
 
 // ListReviewsAdmin lists product reviews for moderation (admin only).
@@ -227,33 +227,47 @@ func (rc *ReviewController) ListReviewsAdmin(c *gin.Context) {
 	})
 }
 
-// ModerateReview approves or rejects a product review (admin only).
-// @Summary      Moderate product review
-// @Description  Approve or reject a pending product review
+// PerformReviewTransition applies a workflow event to a product review (admin only).
+// @Summary      Transition review state (admin)
+// @Description  Approve or reject a product review via workflow events (approve, reject)
 // @Tags         Reviews
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id      path int                        true "Review ID"
-// @Param        request body dto.ModerateReviewRequest true "Moderation status"
-// @Success      200 {object} utils.Response{data=dto.AdminReviewResponse}
-// @Router       /admin/reviews/{id}/status [patch]
-func (rc *ReviewController) ModerateReview(c *gin.Context) {
+// @Param        id      path int true "Review ID"
+// @Param        request body dto.PerformReviewTransitionRequest true "Transition event"
+// @Success      200 {object} utils.Response{data=dto.TransitionResultView}
+// @Router       /admin/reviews/{id}/transition [post]
+func (rc *ReviewController) PerformReviewTransition(c *gin.Context) {
 	id, ok := parseUintParam(c, "id")
 	if !ok {
 		return
 	}
 
-	var req dto.ModerateReviewRequest
+	var req dto.PerformReviewTransitionRequest
 	if !utils.BindAndValidate(c, &req, rc.validate) {
 		return
 	}
 
-	review, err := rc.reviewService.Moderate(c.Request.Context(), id, req.Status)
+	actorID, _ := middleware.GetUserID(c)
+	actorRole, _ := middleware.GetUserRole(c)
+	var actorIDPtr *uint
+	if actorID != 0 {
+		actorIDPtr = &actorID
+	}
+
+	result, err := rc.reviewService.PerformTransition(
+		c.Request.Context(),
+		id,
+		req.Event,
+		req.Note,
+		actorRole,
+		actorIDPtr,
+	)
 	if err != nil {
-		utils.HandleServiceError(c, err, "failed to moderate review")
+		utils.HandleServiceError(c, err, "failed to transition review")
 		return
 	}
 
-	utils.SuccessResponse(c, "review moderated", dto.ToAdminReviewResponse(review))
+	utils.SuccessResponse(c, "transition applied", toTransitionResultView(result))
 }

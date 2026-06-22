@@ -175,11 +175,6 @@ const (
 	CartStatusAbandoned = "abandoned"
 	CartStatusConverted = "converted"
 
-	// Review moderation statuses
-	ReviewStatusPending  = "pending"
-	ReviewStatusApproved = "approved"
-	ReviewStatusRejected = "rejected"
-
 	// Order statuses
 	OrderStatusPending   = "pending"
 	OrderStatusPaid      = "paid"
@@ -257,6 +252,7 @@ const (
 	WorkflowEntityBrand       = "brand"
 	WorkflowEntityCollection  = "collection"
 	WorkflowEntityCoupon      = "coupon"
+	WorkflowEntityReview      = "review"
 )
 
 // Inventory adjustment types (ledger).

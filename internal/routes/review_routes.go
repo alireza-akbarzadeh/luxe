@@ -18,6 +18,6 @@ func SetupReviewRoutes(public, protected *gin.RouterGroup, ctrl *controllers.Con
 	admin.Use(middleware.ModuleGuard("products"))
 	{
 		admin.GET("", ctrl.Review.ListReviewsAdmin)
-		admin.PATCH("/:id/status", ctrl.Review.ModerateReview)
+		admin.POST("/:id/transition", ctrl.Review.PerformReviewTransition)
 	}
 }
