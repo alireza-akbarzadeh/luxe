@@ -46,6 +46,7 @@ type Container struct {
 	Role      *RoleController
 	Inventory *InventoryController
 	Push      *PushController
+	Ai        *AiController
 }
 
 // NewContainer initializes all controllers with their dependencies.
@@ -88,5 +89,6 @@ func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Cont
 		Role:      NewRoleController(svc.Role),
 		Inventory: NewInventoryController(svc.Inventory),
 		Push:      NewPushController(svc.Push),
+		Ai:        NewAiController(svc.Ai),
 	}
 }

@@ -26,6 +26,18 @@ type Config struct {
 	ShipmentDeliveryDelay time.Duration
 	InventoryAlertEmails  []string
 	Push                  PushConfig
+	AI                    AIConfig
+}
+
+// AIConfig holds LLM provider settings (Ollama local, Groq/Gemini via OpenAI-compatible API).
+type AIConfig struct {
+	Enabled              bool
+	Provider             string
+	BaseURL              string
+	APIKey               string
+	Model                string
+	MaxRequestsPerHour   int
+	ChatMaxRequestsPerHour int
 }
 
 type RedisConfig struct {
@@ -191,6 +203,14 @@ func Load() (*Config, error) {
 	viper.SetDefault("VAPID_PRIVATE_KEY", "")
 	viper.SetDefault("VAPID_SUBJECT", "mailto:noreply@yourapp.com")
 
+	viper.SetDefault("AI_ENABLED", false)
+	viper.SetDefault("AI_PROVIDER", "ollama")
+	viper.SetDefault("AI_BASE_URL", "http://localhost:11434/v1")
+	viper.SetDefault("AI_API_KEY", "")
+	viper.SetDefault("AI_MODEL", "llama3.2")
+	viper.SetDefault("AI_MAX_REQUESTS_PER_HOUR", 20)
+	viper.SetDefault("AI_CHAT_MAX_REQUESTS_PER_HOUR", 30)
+
 	accessExpiry, err := time.ParseDuration(viper.GetString("JWT_ACCESS_TOKEN_EXPIRY"))
 	if err != nil {
 		accessExpiry = 15 * time.Minute
@@ -301,6 +321,15 @@ func Load() (*Config, error) {
 			VAPIDPublicKey:  viper.GetString("VAPID_PUBLIC_KEY"),
 			VAPIDPrivateKey: viper.GetString("VAPID_PRIVATE_KEY"),
 			VAPIDSubject:    viper.GetString("VAPID_SUBJECT"),
+		},
+		AI: AIConfig{
+			Enabled:                viper.GetBool("AI_ENABLED"),
+			Provider:               viper.GetString("AI_PROVIDER"),
+			BaseURL:                viper.GetString("AI_BASE_URL"),
+			APIKey:                 viper.GetString("AI_API_KEY"),
+			Model:                  viper.GetString("AI_MODEL"),
+			MaxRequestsPerHour:     viper.GetInt("AI_MAX_REQUESTS_PER_HOUR"),
+			ChatMaxRequestsPerHour: viper.GetInt("AI_CHAT_MAX_REQUESTS_PER_HOUR"),
 		},
 	}
 

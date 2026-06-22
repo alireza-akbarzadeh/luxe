@@ -1,0 +1,20 @@
+package routes
+
+import (
+	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
+	"github.com/gin-gonic/gin"
+)
+
+func SetupAiRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, ctrl *controllers.Container) {
+	public.POST("/ai/chat", ctrl.Ai.Chat)
+
+	admin := protected.Group("/admin")
+	admin.Use(middleware.RequireStaff())
+	ai := admin.Group("")
+	ai.Use(middleware.ModuleGuard("products"))
+	{
+		ai.GET("/ai/status", ctrl.Ai.GetStatus)
+		ai.POST("/ai/generate", ctrl.Ai.Generate)
+	}
+}

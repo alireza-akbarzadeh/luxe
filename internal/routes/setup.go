@@ -74,5 +74,6 @@ func (r *Router) Setup() {
 		SetupInvoiceRoutes(protected, r.controllers)
 		SetupWebSocketRoutes(v1, protected, r.controllers, r.cfg)
 		SetupPushRoutes(v1, protected, r.controllers)
+		SetupAiRoutes(public, protected, r.controllers)
 	}
 }

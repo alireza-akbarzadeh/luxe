@@ -31,10 +31,16 @@ type pdpService struct {
 	db              *gorm.DB
 	notificationSvc NotificationServiceInterface
 	productSvc      ProductServiceInterface
+	aiSvc           AiServiceInterface
 }
 
-func NewPdpService(db *gorm.DB, notificationSvc NotificationServiceInterface, productSvc ProductServiceInterface) PdpServiceInterface {
-	return &pdpService{db: db, notificationSvc: notificationSvc, productSvc: productSvc}
+func NewPdpService(
+	db *gorm.DB,
+	notificationSvc NotificationServiceInterface,
+	productSvc ProductServiceInterface,
+	aiSvc AiServiceInterface,
+) PdpServiceInterface {
+	return &pdpService{db: db, notificationSvc: notificationSvc, productSvc: productSvc, aiSvc: aiSvc}
 }
 
 func (s *pdpService) RecordPriceSnapshot(product *models.Product) error {
@@ -240,6 +246,12 @@ func (s *pdpService) maybeAutoReply(question *models.ProductQuestion) {
 	}
 
 	reply := buildAIReply(&product, question.Body)
+	if s.aiSvc != nil && s.aiSvc.Enabled() {
+		if aiReply, err := s.aiSvc.ReplyToQuestion(context.Background(), &product, question.Body); err == nil && strings.TrimSpace(aiReply) != "" {
+			reply = aiReply
+		}
+	}
+
 	ownerID := uint(1)
 	if product.Store != nil && product.Store.UserID != nil && *product.Store.UserID > 0 {
 		ownerID = *product.Store.UserID

@@ -51,6 +51,7 @@ type Services struct {
 	Invoice      InvoiceServiceInterface
 	Role         RoleServiceInterface
 	Inventory    InventoryServiceInterface
+	Ai           AiServiceInterface
 }
 
 func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Services {
@@ -74,7 +75,8 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 	roleSvc := NewRoleService(db)
 
 	productSvc := NewProductService(db, workflowEngine)
-	pdpSvc := NewPdpService(db, notificationSvc, productSvc)
+	aiSvc := NewAiService(db, cfg.AI)
+	pdpSvc := NewPdpService(db, notificationSvc, productSvc, aiSvc)
 	inventorySvc := NewInventoryService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
 	productSvc.SetInventory(inventorySvc)
 	RegisterInventoryWorkflowHooks(workflowEngine, inventorySvc)
@@ -122,6 +124,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue tasks.JobQueue) *Serv
 		Invoice:      invoiceSvc,
 		Role:         roleSvc,
 		Inventory:    inventorySvc,
+		Ai:           aiSvc,
 	}
 }
 
