@@ -175,6 +175,11 @@ const (
 	CartStatusAbandoned = "abandoned"
 	CartStatusConverted = "converted"
 
+	// Review moderation statuses
+	ReviewStatusPending  = "pending"
+	ReviewStatusApproved = "approved"
+	ReviewStatusRejected = "rejected"
+
 	// Order statuses
 	OrderStatusPending   = "pending"
 	OrderStatusPaid      = "paid"

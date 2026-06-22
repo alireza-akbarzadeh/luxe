@@ -18,6 +18,7 @@ type Review struct {
 	Comment    string `json:"comment,omitempty"`
 	IsVerified bool   `gorm:"default:false" json:"is_verified"`
 	Title      string `gorm:"not null" json:"title"`
+	Status     string `gorm:"type:varchar(20);not null;default:pending;index" json:"status"`
 
 	Product Product `gorm:"foreignKey:ProductID" json:"-"`
 	User    User    `gorm:"foreignKey:UserID" json:"-"`

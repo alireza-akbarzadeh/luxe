@@ -53,7 +53,7 @@ func (rc *ReviewController) Create(c *gin.Context) {
 		return
 	}
 	review.UserID = userID
-	utils.CreatedResponse(c, "review submitted", dto.ToReviewResponse(review, userID))
+	utils.CreatedResponse(c, "review submitted for moderation", dto.ToReviewResponse(review, userID))
 }
 
 // Update a review
@@ -186,4 +186,74 @@ func (rc *ReviewController) GetMyProductReview(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToReviewResponse(review, userID))
+}
+
+// ListReviewsAdmin lists product reviews for moderation (admin only).
+// @Summary      List product reviews (admin)
+// @Description  Paginated list of product reviews with optional status and product filters
+// @Tags         Reviews
+// @Produce      json
+// @Security     BearerAuth
+// @Param        status     query string false "Filter by status (pending, approved, rejected)"
+// @Param        product_id query int    false "Filter by product ID"
+// @Param        limit      query int    false "Items per page"
+// @Param        offset     query int    false "Offset"
+// @Success      200 {object} utils.Response
+// @Router       /admin/reviews [get]
+func (rc *ReviewController) ListReviewsAdmin(c *gin.Context) {
+	var filters dto.AdminReviewListFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		utils.ErrorResponse(c, 400, "invalid query parameters")
+		return
+	}
+	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
+
+	reviews, total, err := rc.reviewService.ListAdmin(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list reviews")
+		return
+	}
+
+	items := make([]dto.AdminReviewResponse, 0, len(reviews))
+	for i := range reviews {
+		items = append(items, dto.ToAdminReviewResponse(&reviews[i]))
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"reviews": items,
+		"total":   total,
+		"limit":   filters.Limit,
+		"offset":  filters.Offset,
+	})
+}
+
+// ModerateReview approves or rejects a product review (admin only).
+// @Summary      Moderate product review
+// @Description  Approve or reject a pending product review
+// @Tags         Reviews
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int                        true "Review ID"
+// @Param        request body dto.ModerateReviewRequest true "Moderation status"
+// @Success      200 {object} utils.Response{data=dto.AdminReviewResponse}
+// @Router       /admin/reviews/{id}/status [patch]
+func (rc *ReviewController) ModerateReview(c *gin.Context) {
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.ModerateReviewRequest
+	if !utils.BindAndValidate(c, &req, rc.validate) {
+		return
+	}
+
+	review, err := rc.reviewService.Moderate(c.Request.Context(), id, req.Status)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to moderate review")
+		return
+	}
+
+	utils.SuccessResponse(c, "review moderated", dto.ToAdminReviewResponse(review))
 }

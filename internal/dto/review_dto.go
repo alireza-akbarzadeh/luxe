@@ -29,8 +29,25 @@ type ReviewResponse struct {
 	Comment    string    `json:"comment,omitempty"`
 	IsVerified bool      `json:"is_verified"`
 	Title      string    `json:"title"`
+	Status     string    `json:"status"`
 	Author     string    `json:"author"`
 	IsOwner    bool      `json:"is_owner,omitempty"`
+}
+
+type AdminReviewResponse struct {
+	ReviewResponse
+	ProductName string `json:"product_name,omitempty"`
+}
+
+type AdminReviewListFilters struct {
+	Status    string `form:"status"`
+	ProductID uint   `form:"product_id"`
+	Limit     int    `form:"limit"`
+	Offset    int    `form:"offset"`
+}
+
+type ModerateReviewRequest struct {
+	Status string `json:"status" validate:"required,oneof=approved rejected"`
 }
 
 type ReviewSummary struct {
@@ -58,7 +75,18 @@ func ToReviewResponse(review *models.Review, viewerUserID uint) ReviewResponse {
 		Comment:    review.Comment,
 		IsVerified: review.IsVerified,
 		Title:      review.Title,
+		Status:     review.Status,
 		Author:     author,
 		IsOwner:    viewerUserID != 0 && review.UserID == viewerUserID,
 	}
+}
+
+func ToAdminReviewResponse(review *models.Review) AdminReviewResponse {
+	resp := AdminReviewResponse{
+		ReviewResponse: ToReviewResponse(review, 0),
+	}
+	if review.Product.ID != 0 {
+		resp.ProductName = review.Product.Name
+	}
+	return resp
 }
