@@ -163,8 +163,47 @@ Then edit the generated `.sql` files in `internal/migrations/` and run `make mig
 | `DB_SSLMODE`   | PostgreSQL SSL mode             | `disable`                        |
 | `JWT_SECRET`   | Secret key for JWT signing      | **required**                     |
 | `LOG_LEVEL`    | Log level (`debug`, `info`, …)  | `info`                           |
+| `AI_ENABLED`   | Enable LLM features             | `false`                          |
+| `AI_PROVIDER`  | Provider label (`ollama`, `groq`, `gemini`) | `ollama`              |
+| `AI_BASE_URL`  | OpenAI-compatible API base URL  | `http://localhost:11434/v1`      |
+| `AI_API_KEY`   | API key (empty for local Ollama)| *(empty)*                        |
+| `AI_MODEL`     | Model name                      | `llama3.2`                       |
+| `AI_MAX_REQUESTS_PER_HOUR` | Admin generate rate limit | `20`                   |
+| `AI_CHAT_MAX_REQUESTS_PER_HOUR` | Shopper chat rate limit | `30`            |
 
 All variables can be set in a `.env` file or as system environment variables. When using Docker Compose, they are defined in the `environment` section of the `app` service.
+
+### Local AI with Ollama (free, no API key)
+
+1. Install [Ollama](https://ollama.com) and pull a model:
+
+```bash
+ollama pull llama3.2
+```
+
+2. In `.env`:
+
+```bash
+AI_ENABLED=true
+AI_PROVIDER=ollama
+AI_BASE_URL=http://localhost:11434/v1
+AI_MODEL=llama3.2
+```
+
+3. Restart the API (`make run`). Endpoints:
+
+- `POST /api/v1/admin/ai/generate` — admin product description / SEO copy
+- `POST /api/v1/ai/chat` — grounded shopper product chat
+- `GET /api/v1/admin/ai/status` — provider status for admin UI
+
+**Swap to a hosted provider** without code changes — set `AI_PROVIDER`, `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL`. Examples:
+
+| Provider | `AI_BASE_URL` | Model example |
+|----------|---------------|---------------|
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Gemini (OpenAI compat) | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
+
+API keys stay on the server only — never expose `AI_API_KEY` in frontend or mobile env.
 
 ## Testing
 
