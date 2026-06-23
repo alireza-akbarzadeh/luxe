@@ -685,6 +685,112 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/ai/generate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Generates product description, SEO metadata, or coupon copy for staff",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin AI"
+                ],
+                "summary": "Generate AI copy",
+                "parameters": [
+                    {
+                        "description": "Generate request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiGenerateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiGenerateResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/ai/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns AI provider configuration for admin UI",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin AI"
+                ],
+                "summary": "AI status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiStatusResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/audit-logs": {
             "get": {
                 "security": [
@@ -3214,6 +3320,115 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of product reviews with optional status and product filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List product reviews (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status (pending, approved, rejected)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by product ID",
+                        "name": "product_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/reviews/{id}/transition": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Approve or reject a product review via workflow events (approve, reject)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "Transition review state (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Review ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Transition event",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PerformReviewTransitionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.TransitionResultView"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/roles": {
             "get": {
                 "security": [
@@ -4981,6 +5196,70 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/chat": {
+            "post": {
+                "description": "Grounded product assistant chat for shoppers (guest or authenticated)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "Product AI chat",
+                "parameters": [
+                    {
+                        "description": "Chat request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiChatResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -13374,6 +13653,97 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AiChatMessage": {
+            "type": "object",
+            "required": [
+                "content",
+                "role"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiChatRequest": {
+            "type": "object",
+            "required": [
+                "messages",
+                "product_id"
+            ],
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dto.AiChatMessage"
+                    }
+                },
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiChatResponse": {
+            "type": "object",
+            "properties": {
+                "reply": {
+                    "type": "string"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.AiGenerateRequest": {
+            "type": "object",
+            "required": [
+                "task"
+            ],
+            "properties": {
+                "context": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "task": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiGenerateResponse": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiStatusResponse": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AuditLogSummaryResponse": {
             "type": "object",
             "properties": {
@@ -13757,6 +14127,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -13768,6 +14141,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "parent_id": {
                     "type": "integer"
@@ -14070,6 +14446,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "discount_percent": {
                     "type": "number"
                 },
@@ -14099,6 +14478,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "price": {
                     "type": "number"
@@ -14372,6 +14754,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "is_active": {
                     "type": "boolean"
                 },
@@ -14379,6 +14764,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 2
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "parent_id": {
                     "type": "integer"
@@ -14615,6 +15003,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "images": {
                     "type": "array",
                     "items": {
@@ -14641,12 +15032,21 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3
                 },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "price": {
                     "type": "number",
                     "minimum": 0
                 },
                 "published_at": {
                     "type": "string"
+                },
+                "searchAliases": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "sizes": {
                     "type": "array",
@@ -15781,6 +16181,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PerformReviewTransitionRequest": {
+            "type": "object",
+            "required": [
+                "event"
+            ],
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 1
+                },
+                "note": {
+                    "type": "string",
+                    "maxLength": 512
+                }
+            }
+        },
         "dto.PerformShipmentTransitionRequest": {
             "type": "object",
             "required": [
@@ -15949,6 +16366,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -15975,6 +16395,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "price": {
                     "type": "number"
@@ -16190,6 +16613,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -16216,6 +16642,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "price": {
                     "type": "number"
@@ -16380,6 +16809,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -16409,6 +16841,9 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "price": {
                     "type": "number"
@@ -16706,6 +17141,12 @@ const docTemplate = `{
                 "rating": {
                     "type": "integer"
                 },
+                "state": {
+                    "$ref": "#/definitions/dto.StateView"
+                },
+                "status": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -16713,6 +17154,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "integer"
+                },
+                "workflow_state_id": {
                     "type": "integer"
                 }
             }
@@ -17256,6 +17700,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "is_active": {
                     "type": "boolean"
                 },
@@ -17263,6 +17710,9 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 2
+                },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
                 },
                 "parent_id": {
                     "type": "integer"
@@ -17471,6 +17921,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "images": {
                     "type": "array",
                     "items": {
@@ -17497,12 +17950,21 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 3
                 },
+                "nameI18n": {
+                    "$ref": "#/definitions/i18n.LocalizedMap"
+                },
                 "price": {
                     "type": "number",
                     "minimum": 0
                 },
                 "published_at": {
                     "type": "string"
+                },
+                "searchAliases": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "sizes": {
                     "type": "array",
@@ -18152,6 +18614,12 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -18165,6 +18633,12 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 100,
                     "minLength": 2
+                },
+                "nameI18n": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "parent": {
                     "description": "Associations",
@@ -18541,6 +19015,12 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "descriptionI18n": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "id": {
                     "type": "integer"
                 },
@@ -18570,6 +19050,12 @@ const docTemplate = `{
                     "maxLength": 255,
                     "minLength": 2
                 },
+                "nameI18n": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "price": {
                     "type": "number"
                 },
@@ -18581,6 +19067,12 @@ const docTemplate = `{
                 },
                 "reviews_count": {
                     "type": "integer"
+                },
+                "searchAliases": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "sizes": {
                     "type": "array",

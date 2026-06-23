@@ -472,6 +472,66 @@ definitions:
       role:
         type: string
     type: object
+  dto.AiChatMessage:
+    properties:
+      content:
+        type: string
+      role:
+        type: string
+    required:
+    - content
+    - role
+    type: object
+  dto.AiChatRequest:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/dto.AiChatMessage'
+        minItems: 1
+        type: array
+      product_id:
+        type: integer
+    required:
+    - messages
+    - product_id
+    type: object
+  dto.AiChatResponse:
+    properties:
+      reply:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiGenerateRequest:
+    properties:
+      context:
+        additionalProperties: {}
+        type: object
+      task:
+        type: string
+    required:
+    - task
+    type: object
+  dto.AiGenerateResponse:
+    properties:
+      fields:
+        additionalProperties:
+          type: string
+        type: object
+      text:
+        type: string
+    type: object
+  dto.AiStatusResponse:
+    properties:
+      enabled:
+        type: boolean
+      model:
+        type: string
+      provider:
+        type: string
+    type: object
   dto.AuditLogSummaryResponse:
     properties:
       last_24_hours:
@@ -728,6 +788,8 @@ definitions:
     properties:
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       id:
         type: integer
       is_active:
@@ -736,6 +798,8 @@ definitions:
         type: integer
       name:
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       parent_id:
         type: integer
       path:
@@ -939,6 +1003,8 @@ definitions:
         type: string
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       discount_percent:
         type: number
       id:
@@ -959,6 +1025,8 @@ definitions:
         type: string
       name:
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         type: number
       published_at:
@@ -1139,12 +1207,16 @@ definitions:
     properties:
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       is_active:
         type: boolean
       name:
         maxLength: 100
         minLength: 2
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       parent_id:
         type: integer
       slug:
@@ -1307,6 +1379,8 @@ definitions:
         type: number
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       images:
         items:
           type: string
@@ -1325,11 +1399,17 @@ definitions:
         maxLength: 255
         minLength: 3
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         minimum: 0
         type: number
       published_at:
         type: string
+      searchAliases:
+        items:
+          type: string
+        type: array
       sizes:
         items:
           type: string
@@ -2099,6 +2179,18 @@ definitions:
     required:
     - event
     type: object
+  dto.PerformReviewTransitionRequest:
+    properties:
+      event:
+        maxLength: 64
+        minLength: 1
+        type: string
+      note:
+        maxLength: 512
+        type: string
+    required:
+    - event
+    type: object
   dto.PerformShipmentTransitionRequest:
     properties:
       event:
@@ -2214,6 +2306,8 @@ definitions:
         type: string
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       id:
         type: integer
       images:
@@ -2232,6 +2326,8 @@ definitions:
         type: string
       name:
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         type: number
       published_at:
@@ -2374,6 +2470,8 @@ definitions:
         type: string
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       id:
         type: integer
       images:
@@ -2392,6 +2490,8 @@ definitions:
         type: string
       name:
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         type: number
       published_at:
@@ -2500,6 +2600,8 @@ definitions:
         type: string
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       id:
         type: integer
       images:
@@ -2520,6 +2622,8 @@ definitions:
         type: string
       name:
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         type: number
       published_at:
@@ -2719,11 +2823,17 @@ definitions:
         type: integer
       rating:
         type: integer
+      state:
+        $ref: '#/definitions/dto.StateView'
+      status:
+        type: string
       title:
         type: string
       updated_at:
         type: string
       user_id:
+        type: integer
+      workflow_state_id:
         type: integer
     type: object
   dto.RoleResponse:
@@ -3080,12 +3190,16 @@ definitions:
     properties:
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       is_active:
         type: boolean
       name:
         maxLength: 100
         minLength: 2
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       parent_id:
         type: integer
       slug:
@@ -3229,6 +3343,8 @@ definitions:
         type: number
       description:
         type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       images:
         items:
           type: string
@@ -3247,11 +3363,17 @@ definitions:
         maxLength: 255
         minLength: 3
         type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
       price:
         minimum: 0
         type: number
       published_at:
         type: string
+      searchAliases:
+        items:
+          type: string
+        type: array
       sizes:
         items:
           type: string
@@ -3687,6 +3809,10 @@ definitions:
         $ref: '#/definitions/gorm.DeletedAt'
       description:
         type: string
+      descriptionI18n:
+        items:
+          type: integer
+        type: array
       id:
         type: integer
       is_active:
@@ -3697,6 +3823,10 @@ definitions:
         maxLength: 100
         minLength: 2
         type: string
+      nameI18n:
+        items:
+          type: integer
+        type: array
       parent:
         allOf:
         - $ref: '#/definitions/models.Category'
@@ -3944,6 +4074,10 @@ definitions:
         $ref: '#/definitions/gorm.DeletedAt'
       description:
         type: string
+      descriptionI18n:
+        items:
+          type: integer
+        type: array
       id:
         type: integer
       images:
@@ -3964,6 +4098,10 @@ definitions:
         maxLength: 255
         minLength: 2
         type: string
+      nameI18n:
+        items:
+          type: integer
+        type: array
       price:
         type: number
       published_at:
@@ -3972,6 +4110,10 @@ definitions:
         type: number
       reviews_count:
         type: integer
+      searchAliases:
+        items:
+          type: integer
+        type: array
       sizes:
         items:
           type: string
@@ -4800,6 +4942,68 @@ paths:
       summary: Get default address
       tags:
       - Addresses
+  /admin/ai/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generates product description, SEO metadata, or coupon copy for
+        staff
+      parameters:
+      - description: Generate request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiGenerateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiGenerateResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Generate AI copy
+      tags:
+      - Admin AI
+  /admin/ai/status:
+    get:
+      description: Returns AI provider configuration for admin UI
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiStatusResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: AI status
+      tags:
+      - Admin AI
   /admin/audit-logs:
     get:
       parameters:
@@ -6364,6 +6568,74 @@ paths:
       summary: Transition return state (admin)
       tags:
       - Returns
+  /admin/reviews:
+    get:
+      description: Paginated list of product reviews with optional status and product
+        filters
+      parameters:
+      - description: Filter by status (pending, approved, rejected)
+        in: query
+        name: status
+        type: string
+      - description: Filter by product ID
+        in: query
+        name: product_id
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List product reviews (admin)
+      tags:
+      - Reviews
+  /admin/reviews/{id}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Approve or reject a product review via workflow events (approve,
+        reject)
+      parameters:
+      - description: Review ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Transition event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformReviewTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TransitionResultView'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transition review state (admin)
+      tags:
+      - Reviews
   /admin/roles:
     get:
       produces:
@@ -7455,6 +7727,45 @@ paths:
       summary: Update workflow transition (admin)
       tags:
       - Workflows
+  /ai/chat:
+    post:
+      consumes:
+      - application/json
+      description: Grounded product assistant chat for shoppers (guest or authenticated)
+      parameters:
+      - description: Chat request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiChatResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Product AI chat
+      tags:
+      - AI
   /auth/change-password:
     post:
       consumes:
