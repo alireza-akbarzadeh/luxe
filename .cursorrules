@@ -1,144 +1,286 @@
-# Staff-Level Go Backend Engineer
+# LUXE — Shopping Platform Backend (Go)
+# Cursor / AI rules — follow for every new task
+# See also: AGENTS.md, documentation/architecture.md, .cursor/skills/ (/new-api-entity, /add-api-endpoint)
+# ──────────────────────────────────────────────────────────────────────────────
 
-You are a Staff-Level Go Backend Engineer with 10+ years of experience in
-distributed systems, domain-driven design, and cloud-native architecture.
+# 1. PROJECT OVERVIEW
+description: |
+  Production-grade Go e-commerce API (Gin, GORM, PostgreSQL, JWT).
+  Layered flow:
 
-## Your identity
-- You write production Go, not tutorial Go
-- You think in systems, not files
-- You refactor incrementally — never rewrite everything at once
-- You explain the WHY before the HOW
-- You never introduce a pattern without justifying the tradeoff
+    HTTP Request → Controller → Service → GORM (*gorm.DB) → PostgreSQL
 
-## Codebase context
-This is a Go + Gin + PostgreSQL ecommerce backend being migrated to:
-- Clean Architecture (Uncle Bob)
-- Hexagonal Architecture (ports & adapters)
-- Domain-Driven Design (Evans)
-- 12-Factor App compliance
+  Optional packages sit beside this core:
+    - internal/integrations/   (Stripe, R2 — external APIs)
+    - internal/tasks/          (Asynq job queue abstraction)
+    - internal/observability/  (Sentry, OpenTelemetry)
+    - internal/middleware/     (auth, CORS, logging, tracing)
+    - internal/health/         (liveness / readiness)
 
-## Target folder structure
-```
-cmd/
-  server/
-  worker/
-internal/
-  domain/          # Pure Go. No framework imports. No DB imports.
-    product/
-    order/
-    user/
-    payment/
-    cart/
-    coupon/
-    inventory/
-    shipment/
-    notification/
-  application/     # Orchestration only. Calls domain + infra.
-    commands/
-    queries/
-    services/
-  infrastructure/  # Adapters. Implements domain interfaces.
-    postgres/
-    redis/
-    queue/
-    payment/
-    storage/
-    email/
-  interfaces/      # Delivery layer. HTTP/gRPC/WS only.
-    http/
-      handlers/
-      middleware/
-      dto/
-  shared/
-    config/
-    errors/
-    logger/
-    telemetry/
-api/               # OpenAPI specs
-migrations/        # SQL migrations (goose)
-deployments/       # Docker, Helm, k8s
-scripts/
-tests/
-  integration/
-  e2e/
-```
+  All JSON API responses use utils.Response helpers (success, data, message, code).
+  Statuses, roles, routes constants live in internal/constants.
 
-## Non-negotiable rules
+  Wire dependencies in internal/services/services.go (NewServices) and
+  internal/controllers/container.go (NewContainer).
 
-### Domain layer
-- No framework imports (no gin, no gorm, no sqlx)
-- No database types (no sql.NullString etc.)
-- Business rules live HERE and only here
-- Every aggregate root has: entity.go, repository.go, service.go, errors.go, events.go
-- Use value objects for Money, Email, PhoneNumber, Address
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. ARCHITECTURE — DATA ACCESS (IMPORTANT)
+# ──────────────────────────────────────────────────────────────────────────────
+architecture:
+  default_pattern: |
+    Services own business logic AND GORM queries via *gorm.DB.
+    This is the standard pattern for most services (brand, checkout, auth, etc.).
 
-### Application layer
-- Commands mutate state, Queries read state (CQRS-lite)
-- No business logic here — orchestration only
-- Each use case is a single struct with an Execute() method
+  repositories: |
+    Removed — all data access lives in services via *gorm.DB.
+    Use private query helpers on the service for complex lists/filters.
 
-### Infrastructure layer
-- Implements domain repository interfaces
-- All DB calls use parameterized queries
-- All external calls are wrapped with OpenTelemetry spans
-- Redis keys follow: {service}:{entity}:{id} pattern
+  service_responsibilities:
+    - Domain validation and business rules
+    - Transactions (db.Transaction) for multi-step writes
+    - Orchestration (payment + shipment + notification + job queue)
+    - Mapping domain errors (utils.ErrBadRequest, ErrNotFound, ErrInternal)
+    - Calling integrations (Stripe, R2) via internal/integrations
 
-### Interfaces (HTTP) layer
-- Handlers < 60 lines each
-- Request binding → validation → service call → response mapping
-- Never expose domain models directly — always use DTOs
-- All routes versioned: /api/v1/...
+  controller_responsibilities:
+    - Bind request → DTO, validate with validator
+    - Pass c.Request.Context() to services
+    - Map errors to utils.Response — NO business logic, NO direct DB access
 
-### Error handling
-- Domain errors: typed sentinel errors per domain (ErrProductNotFound, etc.)
-- HTTP mapping: single global error middleware
-- Response format always:
-  {"error": {"code": "SNAKE_CASE_CODE", "message": "human readable"}}
+  forbidden:
+    - Business logic in controllers
+    - Direct gorm.DB in controllers
+    - Fake / dev-only shortcuts in production code paths
+    - Demo product data in new Goose migrations
 
-### Observability (mandatory on every new function)
-- Structured logging: slog or zap. Every log has request_id, user_id where available
-- Tracing: wrap every external call with otel span
-- Metrics: increment counters on every business event
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. CLEAN CODE PRINCIPLES (always)
+# ──────────────────────────────────────────────────────────────────────────────
+clean_code:
+  - Minimize scope — smallest correct diff; no unrelated refactors.
+  - Match existing naming, imports, and patterns in the file you edit.
+  - Reuse helpers in internal/services/helpers.go and internal/utils/.
+  - Keep functions small; one responsibility per function.
+  - Meaningful names — avoid data, temp, val, x.
+  - Comments only for non-obvious business logic (Go: exported symbols only).
+  - Pass context.Context as first parameter on new service methods; use db.WithContext(ctx).
+  - Return typed domain errors from services; controllers map them to HTTP responses.
+  - Use constants package for statuses — never magic strings in business logic.
+  - Dependency injection via constructors — no global state.
 
-### Testing rules
-- Unit tests: mock repositories with interfaces, test service logic
-- Integration tests: use testcontainers-go for real Postgres + Redis
-- Table-driven tests only (no one-off test functions)
-- Test file lives next to the file it tests
+# ──────────────────────────────────────────────────────────────────────────────
+# 4. DIRECTORY STRUCTURE
+# ──────────────────────────────────────────────────────────────────────────────
+directories:
+  cmd/api/                    # main entry, Swagger metadata comments
+  internal/
+    config/                   # env / Viper — not constants
+    constants/                # roles, statuses, route paths
+    models/                   # GORM entities ({entity}_model.go)
+    dto/                      # request/response ({entity}_dto.go)
+    services/                 # business logic ({entity}_service.go, services.go DI)
+    controllers/              # HTTP handlers, container.go
+    routes/                   # route groups, middleware setup
+    middleware/
+    database/                 # connection, pool
+    migrations/               # Goose SQL (internal/migrations/)
+    integrations/stripe/      # payment gateway
+    integrations/r2/          # object storage
+    tasks/                    # JobQueue (Asynq or in-memory)
+    observability/            # Sentry, OTEL tracing
+    health/
+    jobs/                     # cron
+    websocket/
+    utils/                    # response, errors, logger, password, email
+  tests/
+    integration/              # real Postgres; setup_test.go TestMain
+    e2e/
+  docs/                       # GENERATED by swag — gitignored, do not edit
 
-### Security (always check)
-- Parameterized queries everywhere — no string concatenation
-- Never log secrets, tokens, or PII
-- Secrets via env only — never hardcoded
-- Rate limiting on all public endpoints (Redis sliding window)
-- CORS explicitly configured — no wildcard in production
+# ──────────────────────────────────────────────────────────────────────────────
+# 5. NAMING CONVENTIONS
+# ──────────────────────────────────────────────────────────────────────────────
+naming:
+  files:
+    models:     "{entity}_model.go"
+    dto:        "{entity}_dto.go"
+    services:   "{entity}_service.go"
+    controllers: "{entity}_controller.go"
+    routes:     "{entity}_routes.go"
+    migrations: "{timestamp}_{name}.sql"
+  code:
+    structs:    PascalCase
+    variables:  camelCase
+    interfaces: {Entity}ServiceInterface or {Entity}Service
+  database:
+    tables:     snake_case plural
+    columns:    snake_case
+    indexes:    idx_{table}_{column}
 
-### Performance (check before closing a PR)
-- No N+1 queries — use JOINs or batch loads
-- Add DB index for every foreign key and filter column
-- Use transactions for: checkout, payment, inventory updates
-- Cache product catalog and categories in Redis (cache-aside)
+# ──────────────────────────────────────────────────────────────────────────────
+# 6. NEW ENTITY WORKFLOW (order enforced)
+# ──────────────────────────────────────────────────────────────────────────────
+new_entity_order:
+  1. make migrate-create name=create_{entity}_table   # schema only
+  2. internal/models/{entity}_model.go
+  3. internal/dto/{entity}_dto.go
+  4. internal/services/{entity}_service.go (+ register in services.go)
+  5. internal/controllers/{entity}_controller.go (+ container.go)
+  6. internal/routes/{entity}_routes.go (+ routes setup)
+  7. Swagger comments on controller methods
+  8. make swagger
+  9. tests — service unit tests and/or tests/integration/
 
-### Migrations
-- Use goose. Every migration: up + down.
-- Naming: YYYYMMDDHHMMSS_description.sql
-- Every table has: id (uuid), created_at, updated_at, deleted_at
+# ──────────────────────────────────────────────────────────────────────────────
+# 7. GOOSE MIGRATIONS
+# ──────────────────────────────────────────────────────────────────────────────
+goose:
+  path: internal/migrations/
+  create: "make migrate-create name=<name>"
+  apply:  "make migrate-up"
+  rollback: "make migrate-down"
+  rules:
+    - Always provide UP and DOWN.
+    - Schema only: CREATE/ALTER TABLE, indexes, constraints.
+    - Use IF NOT EXISTS / IF EXISTS for idempotency.
+    - timestamptz for PostgreSQL time columns.
+    - deleted_at for soft deletes when needed.
+    - NO demo products, PDP filler, or dev seed data in new migrations.
+    - Legacy seed migrations exist — do not copy that pattern.
+    - Dev/demo seeds → scripts/ or cmd/seed (future), run only locally/staging.
 
-## How to respond to tasks
+# ──────────────────────────────────────────────────────────────────────────────
+# 8. MODELS (GORM)
+# ──────────────────────────────────────────────────────────────────────────────
+model_rules:
+  - Package models; singular PascalCase struct names.
+  - gorm tags: column, type, index, default, not null.
+  - json tags for API; json:"-" for secrets (password_hash).
+  - Relationships: gorm:"foreignKey:UserID;references:ID"
+  - Nullable unique fields use *string or omit empty — not '' for unique indexes.
 
-1. **Audit first**: Before touching code, state what's wrong and why
-2. **Risk assessment**: Rate migration risk (Low / Medium / High) and explain
-3. **Checkpoint**: Define what "done" looks like before starting
-4. **Incremental**: Make the smallest safe change. Never rewrite files > 300 lines at once
-5. **Rollback plan**: Describe how to undo this change if it breaks prod
-6. **Code**: Write the implementation
-7. **Tests**: Write the tests alongside the code, never after
-8. **Docs**: Update ARCHITECTURE.md if the structure changed
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. DTOs
+# ──────────────────────────────────────────────────────────────────────────────
+dto_rules:
+  - {Action}{Entity}Request / {Entity}Response
+  - validate tags: required, email, omitempty, gt=0, max=100
+  - Pagination: limit, offset, total, data array in list responses.
+  - Timestamps as RFC3339 strings in responses when exposed.
 
-## Code style
-- Go 1.22+
-- Error wrapping: fmt.Errorf("operation: %w", err)
-- Context propagation: ctx is always first param
-- No global state — inject dependencies
-- Interfaces defined where they're consumed, not where they're implemented
-- Use functional options for struct constructors with > 3 params
+# ──────────────────────────────────────────────────────────────────────────────
+# 10. SERVICES
+# ──────────────────────────────────────────────────────────────────────────────
+service_rules:
+  - Interface + private struct implementation.
+  - Constructor: New{Entity}Service(deps...) returns interface.
+  - Accept *gorm.DB and/or other services — wired in NewServices.
+  - ctx context.Context first arg on new methods.
+  - db.WithContext(ctx) for all queries.
+  - db.Transaction for checkout, payment, inventory, multi-table updates.
+  - Return utils.AppError helpers from business layer where applicable.
+  - Job enqueue via tasks.JobQueue — not ad-hoc goroutines for order/shipment work.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 11. CONTROLLERS
+# ──────────────────────────────────────────────────────────────────────────────
+controller_rules:
+  - Use utils.OK, Created, BadRequest, NotFound, ValidationError, etc.
+  - Never c.JSON with raw structs except via utils helpers.
+  - validator.New() per controller or shared — Struct(&req) after ShouldBindJSON.
+  - Map utils.AppError codes to correct HTTP response helpers.
+  - Swagger: @Summary @Tags @Router @Success @Failure @Param @Security on handlers.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 12. SWAGGER / OPENAPI
+# ──────────────────────────────────────────────────────────────────────────────
+swagger:
+  never_edit:
+    - docs/docs.go
+    - docs/swagger.json
+    - docs/swagger.yaml
+  edit_instead:
+    - Controller swagger comments
+    - cmd/api/main.go (@title, @version, @host, @BasePath, security defs)
+    - DTO types referenced in {object} responses
+  regenerate: "make swagger"
+  note: docs/ is gitignored; required locally after clone.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 13. TESTING
+# ──────────────────────────────────────────────────────────────────────────────
+testing:
+  unit:
+    - Package services; table-driven tests.
+    - sqlmock for isolated DB unit tests (see auth_service_test.go).
+    - utils.InitLogger in TestMain where needed.
+  integration:
+    - tests/integration/ against real Postgres.
+    - Skip if DATABASE_URL unavailable (setup_test.go TestMain).
+    - Test helpers in *_test.go only (helpers_test.go pattern).
+    - Factories with unique suffix per test (seedProduct) — real inserts, not mocks.
+    - Run: DATABASE_URL=... JWT_SECRET=ci_test_secret go test ./tests/integration/...
+  do_not:
+    - Hand-edited dummy JSON responses instead of hitting API.
+    - Shared mutable test state without unique IDs/suffixes.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 14. BACKGROUND JOBS & CRON
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  - tasks.JobQueue interface (EnqueueOrderProcess, EnqueueShipmentProcess).
+  - REDIS_URL set → Asynq; unset → in-memory fallback.
+  - Register handlers in services.Services.JobHandlers().
+  - Cron in internal/jobs/ — no worker pool for order processing.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 15. INTEGRATIONS & OBSERVABILITY
+# ──────────────────────────────────────────────────────────────────────────────
+integrations:
+  stripe:
+    - internal/integrations/stripe/gateway.go
+    - Config-gated; webhook at /api/v1/webhooks/stripe
+    - Payment methods: mock, stripe, wallet (constants)
+  r2:
+    - internal/integrations/r2/client.go
+    - Presign upload flow; env vars required
+  observability:
+    - SENTRY_DSN → Sentry middleware
+    - OTEL_ENABLED=true → OTLP tracing (middleware/tracing.go)
+    - Structured JSON logging (utils/logger.go, middleware/access_log.go)
+  health:
+    - /health/live, /health/ready, /api/v1/health
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 16. CONFIG & ENV
+# ──────────────────────────────────────────────────────────────────────────────
+config:
+  - Load via internal/config; validate in production (APP_ENV=production).
+  - Secrets in .env — never commit .env.
+  - See .env.example for REDIS_URL, SENTRY_DSN, OTEL_*, R2_*, Stripe keys.
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 17. MAKEFILE COMMANDS
+# ──────────────────────────────────────────────────────────────────────────────
+makefile_commands:
+  - make dev-setup          # docker postgres+redis, migrate-up
+  - make run                # start API
+  - make migrate-create name=<name>
+  - make migrate-up / migrate-down
+  - make swagger            # regenerate docs/
+  - make test               # unit tests
+  - make stripe-listen      # local Stripe webhooks
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 18. AI TASK CHECKLIST (before finishing any task)
+# ──────────────────────────────────────────────────────────────────────────────
+ai_checklist:
+  - [ ] Followed layer boundaries (no logic in controllers)
+  - [ ] Used utils.Response in controllers
+  - [ ] Used constants for statuses/roles
+  - [ ] context.Context passed through on new code paths
+  - [ ] Migrations schema-only if DB changed
+  - [ ] Did not edit generated docs/
+  - [ ] Registered new services in services.go and container.go
+  - [ ] Minimal diff — no drive-by refactors
+  - [ ] go build / relevant tests pass
