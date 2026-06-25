@@ -31,13 +31,17 @@ POSTGRES_PASSWORD  ?= $(or $(DB_PASSWORD),$(DETECTED_DB_PASSWORD),postgres)
 POSTGRES_DB        ?= $(or $(DB_NAME),shopping_platform)
 POSTGRES_SSLMODE   ?= $(or $(DB_SSLMODE),disable)
 
-# Reject accidental full-URL values in DB_HOST (common .env mistake).
+# Reject accidental full-URL values in DB_HOST — use DATABASE_URL for Neon/cloud DSNs.
 ifeq ($(findstring ://,$(POSTGRES_HOST)),://)
+$(warning DB_HOST looks like a connection URL. Set DATABASE_URL instead; falling back to localhost for make targets.)
 POSTGRES_HOST := localhost
 endif
 
 ifndef DATABASE_URL
 DATABASE_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)
+MIGRATE_TARGET := $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) as $(POSTGRES_USER)
+else
+MIGRATE_TARGET := DATABASE_URL (remote/custom DSN)
 endif
 
 # ─── Docker Compose (optional — set USE_COMPOSE=1 for project-managed stack) ───
@@ -83,10 +87,10 @@ help: ## Show this help message
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
 db-info: ## Print resolved database / container settings
+	@echo "${GREEN}Migrate target:${RESET}     $(MIGRATE_TARGET)"
 	@echo "${GREEN}Postgres container:${RESET} $(POSTGRES_CONTAINER)"
 	@echo "${GREEN}Postgres user:${RESET}      $(POSTGRES_USER)"
 	@echo "${GREEN}Postgres database:${RESET}  $(POSTGRES_DB)"
-	@echo "${GREEN}DATABASE_URL:${RESET}         postgresql://$(POSTGRES_USER):***@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)"
 	@echo "${GREEN}USE_COMPOSE:${RESET}          $(USE_COMPOSE)"
 	@if [ -z "$(DB_PASSWORD)" ] && [ -n "$(DETECTED_DB_PASSWORD)" ]; then \
 		echo "${GREEN}Password:${RESET}             loaded from container env"; \
@@ -267,7 +271,7 @@ migrate-create: ## Create a new migration file (usage: make migrate-create name=
 	@$(GOOSE_CMD) create $(name) sql
 
 migrate-up: ## Apply all pending migrations
-	@echo "${GREEN}Running migrations against $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) as $(POSTGRES_USER)...${RESET}"
+	@echo "${GREEN}Running migrations against $(MIGRATE_TARGET)...${RESET}"
 	@$(GOOSE_CMD) up || { \
 		if [ "$(USE_COMPOSE)" = "1" ]; then \
 			echo "${YELLOW}Host goose failed — retrying via Docker compose migrate profile${RESET}"; \
