@@ -32,19 +32,19 @@ Two layers — hard rules stay here and in `.cursorrules`; step-by-step workflow
 | Skill | Use when |
 |-------|----------|
 | `/find-skills` | Find/install agent skills — local skills first, then skills.sh |
-| `/new-api-entity` | New table + full domain — migration → model → DTO → service → controller → routes → Swagger |
-| `/add-api-endpoint` | New handler on an **existing** service (bulk action, extra route) — no new entity |
+| `/new-api-entity` | New table + full domain — migration → model → DTO → postgres repo → application → handler → routes → Swagger |
+| `/add-api-endpoint` | New handler on an **existing** application module (bulk action, extra route) — no new entity |
 
 Details: `.cursor/skills/README.md`. Frontend follow-up after Swagger: **`luxe-front`** → restart API first → `/api-gen` → `pnpm api:gen`.
 
 **Swagger → frontend rule:** Any OpenAPI contract change (new/renamed DTO, field, route, response shape) requires **`make swagger` → restart API → `pnpm api:gen` in luxe-front**. `make swagger` alone does not update the frontend.
 
-**Boundary:** new database table from scratch → `/new-api-entity`. Single route on existing `*_service.go` → `/add-api-endpoint`.
+**Boundary:** new database table from scratch → `/new-api-entity`. Single route on an existing `application/<ctx>/` module → `/add-api-endpoint`.
 
 ## Architecture (one line)
 
 ```
-Handler → services facade → application → domain → infrastructure/postgres → PostgreSQL
+Handler → apps.Applications → application → domain → infrastructure/postgres → PostgreSQL
 ```
 
 - Composition root: `internal/application/bootstrap/wire.go` (`bootstrap.NewRuntime`).

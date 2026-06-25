@@ -4,13 +4,13 @@
     {
       "id": 1,
       "name": "gift-cards-crud-backend",
-      "prompt": "Add a full gift_cards backend — goose migration, model, dto, service, controller, routes, swagger. Register in services.go and container.go.",
-      "expected_output": "Follows ordered checklist: migration schema-only, layers wired, make swagger, no docs/ hand edits, no repository package.",
+      "prompt": "Add a full gift_cards backend — goose migration, model, dto, postgres repo, application module, handler, routes, swagger. Register in apps/wire.go and container.go.",
+      "expected_output": "Follows ordered checklist: migration schema-only, layers wired, make swagger, no docs/ hand edits.",
       "assertions": [
-        "Output follows migration → model → dto → service → controller → routes order",
-        "Output registers service in services.go and controller in container.go",
+        "Output follows migration → model → dto → postgres repo → application → handler → routes order",
+        "Output registers use case in apps/wire.go and handler in container.go",
         "Output uses make swagger and does not edit docs/ manually",
-        "Output does not add internal/repositories/",
+        "Output puts GORM in infrastructure/postgres not handlers",
         "Swagger success uses utils.Response{data=dto...} wrapper"
       ]
     },
@@ -18,10 +18,10 @@
       "id": 2,
       "name": "reject-bulk-delete-only",
       "prompt": "Add POST /admin/categories/bulk-delete to the existing category service.",
-      "expected_output": "Agent should recognize this is add-api-endpoint scope, not a new entity — redirect to extending existing service.",
+      "expected_output": "Agent should recognize this is add-api-endpoint scope, not a new entity — redirect to extending existing application/category.",
       "assertions": [
         "Response does not start with make migrate-create for a new entity table",
-        "Response treats this as extending category_service / category_controller",
+        "Response treats this as extending application/category and category_handler",
         "Response does not scaffold a full new domain from scratch"
       ]
     }

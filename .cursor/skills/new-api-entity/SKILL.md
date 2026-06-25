@@ -2,7 +2,7 @@
 name: new-api-entity
 description: >
   Use when introducing a new luxe backend domain from scratch — Goose migration,
-  GORM model, DTO, service, controller, routes, and Swagger for a new table or REST
+  GORM model, DTO, postgres repo, application module, handler, routes, and Swagger for a new table or REST
   resource. Apply when the user asks for a new entity, CRUD API, database table, or
   full-stack feature starting on the backend. Do not use for a single new route on an
   existing service (use add-api-endpoint) or luxe-front-only work.
@@ -10,7 +10,7 @@ description: >
 
 # New API entity
 
-Follow this order. **Default reference:** pick the closest existing domain (e.g. `brand_service.go`, `application/brand/`, `handlers/brand_handler.go`).
+Follow this order. **Default reference:** pick the closest existing domain (e.g. `application/brand/`, `infrastructure/postgres/brand_repository.go`, `handlers/brand_handler.go`).
 
 ## Checklist
 
@@ -19,9 +19,8 @@ Follow this order. **Default reference:** pick the closest existing domain (e.g.
 - [ ] internal/models/{entity}_model.go
 - [ ] internal/interfaces/http/dto/{entity}_dto.go
 - [ ] internal/infrastructure/postgres/{entity}_repository.go
-- [ ] internal/application/{entity}/ (commands, queries)
-- [ ] internal/services/{entity}_service.go
-- [ ] Register in bootstrap/wire.go AND handlers/container.go
+- [ ] internal/application/{entity}/ (commands, queries, service.go if needed)
+- [ ] Register in apps/wire.go, bootstrap/wire.go (orchestrators), and handlers/container.go
 - [ ] internal/interfaces/http/handlers/{entity}_handler.go
 - [ ] internal/interfaces/http/routes/{entity}_routes.go + setup.go
 - [ ] Swagger comments → make swagger
@@ -48,7 +47,7 @@ Handler binds/validates/responds; application owns rules; postgres repos own GOR
 
 ```bash
 go build ./...
-go test ./internal/services/...   # or tests/integration/ with DATABASE_URL
+go test ./internal/application/...   # or tests/integration/ with DATABASE_URL
 ```
 
 For handler/Swagger details, read [references/handler-pattern.md](references/handler-pattern.md).

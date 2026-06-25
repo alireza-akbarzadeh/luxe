@@ -8,7 +8,7 @@ description: |
   Production-grade Go e-commerce API (Gin, GORM, PostgreSQL, JWT).
   Layered flow:
 
-    HTTP Request → Handler → Service facade → Application → Domain → Postgres (GORM)
+    HTTP Request → Handler → apps.Applications → Application → Domain → infrastructure/postgres (GORM)
 
   Optional packages sit beside this core:
     - internal/infrastructure/integrations/  (Stripe, R2 — external APIs)
@@ -29,24 +29,25 @@ description: |
 architecture:
   default_pattern: |
     Handlers call application use cases via apps.Applications (handlers/container.go).
-    Facades delegate to internal/application/<ctx>/ (commands/queries).
-    Application uses domain ports; GORM lives in internal/infrastructure/postgres/.
+    Application packages under internal/application/<ctx>/ own business rules and orchestration.
+    Domain defines ports; GORM lives in internal/infrastructure/postgres/*_repository.go.
 
   repositories: |
-    GORM implementations in internal/infrastructure/postgres/*_repository.go.
-    Application layers depend on repository interfaces, not *gorm.DB (checkout is the
-    intentional exception for multi-service transactions).
-    All persistence uses GORM against internal/models/ — Model, Where, Joins, Preload,
-    Transaction. Do not use db.Raw(), database/sql, or hand-written SQL query strings.
+    Package path: internal/infrastructure/postgres/ (technology adapter — not renamed to "repository").
+    Files: {entity}_repository.go implement application/domain repository interfaces.
+    Application depends on interfaces, not *gorm.DB (checkout is the intentional exception for transactions).
+    All persistence uses GORM against internal/models/ — Model, Where, Joins, Preload, Transaction.
+    Do not use db.Raw(), database/sql, or hand-written SQL query strings.
 
-  service_responsibilities:
-    - Thin facade: implement handler-facing interfaces, delegate to application layer
-    - Cross-cutting: workflow sync, WebSocket, job handler registration (registry.go)
-    - Checkout: transaction orchestration across payment/coupon/inventory (legacy *gorm.DB)
+  application_responsibilities:
+    - Domain validation, business rules, use-case orchestration
+    - Transactions (db.Transaction) for multi-step writes; checkout coordinates payment/inventory/coupon
+    - Workflow sync, notifications, job enqueue via infrastructure/asynq
+    - Map domain errors (utils.ErrBadRequest, ErrNotFound, ErrInternal)
 
   handler_responsibilities:
     - Bind request → DTO, validate with validator
-    - Pass c.Request.Context() to services
+    - Pass c.Request.Context() to application use cases
     - Map errors to utils.Response — NO business logic, NO direct DB access
 
   forbidden:
@@ -67,7 +68,7 @@ clean_code:
   - Meaningful names — avoid data, temp, val, x.
   - Comments only for non-obvious business logic (Go: exported symbols only).
   - Pass context.Context as first parameter on new service methods; use db.WithContext(ctx).
-  - Return typed domain errors from services; controllers map them to HTTP responses.
+  - Return typed domain errors from application layer; handlers map them to HTTP responses.
   - Use constants package for statuses — never magic strings in business logic.
   - Dependency injection via constructors — no global state.
 
@@ -92,7 +93,6 @@ directories:
       handlers/               # Gin HTTP handlers, container.go
       routes/                 # route groups, middleware setup
       middleware/
-    services/                 # thin facades ({entity}_service.go, registry.go)
     database/                 # connection, pool
     migrations/               # Goose SQL (internal/migrations/)
     shared/utils/             # response, errors, logger, password, email
@@ -112,8 +112,9 @@ naming:
   files:
     models:     "{entity}_model.go"
     dto:        "{entity}_dto.go"
-    services:   "{entity}_service.go"
-    controllers: "{entity}_handler.go"   # under interfaces/http/handlers/
+    postgres:   "{entity}_repository.go"   # under infrastructure/postgres/
+    application: "{entity}/service.go" or commands/queries
+    handlers:   "{entity}_handler.go"      # under interfaces/http/handlers/
     routes:     "{entity}_routes.go"
     migrations: "{timestamp}_{name}.sql"
   code:
@@ -179,22 +180,21 @@ dto_rules:
   - Timestamps as RFC3339 strings in responses when exposed.
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 10. SERVICES
+# 10. APPLICATION LAYER
 # ──────────────────────────────────────────────────────────────────────────────
-service_rules:
-  - Interface + private struct implementation.
-  - Constructor: New{Entity}Service(deps...) returns interface.
-  - Accept *gorm.DB and/or other services — wired in NewRuntime / WireApplications.
+application_rules:
+  - One package per bounded context under internal/application/{ctx}/.
+  - Commands/queries or service.go — wired via apps/wire.go and bootstrap/wire.go.
+  - Depends on domain ports and infrastructure/postgres repository interfaces — not Gin.
   - ctx context.Context first arg on new methods.
-  - db.WithContext(ctx) for all queries.
-  - db.Transaction for checkout, payment, inventory, multi-table updates.
+  - db.Transaction for checkout, payment, inventory, multi-table updates (checkout may hold *gorm.DB).
   - Return utils.AppError helpers from business layer where applicable.
-  - Job enqueue via tasks.JobQueue — not ad-hoc goroutines for order/shipment work.
+  - Job enqueue via infrastructure/asynq.JobQueue — not ad-hoc goroutines for order/shipment work.
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 11. CONTROLLERS
+# 11. HANDLERS (HTTP)
 # ──────────────────────────────────────────────────────────────────────────────
-controller_rules:
+handler_rules:
   - Use utils.OK, Created, BadRequest, NotFound, ValidationError, etc.
   - Never c.JSON with raw structs except via utils helpers.
   - validator.New() per controller or shared — Struct(&req) after ShouldBindJSON.
@@ -210,7 +210,7 @@ swagger:
     - docs/swagger.json
     - docs/swagger.yaml
   edit_instead:
-    - Controller swagger comments
+    - Handler swagger comments
     - cmd/api/main.go (@title, @version, @host, @BasePath, security defs)
     - DTO types referenced in {object} responses
   regenerate: "make swagger"
@@ -221,8 +221,8 @@ swagger:
 # ──────────────────────────────────────────────────────────────────────────────
 testing:
   unit:
-    - Package services; table-driven tests.
-    - sqlmock for isolated DB unit tests (see auth_service_test.go).
+    - Package application; table-driven tests.
+    - sqlmock for isolated DB unit tests (see application/admin/service_test.go).
     - utils.InitLogger in TestMain where needed.
   integration:
     - tests/integration/ against real Postgres.
@@ -238,10 +238,10 @@ testing:
 # 14. BACKGROUND JOBS & CRON
 # ──────────────────────────────────────────────────────────────────────────────
 jobs:
-  - tasks.JobQueue interface (EnqueueOrderProcess, EnqueueShipmentProcess).
+  - infrastructure/asynq.JobQueue (EnqueueOrderProcess, EnqueueShipmentProcess).
   - REDIS_URL set → Asynq; unset → in-memory fallback.
-  - Register handlers in services.Services.JobHandlers().
-  - Cron in internal/jobs/ — no worker pool for order processing.
+  - Register handlers in bootstrap.Runtime.JobHandlers().
+  - Cron in internal/jobs/ — uses apps.Applications; no worker pool for order processing.
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 15. INTEGRATIONS & OBSERVABILITY
@@ -291,7 +291,7 @@ ai_checklist:
   - [ ] context.Context passed through on new code paths
   - [ ] Migrations schema-only if DB changed
   - [ ] Did not edit generated docs/
-  - [ ] Registered new services in bootstrap/wire.go and handlers/container.go
+  - [ ] Registered new use cases in apps/wire.go, bootstrap/wire.go, and handlers/container.go
   - [ ] Minimal diff — no drive-by refactors
   - [ ] go build / relevant tests pass
 
@@ -299,10 +299,8 @@ ai_checklist:
 # 19. NO RE-REFACTOR (architecture is settled)
 # ──────────────────────────────────────────────────────────────────────────────
 architecture_frozen:
-  - The layered layout (handlers → facade → application → domain → postgres) is final.
+  - The layered layout (handlers → apps.Applications → application → domain → infrastructure/postgres) is final.
   - Add features inside existing packages; use /new-api-entity and /add-api-endpoint skills.
   - Do NOT recreate: internal/controllers/, internal/routes/, internal/dto/, internal/utils/,
-    internal/middleware/, internal/tasks/, internal/integrations/, internal/observability/.
-  - Do NOT move wiring back to services.go — use application/bootstrap/wire.go.
-  - Do NOT put GORM in handlers or new business logic in service facades without application layer.
-  - Checkout may keep *gorm.DB for cross-aggregate transactions until explicitly migrated.
+    internal/middleware/, internal/tasks/, internal/services/, internal/integrations/, internal/observability/.
+  - Do NOT put GORM in handlers — postgres repos implement persistence; checkout may keep *gorm.DB for transactions.

@@ -20,7 +20,7 @@ What remains is mostly **admin polish**, **menu-linked stubs**, **operational to
 | Admin (web) | **Good, uneven** | ~20 real domains; 6 placeholder routes |
 | Storefront (web) | **Strong** | Full funnel; gift cards & social auth stubbed |
 | Mobile | **Good** | Core shop/cart/checkout; no admin |
-| AI | **None** | No LLM integration yet |
+| AI | **Partial** | `application/ai`, `POST /admin/ai/generate`, Ollama/OpenAI-compat provider; admin UI hooks in luxe-front |
 
 ---
 
@@ -66,7 +66,7 @@ What remains is mostly **admin polish**, **menu-linked stubs**, **operational to
 
 - Migrations: Goose (`make migrate-up`)
 - Seeds: `make seed-dev`, orders/returns, invoices, coupons, shipping providers
-- Tests: unit (services), integration (Postgres), E2E placeholder
+- Tests: unit (`internal/application/*_test.go`), integration (Postgres), E2E placeholder
 - Swagger: `make swagger` (gitignored `docs/`)
 
 ---

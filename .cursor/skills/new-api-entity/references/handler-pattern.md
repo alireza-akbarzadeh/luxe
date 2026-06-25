@@ -1,6 +1,6 @@
 # Handler & Swagger pattern
 
-Load when writing controller methods for a new entity.
+Load when writing handler methods for a new entity. Business logic lives in `application/<ctx>/`; GORM in `infrastructure/postgres/`.
 
 ## Service method
 

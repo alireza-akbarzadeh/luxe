@@ -40,7 +40,7 @@ cmd/api/main.go
   → routes.NewRouter().Setup()   internal/interfaces/http/routes/
 ```
 
-Register every new domain in **`bootstrap/wire.go`** and **`handlers/container.go`**.
+Register every new domain in **`application/apps/wire.go`**, **`bootstrap/wire.go`** (if orchestrator), and **`handlers/container.go`**.
 
 ### Folder map
 
@@ -84,7 +84,7 @@ Follow **`.cursor/skills/new-api-entity/SKILL.md`** (or invoke `/new-api-entity`
 3. `internal/interfaces/http/dto/{entity}_dto.go`
 4. `internal/infrastructure/postgres/{entity}_repository.go`
 5. `internal/application/{entity}/` — `commands.go`, `queries.go`, `service.go`, mappers
-6. Register in `application/apps/wire.go` + `handlers/container.go`
+6. Register in `application/apps/wire.go` + `bootstrap/wire.go` (if needed) + `handlers/container.go`
 7. `handlers/{entity}_handler.go` + `routes/{entity}_routes.go`
 9. Swagger comments on handler → `make swagger` → **restart API**
 10. **luxe-front:** `pnpm api:gen` → `pnpm check` (mandatory if OpenAPI changed)

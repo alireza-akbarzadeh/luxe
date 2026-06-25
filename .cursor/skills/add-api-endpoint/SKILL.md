@@ -10,7 +10,7 @@ description: >
 
 # Add API endpoint
 
-**Default:** copy the nearest handler in the same `*_handler.go` / `*_service.go` / `application/<ctx>/`.
+**Default:** copy the nearest handler in the same `handlers/{entity}_handler.go` and `application/<ctx>/`.
 
 ## Checklist
 
@@ -18,7 +18,6 @@ description: >
 - [ ] DTO in internal/interfaces/http/dto/ (if new request/response shapes)
 - [ ] Application command/query in internal/application/<ctx>/
 - [ ] Postgres repo method if new persistence (internal/infrastructure/postgres/)
-- [ ] Service facade method — delegate to application (no new GORM in facade)
 - [ ] Handler — bind, validate, utils.Response, no business logic
 - [ ] Route in existing interfaces/http/routes/*_routes.go
 - [ ] Swagger @Router @Success utils.Response{data=…}
@@ -34,12 +33,12 @@ description: >
 - **`utils.Response{data=dto.X}` in @Success** — bare `dto.X` breaks Orval type generation on the frontend.
 - **Constants for statuses/roles** — `internal/constants`.
 - **Both repos:** `make swagger` + **restart** + luxe-front **`pnpm api:gen`** whenever the OpenAPI contract changes.
-- **Never add GORM to handlers** or grow monolithic logic in `internal/services/` — use application + postgres repos.
+- **Never add GORM to handlers** — use application + `internal/infrastructure/postgres` repos.
 
 ## Validate
 
 ```bash
-go test ./internal/services/... ./internal/application/... -run TestYourFeature
+go test ./internal/application/... -run TestYourFeature
 make swagger && go build ./...
 ```
 

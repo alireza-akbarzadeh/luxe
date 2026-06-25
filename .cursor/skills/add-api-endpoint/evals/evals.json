@@ -4,11 +4,11 @@
     {
       "id": 1,
       "name": "categories-bulk-delete",
-      "prompt": "Add bulk delete for admin categories on the existing category controller and service.",
-      "expected_output": "DTO if needed, service method with ctx + db.WithContext, controller bind/validate/utils.Response, route in category routes, make swagger.",
+      "prompt": "Add bulk delete for admin categories on the existing category handler and application module.",
+      "expected_output": "DTO if needed, application command, postgres repo method if needed, handler bind/validate/utils.Response, route in category routes, make swagger.",
       "assertions": [
         "Output adds handler to existing category files rather than new entity scaffold",
-        "Output keeps business logic in service not controller",
+        "Output keeps business logic in application not handler",
         "Output includes make swagger step",
         "Output mentions luxe-front pnpm api:gen after restart"
       ]

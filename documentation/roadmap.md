@@ -1,7 +1,7 @@
 # Project Roadmap
 
 > **Note for AI / contributors:** This file tracks phase progress. For current conventions use `.cursorrules`, `AGENTS.md`, and `documentation/architecture.md`.
-> Verify the codebase before treating unchecked boxes as still required (repository layer was removed — services + GORM is the target).
+> Verify the codebase before treating unchecked boxes as still required. Persistence: `internal/infrastructure/postgres/`; use cases: `internal/application/`.
 
 ## Goal
 Bring Luxe from a working backend to a production-ready, maintainable e-commerce platform.
@@ -28,7 +28,7 @@ Bring Luxe from a working backend to a production-ready, maintainable e-commerce
 - [x] Add validation for required environment variables, fail fast in production (`config.Validate`).
 
 ### Phase 4: Improve architecture and extensibility
-- [x] ~~Introduce repository layer~~ — **not planned**; services use `*gorm.DB` directly.
+- [x] ~~Introduce repository layer~~ — **done** as `internal/infrastructure/postgres/*_repository.go` (GORM adapters).
 - [x] Implement request/response DTOs for public API contracts.
 - [x] Add OpenAPI/Swagger docs generation from source annotations.
 - [x] Add role-based permissions middleware and use it consistently across admin routes (`RequireAdmin`, nav menu write protection).

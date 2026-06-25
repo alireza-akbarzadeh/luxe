@@ -54,7 +54,7 @@ Edit handler `@Summary`/`@Router` comments → `make swagger` → **restart API*
 - Smallest correct diff; match surrounding style
 - `context.Context` first on new service methods; `db.WithContext(ctx)`
 - Constants for statuses — no magic strings
-- DI via constructors; wire in `bootstrap.NewServices` / `handlers.NewContainer`
+- DI via constructors; wire in `apps/wire.go`, `bootstrap.NewRuntime`, and `handlers.NewContainer`
 - Jobs via `infrastructure/asynq.JobQueue`, not raw goroutines for orders/shipments
 
 ## Testing

@@ -32,7 +32,7 @@ Cron        → internal/jobs/cron_jobs.go (uses apps.Applications)
 | `internal/application/apps/` | `Applications` registry |
 | `internal/application/bootstrap/` | Composition root (`NewRuntime`, `JobHandlers`) |
 | `internal/domain/` | Pure domain entities, ports, rules |
-| `internal/infrastructure/postgres/` | GORM repository implementations |
+| `internal/infrastructure/postgres/` | GORM repository implementations (`{entity}_repository.go`) |
 | `internal/infrastructure/asynq/` | Background job queue |
 | `internal/infrastructure/integrations/` | Stripe, R2, AI, PDF |
 | `internal/shared/utils/` | Response helpers, logger, JWT |
@@ -77,19 +77,22 @@ New domains must be registered in **`apps/wire.go`**, **`bootstrap/wire.go`** (o
 
 ## Domain modules
 
-| Domain | Service | Notes |
-|--------|---------|-------|
-| Auth / users | `auth_service`, `user_service` | JWT, refresh tokens, email verification |
-| Catalog | `product_services`, `application/brand`, `application/category`, `application/collection`, `pdp_service`, `search_service` | PDP, compare, likes |
-| Cart | `cart_service` | Stock checks, active cart |
-| Orders | `orders_service`, `checkout_service` | Checkout transaction, inventory |
-| Payments | `payment_service`, `wallet_service` | Stripe Checkout (orders + wallet deposits), mock when Stripe disabled, wallet balance |
-| Fulfillment | `shipment_service`, `address_service` | Async shipment jobs |
-| Returns | `return_service` | Return/refund workflow |
-| Workflow | `workflow` engine, `workflow_service` | DB-driven state machine (see below) |
-| Engagement | `review_service`, `coupon_service`, `notification_service` | WebSocket hub |
-| Platform | `audit_service`, `upload_service`, `settings_service` | Audit logs, R2 presign |
-| Store / nav | `store_setvice`, `menu_service`, `nav_menu_service` | Admin menus, mega menu |
+Handlers call **`apps.Applications.<Ctx>`** — one application package per bounded context. Postgres repos live in `infrastructure/postgres/{entity}_repository.go`.
+
+| Domain | Application package(s) | Notes |
+|--------|------------------------|-------|
+| Auth / users | `auth`, `user`, `account` | JWT, refresh tokens, email verification |
+| Catalog | `catalog`, `brand`, `category`, `collection`, `pdp`, `search` | PDP, compare, likes |
+| Cart | `cart` | Stock checks, active cart |
+| Orders / checkout | `order`, `checkout` | Checkout transaction, inventory, jobs |
+| Payments | `payment`, `wallet` | Stripe Checkout, mock, wallet balance |
+| Fulfillment | `shipment`, `address` | Async shipment jobs |
+| Returns | `returnorder` | Return/refund workflow |
+| Workflow | `workflow` + `infrastructure/workflow` engine | DB-driven state machine (see below) |
+| Engagement | `review`, `coupon`, `notification`, `push` | WebSocket hub, web push |
+| Platform | `audit`, `upload`, `setting`, `role`, `menu`, `navmenu` | Audit logs, R2 presign, RBAC |
+| Store / nav | `store` | Admin menus, mega menu |
+| Admin / analytics | `admin`, `salesfeed`, `inventory`, `import`, `ai` | KPIs, reports, bulk ops |
 
 ## Application layer
 
@@ -105,6 +108,8 @@ Handlers call **`apps.Applications`** directly (product, checkout, order, notifi
 ## Data access
 
 **Default:** GORM in `internal/infrastructure/postgres/*_repository.go` against `internal/models/`. Application commands/queries call repository interfaces — no `db.Raw()` or hand-written SQL strings.
+
+**Naming:** the folder is `postgres` (technology adapter), not `repository`. Repository **interfaces** live in domain/application; `{entity}_repository.go` files implement them. See `internal/infrastructure/postgres/README.md`.
 
 **Checkout exception:** `application/checkout` still uses `db.Transaction` to coordinate payment, inventory, coupon, and shipment until fully extracted.
 
@@ -175,15 +180,15 @@ Luxe uses a **DB-driven workflow engine** so lifecycle rules (states, transition
 | `internal/infrastructure/workflow/engine.go` | `Transition`, `SetState`, `AvailableTransitions`, `History` |
 | `internal/application/workflow/hooks.go` | Registered guards and post-transition hooks |
 | `internal/application/workflow/sync.go` | Legacy status → event/SetState helpers used by facades |
-| `internal/services/workflow_service.go` | Workflow definition CRUD facade |
+| `internal/application/workflow/` | Definition CRUD, sync helpers, guards/hooks registration |
 | `internal/migrations/20260617200000_workflow_engine.sql` | Schema |
 | `internal/migrations/20260617210000_workflow_seed.sql` | Seed definitions for five workflows |
 
-Boot wiring (`bootstrap.NewServices`):
+Boot wiring (`bootstrap.NewRuntime` in `bootstrap/wire.go`):
 
-1. `workflow.NewEngine(db)`
-2. `application/workflow.RegisterGuardsAndHooks(...)` and `RegisterInventoryHooks(...)`
-3. Pass `engine` into order, product, shipment, checkout, auth, admin, return services
+1. `infrastructure/workflow.NewEngine(db)`
+2. `WireApplications(...)` — passes engine into catalog, order, shipment, etc.
+3. `application/workflow.RegisterGuardsAndHooks(...)` and `RegisterInventoryHooks(...)`
 
 ### Data model
 
@@ -206,8 +211,8 @@ orders / products / shipments / users / returns
 
 ```
 POST …/transition  { "event": "ship", "note": "…" }
-  → Controller (bind DTO, actor from JWT)
-  → Service (optional entity existence check)
+  → Handler (bind DTO, actor from JWT)
+  → Application service (optional entity existence check)
   → engine.Transition(ctx, TransitionRequest{…})
        1. Load workflow + current workflow_state_id from entity row
        2. Match transition row (from_state + event, or wildcard + event)
@@ -255,7 +260,7 @@ For entities with `statusMirror: true`, the engine maps workflow state codes to 
 - Product: `published` / `out_of_stock` → `active`, `discontinued` → `inactive`
 - Shipment: `in_transit` / `out_for_delivery` → `shipped`, `ready_for_pickup` → `processing`
 
-Existing services call `application/workflow.ApplyOrderWorkflow` / `ApplyProductWorkflow` / `ApplyShipmentWorkflow` when they still update status strings directly; those helpers try **`Transition`** first (mapped event), then fall back to **`SetState`**.
+Existing application code calls `application/workflow.ApplyOrderWorkflow` / `ApplyProductWorkflow` / `ApplyShipmentWorkflow` when they still update status strings directly; those helpers try **`Transition`** first (mapped event), then fall back to **`SetState`**.
 
 ### HTTP API
 
@@ -305,26 +310,26 @@ Orval: run `pnpm api:gen` in luxe-front after `make swagger` when the OpenAPI sp
 ```mermaid
 flowchart LR
   subgraph api [HTTP]
-    DC[Domain controllers]
-    WC[Workflow controller]
+    H[Handlers]
+    WC[Workflow handler]
   end
   subgraph engine [Workflow engine]
     T[Transition]
     G[Guards]
-    H[Hooks]
+    Hk[Hooks]
     L[transition_logs]
   end
   subgraph data [PostgreSQL]
     WF[(workflows / states / transitions)]
     ENT[(orders / products / …)]
   end
-  DC --> T
+  H --> T
   WC --> T
   T --> G
   T --> WF
   T --> ENT
   T --> L
-  T --> H
+  T --> Hk
 ```
 
 ---
@@ -334,24 +339,30 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph http [HTTP]
-    C[Controllers]
+    H[Handlers]
     M[Middleware]
   end
-  subgraph core [Core]
-    S[Services]
+  subgraph app [Application]
+    A[apps.Applications]
+    APP[Use cases + orchestrators]
+  end
+  subgraph infra [Infrastructure]
+    PG[(postgres repos)]
+    Q[JobQueue asynq]
+  end
+  subgraph data [Data]
     DB[(PostgreSQL)]
   end
   subgraph async [Background]
-    Q[JobQueue]
-    CRON[Cron]
+    CRON[Cron jobs]
   end
   subgraph ext [Integrations]
     ST[Stripe]
     R2[R2]
   end
-  M --> C --> S --> DB
-  S --> Q
-  S --> ST
-  S --> R2
-  CRON --> S
+  M --> H --> A --> APP --> PG --> DB
+  APP --> Q
+  APP --> ST
+  APP --> R2
+  CRON --> A
 ```
