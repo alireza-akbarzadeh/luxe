@@ -9,6 +9,7 @@ import (
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	domainorder "github.com/alireza-akbarzadeh/luxe/internal/domain/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -210,27 +211,11 @@ func (s *Service) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, st
 	if len(orderIDs) == 0 {
 		return 0, utils.ErrBadRequest("no order IDs provided")
 	}
-	validStatuses := map[string]bool{
-		constants.OrderStatusPaid:      true,
-		constants.OrderStatusShipped:   true,
-		constants.OrderStatusDelivered: true,
-		constants.OrderStatusCancelled: true,
-	}
-	if !validStatuses[status] {
+	if !domainorder.IsValidBulkAdminStatus(status) {
 		return 0, utils.ErrBadRequest("invalid bulk status; allowed: paid, shipped, delivered, cancelled")
 	}
 
-	orderStatusToStateCode := map[string]string{
-		constants.OrderStatusPending:   "pending_payment",
-		constants.OrderStatusPaid:      "paid",
-		"processing":                   "processing",
-		constants.OrderStatusShipped:   "shipped",
-		constants.OrderStatusDelivered: "delivered",
-		"completed":                    "completed",
-		constants.OrderStatusCancelled: "cancelled",
-		constants.OrderStatusRefunded:  "refunded",
-	}
-	code := orderStatusToStateCode[status]
+	code := domainorder.WorkflowStateCode(status)
 	var updated int64
 	for _, id := range orderIDs {
 		if appworkflow.ApplyOrderWorkflow(ctx, s.engine, id, status, constants.RoleAdmin, actorID) {

@@ -20,6 +20,8 @@ domain/
   inventory/stock.go      stock availability + delta rules
   coupon/coupon.go        eligibility + discount calculation
   wallet/wallet.go        balance + amount rules
+  payment/card.go         mock gateway card validation
+  order/status.go         cancel eligibility + admin bulk status rules
 ```
 
 ## Where persistence ports live

@@ -9,6 +9,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
+	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
@@ -61,12 +62,8 @@ func LoadActiveCart(ctx context.Context, checkoutRepo *postgres.CheckoutReposito
 	return cart, nil
 }
 
-// ReserveCartStock locks product rows, validates stock, and decrements inventory.
-type StockDelta struct {
-	Product        models.Product
-	QuantityBefore int
-	QuantityAfter  int
-}
+// StockDelta captures stock change outcome during checkout reservation.
+type StockDelta = appinventory.DeltaResult
 
 // ProductStockAvailable delegates to cart application stock rules.
 func ProductStockAvailable(product models.Product, quantity int) bool {
@@ -82,24 +79,25 @@ func ShouldDecrementProductStock(product models.Product) bool {
 func ReserveCartStock(
 	ctx context.Context,
 	tx *gorm.DB,
+	checkoutRepo *postgres.CheckoutRepository,
 	orderID uint,
 	cartItems []models.CartItem,
 	decrement func(ctx context.Context, tx *gorm.DB, orderID, productID uint, qty int) (StockDelta, error),
 ) ([]StockDelta, error) {
 	var changes []StockDelta
 	for _, item := range cartItems {
-		var product models.Product
-		if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&product, item.ProductID).Error; err != nil {
+		product, err := checkoutRepo.GetProductForUpdateTx(tx, item.ProductID)
+		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, utils.ErrBadRequest("product not found")
 			}
 			return nil, utils.ErrInternal(err)
 		}
-		if !ProductStockAvailable(product, item.Quantity) {
+		if !ProductStockAvailable(*product, item.Quantity) {
 			return nil, utils.ErrBadRequest(
 				fmt.Sprintf("insufficient stock for product: %s", product.Name))
 		}
-		if ShouldDecrementProductStock(product) {
+		if ShouldDecrementProductStock(*product) {
 			if decrement != nil {
 				change, err := decrement(ctx, tx, orderID, item.ProductID, item.Quantity)
 				if err != nil {
@@ -109,7 +107,7 @@ func ReserveCartStock(
 				continue
 			}
 			product.Stock -= item.Quantity
-			if err := tx.Save(&product).Error; err != nil {
+			if err := checkoutRepo.SaveProductTx(tx, product); err != nil {
 				return nil, utils.ErrInternal(err)
 			}
 		}

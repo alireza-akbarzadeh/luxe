@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	domainpayment "github.com/alireza-akbarzadeh/luxe/internal/domain/payment"
 	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/stripe"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -125,20 +126,14 @@ func (s *Service) GetPaymentProvider(ctx context.Context, isActive bool) ([]mode
 func (s *Service) mockGateway(cardInfo dto.CardInfo) error {
 	time.Sleep(1 * time.Second)
 
-	if cardInfo.CardNumber == "0000000000000000" {
-		return errors.New("card declined")
+	err := domainpayment.ValidateCard(domainpayment.Card{
+		Number:      cardInfo.CardNumber,
+		ExpiryMonth: cardInfo.ExpiryMonth,
+		ExpiryYear:  cardInfo.ExpiryYear,
+		CVV:         cardInfo.CVV,
+	}, time.Now())
+	if err != nil {
+		return err
 	}
-
-	now := time.Now()
-	year := now.Year()
-	month := int(now.Month())
-	if cardInfo.ExpiryYear < year || (cardInfo.ExpiryYear == year && cardInfo.ExpiryMonth < month) {
-		return errors.New("card expired")
-	}
-
-	if len(cardInfo.CVV) != 3 {
-		return errors.New("invalid CVV")
-	}
-
 	return nil
 }

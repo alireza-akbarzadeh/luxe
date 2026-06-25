@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -152,4 +153,61 @@ func (r *CheckoutRepository) FindPaymentByOrderID(ctx context.Context, orderID u
 // IsNotFound reports gorm record-not-found errors.
 func IsNotFound(err error) bool {
 	return errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+// Transaction runs fn inside a database transaction.
+func (r *CheckoutRepository) Transaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(fn)
+}
+
+// GetProductForUpdateTx loads a product row with FOR UPDATE inside a transaction.
+func (r *CheckoutRepository) GetProductForUpdateTx(tx *gorm.DB, productID uint) (*models.Product, error) {
+	var product models.Product
+	if err := tx.Set("gorm:query_option", "FOR UPDATE").First(&product, productID).Error; err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+// SaveProductTx persists product changes inside a transaction.
+func (r *CheckoutRepository) SaveProductTx(tx *gorm.DB, product *models.Product) error {
+	return tx.Save(product).Error
+}
+
+// RestoreProductStockTx increments product stock inside a transaction.
+func (r *CheckoutRepository) RestoreProductStockTx(tx *gorm.DB, productID uint, quantity int) error {
+	return tx.Model(&models.Product{}).
+		Where("id = ?", productID).
+		UpdateColumn("stock", gorm.Expr("stock + ?", quantity)).Error
+}
+
+// FindOrderWithPaymentTx loads an order and payment inside a transaction.
+func (r *CheckoutRepository) FindOrderWithPaymentTx(tx *gorm.DB, orderID uint) (*models.Order, error) {
+	var order models.Order
+	if err := tx.Preload("Payment").First(&order, orderID).Error; err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+// MarkOrderPaymentFailedTx sets order and shipment to failed/cancelled states.
+func (r *CheckoutRepository) MarkOrderPaymentFailedTx(tx *gorm.DB, orderID uint) error {
+	if err := tx.Model(&models.Order{}).Where("id = ?", orderID).Update("status", "payment_failed").Error; err != nil {
+		return err
+	}
+	return tx.Model(&models.Shipment{}).Where("order_id = ?", orderID).Update("status", "cancelled").Error
+}
+
+// UpdateWalletPaymentSucceededTx marks a wallet payment as succeeded inside a transaction.
+func (r *CheckoutRepository) UpdateWalletPaymentSucceededTx(tx *gorm.DB, paymentID, userID, orderID uint) error {
+	return tx.Model(&models.Payment{}).Where("id = ?", paymentID).Updates(map[string]interface{}{
+		"status":         constants.PaymentStatusSucceeded,
+		"transaction_id": fmt.Sprintf("wallet_%d_%d", userID, orderID),
+	}).Error
+}
+
+// UpdatePaymentRefundedTx marks a payment as refunded inside a transaction.
+func (r *CheckoutRepository) UpdatePaymentRefundedTx(tx *gorm.DB, paymentID uint) error {
+	return tx.Model(&models.Payment{}).Where("id = ?", paymentID).
+		Update("status", constants.PaymentStatusRefunded).Error
 }
