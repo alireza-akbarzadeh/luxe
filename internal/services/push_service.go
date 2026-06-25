@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
+	apppush "github.com/alireza-akbarzadeh/luxe/internal/application/push"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type PushServiceInterface interface {
@@ -27,7 +28,8 @@ type PushServiceInterface interface {
 }
 
 type pushService struct {
-	db          *gorm.DB
+	commands    *apppush.Commands
+	queries     *apppush.Queries
 	publicKey   string
 	privateKey  string
 	subject     string
@@ -35,8 +37,10 @@ type pushService struct {
 }
 
 func NewPushService(db *gorm.DB, cfg *config.Config) PushServiceInterface {
+	repo := postgres.NewPushRepository(db)
 	return &pushService{
-		db:          db,
+		commands:    apppush.NewCommands(repo),
+		queries:     apppush.NewQueries(repo),
 		publicKey:   cfg.Push.VAPIDPublicKey,
 		privateKey:  cfg.Push.VAPIDPrivateKey,
 		subject:     cfg.Push.VAPIDSubject,
@@ -58,40 +62,11 @@ func (s *pushService) RegisterSubscription(
 	req dto.RegisterPushSubscriptionRequest,
 	userAgent string,
 ) error {
-	sub := models.PushSubscription{
-		UserID:    userID,
-		Endpoint:  strings.TrimSpace(req.Endpoint),
-		P256dh:    strings.TrimSpace(req.Keys.P256dh),
-		Auth:      strings.TrimSpace(req.Keys.Auth),
-		UserAgent: userAgent,
-	}
-
-	if err := s.db.WithContext(ctx).
-		Clauses(clause.OnConflict{
-			Columns:   []clause.Column{{Name: "endpoint"}},
-			DoUpdates: clause.AssignmentColumns([]string{"user_id", "p256dh", "auth", "user_agent", "updated_at"}),
-		}).
-		Create(&sub).Error; err != nil {
-		return utils.ErrInternal(err)
-	}
-
-	return nil
+	return s.commands.RegisterSubscription(ctx, userID, req, userAgent)
 }
 
 func (s *pushService) DeleteSubscription(ctx context.Context, userID uint, endpoint string) error {
-	result := s.db.WithContext(ctx).
-		Where("user_id = ? AND endpoint = ?", userID, strings.TrimSpace(endpoint)).
-		Delete(&models.PushSubscription{})
-
-	if result.Error != nil {
-		return utils.ErrInternal(result.Error)
-	}
-
-	if result.RowsAffected == 0 {
-		return utils.ErrNotFound("push subscription not found")
-	}
-
-	return nil
+	return s.commands.DeleteSubscription(ctx, userID, endpoint)
 }
 
 func (s *pushService) SendNotificationToUser(
@@ -104,11 +79,10 @@ func (s *pushService) SendNotificationToUser(
 		return nil
 	}
 
-	var subs []models.PushSubscription
-	if err := s.db.Where("user_id = ?", userID).Find(&subs).Error; err != nil {
-		return utils.ErrInternal(err)
+	subs, err := s.queries.ListByUser(context.Background(), userID)
+	if err != nil {
+		return err
 	}
-
 	if len(subs) == 0 {
 		return nil
 	}
@@ -173,7 +147,7 @@ func (s *pushService) sendToSubscription(sub models.PushSubscription, payload []
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusGone || resp.StatusCode == http.StatusNotFound {
-		_ = s.db.Where("id = ?", sub.ID).Delete(&models.PushSubscription{}).Error
+		_ = s.commands.DeleteByID(context.Background(), sub.ID)
 	}
 
 	if resp.StatusCode >= 400 {

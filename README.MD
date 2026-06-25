@@ -1,226 +1,152 @@
-Below is a **production‑ready README.md** for the shopping platform backend. It covers local development, Docker, migrations, testing, and deployment guidelines.
+# Luxe API — Shopping Platform Backend
 
-```markdown
-# Shopping Platform Backend
+Production Go e-commerce API: **Gin**, **GORM**, **PostgreSQL**, **JWT**, optional **Redis/Asynq**, **Stripe**, **Sentry**, **OpenTelemetry**.
 
-Production‑grade e‑commerce backend API built with Go, Gin, GORM, PostgreSQL, and JWT authentication.
-
-## Features
-
-- ✅ RESTful API with Gin framework
-- ✅ JWT‑based authentication
-- ✅ PostgreSQL with connection pooling
-- ✅ Structured logging (JSON format)
-- ✅ Environment‑based configuration (Viper)
-- ✅ Database migrations with Goose
-- ✅ Docker & Docker Compose support
-- ✅ Graceful shutdown
-- ✅ CORS middleware
-- ✅ Health check endpoint
-
-## Tech Stack
-
-| Component       | Technology                                     |
-|----------------|------------------------------------------------|
-| Language       | Go 1.23+                                       |
-| HTTP Framework | Gin                                            |
-| ORM            | GORM                                           |
-| Migrations     | Goose                                          |
-| Auth           | golang-jwt/jwt v5                              |
-| Validation     | go-playground/validator v10                    |
-| Database       | PostgreSQL 16+                                 |
-| Config         | Viper (.env + env vars)                        |
-| Logging        | Logrus (JSON format)                           |
-| Container      | Docker + Docker Compose                        |
-
-## Prerequisites
-
-- Go 1.23 or later
-- PostgreSQL 16 (or use Docker)
-- Make
-- Goose CLI (will be installed automatically via `make install-tools`)
-- [Air](https://github.com/cosmtrek/air) (optional, for hot reload – installed via `make install-tools`)
-- Docker & Docker Compose (optional)
-
-## Getting Started
-
-### 1. Clone the repository
+## Quick start
 
 ```bash
-git clone https://github.com/yourusername/luxe.git
-cd luxe
+cp .env.example .env          # set JWT_SECRET, DB_*, etc.
+make dev-setup                # Docker Postgres + Redis, migrations
+make run                      # http://localhost:8080
 ```
 
-### 2. Environment setup
+Swagger UI: `http://localhost:8080/swagger/index.html` · OpenAPI: `http://localhost:8080/openapi`
 
-Copy the example environment file and adjust values as needed:
+More setup (Docker, migrations, AI, tracing): see sections below.
 
-```bash
-cp .env.example .env
+---
+
+## Architecture (read this first)
+
+The codebase uses **layered hexagonal architecture**. New work must follow these layers — do not put business logic or GORM back into HTTP handlers or grow monolithic services.
+
+```
+HTTP request
+  → interfaces/http/handlers     (bind DTO, validate, utils.Response)
+  → services/*_service.go        (thin facade — implements handler interfaces)
+  → application/<context>/       (commands, queries, use cases)
+  → domain/<context>/            (rules, ports, invariants)
+  → infrastructure/postgres/     (GORM repositories)
+  → PostgreSQL
 ```
 
-Edit `.env` to set your database credentials, JWT secret, etc.
+Background work: `infrastructure/asynq` (Redis or in-memory) · cron: `internal/jobs/`
 
-### 3. Local Development (without Docker)
+### Boot wiring
 
-#### Install tools and dependencies
-
-```bash
-make install-tools   # installs goose and air
-make deps            # downloads Go modules
+```
+cmd/api/main.go
+  → bootstrap.NewServices()      internal/application/bootstrap/wire.go
+  → handlers.NewContainer()      internal/interfaces/http/handlers/container.go
+  → routes.NewRouter().Setup()   internal/interfaces/http/routes/
 ```
 
-#### Run database migrations
+Register every new domain in **`bootstrap/wire.go`** and **`handlers/container.go`**.
 
-```bash
-make migrate-up
-```
+### Folder map
 
-#### Run the application
+| Path | Purpose |
+|------|---------|
+| `cmd/api/` | Application entry, Swagger metadata |
+| `internal/interfaces/http/handlers/` | Gin handlers (HTTP only) |
+| `internal/interfaces/http/dto/` | Request/response DTOs |
+| `internal/interfaces/http/routes/` | Route groups |
+| `internal/interfaces/http/middleware/` | Auth, CORS, logging, tracing |
+| `internal/services/` | Thin facades + `registry.go` (job handlers, workflow sync) |
+| `internal/application/` | Use cases per bounded context (`cart`, `order`, `brand`, …) |
+| `internal/application/bootstrap/` | Composition root (`NewServices`) |
+| `internal/domain/` | Domain rules and repository **ports** (no GORM/Gin) |
+| `internal/infrastructure/postgres/` | GORM repository implementations |
+| `internal/infrastructure/asynq/` | Job queue |
+| `internal/infrastructure/integrations/` | Stripe, R2, AI, PDF |
+| `internal/infrastructure/workflow/` | Workflow engine |
+| `internal/models/` | GORM entity structs (DB shape) |
+| `internal/migrations/` | Goose SQL migrations |
+| `internal/constants/` | Statuses, roles, route paths — no magic strings |
+| `internal/shared/utils/` | Response helpers, logger, JWT |
+| `internal/shared/observability/` | Sentry, OTEL, metrics |
+| `internal/shared/health/` | Liveness/readiness |
+| `tests/integration/` | Postgres integration tests |
 
-```bash
-make run
-```
+Per-layer READMEs: `internal/application/README.md`, `internal/domain/README.md`, `internal/infrastructure/postgres/README.md`.
 
-The server will start on `http://localhost:8080`.
+Full design doc: [`documentation/architecture.md`](documentation/architecture.md).
 
-#### Hot reload (development)
+---
 
-```bash
-make watch
-```
+## How to add a feature
 
-### 4. Using Docker (recommended for production‑like environment)
+### New database table + REST resource
 
-Build and start all services:
+Follow **`.cursor/skills/new-api-entity/SKILL.md`** (or invoke `/new-api-entity` in Cursor):
 
-```bash
-docker-compose up -d
-```
+1. `make migrate-create name=create_{entity}_table` → `make migrate-up` (schema only)
+2. `internal/models/{entity}_model.go`
+3. `internal/interfaces/http/dto/{entity}_dto.go`
+4. `internal/infrastructure/postgres/{entity}_repository.go`
+5. `internal/application/{entity}/` — `commands.go`, `queries.go`, mappers
+6. `internal/services/{entity}_service.go` — thin facade delegating to application
+7. Register in `application/bootstrap/wire.go` + `handlers/container.go`
+8. `handlers/{entity}_handler.go` + `routes/{entity}_routes.go`
+9. Swagger comments on handler → `make swagger` → **restart API**
+10. **luxe-front:** `pnpm api:gen` → `pnpm check` (mandatory if OpenAPI changed)
 
-Check logs:
+### New route on an existing domain
 
-```bash
-docker-compose logs -f app
-```
+Follow **`.cursor/skills/add-api-endpoint/SKILL.md`** (`/add-api-endpoint`):
 
-Run migrations inside the app container:
+- DTO in `interfaces/http/dto/` if shapes are new
+- Application method (or extend existing commands/queries)
+- Handler method + route + Swagger
+- Tests + Swagger regen + frontend `api:gen` if contract changed
 
-```bash
-docker-compose exec app goose -dir /app/migrations postgres "postgres://postgres:postgres@postgres:5432/shopping_platform?sslmode=disable" up
-```
+### Layer rules (non‑negotiable)
 
-Stop and remove containers (including the database volume):
+| Layer | Allowed | Forbidden |
+|-------|---------|-----------|
+| **Handlers** | Bind, validate, call service facade, `utils.Response` | Business logic, `*gorm.DB`, transactions |
+| **Service facade** | Delegate to application; workflow sync; checkout orchestration | New GORM queries (add a repo instead) |
+| **Application** | Orchestrate use cases, call repos + domain | Gin, HTTP, raw SQL in handlers |
+| **Domain** | Rules, ports, pure types | GORM, Gin, framework imports |
+| **Postgres repos** | GORM queries, mapping to domain/DTO | HTTP, business rules |
 
-```bash
-docker-compose down -v
-```
+- **Statuses/roles** → `internal/constants`
+- **Multi-table writes** → `db.Transaction` in application or checkout (not ad-hoc goroutines for orders/shipments)
+- **Async order/shipment work** → `infrastructure/asynq.JobQueue`
+- **Never edit** generated `docs/` — run `make swagger`
+- **Migrations:** schema only — no demo product seed data in new Goose files
 
-## Database Migrations
+Checkout is the one intentional exception: `checkout_service.go` still coordinates a multi-service DB transaction.
 
-This project uses the external [Goose](https://github.com/pressly/goose) CLI. Migration files live in `internal/migrations/`.
+---
 
-Install Goose: `make install-tools` (pins `v3.22.1`).
+## AI agents & Cursor
 
-### Commands
+Before any task, read:
 
-| Command                                     | Description                                    |
-|---------------------------------------------|------------------------------------------------|
-| `make migrate-create name=<migration_name>` | Create a new migration file (up and down)     |
-| `make migrate-up`                           | Apply all pending migrations (host `goose`)   |
-| `make migrate-up-docker`                    | Run `goose` inside Docker network (Windows Docker fallback) |
-| `make migrate-down`                         | Rollback the last migration                   |
-| `make migrate-reset`                        | Rollback all migrations (dangerous)           |
-| `make migrate-status`                       | Show current migration status                 |
-| `make migrate-version`                      | Show the current migration version            |
-| `make migrate-force version=<version>`      | Force set migration version (use with caution)|
+1. **`AGENTS.md`** — entry points and commands  
+2. **`.cursorrules`** / **`.cursor/rules/luxe-go.mdc`** — hard conventions  
+3. **`documentation/architecture.md`** — request flow and modules  
+4. **Skills:** `.cursor/skills/new-api-entity`, `add-api-endpoint`
 
-**Windows + Docker Desktop:** if `make migrate-up` fails with `unexpected EOF` on `localhost:5433`, use:
+**Do not** recreate `internal/controllers/`, `internal/routes/`, or put GORM in handlers. **Do not** start another repo-wide refactor — extend the existing layers.
 
-```bash
-make migrate-up-docker
-```
+---
 
-Or full setup:
+## Commands
 
-```bash
-make dev-setup   # docker-up → wait postgres → migrate-up (auto-fallback)
-```
+| Command | Purpose |
+|---------|---------|
+| `make dev-setup` | Docker Postgres + Redis, migrate |
+| `make run` | Start API |
+| `make watch` | Hot reload (Air) |
+| `make migrate-create name=...` | New Goose migration |
+| `make migrate-up` / `migrate-down` | Apply / rollback |
+| `make swagger` | Regenerate OpenAPI (`docs/` — gitignored) |
+| `make test` | Unit tests |
+| `make seed-dev` | Local demo data (not production) |
 
-Then edit the generated `.sql` files in `internal/migrations/` and run `make migrate-up`.
-
-## Environment Variables
-
-| Variable        | Description                     | Default                          |
-|----------------|---------------------------------|----------------------------------|
-| `SERVER_PORT`  | HTTP server port                | `8080`                           |
-| `GIN_MODE`     | Gin mode (`debug`, `release`)   | `debug`                          |
-| `DB_HOST`      | PostgreSQL host                 | `localhost` (Docker: `postgres`) |
-| `DB_PORT`      | PostgreSQL port                 | `5433` (Docker maps `5433→5432`) |
-| `DB_USER`      | Database user                   | `postgres`                       |
-| `DB_PASSWORD`  | Database password               | `postgres`                       |
-| `DB_NAME`      | Database name                   | `shopping_platform`              |
-| `DB_SSLMODE`   | PostgreSQL SSL mode             | `disable`                        |
-| `JWT_SECRET`   | Secret key for JWT signing      | **required**                     |
-| `LOG_LEVEL`    | Log level (`debug`, `info`, …)  | `info`                           |
-| `AI_ENABLED`   | Enable LLM features             | `false`                          |
-| `AI_PROVIDER`  | Provider label (`ollama`, `groq`, `gemini`) | `ollama`              |
-| `AI_BASE_URL`  | OpenAI-compatible API base URL  | `http://localhost:11434/v1`      |
-| `AI_API_KEY`   | API key (empty for local Ollama)| *(empty)*                        |
-| `AI_MODEL`     | Model name                      | `llama3.2`                       |
-| `AI_MAX_REQUESTS_PER_HOUR` | Admin generate rate limit | `20`                   |
-| `AI_CHAT_MAX_REQUESTS_PER_HOUR` | Shopper chat rate limit | `30`            |
-
-All variables can be set in a `.env` file or as system environment variables. When using Docker Compose, they are defined in the `environment` section of the `app` service.
-
-### Local AI with Ollama (free, no API key)
-
-1. Install [Ollama](https://ollama.com) and pull a model:
-
-```bash
-ollama pull llama3.2
-```
-
-2. In `.env`:
-
-```bash
-AI_ENABLED=true
-AI_PROVIDER=ollama
-AI_BASE_URL=http://localhost:11434/v1
-AI_MODEL=llama3.2
-```
-
-3. Restart the API (`make run`). Endpoints:
-
-- `POST /api/v1/admin/ai/generate` — admin product description / SEO copy
-- `POST /api/v1/ai/chat` — grounded shopper product chat
-- `GET /api/v1/admin/ai/status` — provider status for admin UI
-
-**Swap to a hosted provider** without code changes — set `AI_PROVIDER`, `AI_BASE_URL`, `AI_API_KEY`, and `AI_MODEL`. Examples:
-
-| Provider | `AI_BASE_URL` | Model example |
-|----------|---------------|---------------|
-| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
-| Gemini (OpenAI compat) | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
-
-API keys stay on the server only — never expose `AI_API_KEY` in frontend or mobile env.
-
-## Testing
-
-Run all tests:
-
-```bash
-make test
-```
-
-Run tests with coverage and generate an HTML report:
-
-```bash
-make test-coverage
-# open coverage.html in your browser
-```
-
-Run integration tests (requires Postgres):
+Integration tests:
 
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5433/shopping_platform?sslmode=disable \
@@ -228,136 +154,30 @@ JWT_SECRET=ci_test_secret \
 go test ./tests/integration/...
 ```
 
-## Dev demo data
+---
 
-Schema migrations are schema-only. For local PDP demo stores/products, after `make migrate-up`:
+## Environment
 
-```bash
-make seed-dev
-```
+See `.env.example`. Required: `JWT_SECRET`, database vars. Optional: `REDIS_URL`, `SENTRY_DSN`, `OTEL_*`, Stripe, R2, AI (`AI_ENABLED`, `AI_BASE_URL`, …).
 
-Requires `psql` and `DATABASE_URL`. Do not run in production.
+---
 
-## OpenTelemetry tracing (optional)
+## Frontend contract
 
-Tracing is optional. The API runs fine with `OTEL_ENABLED=false` or unset.
+OpenAPI is cached at API startup. After any Swagger/DTO/route change:
 
-1. Start Jaeger when Docker Hub is reachable:
+1. `make swagger`
+2. Restart API
+3. In **luxe-front**: `pnpm api:gen` → `pnpm check`
 
-```bash
-make docker-up-jaeger
-# or: make docker-up-all
-```
+---
 
-If pull fails (`auth.docker.io` / DNS), fix VPN/network or skip Jaeger — the app still starts with OTEL enabled; traces export only if a collector is listening.
+## Tech stack
 
-2. In `.env`:
+Go 1.23+ · Gin · GORM · PostgreSQL 16+ · Goose · JWT · Validator · Viper · Logrus · Docker
 
-```bash
-OTEL_ENABLED=true
-OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4318
-```
-
-3. Run the API (`make run`) and send requests.
-
-## Prometheus metrics
-
-The API exposes Prometheus metrics at `GET /metrics` (Go runtime and default HTTP metrics). No authentication is required by default — restrict access in production (reverse proxy or network policy).
-
-```bash
-curl http://localhost:8080/metrics
-```
-
-4. Open the Jaeger UI: [http://localhost:16686](http://localhost:16686) — search service `luxe-api` (or your `SERVICE_NAME`).
-
-## Project Structure
-
-```
-.
-├── cmd/
-│   └── api/               # Application entry point (main.go)
-├── config/                # Configuration loading (Viper)
-├── controllers/           # HTTP handlers (request/response logic)
-├── middleware/            # Custom middleware (CORS, auth, logging)
-├── models/                # GORM data models
-├── routes/                # Route definitions
-├── services/              # Business logic (to be added)
-├── utils/                 # Helpers (logger, validation, etc.)
-├── migrations/            # Goose migration files (*.sql)
-├── .env.example           # Example environment variables
-├── Dockerfile
-├── docker-compose.yml
-├── Makefile
-└── go.mod
-```
-
-## API Endpoints (current)
-
-| Method | Endpoint         | Description           | Auth |
-|--------|------------------|-----------------------|------|
-| GET    | `/api/v1/health` | Health check          | None |
-
-More endpoints will be added in future steps (user registration, login, products, orders, etc.).
-
-## Deployment Notes (Production)
-
-1. **Never** run with `GIN_MODE=debug` in production. Set `GIN_MODE=release`.
-2. **Use a strong, unique JWT_SECRET** – generate one with `openssl rand -base64 32`.
-3. **Disable `AutoMigrate`** – the application does not perform automatic schema changes. Use Goose migrations exclusively.
-4. **Set appropriate PostgreSQL pool sizes** (already configured: `MaxIdleConns=10`, `MaxOpenConns=100`).
-5. **Enable SSL/TLS** – place the application behind a reverse proxy like Nginx or use `ListenAndServeTLS`.
-6. **Use environment secrets** – never commit `.env` to version control.
-7. **Run database migrations separately** before deploying a new version (e.g., as a Kubernetes init container or CI step).
-8. **Monitor logs** – the application outputs JSON logs, suitable for log aggregation tools (ELK, Loki, etc.).
-9. **Health check endpoint** – use `/api/v1/health` for liveness/readiness probes.
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Run tests (`make test`)
-4. Create a pull request
+---
 
 ## License
 
 [MIT](LICENSE)
-```
-
----
-
-This README is now ready for your shopping platform project. It covers everything from setup to production considerations. You can adjust the GitHub repository URL and license file later.
-
-**Next step:** After you approve the README, I'll proceed to **Step 2 – User Registration & JWT Generation**.
-
-
-
-# Register
-curl -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"12345678","first_name":"John","last_name":"Doe"}'
-
-# Login
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"12345678"}'
-
-
-[//]: # (goose -dir ./migrations create add_orders_indexes sql)
-
-## Wallet deposits (Stripe)
-
-When `STRIPE_SECRET_KEY` is set, `POST /api/v1/wallet/deposit` returns a Stripe Checkout URL (`checkout_url`) and leaves the transaction `pending` until payment succeeds.
-
-```bash
-curl -X POST http://localhost:8080/api/v1/wallet/deposit \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"amount": 50}'
-```
-
-Webhook events: `checkout.session.completed` (credit wallet), `checkout.session.expired` (mark failed). Users can also cancel pending deposits via `POST /api/v1/wallet/deposit/{id}/cancel`.
-
-Without Stripe keys, deposits are auto-confirmed for local dev and CI.
-
-# Redis — durable background jobs
-REDIS_URL=redis://localhost:6379/0

@@ -1,18 +1,18 @@
-// Package main is the entry point of the shopping platform API. It initializes configuration, logger, database connection, services, controllers, routes, and starts the server. It also manages the lifecycle of background workers and cron jobs for asynchronous tasks and scheduled operations.
+// Package main is the entry point of the shopping platform API. It initializes configuration, logger, database connection, services, HTTP handlers, routes, and starts the server.
 package main
 
 import (
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
 	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/jobs"
-	"github.com/alireza-akbarzadeh/luxe/internal/observability"
-	"github.com/alireza-akbarzadeh/luxe/internal/routes"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/observability"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
+	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -79,13 +79,13 @@ func main() {
 	db := connectDatabase(cfg)
 	defer closeDatabase(db)
 
-	jobQueue, err := tasks.NewJobQueue(cfg, tasks.Handlers{})
+	jobQueue, err := asynq.NewJobQueue(cfg, asynq.Handlers{})
 	if err != nil {
 		utils.Log.WithError(err).Fatal("failed to initialize job queue")
 	}
 
-	newServices := services.NewServices(db, cfg, jobQueue)
-	tasks.BindHandlers(jobQueue, newServices.JobHandlers())
+	newServices := bootstrap.NewServices(db, cfg, jobQueue)
+	asynq.BindHandlers(jobQueue, newServices.JobHandlers())
 
 	if err := jobQueue.Start(); err != nil {
 		utils.Log.WithError(err).Fatal("failed to start job queue")
@@ -100,7 +100,7 @@ func main() {
 	cronService := jobs.NewCronJobs(newServices)
 	cronService.Start()
 
-	ctrl := controllers.NewContainer(db, newServices, cfg)
+	ctrl := handlers.NewContainer(db, newServices, cfg)
 	engine := setupGin()
 	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit, newServices.Role)
 	router.Setup()

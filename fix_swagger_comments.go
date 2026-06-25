@@ -22,7 +22,7 @@ func main() {
 	// Regex to match Swagger comments that reference models.Type
 	re := regexp.MustCompile(`(//\s*@(Success|Failure|Param|Router|Response).*\{object\})\s+models\.([A-Z][a-zA-Z0-9_]*)`)
 
-	err = filepath.Walk("internal/controllers", func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk("internal/interfaces/http/handlers", func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() || !strings.HasSuffix(path, ".go") {
 			return nil
 		}

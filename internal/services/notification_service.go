@@ -1,13 +1,13 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
@@ -25,43 +25,29 @@ type NotificationServiceInterface interface {
 }
 
 type notificationService struct {
-	db    *gorm.DB
-	wsHub *websocket.Hub
-	push  PushServiceInterface
+	commands *appnotification.Commands
+	queries  *appnotification.Queries
+	wsHub    *websocket.Hub
+	push     PushServiceInterface
 }
 
-// NewNotificationService creates a new notification service
 func NewNotificationService(db *gorm.DB, wsHub *websocket.Hub, push PushServiceInterface) NotificationServiceInterface {
+	repo := postgres.NewNotificationRepository(db)
 	return &notificationService{
-		db:    db,
-		wsHub: wsHub,
-		push:  push,
+		commands: appnotification.NewCommands(repo),
+		queries:  appnotification.NewQueries(repo),
+		wsHub:    wsHub,
+		push:     push,
 	}
 }
 
-// CreateNotification creates and sends a notification to a user
 func (s *notificationService) CreateNotification(userID uint, notificationType, title, message string, data interface{}) error {
-	var dataStr string
-	if data != nil {
-		if jsonData, err := json.Marshal(data); err == nil {
-			dataStr = string(jsonData)
-		}
+	ctx := context.Background()
+	notification, err := s.commands.Create(ctx, userID, notificationType, title, message, data)
+	if err != nil {
+		return err
 	}
 
-	notification := &models.Notification{
-		UserID:  userID,
-		Type:    notificationType,
-		Title:   title,
-		Message: message,
-		Data:    dataStr,
-		IsRead:  false,
-	}
-
-	if err := s.db.Create(notification).Error; err != nil {
-		return utils.ErrInternal(err)
-	}
-
-	// Send real-time notification via WebSocket
 	s.BroadcastToUser(userID, websocket.EventNotification, map[string]interface{}{
 		"id":         notification.ID,
 		"type":       notificationType,
@@ -80,53 +66,18 @@ func (s *notificationService) CreateNotification(userID uint, notificationType, 
 	return nil
 }
 
-// GetUserNotifications retrieves paginated notifications for a user
 func (s *notificationService) GetUserNotifications(userID uint, limit, offset int) ([]models.Notification, int64, error) {
-	var notifications []models.Notification
-	var total int64
-
-	query := s.db.Model(&models.Notification{}).Where("user_id = ?", userID)
-
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-
-	if err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&notifications).Error; err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-
-	return notifications, total, nil
+	return s.queries.ListForUser(context.Background(), userID, limit, offset)
 }
 
-// MarkAsRead marks a specific notification as read
 func (s *notificationService) MarkAsRead(notificationID uint, userID uint) error {
-	result := s.db.Model(&models.Notification{}).
-		Where("id = ? AND user_id = ?", notificationID, userID).
-		Update("is_read", true)
-
-	if result.Error != nil {
-		return utils.ErrInternal(result.Error)
-	}
-
-	if result.RowsAffected == 0 {
-		return utils.ErrNotFound("notification not found")
-	}
-
-	return nil
+	return s.commands.MarkAsRead(context.Background(), notificationID, userID)
 }
 
-// MarkAllAsRead marks all notifications as read for a user
 func (s *notificationService) MarkAllAsRead(userID uint) error {
-	if err := s.db.Model(&models.Notification{}).
-		Where("user_id = ? AND is_read = ?", userID, false).
-		Update("is_read", true).Error; err != nil {
-		return utils.ErrInternal(err)
-	}
-
-	return nil
+	return s.commands.MarkAllAsRead(context.Background(), userID)
 }
 
-// BroadcastToUser sends a WebSocket message to all connections of a user
 func (s *notificationService) BroadcastToUser(userID uint, eventType string, data interface{}) {
 	message := websocket.Message{
 		Type:      eventType,
@@ -140,7 +91,6 @@ func (s *notificationService) BroadcastToUser(userID uint, eventType string, dat
 	}
 }
 
-// BroadcastToRoom sends a WebSocket message to all clients in a room
 func (s *notificationService) BroadcastToRoom(roomID string, eventType string, data interface{}) {
 	message := websocket.Message{
 		Type:      eventType,
@@ -154,45 +104,16 @@ func (s *notificationService) BroadcastToRoom(roomID string, eventType string, d
 	}
 }
 
-// CreateChatRoom creates a new chat room for user support
 func (s *notificationService) CreateChatRoom(userID uint, title string) (*models.ChatRoom, error) {
-	roomID := fmt.Sprintf("chat_%d_%d", userID, time.Now().Unix())
-
-	chatRoom := &models.ChatRoom{
-		RoomID:        roomID,
-		UserID:        userID,
-		Title:         title,
-		Status:        constants.ChatRoomStatusActive,
-		LastMessageAt: time.Now(),
-	}
-
-	if err := s.db.Create(chatRoom).Error; err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-
-	return chatRoom, nil
+	return s.commands.CreateChatRoom(context.Background(), userID, title)
 }
 
-// SendChatMessage sends a chat message and broadcasts it via WebSocket
 func (s *notificationService) SendChatMessage(senderID uint, roomID string, content string) error {
-	message := &models.Message{
-		SenderID: senderID,
-		RoomID:   roomID,
-		Content:  content,
-		Type:     "text",
-		IsRead:   false,
+	message, err := s.commands.SendChatMessage(context.Background(), senderID, roomID, content)
+	if err != nil {
+		return err
 	}
 
-	if err := s.db.Create(message).Error; err != nil {
-		return utils.ErrInternal(err)
-	}
-
-	// Update chat room's last message time
-	s.db.Model(&models.ChatRoom{}).
-		Where("room_id = ?", roomID).
-		Update("last_message_at", time.Now())
-
-	// Broadcast message to room
 	s.BroadcastToRoom(roomID, websocket.EventChatMessage, map[string]interface{}{
 		"id":         message.ID,
 		"sender_id":  senderID,
@@ -204,17 +125,6 @@ func (s *notificationService) SendChatMessage(senderID uint, roomID string, cont
 	return nil
 }
 
-// GetChatMessages retrieves chat messages for a room
 func (s *notificationService) GetChatMessages(roomID string, limit, offset int) ([]models.Message, error) {
-	var messages []models.Message
-
-	if err := s.db.Where("room_id = ?", roomID).
-		Order("created_at ASC").
-		Limit(limit).
-		Offset(offset).
-		Find(&messages).Error; err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-
-	return messages, nil
+	return s.queries.ListChatMessages(context.Background(), roomID, limit, offset)
 }

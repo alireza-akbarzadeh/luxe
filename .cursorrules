@@ -8,48 +8,48 @@ description: |
   Production-grade Go e-commerce API (Gin, GORM, PostgreSQL, JWT).
   Layered flow:
 
-    HTTP Request → Controller → Service → GORM (*gorm.DB) → PostgreSQL
+    HTTP Request → Handler → Service facade → Application → Domain → Postgres (GORM)
 
   Optional packages sit beside this core:
-    - internal/integrations/   (Stripe, R2 — external APIs)
-    - internal/tasks/          (Asynq job queue abstraction)
-    - internal/observability/  (Sentry, OpenTelemetry)
-    - internal/middleware/     (auth, CORS, logging, tracing)
-    - internal/health/         (liveness / readiness)
+    - internal/infrastructure/integrations/  (Stripe, R2 — external APIs)
+    - internal/infrastructure/asynq/         (Asynq job queue abstraction)
+    - internal/shared/observability/         (Sentry, OpenTelemetry)
+    - internal/interfaces/http/middleware/   (auth, CORS, logging, tracing)
+    - internal/shared/health/                  (liveness / readiness)
 
   All JSON API responses use utils.Response helpers (success, data, message, code).
   Statuses, roles, routes constants live in internal/constants.
 
-  Wire dependencies in internal/services/services.go (NewServices) and
-  internal/controllers/container.go (NewContainer).
+  Wire dependencies in internal/application/bootstrap/wire.go (bootstrap.NewServices) and
+  internal/interfaces/http/handlers/container.go (NewContainer).
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 2. ARCHITECTURE — DATA ACCESS (IMPORTANT)
 # ──────────────────────────────────────────────────────────────────────────────
 architecture:
   default_pattern: |
-    Services own business logic AND GORM queries via *gorm.DB.
-    This is the standard pattern for most services (brand, checkout, auth, etc.).
+    Handlers call thin service facades in internal/services/.
+    Facades delegate to internal/application/<ctx>/ (commands/queries).
+    Application uses domain ports; GORM lives in internal/infrastructure/postgres/.
 
   repositories: |
-    Removed — all data access lives in services via *gorm.DB.
-    Use private query helpers on the service for complex lists/filters.
+    GORM implementations in internal/infrastructure/postgres/*_repository.go.
+    Application layers depend on repository interfaces, not *gorm.DB (checkout is the
+    intentional exception for multi-service transactions).
 
   service_responsibilities:
-    - Domain validation and business rules
-    - Transactions (db.Transaction) for multi-step writes
-    - Orchestration (payment + shipment + notification + job queue)
-    - Mapping domain errors (utils.ErrBadRequest, ErrNotFound, ErrInternal)
-    - Calling integrations (Stripe, R2) via internal/integrations
+    - Thin facade: implement handler-facing interfaces, delegate to application layer
+    - Cross-cutting: workflow sync, WebSocket, job handler registration (registry.go)
+    - Checkout: transaction orchestration across payment/coupon/inventory (legacy *gorm.DB)
 
-  controller_responsibilities:
+  handler_responsibilities:
     - Bind request → DTO, validate with validator
     - Pass c.Request.Context() to services
     - Map errors to utils.Response — NO business logic, NO direct DB access
 
   forbidden:
-    - Business logic in controllers
-    - Direct gorm.DB in controllers
+    - Business logic in handlers
+    - Direct gorm.DB in handlers
     - Fake / dev-only shortcuts in production code paths
     - Demo product data in new Goose migrations
 
@@ -59,7 +59,7 @@ architecture:
 clean_code:
   - Minimize scope — smallest correct diff; no unrelated refactors.
   - Match existing naming, imports, and patterns in the file you edit.
-  - Reuse helpers in internal/services/helpers.go and internal/utils/.
+  - Reuse helpers in internal/shared/utils/ and internal/services/helpers.go.
   - Keep functions small; one responsibility per function.
   - Meaningful names — avoid data, temp, val, x.
   - Comments only for non-obvious business logic (Go: exported symbols only).
@@ -77,21 +77,25 @@ directories:
     config/                   # env / Viper — not constants
     constants/                # roles, statuses, route paths
     models/                   # GORM entities ({entity}_model.go)
-    dto/                      # request/response ({entity}_dto.go)
-    services/                 # business logic ({entity}_service.go, services.go DI)
-    controllers/              # HTTP handlers, container.go
-    routes/                   # route groups, middleware setup
-    middleware/
+    application/              # use cases (commands/queries per bounded context)
+    application/bootstrap/    # wire.go — composition root (NewServices)
+    domain/                   # entities, ports, domain rules
+    infrastructure/postgres/  # GORM repository implementations
+    infrastructure/asynq/     # JobQueue (Asynq or in-memory)
+    infrastructure/integrations/  # Stripe, R2, AI, PDF
+    interfaces/http/
+      dto/                    # request/response ({entity}_dto.go)
+      handlers/               # Gin HTTP handlers, container.go
+      routes/                 # route groups, middleware setup
+      middleware/
+    services/                 # thin facades ({entity}_service.go, registry.go)
     database/                 # connection, pool
     migrations/               # Goose SQL (internal/migrations/)
-    integrations/stripe/      # payment gateway
-    integrations/r2/          # object storage
-    tasks/                    # JobQueue (Asynq or in-memory)
-    observability/            # Sentry, OTEL tracing
-    health/
+    shared/utils/             # response, errors, logger, password, email
+    shared/observability/     # Sentry, OTEL tracing
+    shared/health/
     jobs/                     # cron
     websocket/
-    utils/                    # response, errors, logger, password, email
   tests/
     integration/              # real Postgres; setup_test.go TestMain
     e2e/
@@ -105,7 +109,7 @@ naming:
     models:     "{entity}_model.go"
     dto:        "{entity}_dto.go"
     services:   "{entity}_service.go"
-    controllers: "{entity}_controller.go"
+    controllers: "{entity}_handler.go"   # under interfaces/http/handlers/
     routes:     "{entity}_routes.go"
     migrations: "{timestamp}_{name}.sql"
   code:
@@ -123,13 +127,15 @@ naming:
 new_entity_order:
   1. make migrate-create name=create_{entity}_table   # schema only
   2. internal/models/{entity}_model.go
-  3. internal/dto/{entity}_dto.go
-  4. internal/services/{entity}_service.go (+ register in services.go)
-  5. internal/controllers/{entity}_controller.go (+ container.go)
-  6. internal/routes/{entity}_routes.go (+ routes setup)
-  7. Swagger comments on controller methods
-  8. make swagger
-  9. tests — service unit tests and/or tests/integration/
+  3. internal/interfaces/http/dto/{entity}_dto.go
+  4. internal/infrastructure/postgres/{entity}_repository.go
+  5. internal/application/{entity}/ (commands, queries)
+  6. internal/services/{entity}_service.go (+ register in bootstrap/wire.go)
+  7. internal/interfaces/http/handlers/{entity}_handler.go (+ container.go)
+  8. internal/interfaces/http/routes/{entity}_routes.go (+ routes setup)
+  9. Swagger comments on handler methods
+  10. make swagger
+  11. tests — application/service unit tests and/or tests/integration/
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 7. GOOSE MIGRATIONS
@@ -275,12 +281,24 @@ makefile_commands:
 # 18. AI TASK CHECKLIST (before finishing any task)
 # ──────────────────────────────────────────────────────────────────────────────
 ai_checklist:
-  - [ ] Followed layer boundaries (no logic in controllers)
-  - [ ] Used utils.Response in controllers
+  - [ ] Followed layer boundaries (no logic in handlers)
+  - [ ] Used utils.Response in handlers
   - [ ] Used constants for statuses/roles
   - [ ] context.Context passed through on new code paths
   - [ ] Migrations schema-only if DB changed
   - [ ] Did not edit generated docs/
-  - [ ] Registered new services in services.go and container.go
+  - [ ] Registered new services in bootstrap/wire.go and handlers/container.go
   - [ ] Minimal diff — no drive-by refactors
   - [ ] go build / relevant tests pass
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 19. NO RE-REFACTOR (architecture is settled)
+# ──────────────────────────────────────────────────────────────────────────────
+architecture_frozen:
+  - The layered layout (handlers → facade → application → domain → postgres) is final.
+  - Add features inside existing packages; use /new-api-entity and /add-api-endpoint skills.
+  - Do NOT recreate: internal/controllers/, internal/routes/, internal/dto/, internal/utils/,
+    internal/middleware/, internal/tasks/, internal/integrations/, internal/observability/.
+  - Do NOT move wiring back to services.go — use application/bootstrap/wire.go.
+  - Do NOT put GORM in handlers or new business logic in service facades without application layer.
+  - Checkout may keep *gorm.DB for cross-aggregate transactions until explicitly migrated.

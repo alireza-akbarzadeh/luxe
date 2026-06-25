@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )

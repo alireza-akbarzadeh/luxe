@@ -3,19 +3,20 @@ package services
 import (
 	"testing"
 
+	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOrderFiltersFromDTO_DefaultLimit(t *testing.T) {
-	q := orderFiltersFromDTO(42, dto.OrderListFilters{})
+	q := apporder.ListFilterFromDTO(42, dto.OrderListFilters{})
 	assert.Equal(t, uint(42), *q.UserID)
-	assert.Equal(t, 0, q.Limit)
+	assert.Equal(t, 20, q.Limit)
 }
 
 func TestOrderListQuery_StatusFilter(t *testing.T) {
-	q := orderFiltersFromDTO(1, dto.OrderListFilters{Status: constants.OrderStatusPaid})
+	q := apporder.ListFilterFromDTO(1, dto.OrderListFilters{Status: constants.OrderStatusPaid})
 	assert.Equal(t, constants.OrderStatusPaid, q.Status)
 }
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/stretchr/testify/require"
 )

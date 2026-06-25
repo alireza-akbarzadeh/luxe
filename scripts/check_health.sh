@@ -34,8 +34,8 @@ else
 fi
 
 # 4. Check Go API
-echo -n "Checking Go API (/health)... "
-API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+echo -n "Checking Go API (/api/v1/health/ready)... "
+API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/health/ready)
 if [ "$API_STATUS" == "200" ]; then
     echo -e "${GREEN}UP${NC}"
 else

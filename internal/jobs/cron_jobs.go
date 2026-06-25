@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/robfig/cron/v3"
 )
 

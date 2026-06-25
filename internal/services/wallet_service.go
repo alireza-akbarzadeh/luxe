@@ -1,15 +1,14 @@
 package services
 
 import (
-	"errors"
-	"fmt"
+	"context"
 
+	appwallet "github.com/alireza-akbarzadeh/luxe/internal/application/wallet"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
-	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/integrations/stripe"
+	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/stripe"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
 	"gorm.io/gorm"
 )
 
@@ -33,328 +32,80 @@ type WalletServiceInterface interface {
 }
 
 type walletService struct {
-	db            *gorm.DB
-	stripe        *stripeintegration.Gateway
-	stripeEnabled bool
+	app *appwallet.Service
 }
 
 func NewWalletService(db *gorm.DB, cfg *config.Config) WalletServiceInterface {
-	svc := &walletService{db: db, stripeEnabled: StripeEnabled(cfg)}
+	stripeEnabled := StripeEnabled(cfg)
+	var gateway *stripeintegration.Gateway
 	if cfg != nil && cfg.Stripe.Enabled {
-		svc.stripe = stripeintegration.NewGateway(cfg.Stripe.SecretKey, cfg.Email.FrontendURL)
+		gateway = stripeintegration.NewGateway(cfg.Stripe.SecretKey, cfg.Email.FrontendURL)
 	}
-	return svc
+	return &walletService{
+		app: appwallet.NewService(postgres.NewWalletRepository(db), gateway, stripeEnabled),
+	}
 }
 
-// GetOrCreateWallet – ensures a wallet exists for the user.
 func (w *walletService) GetOrCreateWallet(userID uint) (*models.Wallet, error) {
-	var wallet models.Wallet
-	err := w.db.Where("user_id = ?", userID).First(&wallet).Error
-	if err == nil {
-		return &wallet, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, utils.ErrInternal(err)
-	}
-	wallet = models.Wallet{
-		UserID:   userID,
-		Balance:  0,
-		Currency: "USD",
-	}
-	if err := w.db.Create(&wallet).Error; err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-	return &wallet, nil
+	return w.app.GetOrCreateWallet(context.Background(), userID)
 }
 
-// GetBalance get user balance
 func (w *walletService) GetBalance(userID uint) (float64, error) {
-	wallet, err := w.GetOrCreateWallet(userID)
-	if err != nil {
-		return 0, utils.ErrInternal(err)
-	}
-	return wallet.Balance, nil
+	return w.app.GetBalance(context.Background(), userID)
 }
 
-// GetTransactions get transactions for the users
 func (w *walletService) GetTransactions(userID uint, filters dto.WalletListFilters) ([]models.WalletTransaction, int64, error) {
-	var transactions []models.WalletTransaction
-	var total int64
-	limit := filters.Limit
-	offset := filters.Offset
-	if limit <= 0 {
-		limit = 20
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	query := w.db.Model(&models.WalletTransaction{}).Where("user_id = ?", userID)
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-	if err := query.Limit(limit).Offset(offset).Order("created_at DESC").Find(&transactions).Error; err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-	return transactions, total, nil
+	return w.app.GetTransactions(context.Background(), userID, filters)
 }
 
-// Deposit – immediately credit the wallet (for direct admin deposit or internal use)
 func (w *walletService) Deposit(userID uint, amount float64, description string) error {
-	return w.updateBalance(userID, amount, constants.WalletTxTypeDeposit, "", nil, description, constants.WalletTxStatusCompleted)
+	return w.app.Deposit(context.Background(), userID, amount, description)
 }
 
-// CreatePendingDeposit – immediately credit the wallet (for direct admin deposit or internal use)
 func (w *walletService) CreatePendingDeposit(userID uint, amount float64, description string) (uint, error) {
-	var txID uint
-	err := w.db.Transaction(func(tx *gorm.DB) error {
-		record := models.WalletTransaction{
-			UserID:       userID,
-			Amount:       amount,
-			Type:         constants.WalletTxTypeDeposit,
-			Description:  description,
-			BalanceAfter: 0,
-			Status:       constants.WalletTxStatusPending,
-		}
-		if err := tx.Create(&record).Error; err != nil {
-			return err
-		}
-		txID = record.ID
-		return nil
-	})
-	if err != nil {
-		return 0, utils.ErrInternal(err)
-	}
-	return txID, nil
+	return w.app.CreatePendingDeposit(context.Background(), userID, amount, description)
 }
 
-// InitiateDeposit creates a pending deposit and returns a Stripe Checkout URL when enabled.
 func (w *walletService) InitiateDeposit(userID uint, amount float64, customerEmail string) (*dto.DepositResponse, error) {
-	txID, err := w.CreatePendingDeposit(userID, amount, "Online deposit via payment gateway")
-	if err != nil {
-		return nil, err
-	}
-
-	if !w.stripeEnabled || w.stripe == nil {
-		if err := w.ConfirmDeposit(txID); err != nil {
-			return nil, err
-		}
-		return &dto.DepositResponse{
-			TransactionID: txID,
-			Status:        constants.WalletTxStatusCompleted,
-		}, nil
-	}
-
-	if customerEmail == "" {
-		w.FailDeposit(txID)
-		return nil, utils.ErrBadRequest("customer email is required for stripe deposit")
-	}
-
-	checkoutURL, sessionID, err := w.stripe.CreateWalletDepositSession(userID, txID, amount, "USD", customerEmail)
-	if err != nil {
-		w.FailDeposit(txID)
-		return nil, utils.ErrInternal(err)
-	}
-
-	if err := w.db.Model(&models.WalletTransaction{}).Where("id = ?", txID).Updates(map[string]interface{}{
-		"stripe_session_id": sessionID,
-	}).Error; err != nil {
-		w.FailDeposit(txID)
-		return nil, utils.ErrInternal(err)
-	}
-
-	return &dto.DepositResponse{
-		TransactionID:   txID,
-		Status:          constants.WalletTxStatusPending,
-		CheckoutURL:     checkoutURL,
-		StripeSessionID: sessionID,
-	}, nil
+	return w.app.InitiateDeposit(context.Background(), userID, amount, customerEmail)
 }
 
-// ConfirmDepositByStripeSession completes a wallet deposit after Stripe payment (idempotent).
 func (w *walletService) ConfirmDepositByStripeSession(sessionID, paymentIntentID string) error {
-	var txRecord models.WalletTransaction
-	err := w.db.Where("stripe_session_id = ?", sessionID).First(&txRecord).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return utils.ErrNotFound("wallet deposit not found for session")
-		}
-		return utils.ErrInternal(err)
-	}
-
-	if txRecord.Status == constants.WalletTxStatusCompleted {
-		return nil
-	}
-
-	if txRecord.Status != constants.WalletTxStatusPending {
-		return utils.ErrBadRequest("transaction already processed")
-	}
-
-	if paymentIntentID != "" {
-		if err := w.db.Model(&txRecord).Update("description", fmt.Sprintf("Stripe deposit (%s)", paymentIntentID)).Error; err != nil {
-			utils.Log.WithError(err).Warn("failed to update wallet deposit description")
-		}
-	}
-
-	return w.ConfirmDeposit(txRecord.ID)
+	return w.app.ConfirmDepositByStripeSession(context.Background(), sessionID, paymentIntentID)
 }
 
-// FailDepositByStripeSession marks a pending wallet deposit as failed when Stripe checkout expires or is abandoned.
 func (w *walletService) FailDepositByStripeSession(sessionID string) error {
-	var txRecord models.WalletTransaction
-	err := w.db.Where("stripe_session_id = ?", sessionID).First(&txRecord).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
-		}
-		return utils.ErrInternal(err)
-	}
-
-	if txRecord.Status != constants.WalletTxStatusPending {
-		return nil
-	}
-
-	return w.FailDeposit(txRecord.ID)
+	return w.app.FailDepositByStripeSession(context.Background(), sessionID)
 }
 
-// ConfirmDeposit – completes a pending deposit, updates wallet balance
 func (w *walletService) ConfirmDeposit(transactionID uint) error {
-	return w.db.Transaction(func(tx *gorm.DB) error {
-		var txRecord models.WalletTransaction
-		if err := tx.First(&txRecord, transactionID).Error; err != nil {
-			return err
-		}
-		if txRecord.Status != constants.WalletTxStatusPending {
-			return utils.ErrBadRequest("transaction already processed")
-		}
-		// Lock wallet row (create on first deposit if missing).
-		var wallet models.Wallet
-		err := tx.Set("gorm:query_option", "FOR UPDATE").Where("user_id = ?", txRecord.UserID).First(&wallet).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				wallet = models.Wallet{UserID: txRecord.UserID, Balance: 0, Currency: "USD"}
-				if err := tx.Create(&wallet).Error; err != nil {
-					return utils.ErrInternal(err)
-				}
-			} else {
-				return utils.ErrInternal(err)
-			}
-		}
-		newBalance := wallet.Balance + txRecord.Amount
-		wallet.Balance = newBalance
-		if err := tx.Save(&wallet).Error; err != nil {
-			return err
-		}
-		txRecord.Status = constants.WalletTxStatusCompleted
-		txRecord.BalanceAfter = newBalance
-		return tx.Save(&txRecord).Error
-	})
+	return w.app.ConfirmDeposit(context.Background(), transactionID)
 }
 
-// FailDeposit – marks a pending deposit as failed
 func (w *walletService) FailDeposit(transactionID uint) error {
-	return w.db.Model(&models.WalletTransaction{}).Where("id = ?", transactionID).Update("status", constants.WalletTxStatusFailed).Error
+	return w.app.FailDeposit(context.Background(), transactionID)
 }
 
-// Withdraw – generic withdrawal (e.g., admin deduction)
 func (w *walletService) Withdraw(userID uint, amount float64, referenceType string, referenceID *uint, description string) error {
-	return w.updateBalance(userID, -amount, constants.WalletTxTypeAdjustment, referenceType, referenceID, description, constants.WalletTxStatusCompleted)
+	return w.app.Withdraw(context.Background(), userID, amount, referenceType, referenceID, description)
 }
 
-// DeductForOrder – payment from wallet during checkout
 func (w *walletService) DeductForOrder(userID uint, amount float64, orderID uint) error {
-	return w.updateBalance(userID, -amount, constants.WalletTxTypePayment, constants.WalletRefTypeOrder, &orderID, fmt.Sprintf("Payment for order #%d", orderID), constants.WalletTxStatusCompleted)
+	return w.app.DeductForOrder(context.Background(), userID, amount, orderID)
 }
 
-// Refund – refund a payment back to wallet
 func (w *walletService) Refund(userID uint, amount float64, orderID uint) error {
-	return w.updateBalance(userID, amount, constants.WalletTxTypeRefund, constants.WalletRefTypeOrder, &orderID, fmt.Sprintf("Refund for order #%d", orderID), constants.WalletTxStatusCompleted)
+	return w.app.Refund(context.Background(), userID, amount, orderID)
 }
 
-// AdminAdjust – direct adjustment (positive or negative) with custom description
 func (w *walletService) AdminAdjust(userID uint, amount float64, description string) error {
-	txType := "adjustment"
-	if amount > 0 {
-		// Could be treated as deposit, but keep as adjustment for audit
-	}
-	return w.updateBalance(userID, amount, txType, constants.WalletRefTypeAdmin, nil, description, constants.WalletTxStatusCompleted)
+	return w.app.AdminAdjust(context.Background(), userID, amount, description)
 }
 
-// internal helper – core balance update with transaction
-func (w *walletService) updateBalance(userID uint, delta float64, txType, refType string, refID *uint, description string, status string) error {
-	if status == "" {
-		status = constants.WalletTxStatusCompleted
-	}
-	return w.db.Transaction(func(tx *gorm.DB) error {
-		// Lock wallet row for update
-		var wallet models.Wallet
-		err := tx.Set("gorm:query_option", "FOR UPDATE").Where("user_id = ?", userID).First(&wallet).Error
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// Create wallet if not exists
-				wallet = models.Wallet{UserID: userID, Balance: 0, Currency: "USD"}
-				if err := tx.Create(&wallet).Error; err != nil {
-					return utils.ErrInternal(err)
-				}
-			} else {
-				return utils.ErrInternal(err)
-			}
-		}
-		newBalance := wallet.Balance + delta
-		if newBalance < 0 {
-			return utils.ErrBadRequest("insufficient wallet balance")
-		}
-		wallet.Balance = newBalance
-		if err := tx.Save(&wallet).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-		// Create transaction record
-		record := models.WalletTransaction{
-			UserID:        userID,
-			Amount:        delta,
-			Type:          txType,
-			ReferenceType: refType,
-			ReferenceID:   refID,
-			Description:   description,
-			BalanceAfter:  newBalance,
-			Status:        status,
-		}
-		if err := tx.Create(&record).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-		return nil
-	})
-}
-
-// GetTransaction get transaction with given id
 func (w *walletService) GetTransaction(userID, txID uint) (*models.WalletTransaction, error) {
-	var tx models.WalletTransaction
-	err := w.db.Where("id = ? AND user_id = ?", txID, userID).First(&tx).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrNotFound("transaction not found")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	return &tx, nil
+	return w.app.GetTransaction(context.Background(), userID, txID)
 }
 
-// CancelPendingDeposit canceling the pending request
 func (w *walletService) CancelPendingDeposit(userID, txID uint) error {
-	return w.db.Transaction(func(tx *gorm.DB) error {
-		var record models.WalletTransaction
-		if err := tx.Where("id = ? AND user_id = ?", txID, userID).First(&record).Error; err != nil {
-			return err
-		}
-		if record.Status != constants.WalletTxStatusPending {
-			return utils.ErrBadRequest("only pending deposits can be cancelled")
-		}
-		if record.Type != constants.WalletTxTypeDeposit {
-			return utils.ErrBadRequest("only deposit transactions can be cancelled")
-		}
-		record.Status = constants.WalletTxStatusCancelled
-		return tx.Save(&record).Error
-	})
+	return w.app.CancelPendingDeposit(context.Background(), userID, txID)
 }

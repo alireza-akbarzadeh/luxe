@@ -6,10 +6,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -47,6 +47,7 @@ func (m *mockProductSvc) AvailableTransitions(_ context.Context, _ uint) (*model
 func (m *mockProductSvc) PerformTransition(_ context.Context, _ uint, _, _, _ string, _ *uint) (*workflow.TransitionResult, error) {
 	return nil, nil
 }
+func (m *mockProductSvc) SetInventory(_ InventoryServiceInterface) {}
 
 type mockCategorySvc struct {
 	createFn func(req dto.CreateCategoryRequest) (*models.Category, error)

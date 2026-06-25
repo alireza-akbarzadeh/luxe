@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 
 // applyWorkflowEvent runs a validated transition. Returns the engine error when

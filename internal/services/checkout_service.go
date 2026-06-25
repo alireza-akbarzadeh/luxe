@@ -7,14 +7,21 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
+	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
+	domaincheckout "github.com/alireza-akbarzadeh/luxe/internal/domain/checkout"
+	domainorder "github.com/alireza-akbarzadeh/luxe/internal/domain/order"
 	"gorm.io/gorm"
 )
+
+const defaultShippingProvider = "standard"
 
 type CheckoutServiceInterface interface {
 	Checkout(ctx context.Context, userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error)
@@ -26,18 +33,23 @@ type CheckoutServiceInterface interface {
 
 type checkoutService struct {
 	db                  *gorm.DB
+	checkoutRepo        *postgres.CheckoutRepository
+	cartRepo            *postgres.CartRepository
 	notificationService NotificationServiceInterface
 	couponService       CouponServiceInterface
 	paymentService      PaymentServiceInterface
 	shipmentService     ShipmentServiceInterface
 	walletService       WalletServiceInterface
 	invoiceService      InvoiceServiceInterface
-	workerPool          tasks.JobQueue
+	workerPool          asynq.JobQueue
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
 	engine              *workflow.Engine
 	inventoryService    InventoryServiceInterface
 	stripeEnabled       bool
+	cartDomain          *domaincart.Service
+	checkoutDomain      *domaincheckout.Service
+	orderDomain         *domainorder.Service
 }
 
 func NewCheckoutService(
@@ -48,7 +60,7 @@ func NewCheckoutService(
 	shipmentService ShipmentServiceInterface,
 	walletService WalletServiceInterface,
 	invoiceService InvoiceServiceInterface,
-	workerPool tasks.JobQueue,
+	workerPool asynq.JobQueue,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
 	engine *workflow.Engine,
@@ -57,6 +69,8 @@ func NewCheckoutService(
 ) CheckoutServiceInterface {
 	return &checkoutService{
 		db:                  db,
+		checkoutRepo:        postgres.NewCheckoutRepository(db),
+		cartRepo:            postgres.NewCartRepository(db),
 		notificationService: notificationService,
 		couponService:       couponService,
 		paymentService:      paymentService,
@@ -69,6 +83,9 @@ func NewCheckoutService(
 		engine:              engine,
 		inventoryService:    inventoryService,
 		stripeEnabled:       stripeEnabled,
+		cartDomain:          domaincart.NewService(),
+		checkoutDomain:      domaincheckout.NewService(),
+		orderDomain:         domainorder.NewService(),
 	}
 }
 
@@ -94,20 +111,31 @@ func (s *checkoutService) setOrderStateActor(ctx context.Context, orderID uint, 
 func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.CheckoutRequest) (*dto.CheckoutResult, error) {
 	req.NormalizePaymentMethod(s.stripeEnabled)
 
-	cart, err := s.getActiveCart(ctx, userID)
+	cart, err := appcheckout.LoadActiveCart(ctx, s.checkoutRepo, userID)
 	if err != nil {
 		return nil, err
 	}
-	address, err := s.resolveAddress(ctx, userID, req)
+	if err := appcheckout.ValidateCartForCheckout(s.cartDomain, userID, cart); err != nil {
+		return nil, utils.ErrBadRequest(err.Error())
+	}
+	if err := appcheckout.ValidateCheckoutInput(s.checkoutDomain, domaincheckout.CheckoutInput{
+		UserID:         userID,
+		CartTotalCents: int64(appcheckout.CartSubtotal(cart.Items) * 100),
+		Currency:       "USD",
+		PaymentMethod:  req.PaymentMethod,
+	}); err != nil {
+		return nil, utils.ErrBadRequest(err.Error())
+	}
+	address, err := s.checkoutRepo.ResolveOrCreateAddress(ctx, userID, req)
 	if err != nil {
-		return nil, err
+		return nil, utils.ErrInternal(err)
 	}
 	carrier := s.getCarrier(req.ShippingProviderID)
 
 	var order *models.Order
 	var stockChanges []deltaResult
 	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		subtotal := cartSubtotal(cart.Items)
+		subtotal := appcheckout.CartSubtotal(cart.Items)
 		discount, couponID, err := s.applyCoupon(tx, userID, req.CouponCode, subtotal)
 		if err != nil {
 			return err
@@ -117,9 +145,9 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 			totalAmount = 0
 		}
 
-		order, err = s.createOrderRecord(tx, userID, totalAmount, address.ID)
-		if err != nil {
-			return err
+		order = appcheckout.BuildOrderModel(userID, totalAmount, address.ID, generateOrderNumber(userID))
+		if err := s.checkoutRepo.CreateOrder(tx, order); err != nil {
+			return utils.ErrInternal(err)
 		}
 
 		stockChanges, err = s.reserveCartStock(ctx, tx, order.ID, cart.Items)
@@ -127,8 +155,8 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 			return err
 		}
 
-		if err := s.createOrderItems(tx, order.ID, cart.Items); err != nil {
-			return err
+		if err := s.checkoutRepo.CreateOrderItems(tx, order.ID, cart.Items); err != nil {
+			return utils.ErrInternal(err)
 		}
 
 		if err := s.createPayment(tx, order.ID, userID, totalAmount, req.PaymentMethod, "USD"); err != nil {
@@ -145,7 +173,7 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 			}
 		}
 
-		return s.markCartConverted(tx, cart.ID)
+		return s.cartRepo.MarkConvertedTx(tx, cart.ID)
 	})
 	if err != nil {
 		return nil, err
@@ -157,18 +185,20 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 		}
 	}
 
-	s.db.WithContext(ctx).Preload("Items.Product").Preload("User").Preload("Payment").First(order, order.ID)
+	if err := s.checkoutRepo.PreloadOrderDetails(ctx, order); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
 	s.sendOrderCreatedNotification(userID, order)
 	s.setOrderState(ctx, order.ID, "pending_payment", "order_created")
 
 	result := &dto.CheckoutResult{Order: order}
 
 	if req.PaymentMethod == "stripe" {
-		var payment models.Payment
-		if err := s.db.WithContext(ctx).Where("order_id = ?", order.ID).First(&payment).Error; err != nil {
+		payment, err := s.checkoutRepo.FindPaymentByOrderID(ctx, order.ID)
+		if err != nil {
 			return nil, utils.ErrInternal(err)
 		}
-		checkoutURL, sessionID, err := s.paymentService.CreateStripeCheckoutSession(order, &payment, req.Email)
+		checkoutURL, sessionID, err := s.paymentService.CreateStripeCheckoutSession(order, payment, req.Email)
 		if err != nil {
 			return nil, err
 		}
@@ -183,8 +213,8 @@ func (s *checkoutService) Checkout(ctx context.Context, userID uint, req dto.Che
 
 // CompletePaidOrder finalizes an order after external payment confirmation (Stripe webhook).
 func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) error {
-	var order models.Order
-	if err := s.db.WithContext(ctx).Preload("Payment").First(&order, orderID).Error; err != nil {
+	order, err := s.checkoutRepo.FindOrderWithPayment(ctx, orderID)
+	if err != nil {
 		return fmt.Errorf("order not found: %w", err)
 	}
 
@@ -193,12 +223,8 @@ func (s *checkoutService) CompletePaidOrder(ctx context.Context, orderID uint) e
 		return nil
 	}
 
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if err := tx.Model(&models.Order{}).Where("id = ?", orderID).
-			Update("status", constants.OrderStatusPaid).Error; err != nil {
-			return err
-		}
-		return nil
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return s.checkoutRepo.UpdateOrderStatusTx(tx, orderID, constants.OrderStatusPaid)
 	})
 	if err != nil {
 		return err
@@ -341,14 +367,14 @@ func (s *checkoutService) broadcastOrderUpdate(orderID, userID uint, eventType s
 
 // processShipment handles the shipping steps (called after payment success)
 func (s *checkoutService) processShipment(ctx context.Context, orderID uint) error {
-	var shipment models.Shipment
-	if err := s.db.WithContext(ctx).Where("order_id = ?", orderID).First(&shipment).Error; err != nil {
+	shipment, err := s.checkoutRepo.FindShipmentByOrderID(ctx, orderID)
+	if err != nil {
 		return fmt.Errorf("shipment not found: %w", err)
 	}
 
 	oldStatus := shipment.Status
 	shipment.Status = "processing"
-	if err := s.db.WithContext(ctx).Save(&shipment).Error; err != nil {
+	if err := s.checkoutRepo.SaveShipment(ctx, shipment); err != nil {
 		return err
 	}
 
@@ -366,11 +392,13 @@ func (s *checkoutService) processShipment(ctx context.Context, orderID uint) err
 
 	trackingNumber := fmt.Sprintf("TRK-%d-%d", orderID, time.Now().Unix())
 	now := time.Now()
-	s.db.WithContext(ctx).Model(&shipment).Updates(map[string]interface{}{
+	if err := s.checkoutRepo.UpdateShipmentFields(ctx, orderID, map[string]interface{}{
 		"status":          constants.ShipmentStatusShipped,
 		"tracking_number": trackingNumber,
 		"shipped_at":      now,
-	})
+	}); err != nil {
+		return err
+	}
 
 	s.broadcastOrderUpdate(orderID, shipment.UserID, "shipment_shipped", map[string]interface{}{
 		"title":           "Package Shipped",
@@ -386,41 +414,6 @@ func (s *checkoutService) processShipment(ctx context.Context, orderID uint) err
 	return nil
 }
 
-func (s *checkoutService) getActiveCart(ctx context.Context, userID uint) (*models.Cart, error) {
-	var cart models.Cart
-	err := s.db.WithContext(ctx).Where("user_id = ? AND status = ?", userID, constants.CartStatusActive).
-		Preload("Items.Product").
-		First(&cart).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, utils.ErrBadRequest("cart is empty")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	if len(cart.Items) == 0 {
-		return nil, utils.ErrBadRequest("cart is empty")
-	}
-	return &cart, nil
-}
-
-// markCartConverted sets the cart status to "converted" inside a transaction.
-func (s *checkoutService) markCartConverted(tx *gorm.DB, cartID uint) error {
-	return tx.Model(&models.Cart{}).Where("id = ?", cartID).
-		Update("status", "converted").Error
-}
-
-// resolveAddress finds or creates an address record for the user.
-func (s *checkoutService) resolveAddress(ctx context.Context, userID uint, req dto.CheckoutRequest) (*models.Address, error) {
-	address := dto.MapAddress(userID, req)
-	err := s.db.WithContext(ctx).Where("user_id = ? AND address_line1 = ? AND postal_code = ?",
-		userID, req.AddressLine1, req.Zip).
-		FirstOrCreate(&address, address).Error
-	if err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-	return &address, nil
-}
-
 // getCarrier resolves the shipping carrier name from the request or falls back to the first active provider.
 func (s *checkoutService) getCarrier(shippingProviderID *uint) string {
 	if shippingProviderID != nil {
@@ -433,16 +426,7 @@ func (s *checkoutService) getCarrier(shippingProviderID *uint) string {
 	if len(providers) > 0 {
 		return providers[0].Name
 	}
-	return DefaultShippingProvider
-}
-
-// cartSubtotal sums line totals without mutating stock.
-func cartSubtotal(cartItems []models.CartItem) float64 {
-	var subtotal float64
-	for _, item := range cartItems {
-		subtotal += item.Price * float64(item.Quantity)
-	}
-	return subtotal
+	return defaultShippingProvider
 }
 
 // reserveCartStock locks product rows, validates stock, and decrements inventory.
@@ -456,11 +440,11 @@ func (s *checkoutService) reserveCartStock(ctx context.Context, tx *gorm.DB, ord
 			}
 			return nil, utils.ErrInternal(err)
 		}
-		if !isProductStockAvailable(product, item.Quantity) {
+		if !appcheckout.ProductStockAvailable(product, item.Quantity) {
 			return nil, utils.ErrBadRequest(
 				fmt.Sprintf("insufficient stock for product: %s", product.Name))
 		}
-		if shouldDecrementProductStock(product) {
+		if appcheckout.ShouldDecrementProductStock(product) {
 			if s.inventoryService != nil {
 				change, err := s.inventoryService.DecrementForSale(ctx, tx, orderID, item.ProductID, item.Quantity)
 				if err != nil {
@@ -492,39 +476,6 @@ func (s *checkoutService) applyCoupon(tx *gorm.DB, userID uint, code string, sub
 	}
 
 	return discount, &coupon.ID, nil
-}
-
-// createOrderRecord inserts the order row inside the transaction.
-func (s *checkoutService) createOrderRecord(tx *gorm.DB, userID uint, totalAmount float64, addressID uint) (*models.Order, error) {
-	order := &models.Order{
-		UserID:            userID,
-		OrderNumber:       generateOrderNumber(userID),
-		Status:            constants.OrderStatusPending,
-		TotalAmount:       totalAmount,
-		Currency:          "USD",
-		ShippingAddressID: &addressID,
-		BillingAddressID:  &addressID,
-	}
-	if err := tx.Create(order).Error; err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-	return order, nil
-}
-
-// createOrderItems copies cart items into order items and decrements stock.
-func (s *checkoutService) createOrderItems(tx *gorm.DB, orderID uint, cartItems []models.CartItem) error {
-	for _, item := range cartItems {
-		oi := &models.OrderItem{
-			OrderID:   orderID,
-			ProductID: item.ProductID,
-			Quantity:  item.Quantity,
-			Price:     item.Price,
-		}
-		if err := tx.Create(oi).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-	}
-	return nil
 }
 
 // createPayment uses the PaymentService to insert a pending payment record (within tx).
@@ -598,24 +549,24 @@ var cancellableStatuses = map[string]bool{
 // wallet payments. Stripe orders are cancelled without an automatic refund (requires
 // manual processing via the Stripe dashboard).
 func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint) error {
-	var order models.Order
-	if err := s.db.WithContext(ctx).
-		Preload("Items").
-		Preload("Payment").
-		Where("id = ? AND user_id = ?", orderID, userID).
-		First(&order).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	order, err := s.checkoutRepo.FindOrderForCancel(ctx, orderID, userID)
+	if err != nil {
+		if postgres.IsNotFound(err) {
 			return utils.ErrNotFound("order not found")
 		}
 		return utils.ErrInternal(err)
 	}
 
-	if !cancellableStatuses[order.Status] {
-		return utils.ErrBadRequest(fmt.Sprintf("order cannot be cancelled in status %q", order.Status))
+	if err := s.orderDomain.CanCancel(domainorder.Order{
+		ID:     order.ID,
+		UserID: order.UserID,
+		Status: order.Status,
+	}); err != nil {
+		return utils.ErrBadRequest(err.Error())
 	}
 
 	var restores []deltaResult
-	err := s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	err = s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, item := range order.Items {
 			if s.inventoryService != nil {
 				change, err := s.inventoryService.RestoreForOrderCancel(ctx, tx, order.ID, item.ProductID, item.Quantity)
@@ -644,10 +595,7 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 		}
 
 		// Cancel any pending/processing shipment.
-		return tx.Model(&models.Shipment{}).
-			Where("order_id = ? AND status NOT IN ?", order.ID,
-				[]string{constants.ShipmentStatusShipped, constants.ShipmentStatusDelivered}).
-			Update("status", "cancelled").Error
+		return s.checkoutRepo.CancelPendingShipmentsTx(tx, order.ID)
 	})
 	if err != nil {
 		return err

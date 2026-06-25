@@ -7,30 +7,50 @@ High-level design for developers and AI agents. For coding rules see `.cursorrul
 ```
 Client
   → Gin middleware (CORS, access log, Sentry, OTEL, auth)
-  → Controller (bind DTO, validate, utils.Response)
-  → Service (business logic, transactions)
-  → GORM (*gorm.DB) → PostgreSQL
+  → HTTP handler (bind DTO, validate, utils.Response)
+  → Service facade (internal/services — wiring, workflow sync, WS/notifications)
+  → Application (commands/queries — use cases)
+  → Domain (rules, ports)
+  → infrastructure/postgres (GORM) → PostgreSQL
 ```
 
 Background work:
 
 ```
-Service → tasks.JobQueue → Asynq (Redis) or in-memory worker
+Service → asynq.JobQueue → Asynq (Redis) or in-memory worker
 Cron    → internal/jobs/cron_jobs.go
 ```
+
+## Package layout
+
+| Path | Role |
+|------|------|
+| `internal/interfaces/http/handlers/` | Gin HTTP handlers (was `controllers/`) |
+| `internal/interfaces/http/dto/` | Request/response DTOs |
+| `internal/interfaces/http/routes/` | Route registration |
+| `internal/interfaces/http/middleware/` | Auth, CORS, logging, tracing |
+| `internal/services/` | Thin facades + registry (`registry.go`); workflow sync, WebSocket, cross-cutting orchestration |
+| `internal/domain/` | Pure domain entities, ports, rules |
+| `internal/application/` | Use-case orchestration (commands/queries per bounded context) |
+| `internal/infrastructure/postgres/` | GORM repository implementations |
+| `internal/infrastructure/asynq/` | Background job queue |
+| `internal/infrastructure/integrations/` | Stripe, R2, AI, PDF |
+| `internal/shared/utils/` | Response helpers, logger, JWT |
+| `internal/shared/observability/` | Sentry, OTEL, Prometheus |
+| `internal/shared/health/` | Liveness/readiness checks |
 
 ## Boot sequence (`cmd/api/main.go`)
 
 1. `config.Load()` — env, production validation
-2. Structured logger (`utils.InitLoggerWithConfig`)
-3. Sentry (`observability.Init`) — if `SENTRY_DSN`
-4. OpenTelemetry (`observability.InitTracing`) — if `OTEL_ENABLED`
+2. Structured logger (`shared/utils.InitLoggerWithConfig`)
+3. Sentry (`shared/observability.Init`) — if `SENTRY_DSN`
+4. OpenTelemetry (`shared/observability.InitTracing`) — if `OTEL_ENABLED`
 5. PostgreSQL (`connectDatabase`)
-6. `tasks.NewJobQueue` — Redis if `REDIS_URL`, else in-memory
-7. `services.NewServices(db, cfg, jobQueue)` — all domain services
-8. `tasks.BindHandlers` — order process, shipment process
+6. `asynq.NewJobQueue` — Redis if `REDIS_URL`, else in-memory
+7. `bootstrap.NewServices(db, cfg, jobQueue)` — all domain service facades
+8. `asynq.BindHandlers` — order process, shipment process
 9. `jobs.NewCronJobs` — scheduled tasks
-10. `controllers.NewContainer` — HTTP handlers
+10. `handlers.NewContainer` — HTTP handlers
 11. `routes.NewRouter` → `Setup()` — register routes
 12. Graceful shutdown — HTTP, cron, job queue (15s)
 
@@ -38,11 +58,12 @@ Cron    → internal/jobs/cron_jobs.go
 
 | Layer | Registry | Adds |
 |-------|----------|------|
-| Services | `internal/services/services.go` | `NewServices` |
-| Controllers | `internal/controllers/container.go` | `NewContainer` |
-| Routes | `internal/routes/*_routes.go` | per-domain groups |
+| Services | `internal/application/bootstrap/wire.go` | `bootstrap.NewServices` |
+| Registry type | `internal/services/registry.go` | `services.Services`, `JobHandlers` |
+| Handlers | `internal/interfaces/http/handlers/container.go` | `NewContainer` |
+| Routes | `internal/interfaces/http/routes/*_routes.go` | per-domain groups |
 
-New domains must be registered in **both** `services.go` and `container.go`.
+New domains must be registered in **both** `bootstrap/wire.go` and `handlers/container.go`.
 
 ## HTTP surface
 
@@ -82,17 +103,17 @@ Multi-step writes use `db.Transaction` (checkout, payments, stock).
 
 | Package | Purpose | Config |
 |---------|---------|--------|
-| `internal/integrations/stripe` | Checkout sessions (orders + wallet deposits), webhooks | `STRIPE_*` |
-| `internal/integrations/r2` | Presigned uploads | `R2_*` |
+| `internal/infrastructure/integrations/stripe` | Checkout sessions (orders + wallet deposits), webhooks | `STRIPE_*` |
+| `internal/infrastructure/integrations/r2` | Presigned uploads | `R2_*` |
 
 ## Observability
 
 | Feature | Package / middleware | Env |
 |---------|---------------------|-----|
-| JSON logs | `utils/logger`, `middleware/access_log` | `LOG_LEVEL`, `SERVICE_NAME` |
-| Sentry | `observability`, `middleware/sentry` | `SENTRY_DSN` |
-| Tracing | `observability/tracing`, `middleware/tracing` | `OTEL_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT` |
-| Health | `internal/health` | DB + Redis when configured |
+| JSON logs | `shared/utils`, `interfaces/http/middleware/access_log` | `LOG_LEVEL`, `SERVICE_NAME` |
+| Sentry | `shared/observability`, `interfaces/http/middleware/sentry` | `SENTRY_DSN` |
+| Tracing | `shared/observability/tracing`, `interfaces/http/middleware/tracing` | `OTEL_ENABLED`, `OTEL_EXPORTER_OTLP_ENDPOINT` |
+| Health | `internal/shared/health` | DB + Redis when configured |
 
 ## Database
 
@@ -139,14 +160,14 @@ Luxe uses a **DB-driven workflow engine** so lifecycle rules (states, transition
 
 | Path | Role |
 |------|------|
-| `internal/services/workflow/engine.go` | `Transition`, `SetState`, `AvailableTransitions`, `History` |
+| `internal/infrastructure/workflow/engine.go` | `Transition`, `SetState`, `AvailableTransitions`, `History` |
 | `internal/services/workflow_hooks.go` | Registered guards and post-transition hooks |
-| `internal/services/workflow_sync.go` | Legacy status → event/SetState helpers used by existing services |
-| `internal/services/workflow_service.go` | Workflow definition CRUD |
+| `internal/services/workflow_sync.go` | Legacy status → event/SetState helpers used by service facades |
+| `internal/services/workflow_service.go` | Workflow definition CRUD facade |
 | `internal/migrations/20260617200000_workflow_engine.sql` | Schema |
 | `internal/migrations/20260617210000_workflow_seed.sql` | Seed definitions for five workflows |
 
-Boot wiring (`services.NewServices`):
+Boot wiring (`bootstrap.NewServices`):
 
 1. `workflow.NewEngine(db)`
 2. `RegisterWorkflowGuardsAndHooks(engine, db, notification, wallet, jobQueue)`

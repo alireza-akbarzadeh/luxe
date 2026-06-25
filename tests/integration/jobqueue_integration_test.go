@@ -3,7 +3,7 @@ package integration
 import (
 	"testing"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +12,7 @@ func TestJobQueue_UsesAsynqWhenRedisConfigured(t *testing.T) {
 		t.Skip("REDIS_URL not set; skipping Asynq integration test")
 	}
 
-	queue, err := tasks.NewJobQueue(testCfg, tasks.Handlers{})
+	queue, err := asynq.NewJobQueue(testCfg, asynq.Handlers{})
 	require.NoError(t, err)
 	require.Equal(t, "asynq", queue.Backend())
 
@@ -25,7 +25,7 @@ func TestJobQueue_UsesMemoryWhenRedisUnset(t *testing.T) {
 		t.Skip("REDIS_URL is set; skipping in-memory queue test")
 	}
 
-	queue, err := tasks.NewJobQueue(testCfg, tasks.Handlers{})
+	queue, err := asynq.NewJobQueue(testCfg, asynq.Handlers{})
 	require.NoError(t, err)
 	require.Equal(t, "memory", queue.Backend())
 }

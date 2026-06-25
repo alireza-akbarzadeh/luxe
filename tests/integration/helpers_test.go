@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/controllers"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/routes"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
+	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
@@ -44,15 +44,15 @@ type apiEnvelope struct {
 }
 
 func newTestServer(t *testing.T) *httptest.Server {
-	jobQueue, err := tasks.NewJobQueue(testCfg, tasks.Handlers{})
+	jobQueue, err := asynq.NewJobQueue(testCfg, asynq.Handlers{})
 	require.NoError(t, err)
 
-	svc := services.NewServices(testDB, testCfg, jobQueue)
-	tasks.BindHandlers(jobQueue, svc.JobHandlers())
+	svc := bootstrap.NewServices(testDB, testCfg, jobQueue)
+	asynq.BindHandlers(jobQueue, svc.JobHandlers())
 	require.NoError(t, jobQueue.Start())
 	t.Cleanup(func() { jobQueue.Shutdown() })
 
-	ctrl := controllers.NewContainer(testDB, svc, testCfg)
+	ctrl := handlers.NewContainer(testDB, svc, testCfg)
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())

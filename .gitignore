@@ -37,3 +37,6 @@ tmp
 
 # OS
 .DS_Store
+
+# local build artifact
+api

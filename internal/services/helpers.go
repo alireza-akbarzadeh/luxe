@@ -44,6 +44,16 @@ func isDuplicateKeyError(err error) bool {
 	return false
 }
 
+func isUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "unique constraint") ||
+		strings.Contains(msg, "duplicate key") ||
+		strings.Contains(msg, "UNIQUE constraint failed")
+}
+
 // isProductStockAvailable checks whether the requested quantity can be fulfilled.
 func isProductStockAvailable(product models.Product, quantity int) bool {
 	if !product.TrackInventory {

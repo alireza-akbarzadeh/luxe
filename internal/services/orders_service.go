@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
@@ -27,25 +29,14 @@ type OrderServiceInterface interface {
 	GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error)
 }
 
-// orderStatusToStateCode maps a legacy admin status string to a workflow state code.
-var orderStatusToStateCode = map[string]string{
-	constants.OrderStatusPending:   "pending_payment",
-	constants.OrderStatusPaid:      "paid",
-	"processing":                   "processing",
-	constants.OrderStatusShipped:   "shipped",
-	constants.OrderStatusDelivered: "delivered",
-	"completed":                    "completed",
-	constants.OrderStatusCancelled: "cancelled",
-	constants.OrderStatusRefunded:  "refunded",
-}
-
 type orderService struct {
-	db                  *gorm.DB
 	notificationService NotificationServiceInterface
 	hub                 *websocket.Hub
 	salesFeed           *SalesFeedService
-	jobQueue            tasks.JobQueue
+	jobQueue            asynq.JobQueue
 	engine              *workflow.Engine
+	queries             *apporder.Queries
+	commands            *apporder.Commands
 }
 
 func NewOrderService(
@@ -53,21 +44,21 @@ func NewOrderService(
 	notificationService NotificationServiceInterface,
 	hub *websocket.Hub,
 	salesFeed *SalesFeedService,
-	jobQueue tasks.JobQueue,
+	jobQueue asynq.JobQueue,
 	engine *workflow.Engine,
 ) OrderServiceInterface {
+	repo := postgres.NewOrderRepository(db)
 	return &orderService{
-		db:                  db,
 		notificationService: notificationService,
 		hub:                 hub,
 		salesFeed:           salesFeed,
 		jobQueue:            jobQueue,
 		engine:              engine,
+		queries:             apporder.NewQueries(repo),
+		commands:            apporder.NewCommands(repo),
 	}
 }
 
-// applyOrderState persists an order status change through the workflow engine
-// (transition when possible, else SetState, else direct status write).
 func (s *orderService) applyOrderState(ctx context.Context, order *models.Order, status string, actorID *uint) error {
 	actorRole := constants.RoleAdmin
 	if applyOrderWorkflow(ctx, s.engine, order.ID, status, actorRole, actorID) {
@@ -79,62 +70,17 @@ func (s *orderService) applyOrderState(ctx context.Context, order *models.Order,
 			Warn("workflow update failed; writing status directly")
 	}
 	order.Status = status
-	return s.db.WithContext(ctx).Model(order).Update("status", status).Error
-}
-
-const (
-	DefaultShippingProvider = "standard"
-)
-
-type orderListQuery struct {
-	UserID      *uint
-	Status      string
-	Search      string
-	FromDate    *time.Time
-	ToDate      *time.Time
-	MinAmount   *float64
-	MaxAmount   *float64
-	Limit       int
-	Offset      int
-	PreloadUser bool
-}
-
-func orderFiltersFromDTO(userID uint, filters dto.OrderListFilters) orderListQuery {
-	return orderListQuery{
-		UserID:    &userID,
-		Status:    filters.Status,
-		FromDate:  filters.FromDate,
-		ToDate:    filters.ToDate,
-		MinAmount: filters.MinAmount,
-		MaxAmount: filters.MaxAmount,
-		Limit:     filters.Limit,
-		Offset:    filters.Offset,
-	}
+	return s.commands.UpdateStatus(ctx, order.ID, status)
 }
 
 func (s *orderService) GetUserOrders(ctx context.Context, userID uint, filters dto.OrderListFilters) ([]models.Order, int64, error) {
-	if filters.Limit == 0 {
-		filters.Limit = 20
-	}
-	if filters.Limit > 100 {
-		filters.Limit = 100
-	}
-
-	q := orderFiltersFromDTO(userID, filters)
-	orders, total, err := s.listOrders(ctx, q)
-	if err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-	return orders, total, nil
+	return s.queries.ListUserOrders(ctx, userID, filters)
 }
 
 func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, status string, actorID *uint) error {
-	order, err := s.findOrderByID(ctx, orderID, true)
+	order, err := s.queries.FindByID(ctx, orderID, true)
 	if err != nil {
-		if isRecordNotFound(err) {
-			return utils.ErrNotFound("order not found")
-		}
-		return utils.ErrInternal(err)
+		return err
 	}
 
 	oldStatus := order.Status
@@ -206,7 +152,6 @@ func (s *orderService) UpdateOrderStatus(ctx context.Context, orderID uint, stat
 	return nil
 }
 
-// enqueueOrderStatusEmail sends an email for significant order lifecycle events.
 func (s *orderService) enqueueOrderStatusEmail(ctx context.Context, order *models.Order, status string) {
 	emailStatuses := map[string]bool{
 		constants.OrderStatusShipped:   true,
@@ -246,14 +191,7 @@ func (s *orderService) getOrderStatusNotificationMessage(status, orderNumber str
 }
 
 func (s *orderService) GetOrderByID(ctx context.Context, orderID uint, userID uint) (*models.Order, error) {
-	order, err := s.findOrderByIDAndUserID(ctx, orderID, userID)
-	if err != nil {
-		if isRecordNotFound(err) {
-			return nil, utils.ErrNotFound("order not found")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	return order, nil
+	return s.queries.GetByIDForUser(ctx, orderID, userID)
 }
 
 type AdminOrderFilters struct {
@@ -263,7 +201,7 @@ type AdminOrderFilters struct {
 }
 
 func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
-	q := orderListQuery{
+	return s.queries.ListAdmin(ctx, apporder.ListFilter{
 		UserID:      filters.UserID,
 		Status:      filters.Status,
 		Search:      filters.Search,
@@ -274,13 +212,7 @@ func (s *orderService) GetAllOrders(ctx context.Context, filters AdminOrderFilte
 		Limit:       limit,
 		Offset:      offset,
 		PreloadUser: true,
-	}
-
-	orders, total, err := s.listOrders(ctx, q)
-	if err != nil {
-		return nil, 0, utils.ErrInternal(err)
-	}
-	return orders, total, nil
+	})
 }
 
 func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uint, status string, actorID *uint) (int64, error) {
@@ -297,6 +229,16 @@ func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uin
 		return 0, utils.ErrBadRequest("invalid bulk status; allowed: paid, shipped, delivered, cancelled")
 	}
 
+	orderStatusToStateCode := map[string]string{
+		constants.OrderStatusPending:   "pending_payment",
+		constants.OrderStatusPaid:      "paid",
+		"processing":                   "processing",
+		constants.OrderStatusShipped:   "shipped",
+		constants.OrderStatusDelivered: "delivered",
+		"completed":                    "completed",
+		constants.OrderStatusCancelled: "cancelled",
+		constants.OrderStatusRefunded:  "refunded",
+	}
 	code := orderStatusToStateCode[status]
 	var updated int64
 	for _, id := range orderIDs {
@@ -307,22 +249,16 @@ func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uin
 		if code != "" {
 			syncWorkflowState(ctx, s.engine, constants.WorkflowEntityOrder, id, code, "admin_bulk_set", actorID)
 		}
-		res := s.db.WithContext(ctx).Model(&models.Order{}).Where("id = ?", id).Update("status", status)
-		if res.Error == nil {
-			updated += res.RowsAffected
+		n, err := s.commands.UpdateStatusByIDs(ctx, []uint{id}, status)
+		if err == nil {
+			updated += n
 		}
 	}
 	return updated, nil
 }
 
 func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
-	cutoff := time.Now().Add(-7 * 24 * time.Hour)
-
-	var orders []models.Order
-	err := s.db.WithContext(ctx).
-		Where("status = ? AND updated_at < ?", constants.OrderStatusPaid, cutoff).
-		Not("status IN (?)", []string{constants.OrderStatusDelivered, constants.OrderStatusCancelled, constants.OrderStatusRefunded}).
-		Find(&orders).Error
+	orders, err := s.commands.FindOverduePaid(ctx)
 	if err != nil {
 		return utils.ErrInternal(err)
 	}
@@ -334,8 +270,7 @@ func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
 
 	for _, order := range orders {
 		oldStatus := order.Status
-		order.Status = constants.OrderStatusDelayed
-		if err := s.db.WithContext(ctx).Save(&order).Error; err != nil {
+		if err := s.commands.SaveDelayed(ctx, &order); err != nil {
 			utils.Log.WithError(err).Errorf("Failed to update order %d to delayed", order.ID)
 			continue
 		}
@@ -360,104 +295,8 @@ func (s *orderService) UpdateOverdueOrders(ctx context.Context) error {
 	return nil
 }
 
-func (s *orderService) applyOrderListFilters(query *gorm.DB, q orderListQuery) *gorm.DB {
-	if q.UserID != nil {
-		query = query.Where("user_id = ?", *q.UserID)
-	}
-	if q.Status != "" {
-		query = query.Where("status = ?", q.Status)
-	}
-	if q.FromDate != nil {
-		query = query.Where("created_at >= ?", q.FromDate)
-	}
-	if q.ToDate != nil {
-		query = query.Where("created_at <= ?", q.ToDate)
-	}
-	if q.MinAmount != nil {
-		query = query.Where("total_amount >= ?", *q.MinAmount)
-	}
-	if q.MaxAmount != nil {
-		query = query.Where("total_amount <= ?", *q.MaxAmount)
-	}
-	if q.Search != "" {
-		term := "%" + q.Search + "%"
-		query = query.Joins("User").
-			Where(
-				"orders.order_number ILIKE ? OR users.email ILIKE ? OR users.first_name ILIKE ? OR users.last_name ILIKE ?",
-				term, term, term, term,
-			)
-	}
-	return query
-}
-
-func (s *orderService) listOrders(ctx context.Context, q orderListQuery) ([]models.Order, int64, error) {
-	var orders []models.Order
-	var total int64
-
-	query := s.applyOrderListFilters(s.db.WithContext(ctx).Model(&models.Order{}), q)
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	listQuery := s.applyOrderListFilters(s.db.WithContext(ctx).Model(&models.Order{}), q)
-	listQuery = listQuery.Limit(q.Limit).Offset(q.Offset).
-		Preload("Items.Product").
-		Preload("Payment").
-		Preload("Shipment").
-		Order("created_at DESC")
-
-	if q.PreloadUser {
-		listQuery = listQuery.Preload("User")
-	}
-
-	if err := listQuery.Find(&orders).Error; err != nil {
-		return nil, 0, err
-	}
-	return orders, total, nil
-}
-
-func (s *orderService) findOrderByIDAndUserID(ctx context.Context, orderID, userID uint) (*models.Order, error) {
-	var order models.Order
-	err := s.db.WithContext(ctx).
-		Where("id = ? AND user_id = ?", orderID, userID).
-		Preload("Items.Product").
-		Preload("Payment").
-		Preload("Shipment").
-		First(&order).Error
-	if err != nil {
-		return nil, err
-	}
-	return &order, nil
-}
-
-func (s *orderService) findOrderByID(ctx context.Context, orderID uint, preloadUser bool) (*models.Order, error) {
-	q := s.db.WithContext(ctx)
-	if preloadUser {
-		q = q.Preload("User")
-	}
-	var order models.Order
-	if err := q.First(&order, orderID).Error; err != nil {
-		return nil, err
-	}
-	return &order, nil
-}
-
 func (s *orderService) GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error) {
-	var order models.Order
-	err := s.db.WithContext(ctx).
-		Preload("User").
-		Preload("Items.Product").
-		Preload("Items.Product.Category").
-		Preload("Payment").
-		Preload("Shipment").
-		First(&order, orderID).Error
-	if err != nil {
-		if isRecordNotFound(err) {
-			return nil, utils.ErrNotFound("order not found")
-		}
-		return nil, utils.ErrInternal(err)
-	}
-	return &order, nil
+	return s.queries.GetAdmin(ctx, orderID)
 }
 
 func (s *orderService) AvailableTransitions(ctx context.Context, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {

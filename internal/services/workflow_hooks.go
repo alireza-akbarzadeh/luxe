@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/tasks"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
 
@@ -20,7 +20,7 @@ func RegisterWorkflowGuardsAndHooks(
 	db *gorm.DB,
 	notification NotificationServiceInterface,
 	wallet WalletServiceInterface,
-	jobQueue tasks.JobQueue,
+	jobQueue asynq.JobQueue,
 ) {
 	// ─── Guards ─────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ func RegisterInventoryWorkflowHooks(engine *workflow.Engine, inventory Inventory
 func orderNotifyHook(
 	db *gorm.DB,
 	notification NotificationServiceInterface,
-	jobQueue tasks.JobQueue,
+	jobQueue asynq.JobQueue,
 	notifType, title, bodyTemplate string,
 ) workflow.HookFunc {
 	return func(ctx context.Context, orderID uint, _ map[string]interface{}) error {

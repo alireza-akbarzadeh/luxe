@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 
 func (c *CronJobs) registerProductJobs() {

@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	appbrand "github.com/alireza-akbarzadeh/luxe/internal/application/brand"
+	domainbrand "github.com/alireza-akbarzadeh/luxe/internal/domain/brand"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
 
@@ -20,12 +22,18 @@ type BrandServiceInterface interface {
 }
 
 type brandService struct {
-	db     *gorm.DB
-	engine *workflow.Engine
+	engine   *workflow.Engine
+	commands *appbrand.Commands
+	queries  *appbrand.Queries
 }
 
 func NewBrandService(db *gorm.DB, engine *workflow.Engine) BrandServiceInterface {
-	return &brandService{db: db, engine: engine}
+	repo := postgres.NewBrandRepository(db)
+	return &brandService{
+		engine:   engine,
+		commands: appbrand.NewCommands(domainbrand.NewService(), repo),
+		queries:  appbrand.NewQueries(repo),
+	}
 }
 
 func (s *brandService) syncBrandWorkflow(ctx context.Context, brandID uint, status string) {
@@ -35,108 +43,59 @@ func (s *brandService) syncBrandWorkflow(ctx context.Context, brandID uint, stat
 	}
 }
 
-func (s *brandService) getBrandByID(ctx context.Context, id uint) (*models.Brand, error) {
-	var brand models.Brand
-	if err := s.db.WithContext(ctx).Preload("WorkflowState").First(&brand, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, err
-	}
-	return &brand, nil
-}
-
 func (s *brandService) Create(ctx context.Context, req *dto.CreateBrandRequest) (*dto.BrandResponse, error) {
-	status := "draft"
-	if req.Status != nil {
-		status = *req.Status
-	}
-
-	brand := models.Brand{
-		Name:        req.Name,
-		Slug:        req.Slug,
-		Description: req.Description,
-		LogoURL:     req.LogoURL,
-		Status:      status,
-	}
-
-	if err := s.db.WithContext(ctx).Create(&brand).Error; err != nil {
+	brand, err := s.commands.Create(ctx, req)
+	if err != nil {
+		if errors.Is(err, domainbrand.ErrInvalidName) {
+			return nil, err
+		}
 		return nil, err
 	}
 
 	s.syncBrandWorkflow(ctx, brand.ID, brand.Status)
 
-	loaded, err := s.getBrandByID(ctx, brand.ID)
+	loaded, err := s.queries.GetByID(ctx, brand.ID)
 	if err != nil {
 		return nil, err
 	}
-	return brandToResponse(loaded), nil
+	return appbrand.ToResponse(loaded), nil
 }
 
 func (s *brandService) GetByID(ctx context.Context, id uint) (*dto.BrandResponse, error) {
-	brand, err := s.getBrandByID(ctx, id)
+	brand, err := s.queries.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
-	return brandToResponse(brand), nil
+	return appbrand.ToResponse(brand), nil
 }
 
 func (s *brandService) List(ctx context.Context, req *dto.ListBrandsRequest) ([]dto.BrandResponse, int64, error) {
-	var brands []models.Brand
-	var total int64
-
-	query := s.db.WithContext(ctx).Model(&models.Brand{})
-
-	if req.Search != "" {
-		search := "%" + req.Search + "%"
-		query = query.Where("name ILIKE ? OR slug ILIKE ?", search, search)
-	}
-	if req.Status != "" {
-		query = query.Where("status = ?", req.Status)
-	}
-
-	if err := query.Count(&total).Error; err != nil {
+	brands, total, err := s.queries.List(ctx, req)
+	if err != nil {
 		return nil, 0, err
 	}
-
-	offset := (req.Page - 1) * req.Limit
-	if err := query.Offset(offset).Limit(req.Limit).
-		Order("created_at DESC").
-		Preload("WorkflowState").
-		Find(&brands).Error; err != nil {
-		return nil, 0, err
-	}
-
-	var resp []dto.BrandResponse
-	for _, b := range brands {
-		resp = append(resp, *brandToResponse(&b))
+	resp := make([]dto.BrandResponse, 0, len(brands))
+	for i := range brands {
+		resp = append(resp, *appbrand.ToResponse(&brands[i]))
 	}
 	return resp, total, nil
 }
 
 func (s *brandService) Update(ctx context.Context, id uint, req *dto.UpdateBrandRequest) (*dto.BrandResponse, error) {
-	brand, err := s.getBrandByID(ctx, id)
+	brand, err := s.queries.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 
-	if req.Name != nil {
-		brand.Name = *req.Name
-	}
-	if req.Slug != nil {
-		brand.Slug = *req.Slug
-	}
-	if req.Description != nil {
-		brand.Description = req.Description
-	}
-	if req.LogoURL != nil {
-		brand.LogoURL = req.LogoURL
-	}
-	if req.Status != nil {
-		brand.Status = *req.Status
-	}
+	appbrand.ApplyUpdateDTO(brand, req)
 
-	if err := s.db.WithContext(ctx).Save(brand).Error; err != nil {
+	if err := s.commands.Update(ctx, brand); err != nil {
 		return nil, err
 	}
 
@@ -144,40 +103,22 @@ func (s *brandService) Update(ctx context.Context, id uint, req *dto.UpdateBrand
 		s.syncBrandWorkflow(ctx, id, *req.Status)
 	}
 
-	loaded, err := s.getBrandByID(ctx, id)
+	loaded, err := s.queries.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return brandToResponse(loaded), nil
+	return appbrand.ToResponse(loaded), nil
 }
 
 func (s *brandService) Delete(ctx context.Context, id uint) error {
-	result := s.db.WithContext(ctx).Delete(&models.Brand{}, id)
-	if result.Error != nil {
-		return result.Error
+	rows, err := s.commands.Delete(ctx, id)
+	if err != nil {
+		return err
 	}
-	if result.RowsAffected == 0 {
+	if rows == 0 {
 		return ErrNotFound
 	}
 	return nil
 }
 
-// ---------- helpers ----------
 var ErrNotFound = errors.New("resource not found")
-
-func brandToResponse(b *models.Brand) *dto.BrandResponse {
-	resp := &dto.BrandResponse{
-		ID:          b.ID,
-		Name:        b.Name,
-		Slug:        b.Slug,
-		Description: b.Description,
-		LogoURL:     b.LogoURL,
-		Status:      b.Status,
-		CreatedAt:   b.CreatedAt,
-		UpdatedAt:   b.UpdatedAt,
-	}
-	if b.WorkflowState != nil {
-		resp.WorkflowState = dto.ToStateView(b.WorkflowState)
-	}
-	return resp
-}

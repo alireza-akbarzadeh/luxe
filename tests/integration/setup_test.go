@@ -7,7 +7,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/database"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -37,10 +37,18 @@ func TestMain(m *testing.M) {
 
 	db, err := database.Connect(cfg)
 	if err != nil {
+		if os.Getenv("RUN_TESTCONTAINERS") == "1" {
+			fmt.Println("integration tests: local database unavailable; container-only tests may still run")
+			os.Exit(m.Run())
+		}
 		fmt.Println("skipping integration tests: database unavailable")
 		os.Exit(0)
 	}
 	if err := database.Ping(db); err != nil {
+		if os.Getenv("RUN_TESTCONTAINERS") == "1" {
+			fmt.Println("integration tests: local database ping failed; container-only tests may still run")
+			os.Exit(m.Run())
+		}
 		fmt.Println("skipping integration tests: database ping failed")
 		os.Exit(0)
 	}

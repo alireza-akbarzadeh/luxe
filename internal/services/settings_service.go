@@ -3,10 +3,10 @@ package services
 import (
 	"context"
 	"errors"
-	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"gorm.io/gorm"
 )
 
@@ -18,88 +18,38 @@ type SettingServiceInterface interface {
 }
 
 type settingService struct {
-	db *gorm.DB
+	commands *appsettings.Commands
+	queries  *appsettings.Queries
 }
 
 func NewSettingService(db *gorm.DB) SettingServiceInterface {
-	return &settingService{db: db}
+	repo := postgres.NewSettingRepository(db)
+	return &settingService{
+		commands: appsettings.NewCommands(repo),
+		queries:  appsettings.NewQueries(repo),
+	}
 }
 
 func (s *settingService) Get(ctx context.Context, key string) (*dto.SettingResponse, error) {
-	var setting models.Setting
-	if err := s.db.WithContext(ctx).Where("key = ?", key).First(&setting).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, ErrNotFound
-		}
-		return nil, err
+	resp, err := s.queries.Get(ctx, key)
+	if errors.Is(err, appsettings.ErrNotFound) {
+		return nil, ErrNotFound
 	}
-	return settingToResponse(&setting), nil
+	return resp, err
 }
 
 func (s *settingService) List(ctx context.Context) ([]dto.SettingResponse, error) {
-	var settings []models.Setting
-	if err := s.db.WithContext(ctx).Find(&settings).Error; err != nil {
-		return nil, err
-	}
-	resp := make([]dto.SettingResponse, 0, len(settings))
-	for _, setting := range settings {
-		resp = append(resp, *settingToResponse(&setting))
-	}
-	return resp, nil
+	return s.queries.List(ctx)
 }
 
-// Set creates or updates a setting (upsert).
 func (s *settingService) Set(ctx context.Context, key string, req *dto.SetSettingRequest) (*dto.SettingResponse, error) {
-	now := time.Now()
-	setting := models.Setting{
-		Key:         key,
-		Value:       req.Value,
-		Description: req.Description,
-		UpdatedAt:   now,
-	}
-
-	// Try update first, if not found then create.
-	result := s.db.WithContext(ctx).Model(&models.Setting{}).Where("key = ?", key).Updates(map[string]interface{}{
-		"value":       req.Value,
-		"description": req.Description,
-		"updated_at":  now,
-	})
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	if result.RowsAffected == 0 {
-		// Not found, create
-		setting.CreatedAt = now
-		if err := s.db.WithContext(ctx).Create(&setting).Error; err != nil {
-			return nil, err
-		}
-	}
-
-	// Fetch the fresh record to get all fields (id, timestamps)
-	var fresh models.Setting
-	if err := s.db.WithContext(ctx).Where("key = ?", key).First(&fresh).Error; err != nil {
-		return nil, err
-	}
-	return settingToResponse(&fresh), nil
+	return s.commands.Set(ctx, key, req)
 }
 
 func (s *settingService) Delete(ctx context.Context, key string) error {
-	result := s.db.WithContext(ctx).Where("key = ?", key).Delete(&models.Setting{})
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
+	err := s.commands.Delete(ctx, key)
+	if errors.Is(err, appsettings.ErrNotFound) {
 		return ErrNotFound
 	}
-	return nil
-}
-
-func settingToResponse(s *models.Setting) *dto.SettingResponse {
-	return &dto.SettingResponse{
-		Key:         s.Key,
-		Value:       s.Value,
-		Description: s.Description,
-		CreatedAt:   s.CreatedAt,
-		UpdatedAt:   s.UpdatedAt,
-	}
+	return err
 }

@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	domaincatalog "github.com/alireza-akbarzadeh/luxe/internal/domain/catalog"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
 
@@ -40,13 +43,19 @@ type ProductServiceInterface interface {
 }
 
 type productService struct {
-	db        *gorm.DB
 	engine    *workflow.Engine
 	inventory InventoryServiceInterface
+	catalog   *appcatalog.Commands
+	queries   *appcatalog.Queries
 }
 
 func NewProductService(db *gorm.DB, engine *workflow.Engine) ProductServiceInterface {
-	return &productService{db: db, engine: engine}
+	repo := postgres.NewProductRepository(db)
+	return &productService{
+		engine:  engine,
+		catalog: appcatalog.NewCommands(domaincatalog.NewService(), repo, repo),
+		queries: appcatalog.NewQueries(repo, repo),
+	}
 }
 
 // SetInventory wires the inventory ledger after DI construction.
@@ -54,18 +63,18 @@ func (s *productService) SetInventory(inventory InventoryServiceInterface) {
 	s.inventory = inventory
 }
 
-// UniqSlug ensureUniqueSlug checks and modifies slug to be unique.
+// UniqSlug checks and modifies slug to be unique.
 func (s *productService) UniqSlug(baseSlug string, excludeID uint) string {
 	slug := baseSlug
 	counter := 1
+	ctx := context.Background()
 	for {
-		var count int64
-		query := s.db.Model(&models.Product{}).Where("slug = ?", slug)
-		if excludeID > 0 {
-			query = query.Where("id != ?", excludeID)
+		taken, err := s.catalog.SlugTaken(ctx, slug, excludeID)
+		if err != nil {
+			utils.Log.WithError(err).Warn("catalog slug check failed")
+			break
 		}
-		query.Count(&count)
-		if count == 0 {
+		if !taken {
 			break
 		}
 		slug = fmt.Sprintf("%s-%d", baseSlug, counter)
@@ -74,467 +83,151 @@ func (s *productService) UniqSlug(baseSlug string, excludeID uint) string {
 	return slug
 }
 
-// buildAttributes converts DTO attribute inputs into model attributes.
-func buildAttributes(inputs []dto.ProductAttributeInput) []models.ProductAttribute {
-	attrs := make([]models.ProductAttribute, 0, len(inputs))
-	for _, a := range inputs {
-		attrs = append(attrs, models.ProductAttribute{
-			Name:   a.Name,
-			Values: a.Values,
-		})
-	}
-	return attrs
-}
-
 func (s *productService) Create(req dto.CreateProductRequest) (*models.Product, error) {
-	baseSlug := generateSlug(req.Name)
-	slug := s.UniqSlug(baseSlug, 0)
+	ctx := context.Background()
+	slug := s.UniqSlug(generateSlug(req.Name), 0)
 
-	product := models.Product{
-		Name:              req.Name,
-		Slug:              slug,
-		Description:       req.Description,
-		Price:             req.Price,
-		CompareAtPrice:    req.CompareAtPrice,
-		Cost:              req.Cost,
-		SKU:               req.SKU,
-		Barcode:           req.Barcode,
-		Stock:             req.Stock,
-		LowStockThreshold: req.LowStockThreshold,
-		Weight:            req.Weight,
-		IsDigital:         req.IsDigital,
-		CategoryID:        req.CategoryID,
-		BrandID:           req.BrandID,
-		Images:            req.Images,
-		Status:            req.Status,
-		MetaTitle:         req.MetaTitle,
-		MetaDescription:   req.MetaDescription,
-		IsNew:             false,
-		Rating:            0.0,
-		ReviewsCount:      0,
-		Colors:            req.Colors,
-		Sizes:             req.Sizes,
-		Attributes:        buildAttributes(req.Attributes),
+	product, err := s.catalog.PrepareCreate(req, slug)
+	if err != nil {
+		return nil, utils.ErrValidationFailed(err.Error())
 	}
+	product.SearchDocument = s.queries.BuildSearchDocument(ctx, product)
 
-	if req.IsNew != nil {
-		product.IsNew = *req.IsNew
-	}
-	if req.StoreID != nil {
-		product.StoreID = *req.StoreID
-	}
-	if req.TrackInventory != nil {
-		product.TrackInventory = *req.TrackInventory
-	}
-	if req.WarehouseLocation != "" {
-		product.WarehouseLocation = req.WarehouseLocation
-	}
-	if req.AllowBackorder != nil {
-		product.AllowBackorder = *req.AllowBackorder
-	}
-	if req.Visibility != "" {
-		product.Visibility = req.Visibility
-	}
-	if len(req.Tags) > 0 {
-		product.Tags = req.Tags
-	}
-	if len(req.Channels) > 0 {
-		product.Channels = req.Channels
-	}
-	if req.PublishedAt != nil {
-		product.PublishedAt = req.PublishedAt
-	}
-	if product.Status == "" {
-		product.Status = "draft"
-	}
-	if product.LowStockThreshold == 0 {
-		product.LowStockThreshold = 5
-	}
-
-	product.NameI18n = dto.EncodeCatalogI18n(product.NameI18n, req.NameI18n, product.Name)
-	product.DescriptionI18n = dto.EncodeCatalogI18n(product.DescriptionI18n, req.DescriptionI18n, product.Description)
-	product.SearchAliases = dto.EncodeSearchAliases(req.SearchAliases)
-	product.SearchDocument = s.buildProductSearchDocument(&product)
-
-	if err := s.db.Create(&product).Error; err != nil {
+	if err := s.catalog.PersistCreate(ctx, product); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+	s.setProductState(ctx, product.ID, product.Status, constants.RoleAdmin, nil)
 	if s.inventory != nil {
-		_ = s.inventory.RecordInitialStock(context.Background(), product.ID, product.Stock)
+		_ = s.inventory.RecordInitialStock(ctx, product.ID, product.Stock)
 	}
-	return &product, nil
+	return product, nil
 }
 
-// GetByID Retrieve product by id
 func (s *productService) GetByID(id uint) (*models.Product, error) {
-	var product models.Product
-	if err := s.db.
-		Preload("Category").
-		Preload("Store").
-		Preload("Brand").
-		Preload("Attributes").
-		Preload("WorkflowState").
-		First(&product, id).Error; err != nil {
+	ctx := context.Background()
+	product, err := s.queries.GetDetailedByID(ctx, id)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
 		return nil, utils.ErrInternal(err)
 	}
-	return &product, nil
+	return product, nil
 }
 
-// GetBySlug Retrieve product by slug
 func (s *productService) GetBySlug(slug string) (*models.Product, error) {
-	var product models.Product
-	if err := s.db.
-		Preload("Category").
-		Preload("Store").
-		Preload("Brand").
-		Preload("Attributes").
-		Preload("WorkflowState").
-		Where("slug = ?", slug).
-		First(&product).Error; err != nil {
+	ctx := context.Background()
+	product, err := s.queries.GetDetailedBySlug(ctx, slug)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.ErrNotFound("product not found")
 		}
 		return nil, utils.ErrInternal(err)
 	}
-	return &product, nil
+	return product, nil
 }
 
-// Update product
 func (s *productService) Update(id uint, req dto.UpdateProductRequest) (*models.Product, error) {
+	ctx := context.Background()
 	product, err := s.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
+
+	newSlug := ""
 	if req.Name != nil {
-		product.Name = *req.Name
-		baseSlug := generateSlug(*req.Name)
-		product.Slug = s.UniqSlug(baseSlug, id)
-	}
-	if req.StoreID != nil {
-		product.StoreID = *req.StoreID
-	}
-	if req.Description != nil {
-		product.Description = *req.Description
-	}
-	if req.Price != nil {
-		product.Price = *req.Price
-	}
-	if req.CompareAtPrice != nil {
-		product.CompareAtPrice = req.CompareAtPrice
-	}
-	if req.Cost != nil {
-		product.Cost = req.Cost
+		newSlug = s.UniqSlug(generateSlug(*req.Name), id)
 	}
 	if req.SKU != nil {
-		var existing models.Product
-		if err := s.db.Where("sku = ? AND id != ?", *req.SKU, id).First(&existing).Error; err == nil {
+		taken, err := s.queries.SKUTaken(ctx, *req.SKU, id)
+		if err != nil {
+			return nil, utils.ErrInternal(err)
+		}
+		if taken {
 			return nil, utils.ErrConflict("SKU already exists")
 		}
-		product.SKU = *req.SKU
-	}
-	if req.Barcode != nil {
-		product.Barcode = *req.Barcode
-	}
-	if req.LowStockThreshold != nil {
-		product.LowStockThreshold = *req.LowStockThreshold
-	}
-	if req.Weight != nil {
-		product.Weight = req.Weight
-	}
-	if req.IsDigital != nil {
-		product.IsDigital = *req.IsDigital
-	}
-	if req.CategoryID != nil {
-		product.CategoryID = req.CategoryID
-	}
-	if req.BrandID != nil {
-		product.BrandID = req.BrandID
-	}
-	if req.Images != nil {
-		product.Images = *req.Images
-	}
-	if req.Status != nil {
-		product.Status = *req.Status
-	}
-	if req.MetaTitle != nil {
-		product.MetaTitle = *req.MetaTitle
-	}
-	if req.MetaDescription != nil {
-		product.MetaDescription = *req.MetaDescription
-	}
-	if req.IsNew != nil {
-		product.IsNew = *req.IsNew
-	}
-	if req.Colors != nil {
-		product.Colors = *req.Colors
-	}
-	if req.Sizes != nil {
-		product.Sizes = *req.Sizes
-	}
-	if req.TrackInventory != nil {
-		product.TrackInventory = *req.TrackInventory
-	}
-	if req.WarehouseLocation != nil {
-		product.WarehouseLocation = *req.WarehouseLocation
-	}
-	if req.AllowBackorder != nil {
-		product.AllowBackorder = *req.AllowBackorder
-	}
-	if req.Visibility != nil {
-		product.Visibility = *req.Visibility
-	}
-	if req.Tags != nil {
-		product.Tags = *req.Tags
-	}
-	if req.Channels != nil {
-		product.Channels = *req.Channels
-	}
-	if req.PublishedAt != nil {
-		product.PublishedAt = req.PublishedAt
 	}
 
-	if req.Name != nil || len(req.NameI18n) > 0 {
-		product.NameI18n = dto.EncodeCatalogI18n(product.NameI18n, req.NameI18n, product.Name)
-	}
-	if req.Description != nil || len(req.DescriptionI18n) > 0 {
-		product.DescriptionI18n = dto.EncodeCatalogI18n(product.DescriptionI18n, req.DescriptionI18n, product.Description)
-	}
-	if req.SearchAliases != nil {
-		product.SearchAliases = dto.MergeSearchAliases(product.SearchAliases, *req.SearchAliases)
-	}
-	product.SearchDocument = s.buildProductSearchDocument(product)
+	appcatalog.ApplyUpdateDTO(product, req, newSlug)
+	product.SearchDocument = s.queries.BuildSearchDocument(ctx, product)
 
 	stockUpdate := req.Stock
 
-	if err := s.db.Save(product).Error; err != nil {
+	if err := s.catalog.Save(ctx, product); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	if req.Status != nil {
-		s.setProductState(context.Background(), product.ID, product.Status, constants.RoleAdmin, nil)
+		s.setProductState(ctx, product.ID, product.Status, constants.RoleAdmin, nil)
 	}
 
 	if stockUpdate != nil {
 		if s.inventory != nil && product.TrackInventory {
-			if err := s.inventory.SetAbsoluteStock(context.Background(), id, *stockUpdate, nil, "product update", constants.InventoryAdjAdminSet); err != nil {
+			if err := s.inventory.SetAbsoluteStock(ctx, id, *stockUpdate, nil, "product update", constants.InventoryAdjAdminSet); err != nil {
 				return nil, err
 			}
-		} else {
-			if err := s.db.Model(&product).Update("stock", *stockUpdate).Error; err != nil {
-				return nil, utils.ErrInternal(err)
-			}
+		} else if err := s.catalog.UpdateStockColumn(ctx, id, *stockUpdate); err != nil {
+			return nil, utils.ErrInternal(err)
 		}
 	}
 
-	// Replace attributes wholesale if provided
 	if req.Attributes != nil {
-		if err := s.db.Where("product_id = ?", id).Delete(&models.ProductAttribute{}).Error; err != nil {
+		if err := s.catalog.ReplaceAttributes(ctx, id, *req.Attributes); err != nil {
 			return nil, utils.ErrInternal(err)
 		}
-		newAttrs := buildAttributes(*req.Attributes)
-		for i := range newAttrs {
-			newAttrs[i].ProductID = id
-		}
-		if len(newAttrs) > 0 {
-			if err := s.db.Create(&newAttrs).Error; err != nil {
-				return nil, utils.ErrInternal(err)
-			}
-		}
-		product.Attributes = newAttrs
 	}
 
 	return s.GetByID(id)
 }
 
-// Delete product
 func (s *productService) Delete(id uint) error {
-	result := s.db.Delete(&models.Product{}, id)
-	if result.Error != nil {
-		return utils.ErrInternal(result.Error)
+	rows, err := s.catalog.Delete(context.Background(), id)
+	if err != nil {
+		return utils.ErrInternal(err)
 	}
-	if result.RowsAffected == 0 {
+	if rows == 0 {
 		return utils.ErrNotFound("product not found")
 	}
 	return nil
 }
 
-// List retrieve list of product
 func (s *productService) List(limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error) {
-	const maxLimit = 100
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > maxLimit {
-		limit = maxLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	query := s.db.Model(&models.Product{}).Order("id DESC")
-
-	// String filters
-	if filters.Status != "" {
-		query = query.Where("status = ?", filters.Status)
-	}
-	if filters.Name != "" {
-		// Case-insensitive partial match for product name
-		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Name+"%")
-	}
-	if filters.StoreID != nil && *filters.StoreID != 0 {
-		query = query.Where("store_id = ?", *filters.StoreID)
-	}
-	if filters.SKU != "" {
-		// Partial match for SKU (usually exact but can be partial)
-		query = query.Where("sku LIKE ?", "%"+filters.SKU+"%")
-	}
-
-	// Numeric filters
-	if filters.CategoryID != 0 {
-		query = query.Where("category_id = ?", filters.CategoryID)
-	}
-	if filters.BrandID != nil && *filters.BrandID != 0 {
-		query = query.Where("brand_id = ?", *filters.BrandID)
-	}
-	if filters.MinPrice != 0 {
-		query = query.Where("price >= ?", filters.MinPrice)
-	}
-	if filters.MaxPrice != 0 {
-		query = query.Where("price <= ?", filters.MaxPrice)
-	}
-	if filters.MinRating != 0 {
-		query = query.Where("rating >= ?", filters.MinRating)
-	}
-	if filters.MaxRating != 0 {
-		query = query.Where("rating <= ?", filters.MaxRating)
-	}
-	if filters.MinReviews != 0 {
-		query = query.Where("reviews_count >= ?", filters.MinReviews)
-	}
-	if filters.MaxReviews != 0 {
-		query = query.Where("reviews_count <= ?", filters.MaxReviews)
-	}
-
-	// Boolean filters (handle nil pointers)
-	if filters.IsDigital != nil {
-		query = query.Where("is_digital = ?", *filters.IsDigital)
-	}
-	if filters.IsNew != nil {
-		query = query.Where("is_new = ?", *filters.IsNew)
-	}
-
-	var total int64
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("count products: %w", err)
-	}
-
-	var products []*models.Product
-	if err := query.Limit(limit).Offset(offset).
-		Preload("Category").
-		Preload("Brand").
-		Preload("Attributes").
-		Preload("WorkflowState").
-		Find(&products).Error; err != nil {
-		return nil, 0, fmt.Errorf("find products: %w", err)
-	}
-
-	return products, total, nil
+	return s.queries.ListDetailed(context.Background(), limit, offset, filters)
 }
 
-// BulkCreate create multiple product
 func (s *productService) BulkCreate(products []dto.CreateProductRequest) ([]*models.Product, error) {
 	if len(products) == 0 {
 		return nil, utils.ErrBadRequest("no products provided")
 	}
-	var createdProducts []*models.Product
 
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		for _, p := range products {
-			baseSlug := generateSlug(p.Name)
-			slug := s.UniqSlug(baseSlug, 0)
+	toCreate := make([]*models.Product, 0, len(products))
+	for _, p := range products {
+		slug := s.UniqSlug(generateSlug(p.Name), 0)
+		toCreate = append(toCreate, appcatalog.BuildBulkCreateModel(p, slug))
+	}
 
-			// Build model from DTO
-			req := &models.Product{
-				Name:              p.Name,
-				Slug:              slug,
-				Description:       p.Description,
-				Price:             p.Price,
-				CompareAtPrice:    p.CompareAtPrice,
-				Cost:              p.Cost,
-				SKU:               p.SKU,
-				Barcode:           p.Barcode,
-				Stock:             p.Stock,
-				LowStockThreshold: p.LowStockThreshold,
-				Weight:            p.Weight,
-				IsDigital:         p.IsDigital,
-				CategoryID:        p.CategoryID,
-				BrandID:           p.BrandID,
-				Images:            p.Images,
-				Status:            p.Status,
-				MetaTitle:         p.MetaTitle,
-				MetaDescription:   p.MetaDescription,
-				Colors:            p.Colors,
-				Sizes:             p.Sizes,
-				Attributes:        buildAttributes(p.Attributes),
-				IsNew:             false,
-				Rating:            0,
-				ReviewsCount:      0,
-			}
-
-			// Apply optional fields
-			if p.StoreID != nil {
-				req.StoreID = *p.StoreID
-			}
-			if p.IsNew != nil {
-				req.IsNew = *p.IsNew
-			}
-
-			// Set defaults on the MODEL, not on the DTO
-			if req.Status == "" {
-				req.Status = "draft"
-			}
-			if req.LowStockThreshold == 0 {
-				req.LowStockThreshold = 5
-			}
-
-			// Create the product
-			if err := tx.Create(req).Error; err != nil {
-				return err
-			}
-			createdProducts = append(createdProducts, req)
-		}
-		return nil
-	})
-	if err != nil {
+	ctx := context.Background()
+	if err := s.catalog.BulkCreate(ctx, toCreate); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return createdProducts, nil
+	return toCreate, nil
 }
 
-// BulkDelete remove multiple product with the give ids
 func (s *productService) BulkDelete(productIDs []uint) error {
 	if len(productIDs) == 0 {
 		return utils.ErrBadRequest("no product IDs provided")
 	}
-	rest := s.db.Where("id IN ?", productIDs).Delete(&models.Product{})
-	if rest.Error != nil {
-		return utils.ErrInternal(rest.Error)
+	rows, err := s.catalog.BulkDelete(context.Background(), productIDs)
+	if err != nil {
+		return utils.ErrInternal(err)
 	}
-	if rest.RowsAffected == 0 {
+	if rows == 0 {
 		return utils.ErrNotFound("products not found")
 	}
 	return nil
 }
 
-// CheckLowStockAndAlert scans for products with stock <= low_stock_threshold
-// and logs a warning for each. Returns an error if the database query fails.
 func (s *productService) CheckLowStockAndAlert() error {
-	var products []models.Product
-	err := s.db.Where("stock <= low_stock_threshold AND status = ?", constants.ProductStatusActive).
-		Find(&products).Error
+	products, err := s.queries.FindLowStockActive(context.Background())
 	if err != nil {
 		return utils.ErrInternal(err)
 	}
@@ -544,65 +237,20 @@ func (s *productService) CheckLowStockAndAlert() error {
 		return nil
 	}
 
-	// Log each low‑stock product (you can replace with email or notification)
 	for _, p := range products {
 		utils.Log.Warnf("LOW STOCK ALERT: Product ID=%d, Name=%s, Stock=%d, Threshold=%d",
 			p.ID, p.Name, p.Stock, p.LowStockThreshold)
 	}
 
-	// Optional: also send a summary email to the admin
-	// s.sendLowStockEmail(products)
-
 	return nil
 }
 
 func (s *productService) GetRelated(productID uint, limit int) ([]*models.Product, error) {
-	var product models.Product
-
-	err := s.db.First(&product, productID).Error
-	if err != nil {
-		return nil, err
-	}
-
-	var related []*models.Product
-
-	err = s.db.
-		Preload("Category").
-		Preload("Brand").
-		Where("category_id = ? AND id != ?", product.CategoryID, productID).
-		Order("rating DESC, reviews_count DESC").
-		Limit(limit).
-		Find(&related).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return related, nil
+	return s.queries.GetRelated(context.Background(), productID, limit)
 }
 
 func (s *productService) GetSuggestions(productIDs []uint, limit int) ([]*models.Product, error) {
-	if limit == 0 {
-		limit = 4
-	}
-
-	// Get categories of cart items
-	var categoryIDs []uint
-	s.db.Model(&models.Product{}).
-		Where("id IN ?", productIDs).
-		Distinct("category_id").
-		Pluck("category_id", &categoryIDs)
-
-	// Fetch products from those categories, excluding cart items
-	var suggestions []*models.Product
-	err := s.db.
-		Preload("Category").
-		Preload("Brand").
-		Where("category_id IN ? AND id NOT IN ?", categoryIDs, productIDs).
-		Order("rating DESC, reviews_count DESC, created_at DESC").
-		Limit(limit).
-		Find(&suggestions).Error
-
-	return suggestions, err
+	return s.queries.GetSuggestions(context.Background(), productIDs, limit)
 }
 
 func (s *productService) GetByStoreID(storeID uint, limit, offset int, filters dto.ProductListFilters) ([]*models.Product, int64, error) {
@@ -611,17 +259,16 @@ func (s *productService) GetByStoreID(storeID uint, limit, offset int, filters d
 }
 
 func (s *productService) ensureProductExists(ctx context.Context, productID uint) error {
-	var count int64
-	if err := s.db.WithContext(ctx).Model(&models.Product{}).Where("id = ?", productID).Count(&count).Error; err != nil {
+	exists, err := s.queries.ExistsByID(ctx, productID)
+	if err != nil {
 		return utils.ErrInternal(err)
 	}
-	if count == 0 {
+	if !exists {
 		return utils.ErrNotFound("product not found")
 	}
 	return nil
 }
 
-// AvailableTransitions lists workflow actions allowed for a product from its current state.
 func (s *productService) AvailableTransitions(ctx context.Context, productID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
 	if s.engine == nil {
 		return nil, nil, utils.ErrInternal(errors.New("workflow engine not configured"))
@@ -632,7 +279,6 @@ func (s *productService) AvailableTransitions(ctx context.Context, productID uin
 	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityProduct, productID)
 }
 
-// PerformTransition applies a workflow event to a product (admin or allowed roles per seed rules).
 func (s *productService) PerformTransition(
 	ctx context.Context,
 	productID uint,
@@ -653,15 +299,4 @@ func (s *productService) PerformTransition(
 		ActorRole:   actorRole,
 		Note:        note,
 	})
-}
-
-func (s *productService) buildProductSearchDocument(product *models.Product) string {
-	var category *models.Category
-	if product.CategoryID != nil {
-		var cat models.Category
-		if err := s.db.Select("id", "name", "name_i18n", "slug").First(&cat, *product.CategoryID).Error; err == nil {
-			category = &cat
-		}
-	}
-	return dto.BuildProductSearchDocument(product, category)
 }

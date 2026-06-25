@@ -22,17 +22,20 @@ Index: `.cursor/skills/README.md`. Frontend regen: **luxe-front** `/api-gen`.
 
 ## Layering (strict)
 ```
-Controller → Service (*gorm.DB + business logic) → PostgreSQL
+Handler → Service facade → Application → Domain → infrastructure/postgres (GORM)
 ```
-- **Controllers**: bind DTO, validate, `c.Request.Context()`, `utils.Response` only. No DB, no business rules.
-- **Services**: validation, transactions, orchestration, domain errors (`utils.Err*`).
-- **Do not add** `internal/repositories/` — data access lives in services via `*gorm.DB`.
+- **Handlers** (`interfaces/http/handlers/`): bind DTO, validate, `c.Request.Context()`, `utils.Response` only.
+- **Service facades** (`internal/services/`): thin delegation to `internal/application/<ctx>/`.
+- **Application**: use-case orchestration; depends on domain ports and postgres repos.
+- **GORM** lives in `internal/infrastructure/postgres/` — not in handlers.
+
+**Architecture is settled.** Extend layers in place; use `/new-api-entity` or `/add-api-endpoint`. Do not recreate `controllers/`, `routes/`, or monolithic GORM services.
 
 ## New feature order
 
 Use `/new-api-entity` for the full checklist. Summary:
 
-migration (schema only) → model → dto → service → register in **`services.go`** → controller → **`container.go`** → routes → swagger comments → `make swagger` → tests
+migration → model → dto → postgres repo → application → facade → register in **`bootstrap/wire.go`** → handler → **`container.go`** → routes → swagger → tests
 
 Single new route on existing domain → `/add-api-endpoint` instead.
 
@@ -44,7 +47,7 @@ Single new route on existing domain → `/add-api-endpoint` instead.
 
 ## Swagger
 Never edit `docs/docs.go`, `docs/swagger.json`, `docs/swagger.yaml` (generated, gitignored).
-Edit controller `@Summary`/`@Router` comments → `make swagger` → **restart API**.
+Edit handler `@Summary`/`@Router` comments → `make swagger` → **restart API**.
 
 **Frontend sync:** any Swagger/DTO/route change → tell **luxe-front** agent to run `pnpm api:gen` after restart (not optional).
 
@@ -52,8 +55,8 @@ Edit controller `@Summary`/`@Router` comments → `make swagger` → **restart A
 - Smallest correct diff; match surrounding style
 - `context.Context` first on new service methods; `db.WithContext(ctx)`
 - Constants for statuses — no magic strings
-- DI via constructors; wire in `NewServices` / `NewContainer`
-- Jobs via `tasks.JobQueue`, not raw goroutines for orders/shipments
+- DI via constructors; wire in `bootstrap.NewServices` / `handlers.NewContainer`
+- Jobs via `infrastructure/asynq.JobQueue`, not raw goroutines for orders/shipments
 
 ## Testing
 - Unit: `internal/services/*_test.go`, sqlmock when mocking DB
@@ -63,4 +66,4 @@ Edit controller `@Summary`/`@Router` comments → `make swagger` → **restart A
 ## Before done
 - Build passes; relevant tests pass
 - No edits to generated `docs/`
-- New code registered in `services.go` and `container.go` if applicable
+- New code registered in `bootstrap/wire.go` and `handlers/container.go` if applicable

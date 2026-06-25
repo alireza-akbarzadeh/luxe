@@ -1,0 +1,158 @@
+package postgres
+
+import (
+	"context"
+	"time"
+
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"gorm.io/gorm"
+)
+
+// PdpRepository persists PDP-related rows with GORM.
+type PdpRepository struct {
+	db *gorm.DB
+}
+
+// NewPdpRepository creates a GORM-backed PDP repository.
+func NewPdpRepository(db *gorm.DB) *PdpRepository {
+	return &PdpRepository{db: db}
+}
+
+// CreatePriceSnapshot inserts a price history row.
+func (r *PdpRepository) CreatePriceSnapshot(ctx context.Context, row *models.ProductPriceHistory) error {
+	return r.db.WithContext(ctx).Create(row).Error
+}
+
+// ListPriceHistory returns price history since a timestamp.
+func (r *PdpRepository) ListPriceHistory(ctx context.Context, productID uint, since time.Time) ([]models.ProductPriceHistory, error) {
+	var rows []models.ProductPriceHistory
+	err := r.db.WithContext(ctx).
+		Where("product_id = ? AND recorded_at >= ?", productID, since).
+		Order("recorded_at ASC").
+		Find(&rows).Error
+	return rows, err
+}
+
+// FindAlternativesByBarcode loads active products with the same barcode.
+func (r *PdpRepository) FindAlternativesByBarcode(ctx context.Context, barcode string, excludeID, storeID uint, limit int) ([]*models.Product, error) {
+	var alternatives []*models.Product
+	q := r.db.WithContext(ctx).Preload("Store").Preload("Category").Preload("Brand").Preload("Attributes").
+		Where("barcode = ? AND id != ? AND status = ?", barcode, excludeID, constants.ProductStatusActive)
+	if storeID != 0 {
+		q = q.Where("store_id != ?", storeID)
+	}
+	err := q.Order("price ASC").Limit(limit).Find(&alternatives).Error
+	return alternatives, err
+}
+
+// FindStockNotification loads an existing subscription for user/product.
+func (r *PdpRepository) FindStockNotification(ctx context.Context, userID, productID uint) (*models.StockNotification, error) {
+	var existing models.StockNotification
+	err := r.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID).First(&existing).Error
+	if err != nil {
+		return nil, err
+	}
+	return &existing, nil
+}
+
+// SaveStockNotification persists a stock notification row.
+func (r *PdpRepository) SaveStockNotification(ctx context.Context, sub *models.StockNotification) error {
+	return r.db.WithContext(ctx).Save(sub).Error
+}
+
+// CreateStockNotification inserts a stock notification row.
+func (r *PdpRepository) CreateStockNotification(ctx context.Context, sub *models.StockNotification) error {
+	return r.db.WithContext(ctx).Create(sub).Error
+}
+
+// CancelStockNotification marks an active subscription cancelled.
+func (r *PdpRepository) CancelStockNotification(ctx context.Context, userID, productID uint) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&models.StockNotification{}).
+		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, constants.StockNotificationStatusActive).
+		Update("status", "cancelled")
+	return result.RowsAffected, result.Error
+}
+
+// CountActiveStockSubscription counts active subscriptions for user/product.
+func (r *PdpRepository) CountActiveStockSubscription(ctx context.Context, userID, productID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.StockNotification{}).
+		Where("user_id = ? AND product_id = ? AND status = ?", userID, productID, constants.StockNotificationStatusActive).
+		Count(&count).Error
+	return count, err
+}
+
+// ListActiveStockSubscriptions returns active subscriptions for a product.
+func (r *PdpRepository) ListActiveStockSubscriptions(ctx context.Context, productID uint) ([]models.StockNotification, error) {
+	var subs []models.StockNotification
+	err := r.db.WithContext(ctx).
+		Where("product_id = ? AND status = ?", productID, constants.StockNotificationStatusActive).
+		Find(&subs).Error
+	return subs, err
+}
+
+// CountQuestions counts questions for a product.
+func (r *PdpRepository) CountQuestions(ctx context.Context, productID uint) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.ProductQuestion{}).Where("product_id = ?", productID).Count(&total).Error
+	return total, err
+}
+
+// ListQuestions returns paginated questions with answers.
+func (r *PdpRepository) ListQuestions(ctx context.Context, productID uint, limit, offset int) ([]models.ProductQuestion, error) {
+	var questions []models.ProductQuestion
+	err := r.db.WithContext(ctx).Preload("User").Preload("Answers", func(db *gorm.DB) *gorm.DB {
+		return db.Preload("User").Order("created_at ASC")
+	}).Where("product_id = ?", productID).
+		Order("created_at DESC").
+		Limit(limit).Offset(offset).
+		Find(&questions).Error
+	return questions, err
+}
+
+// CreateQuestion inserts a product question.
+func (r *PdpRepository) CreateQuestion(ctx context.Context, question *models.ProductQuestion) error {
+	return r.db.WithContext(ctx).Create(question).Error
+}
+
+// GetQuestionByID loads a question with user preload.
+func (r *PdpRepository) GetQuestionByID(ctx context.Context, id uint) (*models.ProductQuestion, error) {
+	var question models.ProductQuestion
+	if err := r.db.WithContext(ctx).Preload("User").First(&question, id).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
+
+// GetProductWithStore loads a product with store for auto-reply.
+func (r *PdpRepository) GetProductWithStore(ctx context.Context, productID uint) (*models.Product, error) {
+	var product models.Product
+	if err := r.db.WithContext(ctx).Preload("Store").First(&product, productID).Error; err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+// CreateAnswer inserts a product answer.
+func (r *PdpRepository) CreateAnswer(ctx context.Context, answer *models.ProductAnswer) error {
+	return r.db.WithContext(ctx).Create(answer).Error
+}
+
+// GetAnswerByID loads an answer with user preload.
+func (r *PdpRepository) GetAnswerByID(ctx context.Context, id uint) (*models.ProductAnswer, error) {
+	var answer models.ProductAnswer
+	if err := r.db.WithContext(ctx).Preload("User").First(&answer, id).Error; err != nil {
+		return nil, err
+	}
+	return &answer, nil
+}
+
+// GetQuestionWithProductStore loads a question with product and store.
+func (r *PdpRepository) GetQuestionWithProductStore(ctx context.Context, questionID uint) (*models.ProductQuestion, error) {
+	var question models.ProductQuestion
+	if err := r.db.WithContext(ctx).Preload("Product.Store").First(&question, questionID).Error; err != nil {
+		return nil, err
+	}
+	return &question, nil
+}
