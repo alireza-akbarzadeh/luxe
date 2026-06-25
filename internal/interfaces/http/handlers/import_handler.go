@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	importdata "github.com/alireza-akbarzadeh/luxe/internal/application/import"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type ImportHandler struct {
-	importService services.ImportServiceInterface
+	importService *importdata.Service
 }
 
-func NewImportHandler(svc services.ImportServiceInterface) *ImportHandler {
+func NewImportHandler(svc *importdata.Service) *ImportHandler {
 	return &ImportHandler{importService: svc}
 }
 

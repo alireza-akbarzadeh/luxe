@@ -47,16 +47,16 @@ func newTestServer(t *testing.T) *httptest.Server {
 	jobQueue, err := asynq.NewJobQueue(testCfg, asynq.Handlers{})
 	require.NoError(t, err)
 
-	svc := bootstrap.NewServices(testDB, testCfg, jobQueue)
-	asynq.BindHandlers(jobQueue, svc.JobHandlers())
+	runtime := bootstrap.NewRuntime(testDB, testCfg, jobQueue)
+	asynq.BindHandlers(jobQueue, runtime.JobHandlers())
 	require.NoError(t, jobQueue.Start())
 	t.Cleanup(func() { jobQueue.Shutdown() })
 
-	ctrl := handlers.NewContainer(testDB, svc, testCfg)
+	ctrl := handlers.NewContainer(testDB, runtime.Apps, runtime, testCfg)
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())
-	router := routes.NewRouter(engine, ctrl, testCfg, svc.Audit, svc.Role)
+	router := routes.NewRouter(engine, ctrl, testCfg, runtime.Apps)
 	router.Setup()
 
 	return httptest.NewServer(engine)

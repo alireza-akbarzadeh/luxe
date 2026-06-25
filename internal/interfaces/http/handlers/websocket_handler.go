@@ -4,23 +4,28 @@ import (
 	"net/http"
 	"strconv"
 
+	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type WebSocketHandler struct {
-	services *services.Services
-	handler  *websocket.Handler
+	db           *gorm.DB
+	hub          *websocket.Hub
+	notification *appnotification.Service
+	handler      *websocket.Handler
 }
 
-func NewWebSocketHandler(services *services.Services) *WebSocketHandler {
+func NewWebSocketHandler(db *gorm.DB, hub *websocket.Hub, notification *appnotification.Service) *WebSocketHandler {
 	return &WebSocketHandler{
-		services: services,
-		handler:  websocket.NewHandler(services.WebSocketHub),
+		db:           db,
+		hub:          hub,
+		notification: notification,
+		handler:      websocket.NewHandler(hub),
 	}
 }
 
@@ -50,7 +55,7 @@ func (wc *WebSocketHandler) GetNotifications(c *gin.Context) {
 		offset = 0
 	}
 
-	notifications, total, err := wc.services.Notification.GetUserNotifications(userID, limit, offset)
+	notifications, total, err := wc.notification.GetUserNotifications(userID, limit, offset)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -79,7 +84,7 @@ func (wc *WebSocketHandler) MarkNotificationAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := wc.services.Notification.MarkAsRead(uint(notificationID), userID); err != nil {
+	if err := wc.notification.MarkAsRead(uint(notificationID), userID); err != nil {
 		if err.Error() == "notification not found" {
 			utils.NotFoundResponse(c, "notification not found")
 			return
@@ -99,7 +104,7 @@ func (wc *WebSocketHandler) MarkAllNotificationsAsRead(c *gin.Context) {
 		return
 	}
 
-	if err := wc.services.Notification.MarkAllAsRead(userID); err != nil {
+	if err := wc.notification.MarkAllAsRead(userID); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -135,7 +140,7 @@ func (wc *WebSocketHandler) SendTestNotification(c *gin.Context) {
 		req.Data = map[string]interface{}{"source": "test_endpoint"}
 	}
 
-	if err := wc.services.Notification.CreateNotification(
+	if err := wc.notification.CreateNotification(
 		req.UserID,
 		req.Type,
 		req.Title,
@@ -171,7 +176,7 @@ func (wc *WebSocketHandler) CreateChatRoom(c *gin.Context) {
 		return
 	}
 
-	chatRoom, err := wc.services.Notification.CreateChatRoom(userID, req.Title)
+	chatRoom, err := wc.notification.CreateChatRoom(userID, req.Title)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -201,7 +206,7 @@ func (wc *WebSocketHandler) SendChatMessage(c *gin.Context) {
 		return
 	}
 
-	if err := wc.services.Notification.SendChatMessage(userID, roomID, req.Content); err != nil {
+	if err := wc.notification.SendChatMessage(userID, roomID, req.Content); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -219,9 +224,8 @@ func (wc *WebSocketHandler) GetChatMessages(c *gin.Context) {
 
 	roomID := c.Param("room_id")
 
-	// Verify user has access to this room
 	var chatRoom models.ChatRoom
-	if err := wc.services.DB.Where("room_id = ? AND user_id = ?", roomID, userID).First(&chatRoom).Error; err != nil {
+	if err := wc.db.Where("room_id = ? AND user_id = ?", roomID, userID).First(&chatRoom).Error; err != nil {
 		utils.NotFoundResponse(c, "chat room not found")
 		return
 	}
@@ -239,7 +243,7 @@ func (wc *WebSocketHandler) GetChatMessages(c *gin.Context) {
 		offset = 0
 	}
 
-	messages, err := wc.services.Notification.GetChatMessages(roomID, limit, offset)
+	messages, err := wc.notification.GetChatMessages(roomID, limit, offset)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

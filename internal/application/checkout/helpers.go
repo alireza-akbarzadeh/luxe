@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
 	domaincheckout "github.com/alireza-akbarzadeh/luxe/internal/domain/checkout"
@@ -133,4 +134,14 @@ type ShipmentUpdate struct {
 	Status         string
 	TrackingNumber string
 	ShippedAt      time.Time
+}
+
+// GenerateOrderNumber builds a unique order number for a user checkout.
+func GenerateOrderNumber(userID uint) string {
+	return fmt.Sprintf("ORD-%d-%d", userID, time.Now().UnixNano())
+}
+
+// StripeEnabled reports whether Stripe checkout is configured.
+func StripeEnabled(cfg *config.Config) bool {
+	return cfg != nil && cfg.Stripe.Enabled
 }

@@ -7,17 +7,18 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type SearchHandler struct {
-	searchService services.SearchServiceInterface
+	commands *appsearch.Commands
+	queries  *appsearch.Queries
 }
 
-func NewSearchHandler(ss services.SearchServiceInterface) *SearchHandler {
-	return &SearchHandler{searchService: ss}
+func NewSearchHandler(commands *appsearch.Commands, queries *appsearch.Queries) *SearchHandler {
+	return &SearchHandler{commands: commands, queries: queries}
 }
 
 // GlobalSearch godoc
@@ -66,10 +67,10 @@ func (ctrl *SearchHandler) GlobalSearch(c *gin.Context) {
 		userIDPtr = &userID
 	}
 	if req.Query != "" {
-		go ctrl.searchService.LogSearch(req.Query, userIDPtr)
+		go ctrl.commands.LogSearch(req.Query, userIDPtr)
 	}
 
-	result, err := ctrl.searchService.GlobalSearch(c.Request.Context(), req)
+	result, err := ctrl.queries.GlobalSearch(c.Request.Context(), req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "search failed")
 		return
@@ -102,7 +103,7 @@ func (ctrl *SearchHandler) Suggestions(c *gin.Context) {
 			limit = l
 		}
 	}
-	suggestions, err := ctrl.searchService.Suggestions(c.Request.Context(), q, limit)
+	suggestions, err := ctrl.queries.Suggestions(c.Request.Context(), q, limit)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get suggestions")
 		return
@@ -128,7 +129,7 @@ func (ctrl *SearchHandler) Trending(c *gin.Context) {
 			limit = l
 		}
 	}
-	trending, err := ctrl.searchService.Trending(limit)
+	trending, err := ctrl.queries.Trending(limit)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get trending searches")
 		return

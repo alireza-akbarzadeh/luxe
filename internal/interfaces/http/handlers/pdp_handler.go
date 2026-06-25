@@ -4,22 +4,23 @@ import (
 	"net/http"
 	"strconv"
 
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type PdpHandler struct {
-	pdpService     services.PdpServiceInterface
-	productService services.ProductServiceInterface
+	pdpService     *apppdp.Service
+	productService *appcatalog.Service
 	validate       *validator.Validate
 }
 
-func NewPdpHandler(pdp services.PdpServiceInterface, product services.ProductServiceInterface) *PdpHandler {
+func NewPdpHandler(pdp *apppdp.Service, product *appcatalog.Service) *PdpHandler {
 	return &PdpHandler{pdpService: pdp, productService: product, validate: validator.New()}
 }
 

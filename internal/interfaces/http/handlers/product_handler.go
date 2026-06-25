@@ -8,23 +8,27 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
+	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type ProductHandler struct {
-	productService  services.ProductServiceInterface
-	userLikeService services.UsertLikeServiceInterface
-	pdpService      services.PdpServiceInterface
+	productService *appcatalog.Service
+	likeCommands   *appuserlike.Commands
+	likeQueries    *appuserlike.Queries
+	pdpService     *apppdp.Service
 	validate        *validator.Validate
 }
 
-func NewProductHandler(ps services.ProductServiceInterface, uls services.UsertLikeServiceInterface, pdp services.PdpServiceInterface) *ProductHandler {
+func NewProductHandler(ps *appcatalog.Service, likeCommands *appuserlike.Commands, likeQueries *appuserlike.Queries, pdp *apppdp.Service) *ProductHandler {
 	return &ProductHandler{
-		productService:  ps,
-		userLikeService: uls,
+		productService: ps,
+		likeCommands:   likeCommands,
+		likeQueries:    likeQueries,
 		pdpService:      pdp,
 		validate:        validator.New(),
 	}
@@ -152,7 +156,7 @@ func (ctrl *ProductHandler) GetOne(c *gin.Context) {
 	isLiked := false
 	stockSubscribed := false
 	if userID, ok := middleware.GetUserID(c); ok {
-		liked, err := ctrl.userLikeService.IsLikedByUser(userID, product.ID)
+		liked, err := ctrl.likeQueries.IsLikedByUser(userID, product.ID)
 		if err == nil {
 			isLiked = liked
 		}
@@ -223,7 +227,7 @@ func (ctrl *ProductHandler) List(c *gin.Context) {
 	// Build liked map for authenticated user
 	likedMap := make(map[uint]bool)
 	if userID, ok := middleware.GetUserID(c); ok {
-		likedIDs, err := ctrl.userLikeService.GetUserLikedProductIDs(userID)
+		likedIDs, err := ctrl.likeQueries.GetUserLikedProductIDs(userID)
 		if err == nil {
 			for _, id := range likedIDs {
 				likedMap[id] = true

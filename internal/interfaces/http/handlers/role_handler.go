@@ -5,20 +5,22 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type RoleHandler struct {
-	service  services.RoleServiceInterface
+	commands *approle.Commands
+	queries  *approle.Queries
 	validate *validator.Validate
 }
 
-func NewRoleHandler(service services.RoleServiceInterface) *RoleHandler {
+func NewRoleHandler(commands *approle.Commands, queries *approle.Queries) *RoleHandler {
 	return &RoleHandler{
-		service:  service,
+		commands: commands,
+		queries:  queries,
 		validate: validator.New(),
 	}
 }
@@ -31,7 +33,7 @@ func NewRoleHandler(service services.RoleServiceInterface) *RoleHandler {
 // @Success 200 {object} utils.Response{data=[]dto.RoleResponse}
 // @Router /admin/roles [get]
 func (ctrl *RoleHandler) ListRoles(c *gin.Context) {
-	roles, err := ctrl.service.ListRoles(c.Request.Context())
+	roles, err := ctrl.queries.ListRoles(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list roles")
 		return
@@ -53,7 +55,7 @@ func (ctrl *RoleHandler) GetRole(c *gin.Context) {
 		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
-	role, err := ctrl.service.GetRole(c.Request.Context(), uint(id))
+	role, err := ctrl.queries.GetRole(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get role")
 		return
@@ -75,7 +77,7 @@ func (ctrl *RoleHandler) CreateRole(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	role, err := ctrl.service.CreateRole(c.Request.Context(), &req)
+	role, err := ctrl.commands.CreateRole(c.Request.Context(), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create role")
 		return
@@ -103,7 +105,7 @@ func (ctrl *RoleHandler) UpdateRole(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	role, err := ctrl.service.UpdateRole(c.Request.Context(), uint(id), &req)
+	role, err := ctrl.commands.UpdateRole(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update role")
 		return
@@ -124,7 +126,7 @@ func (ctrl *RoleHandler) DeleteRole(c *gin.Context) {
 		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
-	if err := ctrl.service.DeleteRole(c.Request.Context(), uint(id)); err != nil {
+	if err := ctrl.commands.DeleteRole(c.Request.Context(), uint(id)); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete role")
 		return
 	}
@@ -139,7 +141,7 @@ func (ctrl *RoleHandler) DeleteRole(c *gin.Context) {
 // @Success 200 {object} utils.Response{data=[]dto.PermissionResponse}
 // @Router /admin/permissions [get]
 func (ctrl *RoleHandler) ListPermissions(c *gin.Context) {
-	permissions, err := ctrl.service.ListPermissions(c.Request.Context())
+	permissions, err := ctrl.queries.ListPermissions(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list permissions")
 		return
@@ -167,7 +169,7 @@ func (ctrl *RoleHandler) SetRolePermissions(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	role, err := ctrl.service.SetRolePermissions(c.Request.Context(), uint(id), req.PermissionIDs)
+	role, err := ctrl.commands.SetRolePermissions(c.Request.Context(), uint(id), req.PermissionIDs)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update role permissions")
 		return

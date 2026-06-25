@@ -2,92 +2,89 @@
 package bootstrap
 
 import (
+	appadmin "github.com/alireza-akbarzadeh/luxe/internal/application/admin"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	importdata "github.com/alireza-akbarzadeh/luxe/internal/application/import"
+	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
+	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
+	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
+	apppush "github.com/alireza-akbarzadeh/luxe/internal/application/push"
+	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
+	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
 )
 
-// NewServices constructs the full service registry (facades + shared infrastructure).
-func NewServices(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *services.Services {
+// NewRuntime constructs orchestrators and wires application use cases.
+func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runtime {
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
-	salesFeedSvc := services.NewSalesFeedService(wsHub)
+
+	salesFeedSvc := appsalesfeed.NewService(wsHub)
 	wsHub.SetRoomChangeHook(func(roomID string, clientCount int) {
 		if roomID == websocket.SalesFeedRoom {
 			salesFeedSvc.PublishActiveUsers(clientCount)
 		}
 	})
 
-	pushSvc := services.NewPushService(db, cfg)
-	notificationSvc := services.NewNotificationService(db, wsHub, pushSvc)
-	paymentSvc := services.NewPaymentService(db, cfg)
-	walletSvc := services.NewWalletService(db, cfg)
+	pushSvc := apppush.NewWebPushService(db, cfg)
+	notificationSvc := appnotification.NewService(db, wsHub, pushSvc)
 
 	workflowEngine := infraworkflow.NewEngine(db)
+	apps := WireApplications(db, cfg, jobQueue, workflowEngine)
+
+	workflowHooksRepo := postgres.NewWorkflowHooksRepository(db)
 	appworkflow.RegisterGuardsAndHooks(appworkflow.HookDeps{
 		Engine:   workflowEngine,
-		DB:       db,
+		Repo:     workflowHooksRepo,
 		Notify:   notificationSvc,
-		Wallet:   walletSvc,
+		Wallet:   apps.Wallet,
 		JobQueue: jobQueue,
 	})
-	couponSvc := services.NewCouponService(db, workflowEngine)
-	roleSvc := services.NewRoleService(db)
 
-	productSvc := services.NewProductService(db, workflowEngine)
-	aiSvc := services.NewAiService(db, cfg.AI)
-	pdpSvc := services.NewPdpService(db, notificationSvc, productSvc, aiSvc)
-	inventorySvc := services.NewInventoryService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
+	productSvc := appcatalog.NewService(db, workflowEngine)
+	pdpSvc := apppdp.NewService(db, notificationSvc, productSvc, apps.AI)
+	inventorySvc := appinventory.NewService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
 	productSvc.SetInventory(inventorySvc)
 	appworkflow.RegisterInventoryHooks(workflowEngine, inventorySvc)
-	shipmentSvc := services.NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
-	invoiceSvc := services.NewInvoiceService(db, jobQueue, cfg)
-	categorySvc := services.NewCategoryService(db, workflowEngine)
-	settingsSvc := services.NewSettingService(db)
+	shipmentSvc := appshipment.NewService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 
-	return &services.Services{
+	apps.Product = productSvc
+	apps.Pdp = pdpSvc
+	apps.Inventory = inventorySvc
+	apps.Notification = notificationSvc
+	apps.Push = pushSvc
+	apps.SalesFeed = salesFeedSvc
+	apps.Shipment = shipmentSvc
+	apps.Checkout = appcheckout.NewService(
+		db,
+		notificationSvc,
+		apps.Coupon,
+		apps.Payment,
+		shipmentSvc,
+		apps.Wallet,
+		apps.Invoice.Commands,
+		jobQueue,
+		wsHub,
+		salesFeedSvc,
+		workflowEngine,
+		inventorySvc,
+		appcheckout.StripeEnabled(cfg),
+	)
+	apps.Order = orderfacade.NewService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine)
+	apps.Admin = appadmin.NewService(db, workflowEngine, apps.Role.Queries)
+	apps.Import = importdata.NewService(productSvc, apps.Category)
+
+	return &Runtime{
 		DB:           db,
-		Auth:         services.NewAuthServices(db, cfg, jobQueue, workflowEngine, settingsSvc),
-		Search:       services.NewSearchService(db),
-		User:         services.NewUserService(db, cfg),
-		Cart:         services.NewCartService(db),
-		NavMenu:      services.NewNavMenuService(db),
-		Product:      productSvc,
-		Pdp:          pdpSvc,
-		Compare:      services.NewCompareService(db),
-		Category:     categorySvc,
-		Address:      services.NewAddressService(db),
-		Menu:         services.NewMenuService(db),
-		Review:       services.NewReviewService(db, workflowEngine),
-		UserLike:     services.NewUserLikeService(db),
-		Shipment:     shipmentSvc,
-		Wallet:       walletSvc,
-		Payment:      paymentSvc,
-		Store:        services.NewStoreService(db),
-		Brand:        services.NewBrandService(db, workflowEngine),
-		Collection:   services.NewCollectionService(db, workflowEngine),
-		Settings:     settingsSvc,
-		Checkout:     services.NewCheckoutService(db, notificationSvc, couponSvc, paymentSvc, shipmentSvc, walletSvc, invoiceSvc, jobQueue, wsHub, salesFeedSvc, workflowEngine, inventorySvc, services.StripeEnabled(cfg)),
-		Order:        services.NewOrderService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine),
-		Coupon:       couponSvc,
-		Notification: notificationSvc,
-		Push:         pushSvc,
+		Apps:         apps,
 		WebSocketHub: wsHub,
-		SalesFeed:    salesFeedSvc,
-		Audit:        services.NewAuditService(db),
-		Upload:       services.NewUploadService(cfg),
-		Admin:        services.NewAdminService(db, workflowEngine, roleSvc),
-		Import:       services.NewImportService(productSvc, categorySvc),
-		WebhookEvent: services.NewWebhookEventService(db),
-		Workflow:     services.NewWorkflowService(db, workflowEngine),
-		Return:       services.NewReturnService(db, workflowEngine),
-		Invoice:      invoiceSvc,
-		Role:         roleSvc,
-		Inventory:    inventorySvc,
-		Ai:           aiSvc,
 	}
 }

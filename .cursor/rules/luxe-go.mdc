@@ -22,12 +22,11 @@ Index: `.cursor/skills/README.md`. Frontend regen: **luxe-front** `/api-gen`.
 
 ## Layering (strict)
 ```
-Handler → Service facade → Application → Domain → infrastructure/postgres (GORM)
+Handler → apps.Applications → Application → Domain → infrastructure/postgres (GORM)
 ```
 - **Handlers** (`interfaces/http/handlers/`): bind DTO, validate, `c.Request.Context()`, `utils.Response` only.
-- **Service facades** (`internal/services/`): thin delegation to `internal/application/<ctx>/`.
-- **Application**: use-case orchestration; depends on domain ports and postgres repos.
-- **GORM** lives in `internal/infrastructure/postgres/` — not in handlers.
+- **Application** (`internal/application/`): use-case orchestration; depends on domain ports and postgres repos.
+- **GORM** lives in `internal/infrastructure/postgres/` — not in handlers. Use model-based GORM queries only; no `db.Raw()` or hand-written SQL strings.
 
 **Architecture is settled.** Extend layers in place; use `/new-api-entity` or `/add-api-endpoint`. Do not recreate `controllers/`, `routes/`, or monolithic GORM services.
 
@@ -35,7 +34,7 @@ Handler → Service facade → Application → Domain → infrastructure/postgre
 
 Use `/new-api-entity` for the full checklist. Summary:
 
-migration → model → dto → postgres repo → application → facade → register in **`bootstrap/wire.go`** → handler → **`container.go`** → routes → swagger → tests
+migration → model → dto → postgres repo → application → register in **`apps/wire.go`** + **`bootstrap/wire.go`** → handler → **`container.go`** → routes → swagger → tests
 
 Single new route on existing domain → `/add-api-endpoint` instead.
 
@@ -59,7 +58,7 @@ Edit handler `@Summary`/`@Router` comments → `make swagger` → **restart API*
 - Jobs via `infrastructure/asynq.JobQueue`, not raw goroutines for orders/shipments
 
 ## Testing
-- Unit: `internal/services/*_test.go`, sqlmock when mocking DB
+- Unit: `internal/application/*_test.go`, sqlmock when mocking DB
 - Integration: `tests/integration/`, real Postgres, unique suffix per test fixture
 - `DATABASE_URL` + `JWT_SECRET` for integration runs
 

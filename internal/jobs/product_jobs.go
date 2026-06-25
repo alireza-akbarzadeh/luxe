@@ -14,7 +14,7 @@ func (c *CronJobs) registerProductJobs() {
 
 func (c *CronJobs) checkLowStock() {
 	utils.Log.Info("Checking low stock products...")
-	if err := c.svc.Inventory.SendLowStockAlerts(context.Background()); err != nil {
+	if err := c.apps.Inventory.SendLowStockAlerts(context.Background()); err != nil {
 		utils.Log.WithError(err).Error("Low stock check failed")
 	}
 }

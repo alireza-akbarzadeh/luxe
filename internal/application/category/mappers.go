@@ -13,7 +13,8 @@ var ErrHasChildren = errors.New("category has children")
 
 var slugSanitizer = regexp.MustCompile(`[^a-z0-9]+`)
 
-func generateSlug(name string) string {
+// GenerateSlug builds a URL-safe slug from a display name.
+func GenerateSlug(name string) string {
 	slug := strings.ToLower(strings.TrimSpace(name))
 	slug = slugSanitizer.ReplaceAllString(slug, "-")
 	slug = strings.Trim(slug, "-")

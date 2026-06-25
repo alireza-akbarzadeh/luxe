@@ -4,22 +4,24 @@ import (
 	"strconv"
 	"time"
 
+	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type OrderHandler struct {
-	orderService services.OrderServiceInterface
-	checkoutSvc  services.CheckoutServiceInterface
+	orderService *orderfacade.Service
+	checkoutSvc  *appcheckout.Service
 	validate     *validator.Validate
 }
 
-func NewOrderHandler(orderService services.OrderServiceInterface, checkoutSvc services.CheckoutServiceInterface) *OrderHandler {
+func NewOrderHandler(orderService *orderfacade.Service, checkoutSvc *appcheckout.Service) *OrderHandler {
 	return &OrderHandler{
 		orderService: orderService,
 		checkoutSvc:  checkoutSvc,
@@ -132,7 +134,7 @@ func (ctrl *OrderHandler) ListAllOrders(c *gin.Context) {
 	limit, offset := paginationParams(c, constants.DefaultLimit)
 
 	// Filters
-	filters := services.AdminOrderFilters{}
+	filters := apporder.AdminOrderFilters{}
 	if status := c.Query("status"); status != "" {
 		filters.Status = status
 	}

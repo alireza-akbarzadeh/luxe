@@ -23,8 +23,7 @@ The codebase uses **layered hexagonal architecture**. New work must follow these
 ```
 HTTP request
   → interfaces/http/handlers     (bind DTO, validate, utils.Response)
-  → services/*_service.go        (thin facade — implements handler interfaces)
-  → application/<context>/       (commands, queries, use cases)
+  → application/<context>/       (commands, queries, orchestrators)
   → domain/<context>/            (rules, ports, invariants)
   → infrastructure/postgres/     (GORM repositories)
   → PostgreSQL
@@ -36,7 +35,7 @@ Background work: `infrastructure/asynq` (Redis or in-memory) · cron: `internal/
 
 ```
 cmd/api/main.go
-  → bootstrap.NewServices()      internal/application/bootstrap/wire.go
+  → bootstrap.NewRuntime()       internal/application/bootstrap/wire.go
   → handlers.NewContainer()      internal/interfaces/http/handlers/container.go
   → routes.NewRouter().Setup()   internal/interfaces/http/routes/
 ```
@@ -52,9 +51,9 @@ Register every new domain in **`bootstrap/wire.go`** and **`handlers/container.g
 | `internal/interfaces/http/dto/` | Request/response DTOs |
 | `internal/interfaces/http/routes/` | Route groups |
 | `internal/interfaces/http/middleware/` | Auth, CORS, logging, tracing |
-| `internal/services/` | Thin facades + `registry.go` (job handlers, workflow sync) |
-| `internal/application/` | Use cases per bounded context (`cart`, `order`, `brand`, …) |
-| `internal/application/bootstrap/` | Composition root (`NewServices`) |
+| `internal/application/` | Use cases per bounded context (`cart`, `order`, `catalog`, …) |
+| `internal/application/apps/` | `Applications` registry — all wired use cases |
+| `internal/application/bootstrap/` | Composition root (`NewRuntime`, `JobHandlers`) |
 | `internal/domain/` | Domain rules and repository **ports** (no GORM/Gin) |
 | `internal/infrastructure/postgres/` | GORM repository implementations |
 | `internal/infrastructure/asynq/` | Job queue |
@@ -84,10 +83,9 @@ Follow **`.cursor/skills/new-api-entity/SKILL.md`** (or invoke `/new-api-entity`
 2. `internal/models/{entity}_model.go`
 3. `internal/interfaces/http/dto/{entity}_dto.go`
 4. `internal/infrastructure/postgres/{entity}_repository.go`
-5. `internal/application/{entity}/` — `commands.go`, `queries.go`, mappers
-6. `internal/services/{entity}_service.go` — thin facade delegating to application
-7. Register in `application/bootstrap/wire.go` + `handlers/container.go`
-8. `handlers/{entity}_handler.go` + `routes/{entity}_routes.go`
+5. `internal/application/{entity}/` — `commands.go`, `queries.go`, `service.go`, mappers
+6. Register in `application/apps/wire.go` + `handlers/container.go`
+7. `handlers/{entity}_handler.go` + `routes/{entity}_routes.go`
 9. Swagger comments on handler → `make swagger` → **restart API**
 10. **luxe-front:** `pnpm api:gen` → `pnpm check` (mandatory if OpenAPI changed)
 
@@ -104,11 +102,10 @@ Follow **`.cursor/skills/add-api-endpoint/SKILL.md`** (`/add-api-endpoint`):
 
 | Layer | Allowed | Forbidden |
 |-------|---------|-----------|
-| **Handlers** | Bind, validate, call service facade, `utils.Response` | Business logic, `*gorm.DB`, transactions |
-| **Service facade** | Delegate to application; workflow sync; checkout orchestration | New GORM queries (add a repo instead) |
-| **Application** | Orchestrate use cases, call repos + domain | Gin, HTTP, raw SQL in handlers |
+| **Handlers** | Bind, validate, call `apps.*` use cases, `utils.Response` | Business logic, `*gorm.DB`, transactions |
+| **Application** | Orchestrate use cases, workflow sync, WS/notifications, call repos + domain | Gin, HTTP, hand-written SQL |
 | **Domain** | Rules, ports, pure types | GORM, Gin, framework imports |
-| **Postgres repos** | GORM queries, mapping to domain/DTO | HTTP, business rules |
+| **Postgres repos** | GORM (`Model`, `Where`, `Joins`, transactions) | HTTP, business rules, `db.Raw()` / hand-written SQL strings |
 
 - **Statuses/roles** → `internal/constants`
 - **Multi-table writes** → `db.Transaction` in application or checkout (not ad-hoc goroutines for orders/shipments)
@@ -116,7 +113,7 @@ Follow **`.cursor/skills/add-api-endpoint/SKILL.md`** (`/add-api-endpoint`):
 - **Never edit** generated `docs/` — run `make swagger`
 - **Migrations:** schema only — no demo product seed data in new Goose files
 
-Checkout is the one intentional exception: `checkout_service.go` still coordinates a multi-service DB transaction.
+Checkout is the one intentional exception: `application/checkout` still coordinates a multi-service DB transaction via `*gorm.DB`.
 
 ---
 

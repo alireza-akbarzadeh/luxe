@@ -4,21 +4,24 @@ import (
 	"errors"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type SettingHandler struct {
-	settingService services.SettingServiceInterface
+	commands *appsettings.Commands
+	queries  *appsettings.Queries
 	validate       *validator.Validate
 }
 
-func NewSettingHandler(settingService services.SettingServiceInterface) *SettingHandler {
+func NewSettingHandler(commands *appsettings.Commands, queries *appsettings.Queries) *SettingHandler {
 	return &SettingHandler{
-		settingService: settingService,
-		validate:       validator.New()}
+		commands: commands,
+		queries:  queries,
+		validate: validator.New(),
+	}
 }
 
 // GetSetting godoc
@@ -32,9 +35,9 @@ func NewSettingHandler(settingService services.SettingServiceInterface) *Setting
 // @Router       /settings/{key} [get]
 func (ctrl *SettingHandler) GetSetting(c *gin.Context) {
 	key := c.Param("key")
-	setting, err := ctrl.settingService.Get(c.Request.Context(), key)
+	setting, err := ctrl.queries.Get(c.Request.Context(), key)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
+		if errors.Is(err, appsettings.ErrNotFound) {
 			utils.NotFoundResponse(c, "setting not found")
 			return
 		}
@@ -52,7 +55,7 @@ func (ctrl *SettingHandler) GetSetting(c *gin.Context) {
 // @Success      200  {object}  utils.Response{data=[]dto.SettingResponse}  "Settings list"
 // @Router       /settings [get]
 func (ctrl *SettingHandler) ListSettings(c *gin.Context) {
-	settings, err := ctrl.settingService.List(c.Request.Context())
+	settings, err := ctrl.queries.List(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list settings")
 		return
@@ -79,7 +82,7 @@ func (ctrl *SettingHandler) SetSetting(c *gin.Context) {
 		return
 	}
 
-	set, err := ctrl.settingService.Set(c.Request.Context(), key, &req)
+	set, err := ctrl.commands.Set(c.Request.Context(), key, &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to upsert setting")
 		return
@@ -100,9 +103,9 @@ func (ctrl *SettingHandler) SetSetting(c *gin.Context) {
 // @Router       /settings/{key} [delete]
 func (ctrl *SettingHandler) DeleteSetting(c *gin.Context) {
 	key := c.Param("key")
-	err := ctrl.settingService.Delete(c.Request.Context(), key)
+	err := ctrl.commands.Delete(c.Request.Context(), key)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
+		if errors.Is(err, appsettings.ErrNotFound) {
 			utils.NotFoundResponse(c, "setting not found")
 			return
 		}

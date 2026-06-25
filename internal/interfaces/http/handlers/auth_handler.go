@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,18 +10,34 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appauth "github.com/alireza-akbarzadeh/luxe/internal/application/auth"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
+type authServicer interface {
+	Register(ctx context.Context, req dto.RegisterRequest, meta appauth.SessionMeta) (string, string, *models.User, error)
+	Login(ctx context.Context, req dto.LoginRequest, meta appauth.SessionMeta) (string, string, *models.User, error)
+	RefreshTokens(ctx context.Context, rawRefreshToken string, meta appauth.SessionMeta) (newAccessToken, newRawRefreshToken string, err error)
+	Logout(ctx context.Context, userID uint, req appauth.LogoutRequest) error
+	ChangePassword(ctx context.Context, userID uint, req dto.ChangePasswordRequest) error
+	ResetPassword(ctx context.Context, token string, newPassword string) error
+	ForgotPassword(ctx context.Context, email string) error
+	VerifyEmail(ctx context.Context, token string) error
+	SendVerificationEmail(ctx context.Context, userID uint) error
+	ListSessions(ctx context.Context, userID uint, currentRefreshToken string) ([]dto.SessionResponse, error)
+	RevokeSession(ctx context.Context, userID uint, sessionID uint) error
+	RevokeOtherSessions(ctx context.Context, userID uint, currentRefreshToken string) error
+}
+
 type AuthHandler struct {
-	authService services.AuthServiceInterface
+	authService authServicer
 	validate    *validator.Validate
 }
 
-func NewAuthHandler(authService services.AuthServiceInterface) *AuthHandler {
+func NewAuthHandler(authService authServicer) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		validate:    validator.New(),
@@ -179,7 +196,7 @@ func (ctrl *AuthHandler) Refresh(c *gin.Context) {
 func (ctrl *AuthHandler) Logout(c *gin.Context) {
 	userID, _ := middleware.GetUserID(c)
 
-	var req services.LogoutRequest
+	var req appauth.LogoutRequest
 	_ = c.ShouldBindJSON(&req)
 
 	if err := ctrl.authService.Logout(c.Request.Context(), userID, req); err != nil {
@@ -338,7 +355,7 @@ func (ctrl *AuthHandler) SendVerificationEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-func sessionMetaFromContext(c *gin.Context) services.SessionMeta {
+func sessionMetaFromContext(c *gin.Context) appauth.SessionMeta {
 	ip := c.ClientIP()
 	if forwarded := c.GetHeader("X-Forwarded-For"); forwarded != "" {
 		parts := strings.Split(forwarded, ",")
@@ -350,7 +367,7 @@ func sessionMetaFromContext(c *gin.Context) services.SessionMeta {
 		ip = realIP
 	}
 
-	return services.SessionMeta{
+	return appauth.SessionMeta{
 		UserAgent: c.GetHeader("User-Agent"),
 		IPAddress: ip,
 	}

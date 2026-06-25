@@ -25,7 +25,7 @@ func (r *Router) RegisterMiddlewares() {
 	r.engine.Use(middleware.AccessLog())
 	r.engine.Use(observability.HTTPMetrics())
 	r.engine.Use(middleware.SecurityHeaders())
-	r.engine.Use(middleware.AuditMiddleware(r.auditSvc))
+	r.engine.Use(middleware.AuditMiddleware(r.apps))
 	r.engine.Use(middleware.CORS())
 	r.engine.Use(middleware.StandardRateLimit())
 }

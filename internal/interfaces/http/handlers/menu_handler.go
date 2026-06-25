@@ -5,21 +5,23 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type MenuHandler struct {
-	menuService services.UserMenuServicesInterface
+	commands *appmenu.Commands
+	queries  *appmenu.Queries
 	validate    *validator.Validate
 }
 
-func NewMenuHandler(menuService services.UserMenuServicesInterface) *MenuHandler {
+func NewMenuHandler(commands *appmenu.Commands, queries *appmenu.Queries) *MenuHandler {
 	return &MenuHandler{
-		menuService: menuService,
-		validate:    validator.New(),
+		commands: commands,
+		queries:  queries,
+		validate: validator.New(),
 	}
 }
 
@@ -33,7 +35,7 @@ func NewMenuHandler(menuService services.UserMenuServicesInterface) *MenuHandler
 // @Failure      500 {object} utils.Response
 // @Router       /admin/menu/groups [get]
 func (ctrl *MenuHandler) GetAllGroups(c *gin.Context) {
-	groups, err := ctrl.menuService.GetAllGroups()
+	groups, err := ctrl.queries.ListGroups(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch menu groups")
 		return
@@ -59,7 +61,7 @@ func (ctrl *MenuHandler) GetGroupByID(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "invalid group id")
 		return
 	}
-	group, err := ctrl.menuService.GetGroupByID(uint(id))
+	group, err := ctrl.queries.GetGroupByID(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch group")
 		return
@@ -88,7 +90,7 @@ func (ctrl *MenuHandler) CreateGroup(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	group, err := ctrl.menuService.CreateGroup(&req)
+	group, err := ctrl.commands.CreateGroup(c.Request.Context(), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create group")
 		return
@@ -120,7 +122,7 @@ func (ctrl *MenuHandler) UpdateGroup(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	group, err := ctrl.menuService.UpdateGroup(uint(id), &req)
+	group, err := ctrl.commands.UpdateGroup(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update group")
 		return
@@ -145,7 +147,7 @@ func (ctrl *MenuHandler) DeleteGroup(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "invalid group id")
 		return
 	}
-	if err := ctrl.menuService.DeleteGroup(uint(id)); err != nil {
+	if err := ctrl.commands.DeleteGroup(c.Request.Context(), uint(id)); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete group")
 		return
 	}
@@ -164,7 +166,7 @@ func (ctrl *MenuHandler) DeleteGroup(c *gin.Context) {
 // @Router       /admin/menu/items [get]
 func (ctrl *MenuHandler) GetAllItems(c *gin.Context) {
 	flat, _ := strconv.ParseBool(c.DefaultQuery("flat", "false"))
-	items, err := ctrl.menuService.GetAllItems(flat)
+	items, err := ctrl.queries.ListAllItems(c.Request.Context(), flat)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch menu items")
 		return
@@ -198,7 +200,7 @@ func (ctrl *MenuHandler) GetItemByID(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
-	item, err := ctrl.menuService.GetItemByID(uint(id))
+	item, err := ctrl.queries.GetItemByID(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch item")
 		return
@@ -227,7 +229,7 @@ func (ctrl *MenuHandler) CreateItem(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	item, err := ctrl.menuService.CreateItem(&req)
+	item, err := ctrl.commands.CreateItem(c.Request.Context(), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create item")
 		return
@@ -259,7 +261,7 @@ func (ctrl *MenuHandler) UpdateItem(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	item, err := ctrl.menuService.UpdateItem(uint(id), &req)
+	item, err := ctrl.commands.UpdateItem(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update item")
 		return
@@ -284,7 +286,7 @@ func (ctrl *MenuHandler) DeleteItem(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
-	if err := ctrl.menuService.DeleteItem(uint(id)); err != nil {
+	if err := ctrl.commands.DeleteItem(c.Request.Context(), uint(id)); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete item")
 		return
 	}
@@ -307,7 +309,7 @@ func (ctrl *MenuHandler) GetUserMenu(c *gin.Context) {
 		userRole = "guest"
 	}
 	search := c.Query("search")
-	menu, err := ctrl.menuService.GetUserMenu(c.Request.Context(), userRole.(string), search)
+	menu, err := ctrl.queries.GetUserMenu(c.Request.Context(), userRole.(string), search)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch menu")
 		return
@@ -331,7 +333,7 @@ func (ctrl *MenuHandler) GetUserMenuStructure(c *gin.Context) {
 		userRole = "guest"
 	}
 	search := c.Query("search")
-	structure, err := ctrl.menuService.GetUserMenuStructure(c.Request.Context(), userRole.(string), search)
+	structure, err := ctrl.queries.GetUserMenuStructure(c.Request.Context(), userRole.(string), search)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch user menu structure")
 		return

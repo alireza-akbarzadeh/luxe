@@ -4,18 +4,18 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appwallet "github.com/alireza-akbarzadeh/luxe/internal/application/wallet"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type WalletHandler struct {
-	walletService services.WalletServiceInterface
+	walletService *appwallet.Service
 	validate      *validator.Validate
 }
 
-func NewWalletHandler(walletService services.WalletServiceInterface) *WalletHandler {
+func NewWalletHandler(walletService *appwallet.Service) *WalletHandler {
 	return &WalletHandler{
 		walletService: walletService,
 		validate:      validator.New(),
@@ -46,12 +46,12 @@ func (ctrl *WalletHandler) GetWallet(c *gin.Context) {
 		Offset: offset,
 		Limit:  limit,
 	}
-	balance, err := ctrl.walletService.GetBalance(userID)
+	balance, err := ctrl.walletService.GetBalance(c.Request.Context(), userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get wallet balance")
 		return
 	}
-	transactions, total, err := ctrl.walletService.GetTransactions(userID, filters)
+	transactions, total, err := ctrl.walletService.GetTransactions(c.Request.Context(), userID, filters)
 	txResponses := make([]dto.TransactionResponse, len(transactions))
 	for i, tx := range transactions {
 		txResponses[i] = dto.TransactionResponse{
@@ -107,7 +107,7 @@ func (ctrl *WalletHandler) Deposit(c *gin.Context) {
 		customerEmail, _ = emailVal.(string)
 	}
 
-	result, err := ctrl.walletService.InitiateDeposit(userID, req.Amount, customerEmail)
+	result, err := ctrl.walletService.InitiateDeposit(c.Request.Context(), userID, req.Amount, customerEmail)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to deposit")
 		return
@@ -139,7 +139,7 @@ func (ctrl *WalletHandler) AdminAdjust(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	if err := ctrl.walletService.AdminAdjust(req.UserID, req.Amount, req.Description); err != nil {
+	if err := ctrl.walletService.AdminAdjust(c.Request.Context(), req.UserID, req.Amount, req.Description); err != nil {
 		utils.HandleServiceError(c, err, "adjustment failed")
 		return
 	}
@@ -169,7 +169,7 @@ func (ctrl *WalletHandler) Withdraw(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	err := ctrl.walletService.Withdraw(userID, req.Amount, "user_withdrawal", nil, req.Description)
+	err := ctrl.walletService.Withdraw(c.Request.Context(), userID, req.Amount, "user_withdrawal", nil, req.Description)
 	if err != nil {
 		utils.HandleServiceError(c, err, "withdrawal failed")
 		return
@@ -200,7 +200,7 @@ func (ctrl *WalletHandler) GetTransaction(c *gin.Context) {
 	if !ok {
 		return
 	}
-	tx, err := ctrl.walletService.GetTransaction(userID, txID)
+	tx, err := ctrl.walletService.GetTransaction(c.Request.Context(), userID, txID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch transaction")
 		return
@@ -245,7 +245,7 @@ func (ctrl *WalletHandler) CancelPendingDeposit(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.walletService.CancelPendingDeposit(userID, txID); err != nil {
+	if err := ctrl.walletService.CancelPendingDeposit(c.Request.Context(), userID, txID); err != nil {
 		utils.HandleServiceError(c, err, "failed to cancel deposit")
 		return
 	}

@@ -20,7 +20,7 @@ description: |
   All JSON API responses use utils.Response helpers (success, data, message, code).
   Statuses, roles, routes constants live in internal/constants.
 
-  Wire dependencies in internal/application/bootstrap/wire.go (bootstrap.NewServices) and
+  Wire dependencies in internal/application/bootstrap/wire.go (bootstrap.NewRuntime) and
   internal/interfaces/http/handlers/container.go (NewContainer).
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -28,7 +28,7 @@ description: |
 # ──────────────────────────────────────────────────────────────────────────────
 architecture:
   default_pattern: |
-    Handlers call thin service facades in internal/services/.
+    Handlers call application use cases via apps.Applications (handlers/container.go).
     Facades delegate to internal/application/<ctx>/ (commands/queries).
     Application uses domain ports; GORM lives in internal/infrastructure/postgres/.
 
@@ -36,6 +36,8 @@ architecture:
     GORM implementations in internal/infrastructure/postgres/*_repository.go.
     Application layers depend on repository interfaces, not *gorm.DB (checkout is the
     intentional exception for multi-service transactions).
+    All persistence uses GORM against internal/models/ — Model, Where, Joins, Preload,
+    Transaction. Do not use db.Raw(), database/sql, or hand-written SQL query strings.
 
   service_responsibilities:
     - Thin facade: implement handler-facing interfaces, delegate to application layer
@@ -50,6 +52,7 @@ architecture:
   forbidden:
     - Business logic in handlers
     - Direct gorm.DB in handlers
+    - db.Raw() or hand-written SQL strings (use GORM model queries in postgres repos)
     - Fake / dev-only shortcuts in production code paths
     - Demo product data in new Goose migrations
 
@@ -59,7 +62,7 @@ architecture:
 clean_code:
   - Minimize scope — smallest correct diff; no unrelated refactors.
   - Match existing naming, imports, and patterns in the file you edit.
-  - Reuse helpers in internal/shared/utils/ and internal/services/helpers.go.
+  - Reuse helpers in internal/shared/utils/ and domain/application packages.
   - Keep functions small; one responsibility per function.
   - Meaningful names — avoid data, temp, val, x.
   - Comments only for non-obvious business logic (Go: exported symbols only).
@@ -78,7 +81,8 @@ directories:
     constants/                # roles, statuses, route paths
     models/                   # GORM entities ({entity}_model.go)
     application/              # use cases (commands/queries per bounded context)
-    application/bootstrap/    # wire.go — composition root (NewServices)
+    application/bootstrap/    # wire.go, runtime.go — composition root (NewRuntime)
+    application/apps/         # WireApplications, Applications registry
     domain/                   # entities, ports, domain rules
     infrastructure/postgres/  # GORM repository implementations
     infrastructure/asynq/     # JobQueue (Asynq or in-memory)
@@ -130,7 +134,7 @@ new_entity_order:
   3. internal/interfaces/http/dto/{entity}_dto.go
   4. internal/infrastructure/postgres/{entity}_repository.go
   5. internal/application/{entity}/ (commands, queries)
-  6. internal/services/{entity}_service.go (+ register in bootstrap/wire.go)
+  6. internal/application/{entity}/ (+ register in apps/wire.go and bootstrap/wire.go)
   7. internal/interfaces/http/handlers/{entity}_handler.go (+ container.go)
   8. internal/interfaces/http/routes/{entity}_routes.go (+ routes setup)
   9. Swagger comments on handler methods
@@ -180,7 +184,7 @@ dto_rules:
 service_rules:
   - Interface + private struct implementation.
   - Constructor: New{Entity}Service(deps...) returns interface.
-  - Accept *gorm.DB and/or other services — wired in NewServices.
+  - Accept *gorm.DB and/or other services — wired in NewRuntime / WireApplications.
   - ctx context.Context first arg on new methods.
   - db.WithContext(ctx) for all queries.
   - db.Transaction for checkout, payment, inventory, multi-table updates.

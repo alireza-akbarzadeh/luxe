@@ -2,21 +2,21 @@ package handlers
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appaudit "github.com/alireza-akbarzadeh/luxe/internal/application/audit"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type AuditHandler struct {
-	auditService services.AuditServiceInterface
+	queries *appaudit.Queries
 	validate     *validator.Validate
 }
 
-func NewAuditHandler(auditService services.AuditServiceInterface) *AuditHandler {
+func NewAuditHandler(queries *appaudit.Queries) *AuditHandler {
 	return &AuditHandler{
-		auditService: auditService,
-		validate:     validator.New(),
+		queries:  queries,
+		validate: validator.New(),
 	}
 }
 
@@ -46,7 +46,7 @@ func (ctrl *AuditHandler) List(c *gin.Context) {
 		limit = 20
 	}
 
-	logs, total, err := ctrl.auditService.List(c.Request.Context(), filters)
+	logs, total, err := ctrl.queries.List(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list audit logs")
 		return
@@ -84,7 +84,7 @@ func (ctrl *AuditHandler) List(c *gin.Context) {
 // @Success 200 {object} utils.Response{data=dto.AuditLogSummaryResponse}
 // @Router /admin/audit-logs/summary [get]
 func (ctrl *AuditHandler) Summary(c *gin.Context) {
-	summary, err := ctrl.auditService.Summary(c.Request.Context())
+	summary, err := ctrl.queries.Summary(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to load audit summary")
 		return

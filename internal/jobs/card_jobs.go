@@ -14,7 +14,7 @@ func (c *CronJobs) registerCartJobs() {
 
 func (c *CronJobs) cleanAbandonedCarts() {
 	utils.Log.Info("Initiating cleanup of abandoned carts...")
-	if err := c.svc.Cart.CleanAbandonedCarts(context.Background()); err != nil {
+	if err := c.apps.Cart.Commands.CleanAbandoned(context.Background()); err != nil {
 		utils.Log.WithError(err).Error("Error cleaning abandoned carts")
 	}
 }

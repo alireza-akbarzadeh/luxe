@@ -4,21 +4,21 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/application/category"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type CategoryHandler struct {
-	categoryService services.CategoryServiceInterface
+	categoryService *category.Service
 	validate        *validator.Validate
 }
 
-func NewCategoryHandler(categoryService services.CategoryServiceInterface) *CategoryHandler {
+func NewCategoryHandler(categoryService *category.Service) *CategoryHandler {
 	return &CategoryHandler{
 		categoryService: categoryService,
 		validate:        validator.New(),
@@ -282,7 +282,7 @@ func (ctrl *CategoryHandler) BulkCreate(c *gin.Context) {
 // @Failure      500 {object} utils.Response
 // @Router       /admin/categories/bulk [delete]
 func (ctrl *CategoryHandler) BulkDelete(c *gin.Context) {
-	var req services.BulkDeleteCategoryRequest
+	var req category.BulkDeleteRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}

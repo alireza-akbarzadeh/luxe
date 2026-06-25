@@ -84,8 +84,8 @@ func main() {
 		utils.Log.WithError(err).Fatal("failed to initialize job queue")
 	}
 
-	newServices := bootstrap.NewServices(db, cfg, jobQueue)
-	asynq.BindHandlers(jobQueue, newServices.JobHandlers())
+	newRuntime := bootstrap.NewRuntime(db, cfg, jobQueue)
+	asynq.BindHandlers(jobQueue, newRuntime.JobHandlers())
 
 	if err := jobQueue.Start(); err != nil {
 		utils.Log.WithError(err).Fatal("failed to start job queue")
@@ -93,16 +93,16 @@ func main() {
 
 	utils.Log.WithField("job_backend", jobQueue.Backend()).Info("background workers ready")
 
-	if newServices.Upload.IsEnabled() {
+	if newRuntime.Apps.Upload.IsEnabled() {
 		utils.Log.Info("R2 presigned uploads enabled")
 	}
 
-	cronService := jobs.NewCronJobs(newServices)
+	cronService := jobs.NewCronJobs(newRuntime.Apps)
 	cronService.Start()
 
-	ctrl := handlers.NewContainer(db, newServices, cfg)
+	ctrl := handlers.NewContainer(db, newRuntime.Apps, newRuntime, cfg)
 	engine := setupGin()
-	router := routes.NewRouter(engine, ctrl, cfg, newServices.Audit, newServices.Role)
+	router := routes.NewRouter(engine, ctrl, cfg, newRuntime.Apps)
 	router.Setup()
 
 	bootStrap(engine, cfg, func() {

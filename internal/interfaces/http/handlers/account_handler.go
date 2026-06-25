@@ -2,35 +2,43 @@ package handlers
 
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
+	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
+	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type AccountHandler struct {
-	addressService services.AddressServiceInterface
-	likeService    services.UsertLikeServiceInterface
-	orderService   services.OrderServiceInterface
-	userService    services.UserServiceInterface
+	addressCommands *appaddress.Commands
+	addressQueries  *appaddress.Queries
+	likeCommands    *appuserlike.Commands
+	likeQueries     *appuserlike.Queries
+	orderService    *orderfacade.Service
+	userQueries     *appuser.Queries
 }
 
 func NewAccountHandler(
-	addressService services.AddressServiceInterface,
-	likeService services.UsertLikeServiceInterface,
-	orderService services.OrderServiceInterface,
-	userService services.UserServiceInterface,
+	addressCommands *appaddress.Commands,
+	addressQueries *appaddress.Queries,
+	likeCommands *appuserlike.Commands,
+	likeQueries *appuserlike.Queries,
+	orderService *orderfacade.Service,
+	userQueries *appuser.Queries,
 ) *AccountHandler {
 	return &AccountHandler{
-		addressService: addressService,
-		likeService:    likeService,
-		orderService:   orderService,
-		userService:    userService,
+		addressCommands: addressCommands,
+		addressQueries:  addressQueries,
+		likeCommands:    likeCommands,
+		likeQueries:     likeQueries,
+		orderService:    orderService,
+		userQueries:     userQueries,
 	}
 }
-
 // GetAccountSummary returns combined user dashboard data.
 // @Summary      Get user dashboard summary
 // @Description  Returns user profile, default addresses, address count, liked products count, and recent orders (max 3)
@@ -49,22 +57,22 @@ func (ac *AccountHandler) GetAccountSummary(c *gin.Context) {
 	}
 
 	// 1. Get user profile (from userService – you need to inject it)
-	user, err := ac.userService.GetUserByID(userID)
+	user, err := ac.userQueries.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch user")
 		return
 	}
 
 	// 2. Default addresses
-	shippingAddr, _ := ac.addressService.GetDefaultAddress(userID, "shipping")
-	billingAddr, _ := ac.addressService.GetDefaultAddress(userID, "billing")
+	shippingAddr, _ := ac.addressQueries.GetDefaultAddress(userID, "shipping")
+	billingAddr, _ := ac.addressQueries.GetDefaultAddress(userID, "billing")
 
 	// 3. Address count
-	addresses, _ := ac.addressService.List(userID)
+	addresses, _ := ac.addressQueries.List(userID)
 	addressCount := len(addresses)
 
 	// 4. Liked products count
-	productIDs, _ := ac.likeService.GetUserLikedProductIDs(userID)
+	productIDs, _ := ac.likeQueries.GetUserLikedProductIDs(userID)
 	likedCount := len(productIDs)
 
 	// 5. Recent orders
@@ -208,7 +216,7 @@ func (ac *AccountHandler) GetUserWishlist(c *gin.Context) {
 	sortBy := c.Query("sort") // Reads ?sort=price-asc etc.
 
 	// Pass sortBy parameters straight to the service worker
-	products, total, err := ac.likeService.GetUserWishlist(userID, limit, offset, sortBy)
+	products, total, err := ac.likeQueries.GetUserWishlist(userID, limit, offset, sortBy)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch wishlist")
 		return

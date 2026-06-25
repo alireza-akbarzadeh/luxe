@@ -4,20 +4,22 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type CompareHandler struct {
-	compareService services.CompareServiceInterface
+	commands *appcompare.Commands
+	queries  *appcompare.Queries
 	validate       *validator.Validate
 }
 
-func NewCompareHandler(ps services.CompareServiceInterface) *CompareHandler {
+func NewCompareHandler(commands *appcompare.Commands, queries *appcompare.Queries) *CompareHandler {
 	return &CompareHandler{
-		compareService: ps,
+		commands: commands,
+		queries:  queries,
 		validate:       validator.New(),
 	}
 }
@@ -38,7 +40,7 @@ func (ctrl *CompareHandler) CompareProducts(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	products, err := ctrl.compareService.GetForCompare(c.Request.Context(), req.ProductIDs)
+	products, err := ctrl.queries.GetForCompare(c.Request.Context(), req.ProductIDs)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch products for comparison")
 		return
@@ -63,7 +65,7 @@ func (ctrl *CompareHandler) GetCompareList(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	productIDs, err := ctrl.compareService.GetCompareList(userID)
+	productIDs, err := ctrl.queries.GetCompareList(userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get compare list")
 		return
@@ -93,7 +95,7 @@ func (ctrl *CompareHandler) SyncCompareList(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	if err := ctrl.compareService.SyncCompareList(userID, req.ProductIDs); err != nil {
+	if err := ctrl.commands.SyncCompareList(userID, req.ProductIDs); err != nil {
 		utils.HandleServiceError(c, err, "failed to sync compare list")
 		return
 	}

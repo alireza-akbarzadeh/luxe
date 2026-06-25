@@ -5,24 +5,26 @@ import (
 	"net/http"
 	"time"
 
+	appadmin "github.com/alireza-akbarzadeh/luxe/internal/application/admin"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
+	appwebhook "github.com/alireza-akbarzadeh/luxe/internal/application/webhookevent"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type AdminHandler struct {
-	adminService        services.AdminServiceInterface
-	orderService        services.OrderServiceInterface
-	webhookEventService services.WebhookEventServiceInterface
-	validate            *validator.Validate
+	adminService   *appadmin.Service
+	orderService   *orderfacade.Service
+	webhookQueries *appwebhook.Queries
+	validate       *validator.Validate
 }
 
-func NewAdminHandler(svc services.AdminServiceInterface, orderSvc services.OrderServiceInterface, webhookSvc services.WebhookEventServiceInterface) *AdminHandler {
-	return &AdminHandler{adminService: svc, orderService: orderSvc, webhookEventService: webhookSvc, validate: validator.New()}
+func NewAdminHandler(svc *appadmin.Service, orderSvc *orderfacade.Service, webhookQueries *appwebhook.Queries) *AdminHandler {
+	return &AdminHandler{adminService: svc, orderService: orderSvc, webhookQueries: webhookQueries, validate: validator.New()}
 }
 
 // GetStats returns platform-wide statistics (admin only).
@@ -306,14 +308,14 @@ func (ctrl *AdminHandler) ExportOrdersCSV(c *gin.Context) {
 // @Router       /admin/webhooks [get]
 func (ctrl *AdminHandler) ListWebhookEvents(c *gin.Context) {
 	limit, offset := paginationParams(c, constants.DefaultLimit)
-	filters := services.WebhookEventFilters{
+	filters := appwebhook.EventFilters{
 		Source:    c.Query("source"),
 		EventType: c.Query("event_type"),
 		Status:    c.Query("status"),
 		Limit:     limit,
 		Offset:    offset,
 	}
-	events, total, err := ctrl.webhookEventService.List(c.Request.Context(), filters)
+	events, total, err := ctrl.webhookQueries.List(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list webhook events")
 		return

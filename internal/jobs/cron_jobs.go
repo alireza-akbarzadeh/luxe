@@ -3,14 +3,14 @@ package jobs
 import (
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	"github.com/alireza-akbarzadeh/luxe/internal/application/apps"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/robfig/cron/v3"
 )
 
 type CronJobs struct {
 	scheduler *cron.Cron
-	svc       *services.Services
+	apps      *apps.Applications
 }
 
 // Recoverer is a job wrapper that recovers from panics to prevent the scheduler from crashing.
@@ -25,14 +25,14 @@ func Recoverer(next cron.Job) cron.Job {
 	})
 }
 
-func NewCronJobs(svc *services.Services) *CronJobs {
+func NewCronJobs(apps *apps.Applications) *CronJobs {
 	scheduler := cron.New(
 		cron.WithLocation(time.UTC),
 		cron.WithChain(Recoverer),
 	)
 	return &CronJobs{
 		scheduler: scheduler,
-		svc:       svc,
+		apps:      apps,
 	}
 }
 
@@ -54,9 +54,6 @@ func (c *CronJobs) addJob(schedule, name string, cmd func()) {
 	}
 }
 
-// Start --------------------------------
-// Lifecycle
-// --------------------------------
 func (c *CronJobs) Start() {
 	c.registerJobs()
 	c.scheduler.Start()

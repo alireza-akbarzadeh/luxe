@@ -103,10 +103,9 @@ func (r *RoleRepository) ReplaceRolePermissions(ctx context.Context, role *model
 // CountPermissionByRoleAndKey checks if a role slug has a permission key.
 func (r *RoleRepository) CountPermissionByRoleAndKey(ctx context.Context, roleSlug, permissionKey string) (int64, error) {
 	var count int64
-	err := r.db.WithContext(ctx).
-		Table("role_permissions rp").
-		Joins("JOIN roles r ON r.id = rp.role_id").
-		Joins("JOIN permissions p ON p.id = rp.permission_id").
+	err := r.db.WithContext(ctx).Model(&models.RolePermission{}).
+		Joins("JOIN roles r ON r.id = role_permissions.role_id").
+		Joins("JOIN permissions p ON p.id = role_permissions.permission_id").
 		Where("r.slug = ? AND p.key = ?", roleSlug, permissionKey).
 		Count(&count).Error
 	return count, err

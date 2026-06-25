@@ -6,22 +6,27 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
+	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
-	userService    services.UserServiceInterface
-	addressService services.AddressServiceInterface
+	userCommands *appuser.Commands
+	userQueries  *appuser.Queries
+	addressCommands *appaddress.Commands
+	addressQueries  *appaddress.Queries
 	validate       *validator.Validate
 }
 
-func NewUserHandler(userService services.UserServiceInterface, addressService services.AddressServiceInterface) *UserHandler {
+func NewUserHandler(userCommands *appuser.Commands, userQueries *appuser.Queries, addressCommands *appaddress.Commands, addressQueries *appaddress.Queries) *UserHandler {
 	return &UserHandler{
-		userService:    userService,
-		addressService: addressService,
+		userCommands:    userCommands,
+		userQueries:     userQueries,
+		addressCommands: addressCommands,
+		addressQueries:  addressQueries,
 		validate:       validator.New(),
 	}
 }
@@ -45,7 +50,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := pc.userService.GetUserByID(userID)
+	user, err := pc.userQueries.GetByID(c.Request.Context(), userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, constants.ErrInternalServer.Error())
 		return
@@ -54,7 +59,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 	// Fetch default addresses
 	var defaultShipping, defaultBilling interface{}
 
-	shippingAddr, err := pc.addressService.GetDefaultAddress(userID, "shipping")
+	shippingAddr, err := pc.addressQueries.GetDefaultAddress(userID, "shipping")
 	if err == nil && shippingAddr != nil {
 		defaultShipping = gin.H{
 			"id":            shippingAddr.ID,
@@ -68,7 +73,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 		}
 	}
 
-	billingAddr, err := pc.addressService.GetDefaultAddress(userID, "billing")
+	billingAddr, err := pc.addressQueries.GetDefaultAddress(userID, "billing")
 	if err == nil && billingAddr != nil {
 		defaultBilling = gin.H{
 			"id":            billingAddr.ID,
@@ -112,7 +117,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 // @Failure      500 {object} utils.Response
 // @Router       /profile [put]
 func (pc *UserHandler) UpdateProfile(c *gin.Context) {
-	var req services.UpdateProfileRequest
+	var req appuser.UpdateProfileRequest
 	if !utils.BindAndValidate(c, &req, pc.validate) {
 		return
 	}
@@ -123,7 +128,7 @@ func (pc *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := pc.userService.UpdateUserProfile(userID, req)
+	user, err := pc.userCommands.UpdateProfile(c.Request.Context(), userID, appuser.UpdateProfileInput{FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone, Role: req.Role})
 	if err != nil {
 		utils.HandleServiceError(c, err, constants.ErrInternalServer.Error())
 		return
@@ -161,12 +166,12 @@ func (pc *UserHandler) UpdateProfile(c *gin.Context) {
 // @Failure      500 {object} utils.Response
 // @Router       /users [get]
 func (pc *UserHandler) GetAllUsers(c *gin.Context) {
-	var filter services.UserFilter
+	var filter appuser.UserFilter
 	if !utils.BindAndValidateQuery(c, &filter, pc.validate) {
 		return
 	}
 
-	users, total, err := pc.userService.GetUsers(filter)
+	users, total, err := pc.userQueries.List(c.Request.Context(), filter)
 	if err != nil {
 		utils.HandleServiceError(c, err, constants.ErrUserNotFound)
 		return
@@ -218,7 +223,7 @@ func (pc *UserHandler) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	err = pc.userService.DeleteUser(uint(id))
+	err = pc.userCommands.Delete(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete user")
 		return

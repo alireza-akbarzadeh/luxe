@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// AuditLogger records admin audit entries (implemented by services.AuditService).
+// AuditLogger records admin audit entries (implemented by apps.Applications).
 type AuditLogger interface {
 	Log(ctx context.Context, entry *models.AuditLog) error
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +23,7 @@ func TestInvoice_CreatedForPaidOrder(t *testing.T) {
 	token := registerUser(t, server, email)
 	product := seedProduct(t, suffix)
 
-	_, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, services.AddItemRequest{
+	_, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, appcart.AddItemRequest{
 		ProductID: product.ID,
 		Quantity:  1,
 	})

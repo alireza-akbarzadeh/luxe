@@ -6,22 +6,22 @@ import (
 	"strings"
 	"time"
 
+	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type ShipmentHandler struct {
-	shipmentService services.ShipmentServiceInterface
+	shipmentService *appshipment.Service
 	validate        *validator.Validate
 }
 
-func NewShipmentHandler(shipmentService services.ShipmentServiceInterface) *ShipmentHandler {
+func NewShipmentHandler(shipmentService *appshipment.Service) *ShipmentHandler {
 	return &ShipmentHandler{
 		shipmentService: shipmentService,
 		validate:        validator.New(),
@@ -54,7 +54,7 @@ func NewShipmentHandler(shipmentService services.ShipmentServiceInterface) *Ship
 // @Failure      500 {object} utils.Response
 // @Router       /admin/shipments [post]
 func (ctrl *ShipmentHandler) CreateShipment(c *gin.Context) {
-	var req services.CreateShipmentRequest
+	var req appshipment.CreateShipmentRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}

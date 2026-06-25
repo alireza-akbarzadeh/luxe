@@ -6,20 +6,22 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type InvoiceHandler struct {
-	svc      services.InvoiceServiceInterface
+	commands *appinvoice.Commands
+	queries  *appinvoice.Queries
 	validate *validator.Validate
 }
 
-func NewInvoiceHandler(svc services.InvoiceServiceInterface) *InvoiceHandler {
+func NewInvoiceHandler(commands *appinvoice.Commands, queries *appinvoice.Queries) *InvoiceHandler {
 	return &InvoiceHandler{
-		svc:      svc,
+		commands: commands,
+		queries:  queries,
 		validate: validator.New(),
 	}
 }
@@ -47,7 +49,7 @@ func (ctrl *InvoiceHandler) ListInvoicesAdmin(c *gin.Context) {
 	}
 	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
 
-	invoices, total, err := ctrl.svc.ListAdmin(c.Request.Context(), filters)
+	invoices, total, err := ctrl.queries.ListAdmin(c.Request.Context(), filters)
 	if err != nil {
 		RespondServiceError(c, err, "failed to list invoices")
 		return
@@ -79,7 +81,7 @@ func (ctrl *InvoiceHandler) GetInvoiceAdmin(c *gin.Context) {
 		return
 	}
 
-	invoice, err := ctrl.svc.GetByIDAdmin(c.Request.Context(), invoiceID)
+	invoice, err := ctrl.queries.GetByIDAdmin(c.Request.Context(), invoiceID)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load invoice")
 		return
@@ -108,7 +110,7 @@ func (ctrl *InvoiceHandler) UpdateInvoiceStatus(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.svc.UpdateStatus(c.Request.Context(), invoiceID, req.Status); err != nil {
+	if err := ctrl.commands.UpdateStatus(c.Request.Context(), invoiceID, req.Status); err != nil {
 		RespondServiceError(c, err, "failed to update invoice status")
 		return
 	}
@@ -129,7 +131,7 @@ func (ctrl *InvoiceHandler) DownloadInvoicePDF(c *gin.Context) {
 		return
 	}
 
-	data, filename, err := ctrl.svc.GeneratePDF(c.Request.Context(), invoiceID)
+	data, filename, err := ctrl.queries.GeneratePDF(c.Request.Context(), invoiceID)
 	if err != nil {
 		RespondServiceError(c, err, "failed to generate invoice pdf")
 		return
@@ -153,7 +155,7 @@ func (ctrl *InvoiceHandler) SendInvoiceEmail(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.svc.SendToCustomer(c.Request.Context(), invoiceID); err != nil {
+	if err := ctrl.commands.SendToCustomer(c.Request.Context(), invoiceID); err != nil {
 		RespondServiceError(c, err, "failed to send invoice email")
 		return
 	}

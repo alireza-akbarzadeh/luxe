@@ -5,19 +5,20 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type ReturnHandler struct {
-	svc      services.ReturnServiceInterface
+	commands *appreturn.Commands
+	queries  *appreturn.Queries
 	validate *validator.Validate
 }
 
-func NewReturnHandler(svc services.ReturnServiceInterface) *ReturnHandler {
-	return &ReturnHandler{svc: svc, validate: validator.New()}
+func NewReturnHandler(commands *appreturn.Commands, queries *appreturn.Queries) *ReturnHandler {
+	return &ReturnHandler{commands: commands, queries: queries, validate: validator.New()}
 }
 
 // CreateReturn opens a return/refund request for a delivered order.
@@ -41,7 +42,7 @@ func (ctrl *ReturnHandler) CreateReturn(c *gin.Context) {
 		return
 	}
 
-	ret, err := ctrl.svc.Create(c.Request.Context(), userID, req)
+	ret, err := ctrl.commands.Create(c.Request.Context(), userID, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to create return")
 		return
@@ -66,7 +67,7 @@ func (ctrl *ReturnHandler) GetMyReturns(c *gin.Context) {
 	}
 
 	limit, offset := paginationParams(c, constants.DefaultLimit)
-	returns, total, err := ctrl.svc.ListForUser(c.Request.Context(), userID, limit, offset)
+	returns, total, err := ctrl.queries.ListForUser(c.Request.Context(), userID, limit, offset)
 	if err != nil {
 		RespondServiceError(c, err, "failed to list returns")
 		return
@@ -104,7 +105,7 @@ func (ctrl *ReturnHandler) GetReturn(c *gin.Context) {
 		return
 	}
 
-	ret, err := ctrl.svc.GetByID(c.Request.Context(), returnID, userID, false)
+	ret, err := ctrl.queries.GetByID(c.Request.Context(), returnID, userID, false)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load return")
 		return
@@ -131,7 +132,7 @@ func (ctrl *ReturnHandler) ListReturnsAdmin(c *gin.Context) {
 	}
 	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
 
-	returns, total, err := ctrl.svc.ListAdmin(c.Request.Context(), filters)
+	returns, total, err := ctrl.queries.ListAdmin(c.Request.Context(), filters)
 	if err != nil {
 		RespondServiceError(c, err, "failed to list returns")
 		return
@@ -163,7 +164,7 @@ func (ctrl *ReturnHandler) GetReturnAdmin(c *gin.Context) {
 		return
 	}
 
-	ret, err := ctrl.svc.GetByID(c.Request.Context(), returnID, 0, true)
+	ret, err := ctrl.queries.GetByID(c.Request.Context(), returnID, 0, true)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load return")
 		return
@@ -199,7 +200,7 @@ func (ctrl *ReturnHandler) PerformReturnTransition(c *gin.Context) {
 		actorIDPtr = &actorID
 	}
 
-	result, err := ctrl.svc.PerformTransition(
+	result, err := ctrl.commands.PerformTransition(
 		c.Request.Context(),
 		returnID,
 		req.Event,

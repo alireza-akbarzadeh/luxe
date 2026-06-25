@@ -3,19 +3,19 @@ package handlers
 import (
 	"net/http"
 
+	apppush "github.com/alireza-akbarzadeh/luxe/internal/application/push"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type PushHandler struct {
-	pushService services.PushServiceInterface
+	pushService *apppush.WebPushService
 }
 
-func NewPushHandler(pushService services.PushServiceInterface) *PushHandler {
+func NewPushHandler(pushService *apppush.WebPushService) *PushHandler {
 	return &PushHandler{pushService: pushService}
 }
 

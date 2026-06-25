@@ -120,7 +120,7 @@ func (c *Commands) BulkCreate(ctx context.Context, requests []dto.CreateCategory
 	for _, req := range requests {
 		slug := req.Slug
 		if slug == "" {
-			slug = generateSlug(req.Name)
+			slug = GenerateSlug(req.Name)
 		}
 		unique, err := slugFn(ctx, slug, 0)
 		if err != nil {

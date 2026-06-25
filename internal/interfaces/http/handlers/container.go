@@ -1,10 +1,10 @@
-// Package handlers contains HTTP handlers for incoming requests. Each handler corresponds to a domain (e.g., Auth, Product, Order), validates input, calls services, and returns HTTP responses. Container aggregates all handlers for route wiring.
+// Package handlers contains HTTP handlers for incoming requests. Each handler corresponds to a domain (e.g., Auth, Product, Order), validates input, calls application use cases, and returns HTTP responses. Container aggregates all handlers for route wiring.
 package handlers
 
 import (
+	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/health"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"gorm.io/gorm"
 )
 
@@ -50,45 +50,45 @@ type Container struct {
 }
 
 // NewContainer initializes all handlers with their dependencies.
-func NewContainer(db *gorm.DB, svc *services.Services, cfg *config.Config) *Container {
+func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.Runtime, cfg *config.Config) *Container {
 	return &Container{
 		Health:   NewHealthHandler(health.NewChecker(db, cfg)),
-		Search:   NewSearchHandler(svc.Search),
-		Auth:     NewAuthHandler(svc.Auth),
-		User:     NewUserHandler(svc.User, svc.Address),
-		Cart:     NewCartHandler(svc.Cart),
-		Product:  NewProductHandler(svc.Product, svc.UserLike, svc.Pdp),
-		Pdp:      NewPdpHandler(svc.Pdp, svc.Product),
-		Compare:  NewCompareHandler(svc.Compare),
-		Category: NewCategoryHandler(svc.Category),
-		Order:    NewOrderHandler(svc.Order, svc.Checkout),
-		Shipment: NewShipmentHandler(svc.Shipment),
+		Search:   NewSearchHandler(apps.Search.Commands, apps.Search.Queries),
+		Auth:     NewAuthHandler(apps.Auth),
+		User:     NewUserHandler(apps.User.Commands, apps.User.Queries, apps.Address.Commands, apps.Address.Queries),
+		Cart:     NewCartHandler(apps.Cart.Commands, apps.Cart.Queries),
+		Product:  NewProductHandler(apps.Product, apps.UserLike.Commands, apps.UserLike.Queries, apps.Pdp),
+		Pdp:      NewPdpHandler(apps.Pdp, apps.Product),
+		Compare:  NewCompareHandler(apps.Compare.Commands, apps.Compare.Queries),
+		Category: NewCategoryHandler(apps.Category),
+		Order:    NewOrderHandler(apps.Order, apps.Checkout),
+		Shipment: NewShipmentHandler(apps.Shipment),
 		Page:     NewPageHandler(),
-		Store:    NewStoreHandler(svc.Store, svc.Product),
-		Account:  NewAccountHandler(svc.Address, svc.UserLike, svc.Order, svc.User),
-		Coupon:   NewCouponHandler(svc.Coupon),
-		Address:  NewAddressHandler(svc.Address),
-		Menu:     NewMenuHandler(svc.Menu),
-		Review:   NewReviewHandler(svc.Review),
-		UserLike: NewUserLikeHandler(svc.UserLike, svc.Product),
-		Wallet:   NewWalletHandler(svc.Wallet),
-		Payment:  NewPaymentMethodHandler(svc.Payment, cfg),
-		NavMenu:  NewNavMenuHandler(svc.NavMenu),
-		Brand:      NewBrandHandler(svc.Brand),
-		Collection: NewCollectionHandler(svc.Collection),
-		Settings:   NewSettingHandler(svc.Settings),
-		WebSocket: NewWebSocketHandler(svc),
-		Stripe:    NewStripeWebhookHandler(svc.Payment, svc.Checkout, svc.Wallet, svc.WebhookEvent, cfg),
-		Audit:     NewAuditHandler(svc.Audit),
-		Upload:    NewUploadHandler(svc.Upload),
-		Admin:     NewAdminHandler(svc.Admin, svc.Order, svc.WebhookEvent),
-		Import:    NewImportHandler(svc.Import),
-		Workflow:  NewWorkflowHandler(svc.Workflow),
-		Return:    NewReturnHandler(svc.Return),
-		Invoice:   NewInvoiceHandler(svc.Invoice),
-		Role:      NewRoleHandler(svc.Role),
-		Inventory: NewInventoryHandler(svc.Inventory),
-		Push:      NewPushHandler(svc.Push),
-		Ai:        NewAiHandler(svc.Ai),
+		Store:    NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product),
+		Account:  NewAccountHandler(apps.Address.Commands, apps.Address.Queries, apps.UserLike.Commands, apps.UserLike.Queries, apps.Order, apps.User.Queries),
+		Coupon:   NewCouponHandler(apps.Coupon),
+		Address:  NewAddressHandler(apps.Address.Commands, apps.Address.Queries),
+		Menu:     NewMenuHandler(apps.Menu.Commands, apps.Menu.Queries),
+		Review:   NewReviewHandler(apps.Review.Commands, apps.Review.Queries),
+		UserLike: NewUserLikeHandler(apps.UserLike.Commands, apps.UserLike.Queries, apps.Product),
+		Wallet:   NewWalletHandler(apps.Wallet),
+		Payment:  NewPaymentMethodHandler(apps.Payment, cfg),
+		NavMenu:  NewNavMenuHandler(apps.NavMenu.Commands, apps.NavMenu.Queries),
+		Brand:      NewBrandHandler(apps.Brand),
+		Collection: NewCollectionHandler(apps.Collection),
+		Settings:   NewSettingHandler(apps.Settings.Commands, apps.Settings.Queries),
+		WebSocket: NewWebSocketHandler(db, runtime.WebSocketHub, apps.Notification),
+		Stripe:    NewStripeWebhookHandler(apps.Payment, apps.Checkout, apps.Wallet, apps.Webhook.Commands, cfg),
+		Audit:     NewAuditHandler(apps.Audit.Queries),
+		Upload:    NewUploadHandler(apps.Upload),
+		Admin:     NewAdminHandler(apps.Admin, apps.Order, apps.Webhook.Queries),
+		Import:    NewImportHandler(apps.Import),
+		Workflow:  NewWorkflowHandler(apps.Workflow),
+		Return:    NewReturnHandler(apps.Return.Commands, apps.Return.Queries),
+		Invoice:   NewInvoiceHandler(apps.Invoice.Commands, apps.Invoice.Queries),
+		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
+		Inventory: NewInventoryHandler(apps.Inventory),
+		Push:      NewPushHandler(apps.Push),
+		Ai:        NewAiHandler(apps.AI),
 	}
 }

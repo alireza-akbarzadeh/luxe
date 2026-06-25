@@ -15,14 +15,14 @@ func (c *CronJobs) registerOrderJobs() {
 
 func (c *CronJobs) updateOverdueOrders() {
 	utils.Log.Info("Updating overdue orders...")
-	if err := c.svc.Order.UpdateOverdueOrders(context.Background()); err != nil {
+	if err := c.apps.Order.UpdateOverdueOrders(context.Background()); err != nil {
 		utils.Log.WithError(err).Error("Overdue orders update failed")
 	}
 }
 
 func (c *CronJobs) simulateDeliveries() {
 	utils.Log.Info("Simulating deliveries...")
-	if err := c.svc.Shipment.SimulateDeliveries(); err != nil {
+	if err := c.apps.Shipment.SimulateDeliveries(); err != nil {
 		utils.Log.WithError(err).Error("Shipment delivery simulation failed")
 	}
 }

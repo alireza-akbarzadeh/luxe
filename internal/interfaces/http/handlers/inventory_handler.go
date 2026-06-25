@@ -1,24 +1,23 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 
+	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type InventoryHandler struct {
-	inventoryService services.InventoryServiceInterface
+	inventoryService *appinventory.Service
 	validate         *validator.Validate
 }
 
-func NewInventoryHandler(inventoryService services.InventoryServiceInterface) *InventoryHandler {
+func NewInventoryHandler(inventoryService *appinventory.Service) *InventoryHandler {
 	return &InventoryHandler{
 		inventoryService: inventoryService,
 		validate:         validator.New(),
@@ -119,10 +118,6 @@ func (ctrl *InventoryHandler) Adjust(c *gin.Context) {
 
 	item, err := ctrl.inventoryService.AdjustStock(c.Request.Context(), actorID, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "product not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to adjust stock")
 		return
 	}

@@ -4,18 +4,18 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type UploadHandler struct {
-	uploadService services.UploadServiceInterface
+	uploadService *appupload.Service
 	validate      *validator.Validate
 }
 
-func NewUploadHandler(uploadService services.UploadServiceInterface) *UploadHandler {
+func NewUploadHandler(uploadService *appupload.Service) *UploadHandler {
 	return &UploadHandler{
 		uploadService: uploadService,
 		validate:      validator.New(),

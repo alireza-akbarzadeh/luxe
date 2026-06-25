@@ -8,38 +8,35 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	appauth "github.com/alireza-akbarzadeh/luxe/internal/application/auth"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-// uint test
-
 type MockAuthService struct {
 	mock.Mock
-	services.AuthServiceInterface
 }
 
-func (m *MockAuthService) Login(ctx context.Context, req dto.LoginRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+func (m *MockAuthService) Login(ctx context.Context, req dto.LoginRequest, meta appauth.SessionMeta) (string, string, *models.User, error) {
 	args := m.Called(ctx, req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) Register(ctx context.Context, req dto.RegisterRequest, meta services.SessionMeta) (string, string, *models.User, error) {
+func (m *MockAuthService) Register(ctx context.Context, req dto.RegisterRequest, meta appauth.SessionMeta) (string, string, *models.User, error) {
 	args := m.Called(ctx, req, meta)
 	return args.String(0), args.String(1), args.Get(2).(*models.User), args.Error(3)
 }
 
-func (m *MockAuthService) RefreshTokens(ctx context.Context, refreshToken string, meta services.SessionMeta) (string, string, error) {
+func (m *MockAuthService) RefreshTokens(ctx context.Context, refreshToken string, meta appauth.SessionMeta) (string, string, error) {
 	args := m.Called(ctx, refreshToken, meta)
 	return args.String(0), args.String(1), args.Error(2)
 }
 
-func (m *MockAuthService) Logout(ctx context.Context, userID uint, req services.LogoutRequest) error {
+func (m *MockAuthService) Logout(ctx context.Context, userID uint, req appauth.LogoutRequest) error {
 	args := m.Called(ctx, userID, req)
 	return args.Error(0)
 }
@@ -56,6 +53,34 @@ func (m *MockAuthService) ResetPassword(ctx context.Context, token string, newPa
 
 func (m *MockAuthService) ForgotPassword(ctx context.Context, email string) error {
 	args := m.Called(ctx, email)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) VerifyEmail(ctx context.Context, token string) error {
+	args := m.Called(ctx, token)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) SendVerificationEmail(ctx context.Context, userID uint) error {
+	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) ListSessions(ctx context.Context, userID uint, currentRefreshToken string) ([]dto.SessionResponse, error) {
+	args := m.Called(ctx, userID, currentRefreshToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]dto.SessionResponse), args.Error(1)
+}
+
+func (m *MockAuthService) RevokeSession(ctx context.Context, userID, sessionID uint) error {
+	args := m.Called(ctx, userID, sessionID)
+	return args.Error(0)
+}
+
+func (m *MockAuthService) RevokeOtherSessions(ctx context.Context, userID uint, currentRefreshToken string) error {
+	args := m.Called(ctx, userID, currentRefreshToken)
 	return args.Error(0)
 }
 

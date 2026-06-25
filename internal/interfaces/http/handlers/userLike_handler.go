@@ -6,21 +6,24 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type UserLikeHandler struct {
-	likeService    services.UsertLikeServiceInterface
-	productService services.ProductServiceInterface
+	commands *appuserlike.Commands
+	queries  *appuserlike.Queries
+	productService *appcatalog.Service
 	validate       *validator.Validate
 }
 
-func NewUserLikeHandler(ls services.UsertLikeServiceInterface, productServices services.ProductServiceInterface) *UserLikeHandler {
+func NewUserLikeHandler(commands *appuserlike.Commands, queries *appuserlike.Queries, productServices *appcatalog.Service) *UserLikeHandler {
 	return &UserLikeHandler{
-		likeService:    ls,
+		commands: commands,
+		queries:  queries,
 		productService: productServices,
 		validate:       validator.New(),
 	}
@@ -62,10 +65,10 @@ func (ctrl *UserLikeHandler) ToggleLike(c *gin.Context) {
 
 	var liked bool
 	if req.Like != nil && *req.Like {
-		err = ctrl.likeService.Like(userID, uint(productID))
+		err = ctrl.commands.Like(userID, uint(productID))
 		liked = true
 	} else if req.Like != nil && !*req.Like {
-		err = ctrl.likeService.Unlike(userID, uint(productID))
+		err = ctrl.commands.Unlike(userID, uint(productID))
 		liked = false
 	} else {
 		utils.ErrorResponse(c, 400, "like field is required")
@@ -111,7 +114,7 @@ func (ctrl *UserLikeHandler) IsLikedByUser(c *gin.Context) {
 		return
 	}
 
-	liked, err := ctrl.likeService.IsLikedByUser(userID, uint(productID))
+	liked, err := ctrl.queries.IsLikedByUser(userID, uint(productID))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to check like status")
 		return
@@ -137,7 +140,7 @@ func (ctrl *UserLikeHandler) GetUserLikedProductIDs(c *gin.Context) {
 		return
 	}
 
-	ids, err := ctrl.likeService.GetUserLikedProductIDs(userID)
+	ids, err := ctrl.queries.GetUserLikedProductIDs(userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch liked products")
 		return

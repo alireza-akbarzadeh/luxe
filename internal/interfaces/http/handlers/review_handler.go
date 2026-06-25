@@ -6,20 +6,22 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type ReviewHandler struct {
-	reviewService services.ReviewServiceInterface
+	commands *appreview.Commands
+	queries  *appreview.Queries
 	validate      *validator.Validate
 }
 
-func NewReviewHandler(svc services.ReviewServiceInterface) *ReviewHandler {
+func NewReviewHandler(commands *appreview.Commands, queries *appreview.Queries) *ReviewHandler {
 	return &ReviewHandler{
-		reviewService: svc,
+		commands: commands,
+		queries:  queries,
 		validate:      validator.New(),
 	}
 }
@@ -47,7 +49,7 @@ func (rc *ReviewHandler) Create(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, rc.validate) {
 		return
 	}
-	review, err := rc.reviewService.Create(userID, req)
+	review, err := rc.commands.Create(c.Request.Context(), userID, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create review")
 		return
@@ -81,7 +83,7 @@ func (rc *ReviewHandler) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, rc.validate) {
 		return
 	}
-	review, err := rc.reviewService.Update(userID, id, req)
+	review, err := rc.commands.Update(c.Request.Context(), userID, id, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update review")
 		return
@@ -107,7 +109,7 @@ func (rc *ReviewHandler) Delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	err := rc.reviewService.Delete(userID, id)
+	err := rc.commands.Delete(c.Request.Context(), userID, id)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete review")
 		return
@@ -132,7 +134,7 @@ func (rc *ReviewHandler) GetProductReviews(c *gin.Context) {
 	}
 	limit, offset := paginationParams(c, 10)
 
-	reviews, total, summary, err := rc.reviewService.GetProductReviews(uint(productIDRaw), limit, offset)
+	reviews, total, summary, err := rc.queries.GetProductReviews(c.Request.Context(), uint(productIDRaw), limit, offset)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch reviews")
 		return
@@ -175,7 +177,7 @@ func (rc *ReviewHandler) GetMyProductReview(c *gin.Context) {
 		return
 	}
 
-	review, err := rc.reviewService.GetUserReviewForProduct(userID, uint(productIDRaw))
+	review, err := rc.queries.GetUserReviewForProduct(c.Request.Context(), userID, uint(productIDRaw))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch review")
 		return
@@ -208,7 +210,7 @@ func (rc *ReviewHandler) ListReviewsAdmin(c *gin.Context) {
 	}
 	filters.Limit, filters.Offset = paginationParams(c, constants.DefaultLimit)
 
-	reviews, total, err := rc.reviewService.ListAdmin(c.Request.Context(), filters)
+	reviews, total, err := rc.queries.ListAdmin(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list reviews")
 		return
@@ -256,7 +258,7 @@ func (rc *ReviewHandler) PerformReviewTransition(c *gin.Context) {
 		actorIDPtr = &actorID
 	}
 
-	result, err := rc.reviewService.PerformTransition(
+	result, err := rc.commands.PerformTransition(
 		c.Request.Context(),
 		id,
 		req.Event,

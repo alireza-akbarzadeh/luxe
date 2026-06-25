@@ -6,16 +6,16 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
 
 type AiHandler struct {
-	aiService services.AiServiceInterface
+	aiService *appai.Service
 }
 
-func NewAiHandler(aiService services.AiServiceInterface) *AiHandler {
+func NewAiHandler(aiService *appai.Service) *AiHandler {
 	return &AiHandler{aiService: aiService}
 }
 

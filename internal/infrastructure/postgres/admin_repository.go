@@ -250,14 +250,14 @@ type DashboardSeriesRow struct {
 // DailyOrderSeries returns daily revenue/order counts since start.
 func (r *AdminRepository) DailyOrderSeries(ctx context.Context, start time.Time) ([]DashboardSeriesRow, error) {
 	var rows []DashboardSeriesRow
-	err := r.db.WithContext(ctx).Raw(`
-		SELECT created_at::date AS date,
-		       COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
-		       COUNT(*) AS orders
-		FROM orders
-		WHERE created_at >= ? AND deleted_at IS NULL
-		GROUP BY created_at::date
-		ORDER BY date ASC`, revenueOrderStatuses, start).Scan(&rows).Error
+	err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select(`created_at::date AS date,
+			COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
+			COUNT(*) AS orders`, revenueOrderStatuses).
+		Where("created_at >= ?", start).
+		Group("created_at::date").
+		Order("date ASC").
+		Scan(&rows).Error
 	return rows, err
 }
 
@@ -272,15 +272,15 @@ type RevenueDailyRow struct {
 // DailyRevenueSeries returns daily revenue report rows since start.
 func (r *AdminRepository) DailyRevenueSeries(ctx context.Context, start time.Time) ([]RevenueDailyRow, error) {
 	var rows []RevenueDailyRow
-	err := r.db.WithContext(ctx).Raw(`
-		SELECT created_at::date AS date,
-		       COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
-		       COUNT(*) AS orders,
-		       COUNT(CASE WHEN status IN ? THEN 1 END) AS paid_orders
-		FROM orders
-		WHERE created_at >= ? AND deleted_at IS NULL
-		GROUP BY created_at::date
-		ORDER BY date ASC`, revenueOrderStatuses, revenueOrderStatuses, start).Scan(&rows).Error
+	err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select(`created_at::date AS date,
+			COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
+			COUNT(*) AS orders,
+			COUNT(CASE WHEN status IN ? THEN 1 END) AS paid_orders`, revenueOrderStatuses, revenueOrderStatuses).
+		Where("created_at >= ?", start).
+		Group("created_at::date").
+		Order("date ASC").
+		Scan(&rows).Error
 	return rows, err
 }
 
@@ -319,16 +319,16 @@ type TopProductRow struct {
 // TopProducts returns top products by revenue since start.
 func (r *AdminRepository) TopProducts(ctx context.Context, start time.Time, limit int) ([]TopProductRow, error) {
 	var rows []TopProductRow
-	err := r.db.WithContext(ctx).Table("order_items oi").
+	err := r.db.WithContext(ctx).Model(&models.OrderItem{}).
 		Select(`
 			p.id,
 			p.name,
 			p.sku,
 			p.stock,
-			COALESCE(SUM(oi.quantity), 0) AS units_sold,
-			COALESCE(SUM(oi.quantity * oi.price), 0) AS revenue`).
-		Joins("INNER JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL").
-		Joins("INNER JOIN products p ON p.id = oi.product_id AND p.deleted_at IS NULL").
+			COALESCE(SUM(order_items.quantity), 0) AS units_sold,
+			COALESCE(SUM(order_items.quantity * order_items.price), 0) AS revenue`).
+		Joins("INNER JOIN orders o ON o.id = order_items.order_id AND o.deleted_at IS NULL").
+		Joins("INNER JOIN products p ON p.id = order_items.product_id AND p.deleted_at IS NULL").
 		Where("o.created_at >= ? AND o.status IN ?", start, revenueOrderStatuses).
 		Group("p.id, p.name, p.sku, p.stock").
 		Order("revenue DESC").
@@ -358,14 +358,14 @@ type HourlyOrderRow struct {
 // HourlyOrderSeries returns hourly revenue/order counts since start.
 func (r *AdminRepository) HourlyOrderSeries(ctx context.Context, start time.Time) ([]HourlyOrderRow, error) {
 	var rows []HourlyOrderRow
-	err := r.db.WithContext(ctx).Raw(`
-		SELECT date_trunc('hour', created_at) AS hour,
-		       COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
-		       COUNT(*) AS orders
-		FROM orders
-		WHERE created_at >= ? AND deleted_at IS NULL
-		GROUP BY date_trunc('hour', created_at)
-		ORDER BY hour ASC`, revenueOrderStatuses, start).Scan(&rows).Error
+	err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select(`date_trunc('hour', created_at) AS hour,
+			COALESCE(SUM(CASE WHEN status IN ? THEN total_amount ELSE 0 END), 0) AS revenue,
+			COUNT(*) AS orders`, revenueOrderStatuses).
+		Where("created_at >= ?", start).
+		Group("date_trunc('hour', created_at)").
+		Order("hour ASC").
+		Scan(&rows).Error
 	return rows, err
 }
 

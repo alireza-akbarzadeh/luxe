@@ -12,14 +12,22 @@ import (
 
 // UserFilter defines filter and pagination parameters for listing users.
 type UserFilter struct {
-	Limit     int
-	Offset    int
-	IsActive  *bool
-	Email     string
-	Phone     string
-	FirstName string
-	LastName  string
-	Role      string
+	Limit     int    `form:"limit" binding:"omitempty,max=100"`
+	Offset    int    `form:"offset" binding:"omitempty,min=0"`
+	IsActive  *bool  `form:"is_active"`
+	Email     string `form:"email"`
+	Phone     string `form:"phone"`
+	FirstName string `form:"first_name"`
+	LastName  string `form:"last_name"`
+	Role      string `form:"role" binding:"omitempty,oneof=user admin moderator"`
+}
+
+// UpdateProfileRequest is the HTTP payload for profile updates.
+type UpdateProfileRequest struct {
+	FirstName string `json:"first_name" validate:"required,min=1,max=100"`
+	LastName  string `json:"last_name" validate:"required,min=1,max=100"`
+	Phone     string `json:"phone" validate:"omitempty,e164"`
+	Role      string `form:"role" binding:"omitempty,oneof=user admin moderator"`
 }
 
 // UpdateProfileInput updates non-sensitive user fields.

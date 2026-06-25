@@ -7,18 +7,18 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type CouponHandler struct {
-	couponService services.CouponServiceInterface
+	couponService *appcoupon.Service
 	validate      *validator.Validate
 }
 
-func NewCouponHandler(couponService services.CouponServiceInterface) *CouponHandler {
+func NewCouponHandler(couponService *appcoupon.Service) *CouponHandler {
 	return &CouponHandler{
 		couponService: couponService,
 		validate:      validator.New(),
@@ -46,7 +46,7 @@ func (cc *CouponHandler) Create(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, cc.validate) {
 		return
 	}
-	coupon, err := cc.couponService.Create(req)
+	coupon, err := cc.couponService.Create(c.Request.Context(), req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create coupon")
 		return
@@ -88,7 +88,7 @@ func (cc *CouponHandler) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, cc.validate) {
 		return
 	}
-	coupon, err := cc.couponService.Update(id, req)
+	coupon, err := cc.couponService.Update(c.Request.Context(), id, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update coupon")
 		return
@@ -124,7 +124,7 @@ func (cc *CouponHandler) Delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	err := cc.couponService.Delete(id)
+	err := cc.couponService.Delete(c.Request.Context(), id)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete coupon")
 		return
@@ -162,7 +162,7 @@ func (cc *CouponHandler) Validate(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	coupon, discount, err := cc.couponService.ValidateCoupon(req.Code, userID, req.OrderTotal)
+	coupon, discount, err := cc.couponService.ValidateCoupon(c.Request.Context(), req.Code, userID, req.OrderTotal)
 	if err != nil {
 		utils.HandleServiceError(c, err, "coupon validation failed")
 		return
@@ -208,7 +208,7 @@ func (cc *CouponHandler) List(c *gin.Context) {
 		return
 	}
 
-	coupons, total, err := cc.couponService.List(filters)
+	coupons, total, err := cc.couponService.List(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list coupons")
 		return
@@ -253,7 +253,7 @@ func (cc *CouponHandler) ListAdmin(c *gin.Context) {
 		return
 	}
 
-	coupons, total, err := cc.couponService.ListAdmin(filters)
+	coupons, total, err := cc.couponService.ListAdmin(c.Request.Context(), filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list coupons")
 		return
@@ -306,7 +306,7 @@ func (cc *CouponHandler) GetMyCoupons(c *gin.Context) {
 		}
 		orderTotal = parsed
 	}
-	coupons, err := cc.couponService.GetAvailableCouponsForUser(userID, orderTotal)
+	coupons, err := cc.couponService.GetAvailableCouponsForUser(c.Request.Context(), userID, orderTotal)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch available coupons")
 		return
@@ -338,7 +338,7 @@ func (cc *CouponHandler) GetCouponByID(c *gin.Context) {
 		return
 	}
 
-	coupon, err := cc.couponService.GetByID(uint(id))
+	coupon, err := cc.couponService.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to find coupon")
 		return

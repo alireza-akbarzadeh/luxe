@@ -4,20 +4,22 @@ import (
 	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type NavMenuHandler struct {
-	service  services.NavMenuServiceInterface
+	commands *appnavmenu.Commands
+	queries  *appnavmenu.Queries
 	validate *validator.Validate
 }
 
-func NewNavMenuHandler(service services.NavMenuServiceInterface) *NavMenuHandler {
+func NewNavMenuHandler(commands *appnavmenu.Commands, queries *appnavmenu.Queries) *NavMenuHandler {
 	return &NavMenuHandler{
-		service:  service,
+		commands: commands,
+		queries:  queries,
 		validate: validator.New(),
 	}
 }
@@ -29,7 +31,7 @@ func NewNavMenuHandler(service services.NavMenuServiceInterface) *NavMenuHandler
 // @Success 200 {object} utils.Response{data=[]dto.NavItemResponse}
 // @Router /nav-menus [get]
 func (ctrl *NavMenuHandler) GetAll(c *gin.Context) {
-	menu, err := ctrl.service.GetAll(c.Request.Context())
+	menu, err := ctrl.queries.GetAll(c.Request.Context())
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch all menu")
 		return
@@ -49,7 +51,7 @@ func (ctrl *NavMenuHandler) GetByID(c *gin.Context) {
 		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
-	menu, err := ctrl.service.GetByID(c.Request.Context(), uint(id))
+	menu, err := ctrl.queries.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch menu")
 		return
@@ -71,7 +73,7 @@ func (ctrl *NavMenuHandler) Create(c *gin.Context) {
 		utils.HandleServiceError(c, err, "invalid nav menu")
 		return
 	}
-	created, err := ctrl.service.Create(c.Request.Context(), &req)
+	created, err := ctrl.commands.Create(c.Request.Context(), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create menu")
 		return
@@ -98,7 +100,7 @@ func (ctrl *NavMenuHandler) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	updated, err := ctrl.service.Update(c.Request.Context(), uint(id), &req)
+	updated, err := ctrl.commands.Update(c.Request.Context(), uint(id), &req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update menu")
 		return
@@ -119,7 +121,7 @@ func (ctrl *NavMenuHandler) Reorder(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	if err := ctrl.service.Reorder(c.Request.Context(), &req); err != nil {
+	if err := ctrl.commands.Reorder(c.Request.Context(), &req); err != nil {
 		utils.HandleServiceError(c, err, "failed to reorder menus")
 		return
 	}
@@ -139,7 +141,7 @@ func (ctrl *NavMenuHandler) Delete(c *gin.Context) {
 		utils.HandleServiceError(c, err, "invalid id param")
 		return
 	}
-	err = ctrl.service.Delete(c.Request.Context(), uint(id))
+	err = ctrl.commands.Delete(c.Request.Context(), uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete menu")
 		return

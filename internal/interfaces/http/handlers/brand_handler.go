@@ -2,12 +2,11 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/application/brand"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -15,12 +14,12 @@ import (
 
 // BrandHandler handles brand-related HTTP requests.
 type BrandHandler struct {
-	brandService services.BrandServiceInterface
+	brandService *brand.Service
 	validate     *validator.Validate
 }
 
 // NewBrandHandler creates a new BrandHandler.
-func NewBrandHandler(brandService services.BrandServiceInterface) *BrandHandler {
+func NewBrandHandler(brandService *brand.Service) *BrandHandler {
 	return &BrandHandler{
 		brandService: brandService,
 		validate:     validator.New(),
@@ -72,10 +71,6 @@ func (ctrl *BrandHandler) GetBrand(c *gin.Context) {
 
 	brand, err := ctrl.brandService.GetByID(c.Request.Context(), id)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "brand not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to retrieve brand")
 		return
 	}
@@ -149,10 +144,6 @@ func (ctrl *BrandHandler) UpdateBrand(c *gin.Context) {
 
 	brand, err := ctrl.brandService.Update(c.Request.Context(), id, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "brand not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to update brand")
 		return
 	}
@@ -179,10 +170,6 @@ func (ctrl *BrandHandler) DeleteBrand(c *gin.Context) {
 
 	err := ctrl.brandService.Delete(c.Request.Context(), id)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "brand not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to delete brand")
 		return
 	}

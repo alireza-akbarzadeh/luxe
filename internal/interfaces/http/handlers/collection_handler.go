@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/application/collection"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -14,12 +13,12 @@ import (
 
 // CollectionHandler handles collection HTTP requests.
 type CollectionHandler struct {
-	collectionService services.CollectionServiceInterface
+	collectionService *collection.Service
 	validate          *validator.Validate
 }
 
 // NewCollectionHandler creates a new CollectionHandler.
-func NewCollectionHandler(collectionService services.CollectionServiceInterface) *CollectionHandler {
+func NewCollectionHandler(collectionService *collection.Service) *CollectionHandler {
 	return &CollectionHandler{
 		collectionService: collectionService,
 		validate:          validator.New(),
@@ -68,10 +67,6 @@ func (ctrl *CollectionHandler) GetCollection(c *gin.Context) {
 
 	collection, err := ctrl.collectionService.GetByID(c.Request.Context(), id)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "collection not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to retrieve collection")
 		return
 	}
@@ -142,10 +137,6 @@ func (ctrl *CollectionHandler) UpdateCollection(c *gin.Context) {
 
 	collection, err := ctrl.collectionService.Update(c.Request.Context(), id, &req)
 	if err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "collection not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to update collection")
 		return
 	}
@@ -168,10 +159,6 @@ func (ctrl *CollectionHandler) DeleteCollection(c *gin.Context) {
 	}
 
 	if err := ctrl.collectionService.Delete(c.Request.Context(), id); err != nil {
-		if errors.Is(err, services.ErrNotFound) {
-			utils.NotFoundResponse(c, "collection not found")
-			return
-		}
 		utils.HandleServiceError(c, err, "failed to delete collection")
 		return
 	}

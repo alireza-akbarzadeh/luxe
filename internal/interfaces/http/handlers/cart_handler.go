@@ -7,21 +7,23 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type CartHandler struct {
-	cartService services.CartServiceInterface
+	commands *appcart.Commands
+	queries  *appcart.Queries
 	validate    *validator.Validate
 }
 
-func NewCartHandler(cartService services.CartServiceInterface) *CartHandler {
+func NewCartHandler(commands *appcart.Commands, queries *appcart.Queries) *CartHandler {
 	return &CartHandler{
-		cartService: cartService,
-		validate:    validator.New(),
+		commands: commands,
+		queries:  queries,
+		validate: validator.New(),
 	}
 }
 
@@ -32,7 +34,7 @@ func NewCartHandler(cartService services.CartServiceInterface) *CartHandler {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body services.AddItemRequest true "Add item"
+// @Param        request body appcart.AddItemRequest true "Add item"
 // @Success      200 {object} dto.AddItemResponse
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
@@ -44,11 +46,11 @@ func (ctrl *CartHandler) AddItem(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	var req services.AddItemRequest
+	var req appcart.AddItemRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	item, err := ctrl.cartService.AddItem(c.Request.Context(), userID, req)
+	item, err := ctrl.commands.AddItem(c.Request.Context(), userID, appcart.AddItemInput{ProductID: req.ProductID, Quantity: req.Quantity})
 	if err != nil {
 		RespondServiceError(c, err, "failed to add item")
 		return
@@ -84,7 +86,7 @@ func (ctrl *CartHandler) GetCart(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	cart, err := ctrl.cartService.GetCart(c.Request.Context(), userID)
+	cart, err := ctrl.queries.Get(c.Request.Context(), userID)
 	if err != nil {
 		RespondServiceError(c, err, "failed to fetch cart")
 		return
@@ -154,7 +156,7 @@ func (ctrl *CartHandler) GetCart(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path int true "Cart item ID"
-// @Param        request body services.UpdateCartItemRequest true "Update quantity"
+// @Param        request body appcart.UpdateCartItemRequest true "Update quantity"
 // @Success      200 {object} dto.EmptyResponse
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
@@ -171,11 +173,11 @@ func (ctrl *CartHandler) UpdateItem(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "invalid item id")
 		return
 	}
-	var req services.UpdateCartItemRequest
+	var req appcart.UpdateCartItemRequest
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	if err := ctrl.cartService.UpdateCartItem(c.Request.Context(), userID, uint(itemID), req); err != nil {
+	if err := ctrl.commands.UpdateItem(c.Request.Context(), userID, uint(itemID), appcart.UpdateItemInput{Quantity: req.Quantity, Color: req.Color, Size: req.Size}); err != nil {
 		RespondServiceError(c, err, "failed to update item")
 		return
 	}
@@ -214,7 +216,7 @@ func (ctrl *CartHandler) RemoveItem(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.cartService.RemoveItem(c.Request.Context(), userID, uint(itemID)); err != nil {
+	if err := ctrl.commands.RemoveItem(c.Request.Context(), userID, uint(itemID)); err != nil {
 		RespondServiceError(c, err, "failed to remove item")
 		return
 	}
@@ -244,7 +246,7 @@ func (ctrl *CartHandler) ClearCart(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	if err := ctrl.cartService.ClearCart(c.Request.Context(), userID); err != nil {
+	if err := ctrl.commands.Clear(c.Request.Context(), userID); err != nil {
 		RespondServiceError(c, err, "failed to clear cart")
 		return
 	}

@@ -6,20 +6,22 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type AddressHandler struct {
-	addressService services.AddressServiceInterface
+	commands *appaddress.Commands
+	queries  *appaddress.Queries
 	validate       *validator.Validate
 }
 
-func NewAddressHandler(svc services.AddressServiceInterface) *AddressHandler {
+func NewAddressHandler(commands *appaddress.Commands, queries *appaddress.Queries) *AddressHandler {
 	return &AddressHandler{
-		addressService: svc,
+		commands: commands,
+		queries:  queries,
 		validate:       validator.New(),
 	}
 }
@@ -47,7 +49,7 @@ func (ac *AddressHandler) Create(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ac.validate) {
 		return
 	}
-	address, err := ac.addressService.Create(userID, req)
+	address, err := ac.commands.Create(userID, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create address")
 		return
@@ -90,7 +92,7 @@ func (ac *AddressHandler) Update(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ac.validate) {
 		return
 	}
-	address, err := ac.addressService.Update(id, userID, req)
+	address, err := ac.commands.Update(id, userID, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update address")
 		return
@@ -128,7 +130,7 @@ func (ac *AddressHandler) Delete(c *gin.Context) {
 	if !ok {
 		return
 	}
-	err := ac.addressService.Delete(id, userID)
+	err := ac.commands.Delete(id, userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to delete address")
 		return
@@ -159,7 +161,7 @@ func (ac *AddressHandler) List(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	addresses, err := ac.addressService.List(userID)
+	addresses, err := ac.queries.List(userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch addresses")
 		return
@@ -194,7 +196,7 @@ func (ac *AddressHandler) SetDefault(c *gin.Context) {
 	if !ok {
 		return
 	}
-	err := ac.addressService.SetDefault(id, userID)
+	err := ac.commands.SetDefault(id, userID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to set default address")
 		return
@@ -232,7 +234,7 @@ func (ac *AddressHandler) GetDefault(c *gin.Context) {
 		utils.ErrorResponse(c, 400, "type must be shipping or billing")
 		return
 	}
-	addr, err := ac.addressService.GetDefaultAddress(userID, addressType)
+	addr, err := ac.queries.GetDefaultAddress(userID, addressType)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to get default address")
 		return

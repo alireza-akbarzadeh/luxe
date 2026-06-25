@@ -8,8 +8,7 @@ High-level design for developers and AI agents. For coding rules see `.cursorrul
 Client
   → Gin middleware (CORS, access log, Sentry, OTEL, auth)
   → HTTP handler (bind DTO, validate, utils.Response)
-  → Service facade (internal/services — wiring, workflow sync, WS/notifications)
-  → Application (commands/queries — use cases)
+  → Application (apps.Applications — use cases + orchestrators)
   → Domain (rules, ports)
   → infrastructure/postgres (GORM) → PostgreSQL
 ```
@@ -17,8 +16,8 @@ Client
 Background work:
 
 ```
-Service → asynq.JobQueue → Asynq (Redis) or in-memory worker
-Cron    → internal/jobs/cron_jobs.go
+Application → asynq.JobQueue → Asynq (Redis) or in-memory worker
+Cron        → internal/jobs/cron_jobs.go (uses apps.Applications)
 ```
 
 ## Package layout
@@ -29,9 +28,10 @@ Cron    → internal/jobs/cron_jobs.go
 | `internal/interfaces/http/dto/` | Request/response DTOs |
 | `internal/interfaces/http/routes/` | Route registration |
 | `internal/interfaces/http/middleware/` | Auth, CORS, logging, tracing |
-| `internal/services/` | Thin facades + registry (`registry.go`); workflow sync, WebSocket, cross-cutting orchestration |
+| `internal/application/` | Use-case orchestration (commands/queries/services per bounded context) |
+| `internal/application/apps/` | `Applications` registry |
+| `internal/application/bootstrap/` | Composition root (`NewRuntime`, `JobHandlers`) |
 | `internal/domain/` | Pure domain entities, ports, rules |
-| `internal/application/` | Use-case orchestration (commands/queries per bounded context) |
 | `internal/infrastructure/postgres/` | GORM repository implementations |
 | `internal/infrastructure/asynq/` | Background job queue |
 | `internal/infrastructure/integrations/` | Stripe, R2, AI, PDF |
@@ -47,9 +47,9 @@ Cron    → internal/jobs/cron_jobs.go
 4. OpenTelemetry (`shared/observability.InitTracing`) — if `OTEL_ENABLED`
 5. PostgreSQL (`connectDatabase`)
 6. `asynq.NewJobQueue` — Redis if `REDIS_URL`, else in-memory
-7. `bootstrap.NewServices(db, cfg, jobQueue)` — all domain service facades
-8. `asynq.BindHandlers` — order process, shipment process
-9. `jobs.NewCronJobs` — scheduled tasks
+7. `bootstrap.NewRuntime(db, cfg, jobQueue)` — all application use cases + orchestrators
+8. `asynq.BindHandlers(runtime.JobHandlers())` — order process, shipment process
+9. `jobs.NewCronJobs(runtime.Apps)` — scheduled tasks
 10. `handlers.NewContainer` — HTTP handlers
 11. `routes.NewRouter` → `Setup()` — register routes
 12. Graceful shutdown — HTTP, cron, job queue (15s)
@@ -58,12 +58,12 @@ Cron    → internal/jobs/cron_jobs.go
 
 | Layer | Registry | Adds |
 |-------|----------|------|
-| Services | `internal/application/bootstrap/wire.go` | `bootstrap.NewServices` |
-| Registry type | `internal/services/registry.go` | `services.Services`, `JobHandlers` |
+| Applications | `internal/application/apps/wire.go` | `WireApplications` |
+| Runtime | `internal/application/bootstrap/wire.go` | `NewRuntime`, `JobHandlers` |
 | Handlers | `internal/interfaces/http/handlers/container.go` | `NewContainer` |
 | Routes | `internal/interfaces/http/routes/*_routes.go` | per-domain groups |
 
-New domains must be registered in **both** `bootstrap/wire.go` and `handlers/container.go`.
+New domains must be registered in **`apps/wire.go`**, **`bootstrap/wire.go`** (orchestrators), and **`handlers/container.go`**.
 
 ## HTTP surface
 
@@ -80,7 +80,7 @@ New domains must be registered in **both** `bootstrap/wire.go` and `handlers/con
 | Domain | Service | Notes |
 |--------|---------|-------|
 | Auth / users | `auth_service`, `user_service` | JWT, refresh tokens, email verification |
-| Catalog | `product_services`, `category_service`, `brand_service`, `pdp_service`, `search_service` | PDP, compare, likes |
+| Catalog | `product_services`, `application/brand`, `application/category`, `application/collection`, `pdp_service`, `search_service` | PDP, compare, likes |
 | Cart | `cart_service` | Stock checks, active cart |
 | Orders | `orders_service`, `checkout_service` | Checkout transaction, inventory |
 | Payments | `payment_service`, `wallet_service` | Stripe Checkout (orders + wallet deposits), mock when Stripe disabled, wallet balance |
@@ -91,13 +91,25 @@ New domains must be registered in **both** `bootstrap/wire.go` and `handlers/con
 | Platform | `audit_service`, `upload_service`, `settings_service` | Audit logs, R2 presign |
 | Store / nav | `store_setvice`, `menu_service`, `nav_menu_service` | Admin menus, mega menu |
 
+## Application layer
+
+Handlers call **`apps.Applications`** directly (product, checkout, order, notification, etc.). Orchestrators live in `application/*/service.go` (checkout, order, shipment, inventory, catalog, notification).
+
+| Role | Examples | What it does |
+|------|----------|--------------|
+| **CRUD + workflow sync** | `brand`, `category`, `collection`, `catalog` | DTO mapping, workflow sync, error mapping |
+| **Orchestrator** | `checkout`, `order`, `shipment`, `notification` | Multi-domain coordination, transactions, WebSocket, jobs |
+
+**`bootstrap.Runtime`** holds `DB`, `Apps`, and `WebSocketHub`; `JobHandlers()` registers Asynq workers.
+
 ## Data access
 
-**Default:** services hold `*gorm.DB` and use `db.WithContext(ctx)`.
+**Default:** GORM in `internal/infrastructure/postgres/*_repository.go` against `internal/models/`. Application commands/queries call repository interfaces — no `db.Raw()` or hand-written SQL strings.
 
-Complex list/filter queries use private helpers on the service (e.g. `orderService.listOrders`). No separate repository package.
+**Checkout exception:** `application/checkout` still uses `db.Transaction` to coordinate payment, inventory, coupon, and shipment until fully extracted.
 
 Multi-step writes use `db.Transaction` (checkout, payments, stock).
+
 
 ## External integrations
 
@@ -126,7 +138,7 @@ Multi-step writes use `db.Transaction` (checkout, payments, stock).
 
 | Type | Location | Notes |
 |------|----------|-------|
-| Unit | `internal/services/*_test.go` | sqlmock for DB isolation |
+| Unit | `internal/application/*_test.go` | sqlmock for DB isolation |
 | Integration | `tests/integration/` | Real Postgres, `TestMain` in `setup_test.go` |
 | E2E | `tests/e2e/` | Placeholder / future |
 

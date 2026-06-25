@@ -47,18 +47,19 @@ Details: `.cursor/skills/README.md`. Frontend follow-up after Swagger: **`luxe-f
 Handler → services facade → application → domain → infrastructure/postgres → PostgreSQL
 ```
 
-- Composition root: `internal/application/bootstrap/wire.go` (`bootstrap.NewServices`).
+- Composition root: `internal/application/bootstrap/wire.go` (`bootstrap.NewRuntime`).
 - Handlers: `internal/interfaces/http/handlers/` — no business logic, no GORM.
+- **Persistence:** GORM only in `internal/infrastructure/postgres/` (`Model`, `Where`, `Joins` — no `db.Raw()` or hand-written SQL).
 - **Extend existing layers** — do not start another repo-wide refactor or reintroduce `controllers/` / monolithic GORM services.
 
 ## New feature checklist
 
 1. Decide scope: **new entity** → `/new-api-entity`; **extra route on existing service** → `/add-api-endpoint`.
 2. `make migrate-create name=...` (schema only) → `make migrate-up` — if new table required.
-3. `internal/models/` → `internal/interfaces/http/dto/` → `internal/application/<ctx>/` + `internal/infrastructure/postgres/` → thin `internal/services/*_service.go` facade (+ **`bootstrap/wire.go`**).
+3. `internal/models/` → `internal/interfaces/http/dto/` → `internal/application/<ctx>/` + `internal/infrastructure/postgres/` (+ register in **`apps/wire.go`** and **`bootstrap/wire.go`**).
 4. `internal/interfaces/http/handlers/` (+ **`container.go`**) → `internal/interfaces/http/routes/`.
 5. Swagger comments on handlers → `make swagger` (never edit `docs/` by hand).
-6. Tests: unit (`internal/services/*_test.go`) or `tests/integration/`.
+6. Tests: unit (`internal/application/*_test.go`) or `tests/integration/`.
 7. Restart API; in **luxe-front**: `pnpm api:gen` + `pnpm check` (mandatory if DTOs, routes, or Swagger comments changed).
 ## Commands
 
@@ -91,8 +92,9 @@ go test ./tests/integration/...
 | File | Role |
 |------|------|
 | `cmd/api/main.go` | Boot, observability, cron, job queue |
-| `internal/application/bootstrap/wire.go` | `bootstrap.NewServices` DI |
-| `internal/services/registry.go` | `services.Services` type, `JobHandlers` |
+| `internal/application/apps/wire.go` | `WireApplications` DI |
+| `internal/application/bootstrap/wire.go` | `bootstrap.NewRuntime`, `JobHandlers` |
+| `internal/application/bootstrap/runtime.go` | `Runtime` (DB, Apps, WebSocket hub) |
 | `internal/interfaces/http/handlers/container.go` | `NewContainer` |
 | `internal/interfaces/http/routes/setup.go` | Route groups, middleware |
 | `internal/config/` | Env loading, production validation |

@@ -8,21 +8,24 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type StoreHandler struct {
-	storeService   services.StoreServiceInterface
-	productService services.ProductServiceInterface
+	commands *appstore.Commands
+	queries  *appstore.Queries
+	productService *appcatalog.Service
 	validate       *validator.Validate
 }
 
-func NewStoreHandler(ss services.StoreServiceInterface, ps services.ProductServiceInterface) *StoreHandler {
+func NewStoreHandler(commands *appstore.Commands, queries *appstore.Queries, ps *appcatalog.Service) *StoreHandler {
 	return &StoreHandler{
-		storeService:   ss,
+		commands: commands,
+		queries:  queries,
 		productService: ps,
 		validate:       validator.New(),
 	}
@@ -62,7 +65,7 @@ func (ctrl *StoreHandler) ListStores(c *gin.Context) {
 	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
 		return
 	}
-	stores, total, err := ctrl.storeService.ListStores(limit, offset, filters)
+	stores, total, err := ctrl.queries.ListStores(limit, offset, filters)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list stores")
 		return
@@ -77,7 +80,7 @@ func (ctrl *StoreHandler) ListStores(c *gin.Context) {
 		for i, s := range stores {
 			storeIDs[i] = s.ID
 		}
-		followed, err := ctrl.storeService.GetFollowedStoreIDs(userID, storeIDs)
+		followed, err := ctrl.queries.GetFollowedStoreIDs(userID, storeIDs)
 		if err == nil {
 			for i := range responses {
 				if followed[responses[i].ID] {
@@ -114,7 +117,7 @@ func (ctrl *StoreHandler) GetStore(c *gin.Context) {
 		return
 	}
 
-	store, err := ctrl.storeService.GetBySlug(slug)
+	store, err := ctrl.queries.GetBySlug(slug)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
@@ -122,7 +125,7 @@ func (ctrl *StoreHandler) GetStore(c *gin.Context) {
 	resp := dto.ToStoreResponse(c.Request.Context(),store)
 
 	if userID, ok := middleware.GetUserID(c); ok {
-		followed, err := ctrl.storeService.IsFollowing(userID, store.ID)
+		followed, err := ctrl.queries.IsFollowing(userID, store.ID)
 		if err == nil {
 			resp.IsFollowed = &followed
 		}
@@ -159,7 +162,7 @@ func (ctrl *StoreHandler) GetStoreProducts(c *gin.Context) {
 		return
 	}
 
-	store, err := ctrl.storeService.GetBySlug(slug)
+	store, err := ctrl.queries.GetBySlug(slug)
 	if err != nil {
 		utils.HandleServiceError(c, err, "store not found")
 		return
@@ -220,7 +223,7 @@ func (ctrl *StoreHandler) GetStoreAdmin(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
 		return
 	}
-	store, err := ctrl.storeService.GetByID(uint(id))
+	store, err := ctrl.queries.GetByID(uint(id))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
@@ -247,7 +250,7 @@ func (ctrl *StoreHandler) CreateStore(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	store, err := ctrl.storeService.Create(req)
+	store, err := ctrl.commands.Create(req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create store")
 		return
@@ -281,7 +284,7 @@ func (ctrl *StoreHandler) UpdateStore(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	store, err := ctrl.storeService.Update(uint(id), req)
+	store, err := ctrl.commands.Update(uint(id), req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update store")
 		return
@@ -310,7 +313,7 @@ func (ctrl *StoreHandler) DeleteStore(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
 		return
 	}
-	if err := ctrl.storeService.Delete(uint(id)); err != nil {
+	if err := ctrl.commands.Delete(uint(id)); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete store")
 		return
 	}
@@ -337,12 +340,12 @@ func (ctrl *StoreHandler) FollowStore(c *gin.Context) {
 		return
 	}
 	slug := c.Param("slug")
-	store, err := ctrl.storeService.GetBySlug(slug)
+	store, err := ctrl.queries.GetBySlug(slug)
 	if err != nil {
 		utils.HandleServiceError(c, err, "store not found")
 		return
 	}
-	if err := ctrl.storeService.FollowStore(userID, store.ID); err != nil {
+	if err := ctrl.commands.FollowStore(userID, store.ID); err != nil {
 		utils.HandleServiceError(c, err, "failed to follow store")
 		return
 	}
@@ -369,12 +372,12 @@ func (ctrl *StoreHandler) UnfollowStore(c *gin.Context) {
 		return
 	}
 	slug := c.Param("slug")
-	store, err := ctrl.storeService.GetBySlug(slug)
+	store, err := ctrl.queries.GetBySlug(slug)
 	if err != nil {
 		utils.HandleServiceError(c, err, "store not found")
 		return
 	}
-	if err := ctrl.storeService.UnfollowStore(userID, store.ID); err != nil {
+	if err := ctrl.commands.UnfollowStore(userID, store.ID); err != nil {
 		utils.HandleServiceError(c, err, "failed to unfollow store")
 		return
 	}
@@ -402,7 +405,7 @@ func (ctrl *StoreHandler) loadStoreBySlug(c *gin.Context) (*models.Store, bool) 
 		utils.ErrorResponse(c, http.StatusBadRequest, "store slug is required")
 		return nil, false
 	}
-	store, err := ctrl.storeService.GetBySlug(slug)
+	store, err := ctrl.queries.GetBySlug(slug)
 	if err != nil {
 		utils.HandleServiceError(c, err, "store not found")
 		return nil, false
@@ -427,7 +430,7 @@ func (ctrl *StoreHandler) GetStoreReviews(c *gin.Context) {
 	}
 	limit, offset := parseStoreReviewPagination(c)
 
-	reviews, total, summary, err := ctrl.storeService.ListStoreReviews(store.ID, limit, offset)
+	reviews, total, summary, err := ctrl.queries.ListStoreReviews(store.ID, limit, offset)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch store reviews")
 		return
@@ -468,7 +471,7 @@ func (ctrl *StoreHandler) GetMyStoreReview(c *gin.Context) {
 		return
 	}
 
-	review, err := ctrl.storeService.GetUserStoreReview(userID, store.ID)
+	review, err := ctrl.queries.GetUserStoreReview(userID, store.ID)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to fetch review")
 		return
@@ -509,7 +512,7 @@ func (ctrl *StoreHandler) CreateStoreReview(c *gin.Context) {
 		return
 	}
 
-	review, err := ctrl.storeService.CreateStoreReview(userID, store.ID, req)
+	review, err := ctrl.commands.CreateStoreReview(userID, store.ID, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create review")
 		return
@@ -551,7 +554,7 @@ func (ctrl *StoreHandler) UpdateStoreReview(c *gin.Context) {
 		return
 	}
 
-	review, err := ctrl.storeService.UpdateStoreReview(userID, uint(reviewID), req)
+	review, err := ctrl.commands.UpdateStoreReview(userID, uint(reviewID), req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to update review")
 		return
@@ -585,7 +588,7 @@ func (ctrl *StoreHandler) DeleteStoreReview(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.storeService.DeleteStoreReview(userID, uint(reviewID)); err != nil {
+	if err := ctrl.commands.DeleteStoreReview(userID, uint(reviewID)); err != nil {
 		utils.HandleServiceError(c, err, "failed to delete review")
 		return
 	}
@@ -613,7 +616,7 @@ func (ctrl *StoreHandler) ListVendorStores(c *gin.Context) {
 
 	role, _ := middleware.GetUserRole(c)
 
-	stores, err := ctrl.storeService.ListVendorStores(c.Request.Context(), userID, role)
+	stores, err := ctrl.queries.ListVendorStores(c.Request.Context(), userID, role)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to list vendor stores")
 		return

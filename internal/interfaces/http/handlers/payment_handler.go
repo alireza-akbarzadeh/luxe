@@ -5,18 +5,18 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type PaymentProviderHandler struct {
-	service services.PaymentServiceInterface
+	service *apppayment.Service
 	cfg     *config.Config
 }
 
-func NewPaymentMethodHandler(service services.PaymentServiceInterface, cfg *config.Config) *PaymentProviderHandler {
+func NewPaymentMethodHandler(service *apppayment.Service, cfg *config.Config) *PaymentProviderHandler {
 	return &PaymentProviderHandler{service: service, cfg: cfg}
 }
 
@@ -41,7 +41,7 @@ func (h *PaymentProviderHandler) GetPaymentProviders(c *gin.Context) {
 		activeOnly = *query.IsActive
 	}
 
-	methods, err := h.service.GetPaymentProvider(activeOnly)
+	methods, err := h.service.GetPaymentProvider(c.Request.Context(), activeOnly)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "failed to fetch payment methods")
 		return

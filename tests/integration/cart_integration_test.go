@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +20,7 @@ func TestCart_AddItemAndGetCart(t *testing.T) {
 	token := registerUser(t, server, fmt.Sprintf("cart-%s@integration.test", suffix))
 	product := seedProduct(t, suffix)
 
-	addResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, services.AddItemRequest{
+	addResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, appcart.AddItemRequest{
 		ProductID: product.ID,
 		Quantity:  2,
 	})
@@ -57,7 +57,7 @@ func TestCart_UpdateAndRemoveItem(t *testing.T) {
 	token := registerUser(t, server, fmt.Sprintf("cart-crud-%s@integration.test", suffix))
 	product := seedProduct(t, suffix)
 
-	addResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, services.AddItemRequest{
+	addResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", token, appcart.AddItemRequest{
 		ProductID: product.ID,
 		Quantity:  1,
 	})
@@ -74,7 +74,7 @@ func TestCart_UpdateAndRemoveItem(t *testing.T) {
 	updateResp, err := authRequest(http.MethodPut,
 		fmt.Sprintf("%s/api/v1/cart/items/%d", server.URL, itemID),
 		token,
-		services.UpdateCartItemRequest{Quantity: 3},
+		appcart.UpdateCartItemRequest{Quantity: 3},
 	)
 	require.NoError(t, err)
 	defer updateResp.Body.Close()
@@ -106,7 +106,7 @@ func TestCart_UnauthorizedWithoutToken(t *testing.T) {
 	server := newTestServer(t)
 	defer server.Close()
 
-	resp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", "", services.AddItemRequest{
+	resp, err := authRequest(http.MethodPost, server.URL+"/api/v1/cart/items", "", appcart.AddItemRequest{
 		ProductID: 1,
 		Quantity:  1,
 	})

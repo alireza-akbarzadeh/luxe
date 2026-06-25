@@ -5,7 +5,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/services"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
@@ -13,12 +13,12 @@ import (
 )
 
 type WorkflowHandler struct {
-	svc      services.WorkflowServiceInterface
+	mod      *appworkflow.Module
 	validate *validator.Validate
 }
 
-func NewWorkflowHandler(svc services.WorkflowServiceInterface) *WorkflowHandler {
-	return &WorkflowHandler{svc: svc, validate: validator.New()}
+func NewWorkflowHandler(mod *appworkflow.Module) *WorkflowHandler {
+	return &WorkflowHandler{mod: mod, validate: validator.New()}
 }
 
 // ─── Generic (authenticated) endpoints ────────────────────────────────────────
@@ -35,7 +35,7 @@ func NewWorkflowHandler(svc services.WorkflowServiceInterface) *WorkflowHandler 
 // @Router       /workflows/{key} [get]
 func (ctrl *WorkflowHandler) GetDefinition(c *gin.Context) {
 	key := c.Param("key")
-	wf, err := ctrl.svc.GetDefinition(c.Request.Context(), key)
+	wf, err := ctrl.mod.Queries.GetDefinition(c.Request.Context(), key)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load workflow")
 		return
@@ -77,7 +77,7 @@ func (ctrl *WorkflowHandler) PerformTransition(c *gin.Context) {
 		actorIDPtr = &actorID
 	}
 
-	result, err := ctrl.svc.Engine().Transition(c.Request.Context(), workflow.TransitionRequest{
+	result, err := ctrl.mod.Engine.Transition(c.Request.Context(), workflow.TransitionRequest{
 		WorkflowKey: key,
 		EntityID:    entityID,
 		Event:       req.Event,
@@ -108,7 +108,7 @@ func (ctrl *WorkflowHandler) AvailableTransitions(c *gin.Context) {
 	if !ok {
 		return
 	}
-	current, transitions, err := ctrl.svc.Engine().AvailableTransitions(c.Request.Context(), key, entityID)
+	current, transitions, err := ctrl.mod.Engine.AvailableTransitions(c.Request.Context(), key, entityID)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load available transitions")
 		return
@@ -142,7 +142,7 @@ func (ctrl *WorkflowHandler) History(c *gin.Context) {
 		return
 	}
 	limit, offset := paginationParams(c, constants.DefaultLimit)
-	logs, total, err := ctrl.svc.Engine().History(c.Request.Context(), entityType, entityID, limit, offset)
+	logs, total, err := ctrl.mod.Engine.History(c.Request.Context(), entityType, entityID, limit, offset)
 	if err != nil {
 		RespondServiceError(c, err, "failed to load workflow history")
 		return
@@ -169,7 +169,7 @@ func (ctrl *WorkflowHandler) History(c *gin.Context) {
 // @Success      200 {object} utils.Response{data=[]models.Workflow}
 // @Router       /admin/workflows [get]
 func (ctrl *WorkflowHandler) ListWorkflows(c *gin.Context) {
-	workflows, err := ctrl.svc.ListWorkflows(c.Request.Context())
+	workflows, err := ctrl.mod.Queries.ListWorkflows(c.Request.Context())
 	if err != nil {
 		RespondServiceError(c, err, "failed to list workflows")
 		return
@@ -191,7 +191,7 @@ func (ctrl *WorkflowHandler) CreateWorkflow(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	wf, err := ctrl.svc.CreateWorkflow(c.Request.Context(), req)
+	wf, err := ctrl.mod.Commands.CreateWorkflow(c.Request.Context(), req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to create workflow")
 		return
@@ -218,7 +218,7 @@ func (ctrl *WorkflowHandler) UpdateWorkflow(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	wf, err := ctrl.svc.UpdateWorkflow(c.Request.Context(), id, req)
+	wf, err := ctrl.mod.Commands.UpdateWorkflow(c.Request.Context(), id, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to update workflow")
 		return
@@ -239,7 +239,7 @@ func (ctrl *WorkflowHandler) DeleteWorkflow(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := ctrl.svc.DeleteWorkflow(c.Request.Context(), id); err != nil {
+	if err := ctrl.mod.Commands.DeleteWorkflow(c.Request.Context(), id); err != nil {
 		RespondServiceError(c, err, "failed to delete workflow")
 		return
 	}
@@ -265,7 +265,7 @@ func (ctrl *WorkflowHandler) CreateState(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	state, err := ctrl.svc.CreateState(c.Request.Context(), workflowID, req)
+	state, err := ctrl.mod.Commands.CreateState(c.Request.Context(), workflowID, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to create state")
 		return
@@ -293,7 +293,7 @@ func (ctrl *WorkflowHandler) UpdateState(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	state, err := ctrl.svc.UpdateState(c.Request.Context(), stateID, req)
+	state, err := ctrl.mod.Commands.UpdateState(c.Request.Context(), stateID, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to update state")
 		return
@@ -315,7 +315,7 @@ func (ctrl *WorkflowHandler) DeleteState(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := ctrl.svc.DeleteState(c.Request.Context(), stateID); err != nil {
+	if err := ctrl.mod.Commands.DeleteState(c.Request.Context(), stateID); err != nil {
 		RespondServiceError(c, err, "failed to delete state")
 		return
 	}
@@ -341,7 +341,7 @@ func (ctrl *WorkflowHandler) CreateTransition(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	trans, err := ctrl.svc.CreateTransition(c.Request.Context(), workflowID, req)
+	trans, err := ctrl.mod.Commands.CreateTransition(c.Request.Context(), workflowID, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to create transition")
 		return
@@ -369,7 +369,7 @@ func (ctrl *WorkflowHandler) UpdateTransition(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	trans, err := ctrl.svc.UpdateTransition(c.Request.Context(), transitionID, req)
+	trans, err := ctrl.mod.Commands.UpdateTransition(c.Request.Context(), transitionID, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to update transition")
 		return
@@ -391,7 +391,7 @@ func (ctrl *WorkflowHandler) DeleteTransition(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if err := ctrl.svc.DeleteTransition(c.Request.Context(), transitionID); err != nil {
+	if err := ctrl.mod.Commands.DeleteTransition(c.Request.Context(), transitionID); err != nil {
 		RespondServiceError(c, err, "failed to delete transition")
 		return
 	}
