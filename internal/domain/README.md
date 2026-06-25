@@ -22,6 +22,7 @@ domain/
   wallet/wallet.go        balance + amount rules
   payment/card.go         mock gateway card validation
   order/status.go         cancel eligibility + admin bulk status rules
+  returnorder/returnorder.go return eligibility + open-return checks
 ```
 
 ## Where persistence ports live

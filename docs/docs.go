@@ -5479,7 +5479,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.RefreshRequest"
+                            "$ref": "#/definitions/handlers.RefreshRequest"
                         }
                     }
                 ],
@@ -6035,7 +6035,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/services.AddItemRequest"
+                            "$ref": "#/definitions/cart.AddItemRequest"
                         }
                     }
                 ],
@@ -6131,7 +6131,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/services.UpdateCartItemRequest"
+                            "$ref": "#/definitions/cart.UpdateCartItemRequest"
                         }
                     }
                 ],
@@ -12936,13 +12936,37 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "controllers.RefreshRequest": {
+        "cart.AddItemRequest": {
             "type": "object",
             "required": [
-                "refresh_token"
+                "product_id",
+                "quantity"
             ],
             "properties": {
-                "refresh_token": {
+                "color": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "string"
+                }
+            }
+        },
+        "cart.UpdateCartItemRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "size": {
                     "type": "string"
                 }
             }
@@ -18485,6 +18509,17 @@ const docTemplate = `{
                 }
             }
         },
+        "handlers.RefreshRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "i18n.LocalizedMap": {
             "type": "object",
             "additionalProperties": {
@@ -19604,41 +19639,6 @@ const docTemplate = `{
                 },
                 "workflow_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "services.AddItemRequest": {
-            "type": "object",
-            "required": [
-                "product_id",
-                "quantity"
-            ],
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "product_id": {
-                    "type": "integer"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "size": {
-                    "type": "string"
-                }
-            }
-        },
-        "services.UpdateCartItemRequest": {
-            "type": "object",
-            "properties": {
-                "color": {
-                    "type": "string"
-                },
-                "quantity": {
-                    "type": "integer"
-                },
-                "size": {
-                    "type": "string"
                 }
             }
         },

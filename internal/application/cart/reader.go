@@ -6,7 +6,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
-// Reader loads cart models for HTTP and legacy services.
+// Reader loads cart models for HTTP handlers and application use cases.
 type Reader interface {
 	FindActiveCart(ctx context.Context, userID uint, preloadItems bool) (*models.Cart, error)
 	FindCartItemByCartAndProduct(ctx context.Context, cartID, productID uint) (*models.CartItem, error)

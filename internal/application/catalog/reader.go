@@ -7,7 +7,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
-// ProductReader loads product models with relations for HTTP and legacy services.
+// ProductReader loads product models with relations for HTTP handlers and application use cases.
 type ProductReader interface {
 	GetDetailedByID(ctx context.Context, id uint) (*models.Product, error)
 	GetDetailedBySlug(ctx context.Context, slug string) (*models.Product, error)

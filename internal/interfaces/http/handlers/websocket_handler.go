@@ -6,23 +6,19 @@ import (
 
 	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type WebSocketHandler struct {
-	db           *gorm.DB
 	hub          *websocket.Hub
 	notification *appnotification.Service
 	handler      *websocket.Handler
 }
 
-func NewWebSocketHandler(db *gorm.DB, hub *websocket.Hub, notification *appnotification.Service) *WebSocketHandler {
+func NewWebSocketHandler(hub *websocket.Hub, notification *appnotification.Service) *WebSocketHandler {
 	return &WebSocketHandler{
-		db:           db,
 		hub:          hub,
 		notification: notification,
 		handler:      websocket.NewHandler(hub),
@@ -224,8 +220,7 @@ func (wc *WebSocketHandler) GetChatMessages(c *gin.Context) {
 
 	roomID := c.Param("room_id")
 
-	var chatRoom models.ChatRoom
-	if err := wc.db.Where("room_id = ? AND user_id = ?", roomID, userID).First(&chatRoom).Error; err != nil {
+	if _, err := wc.notification.GetChatRoomForUser(userID, roomID); err != nil {
 		utils.NotFoundResponse(c, "chat room not found")
 		return
 	}

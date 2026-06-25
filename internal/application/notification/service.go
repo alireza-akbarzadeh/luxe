@@ -123,3 +123,8 @@ func (s *Service) SendChatMessage(senderID uint, roomID string, content string) 
 func (s *Service) GetChatMessages(roomID string, limit, offset int) ([]models.Message, error) {
 	return s.queries.ListChatMessages(context.Background(), roomID, limit, offset)
 }
+
+// GetChatRoomForUser loads a chat room when owned by the user.
+func (s *Service) GetChatRoomForUser(userID uint, roomID string) (*models.ChatRoom, error) {
+	return s.queries.FindChatRoomForUser(context.Background(), roomID, userID)
+}

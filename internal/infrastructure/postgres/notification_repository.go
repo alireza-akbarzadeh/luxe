@@ -80,3 +80,13 @@ func (r *NotificationRepository) ListMessages(ctx context.Context, roomID string
 		Find(&messages).Error
 	return messages, err
 }
+
+// FindChatRoomByRoomAndUser loads a chat room owned by a user.
+func (r *NotificationRepository) FindChatRoomByRoomAndUser(ctx context.Context, roomID string, userID uint) (*models.ChatRoom, error) {
+	var room models.ChatRoom
+	err := r.db.WithContext(ctx).Where("room_id = ? AND user_id = ?", roomID, userID).First(&room).Error
+	if err != nil {
+		return nil, err
+	}
+	return &room, nil
+}

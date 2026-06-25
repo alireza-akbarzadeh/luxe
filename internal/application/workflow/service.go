@@ -7,7 +7,7 @@ import (
 	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 )
 
-// Service exposes workflow use cases to legacy services during migration.
+// Service exposes workflow use cases to application handlers and orchestrators.
 type Service struct {
 	engine *infraworkflow.Engine
 }

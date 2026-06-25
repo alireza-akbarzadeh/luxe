@@ -22,7 +22,7 @@ type ListFilter struct {
 	PreloadUser bool
 }
 
-// Reader loads order models for HTTP and legacy services.
+// Reader loads order models for HTTP handlers and application use cases.
 type Reader interface {
 	List(ctx context.Context, filter ListFilter) ([]models.Order, int64, error)
 	FindByIDAndUserID(ctx context.Context, orderID, userID uint) (*models.Order, error)

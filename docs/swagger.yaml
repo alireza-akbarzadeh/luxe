@@ -1,11 +1,27 @@
 basePath: /api/v1
 definitions:
-  controllers.RefreshRequest:
+  cart.AddItemRequest:
     properties:
-      refresh_token:
+      color:
+        type: string
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      size:
         type: string
     required:
-    - refresh_token
+    - product_id
+    - quantity
+    type: object
+  cart.UpdateCartItemRequest:
+    properties:
+      color:
+        type: string
+      quantity:
+        type: integer
+      size:
+        type: string
     type: object
   dto.AddItemResponse:
     properties:
@@ -3724,6 +3740,13 @@ definitions:
         description: Valid is true if Time is not NULL
         type: boolean
     type: object
+  handlers.RefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   i18n.LocalizedMap:
     additionalProperties:
       type: string
@@ -4475,29 +4498,6 @@ definitions:
         type: string
       workflow_id:
         type: integer
-    type: object
-  services.AddItemRequest:
-    properties:
-      color:
-        type: string
-      product_id:
-        type: integer
-      quantity:
-        type: integer
-      size:
-        type: string
-    required:
-    - product_id
-    - quantity
-    type: object
-  services.UpdateCartItemRequest:
-    properties:
-      color:
-        type: string
-      quantity:
-        type: integer
-      size:
-        type: string
     type: object
   utils.Response:
     properties:
@@ -7896,7 +7896,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/controllers.RefreshRequest'
+          $ref: '#/definitions/handlers.RefreshRequest'
       produces:
       - application/json
       responses:
@@ -8269,7 +8269,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/services.AddItemRequest'
+          $ref: '#/definitions/cart.AddItemRequest'
       produces:
       - application/json
       responses:
@@ -8340,7 +8340,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/services.UpdateCartItemRequest'
+          $ref: '#/definitions/cart.UpdateCartItemRequest'
       produces:
       - application/json
       responses:

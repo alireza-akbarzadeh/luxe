@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	domainreturn "github.com/alireza-akbarzadeh/luxe/internal/domain/returnorder"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -12,11 +13,6 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
-
-var returnEligibleOrderStatuses = map[string]bool{
-	constants.OrderStatusDelivered: true,
-	"completed":                    true,
-}
 
 var openReturnExcludedStatuses = []string{"rejected", "closed", "refunded"}
 
@@ -41,16 +37,20 @@ func (c *Commands) Create(ctx context.Context, userID uint, req dto.CreateReturn
 		return nil, utils.ErrInternal(err)
 	}
 
-	if !returnEligibleOrderStatuses[order.Status] {
-		return nil, utils.ErrBadRequest("returns are only allowed for delivered or completed orders")
-	}
-
 	existing, err := c.repo.CountOpenForOrder(ctx, req.OrderID, userID, openReturnExcludedStatuses)
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	if existing > 0 {
-		return nil, utils.ErrConflict("an open return already exists for this order")
+
+	if err := domainreturn.ValidateCreateRequest(order.Status, existing); err != nil {
+		switch {
+		case errors.Is(err, domainreturn.ErrOrderNotEligible):
+			return nil, utils.ErrBadRequest(err.Error())
+		case errors.Is(err, domainreturn.ErrOpenReturnExists):
+			return nil, utils.ErrConflict(err.Error())
+		default:
+			return nil, utils.ErrInternal(err)
+		}
 	}
 
 	ret := &models.Return{

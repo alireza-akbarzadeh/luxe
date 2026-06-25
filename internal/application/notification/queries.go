@@ -2,10 +2,12 @@ package notification
 
 import (
 	"context"
+	"errors"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"gorm.io/gorm"
 )
 
 // Queries orchestrates notification read use cases.
@@ -38,4 +40,16 @@ func (q *Queries) ListChatMessages(ctx context.Context, roomID string, limit, of
 		return nil, utils.ErrInternal(err)
 	}
 	return messages, nil
+}
+
+// FindChatRoomForUser loads a chat room when the user owns it.
+func (q *Queries) FindChatRoomForUser(ctx context.Context, roomID string, userID uint) (*models.ChatRoom, error) {
+	room, err := q.repo.FindChatRoomByRoomAndUser(ctx, roomID, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("chat room not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return room, nil
 }
