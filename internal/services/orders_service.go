@@ -12,6 +12,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
@@ -61,7 +62,7 @@ func NewOrderService(
 
 func (s *orderService) applyOrderState(ctx context.Context, order *models.Order, status string, actorID *uint) error {
 	actorRole := constants.RoleAdmin
-	if applyOrderWorkflow(ctx, s.engine, order.ID, status, actorRole, actorID) {
+	if appworkflow.ApplyOrderWorkflow(ctx, s.engine, order.ID, status, actorRole, actorID) {
 		order.Status = status
 		return nil
 	}
@@ -242,12 +243,12 @@ func (s *orderService) BulkUpdateOrderStatus(ctx context.Context, orderIDs []uin
 	code := orderStatusToStateCode[status]
 	var updated int64
 	for _, id := range orderIDs {
-		if applyOrderWorkflow(ctx, s.engine, id, status, constants.RoleAdmin, actorID) {
+		if appworkflow.ApplyOrderWorkflow(ctx, s.engine, id, status, constants.RoleAdmin, actorID) {
 			updated++
 			continue
 		}
 		if code != "" {
-			syncWorkflowState(ctx, s.engine, constants.WorkflowEntityOrder, id, code, "admin_bulk_set", actorID)
+			appworkflow.SyncState(ctx, s.engine, constants.WorkflowEntityOrder, id, code, "admin_bulk_set", actorID)
 		}
 		n, err := s.commands.UpdateStatusByIDs(ctx, []uint{id}, status)
 		if err == nil {

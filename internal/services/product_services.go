@@ -11,6 +11,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	domaincatalog "github.com/alireza-akbarzadeh/luxe/internal/domain/catalog"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
@@ -18,7 +19,7 @@ import (
 
 // setProductState syncs a product status into the workflow engine (best-effort).
 func (s *productService) setProductState(ctx context.Context, productID uint, status, actorRole string, actorID *uint) {
-	if !applyProductWorkflow(ctx, s.engine, productID, status, actorRole, actorID) {
+	if !appworkflow.ApplyProductWorkflow(ctx, s.engine, productID, status, actorRole, actorID) {
 		utils.Log.WithField("product_id", productID).WithField("status", status).
 			Debug("product workflow sync skipped or failed")
 	}

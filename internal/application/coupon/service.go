@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -26,7 +27,7 @@ func NewService(repo *postgres.CouponRepository, engine *workflow.Engine) *Servi
 }
 
 func (s *Service) syncCouponWorkflow(ctx context.Context, couponID uint, isActive bool) {
-	if !applyCouponWorkflow(ctx, s.engine, couponID, isActive, nil) {
+	if !appworkflow.ApplyCouponWorkflow(ctx, s.engine, couponID, isActive, nil) {
 		utils.Log.WithField("coupon_id", couponID).Debug("coupon workflow sync skipped or failed")
 	}
 }
@@ -65,7 +66,7 @@ func (s *Service) Create(ctx context.Context, req dto.CreateCouponRequest) (*mod
 	if coupon.IsActive {
 		s.syncCouponWorkflow(ctx, coupon.ID, true)
 	} else {
-		syncWorkflowState(ctx, s.engine, constants.WorkflowEntityCoupon, coupon.ID, "draft", "created", nil)
+		appworkflow.SyncState(ctx, s.engine, constants.WorkflowEntityCoupon, coupon.ID, "draft", "created", nil)
 	}
 
 	return s.repo.FindByID(ctx, coupon.ID)
@@ -116,7 +117,7 @@ func (s *Service) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode
 	}
 
 	if coupon.UsageLimit > 0 && coupon.UsedCount+1 >= coupon.UsageLimit {
-		applyCouponExhausted(context.Background(), s.engine, coupon.ID)
+		appworkflow.ApplyCouponExhausted(context.Background(), s.engine, coupon.ID)
 	}
 
 	usage := &models.CouponUsage{
@@ -300,81 +301,4 @@ func couponIsActiveDefault(isActive *bool) bool {
 		return false
 	}
 	return *isActive
-}
-
-func applyWorkflowEvent(ctx context.Context, engine *workflow.Engine, req workflow.TransitionRequest) error {
-	if engine == nil {
-		return nil
-	}
-	_, err := engine.Transition(ctx, req)
-	return err
-}
-
-func syncWorkflowState(ctx context.Context, engine *workflow.Engine, workflowKey string, entityID uint, stateCode, event string, actorID *uint) {
-	if engine == nil {
-		return
-	}
-	if _, err := engine.SetState(ctx, workflow.SetStateRequest{
-		WorkflowKey:     workflowKey,
-		EntityID:        entityID,
-		TargetStateCode: stateCode,
-		Event:           event,
-		ActorID:         actorID,
-	}); err != nil {
-		utils.Log.WithError(err).
-			WithField("workflow", workflowKey).
-			WithField("entity_id", entityID).
-			WithField("state", stateCode).
-			Warn("failed to sync workflow state")
-	}
-}
-
-func applyCouponWorkflow(ctx context.Context, engine *workflow.Engine, couponID uint, isActive bool, actorID *uint) bool {
-	if engine == nil {
-		return false
-	}
-
-	if isActive {
-		for _, event := range []string{"activate", "resume"} {
-			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
-				WorkflowKey: constants.WorkflowEntityCoupon,
-				EntityID:    couponID,
-				Event:       event,
-				ActorID:     actorID,
-				ActorRole:   constants.RoleAdmin,
-			}); err == nil {
-				return true
-			}
-		}
-		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "active", "status_update", actorID)
-		return true
-	}
-
-	for _, event := range []string{"pause"} {
-		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
-			WorkflowKey: constants.WorkflowEntityCoupon,
-			EntityID:    couponID,
-			Event:       event,
-			ActorID:     actorID,
-			ActorRole:   constants.RoleAdmin,
-		}); err == nil {
-			return true
-		}
-	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "paused", "status_update", actorID)
-	return true
-}
-
-func applyCouponExhausted(ctx context.Context, engine *workflow.Engine, couponID uint) {
-	if engine == nil {
-		return
-	}
-	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
-		WorkflowKey: constants.WorkflowEntityCoupon,
-		EntityID:    couponID,
-		Event:       "mark_exhausted",
-		ActorRole:   constants.RoleAdmin,
-	}); err != nil {
-		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
-	}
 }

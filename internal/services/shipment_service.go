@@ -7,6 +7,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
@@ -79,7 +80,7 @@ func NewShipmentService(
 }
 
 func (s *shipmentService) setShipmentState(ctx context.Context, shipmentID uint, status string) {
-	applyShipmentWorkflow(ctx, s.engine, shipmentID, status)
+	appworkflow.ApplyShipmentWorkflow(ctx, s.engine, shipmentID, status)
 }
 
 func (s *shipmentService) broadcastShipmentUpdate(

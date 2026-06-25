@@ -161,8 +161,8 @@ Luxe uses a **DB-driven workflow engine** so lifecycle rules (states, transition
 | Path | Role |
 |------|------|
 | `internal/infrastructure/workflow/engine.go` | `Transition`, `SetState`, `AvailableTransitions`, `History` |
-| `internal/services/workflow_hooks.go` | Registered guards and post-transition hooks |
-| `internal/services/workflow_sync.go` | Legacy status → event/SetState helpers used by service facades |
+| `internal/application/workflow/hooks.go` | Registered guards and post-transition hooks |
+| `internal/application/workflow/sync.go` | Legacy status → event/SetState helpers used by facades |
 | `internal/services/workflow_service.go` | Workflow definition CRUD facade |
 | `internal/migrations/20260617200000_workflow_engine.sql` | Schema |
 | `internal/migrations/20260617210000_workflow_seed.sql` | Seed definitions for five workflows |
@@ -170,7 +170,7 @@ Luxe uses a **DB-driven workflow engine** so lifecycle rules (states, transition
 Boot wiring (`bootstrap.NewServices`):
 
 1. `workflow.NewEngine(db)`
-2. `RegisterWorkflowGuardsAndHooks(engine, db, notification, wallet, jobQueue)`
+2. `application/workflow.RegisterGuardsAndHooks(...)` and `RegisterInventoryHooks(...)`
 3. Pass `engine` into order, product, shipment, checkout, auth, admin, return services
 
 ### Data model
@@ -207,7 +207,7 @@ POST …/transition  { "event": "ship", "note": "…" }
   → Response: TransitionResultView + reloaded entity (domain endpoints)
 ```
 
-**`SetState`** (used by `workflow_sync.go` for legacy code paths) moves an entity to a target state **without** guards or hooks — audit only. Prefer **`Transition`** for admin actions and new code.
+**`SetState`** (used by `application/workflow/sync.go` for legacy code paths) moves an entity to a target state **without** guards or hooks — audit only. Prefer **`Transition`** for admin actions and new code.
 
 ### Seeded workflows
 
@@ -233,7 +233,7 @@ State **colors** (`workflow_states.color`, `text_color`) are intended for admin 
 | `shipment_delivered` | hook | Sets `shipments.delivered_at` |
 | `return_refunded` | hook | Credits customer wallet via `wallet.Refund` |
 
-Add new side effects by registering keys in `RegisterWorkflowGuardsAndHooks` and referencing them from transition rows (admin CRUD or seed migration).
+Add new side effects by registering keys in `application/workflow.RegisterGuardsAndHooks` and referencing them from transition rows (admin CRUD or seed migration).
 
 ### Status mirroring
 
@@ -243,7 +243,7 @@ For entities with `statusMirror: true`, the engine maps workflow state codes to 
 - Product: `published` / `out_of_stock` → `active`, `discontinued` → `inactive`
 - Shipment: `in_transit` / `out_for_delivery` → `shipped`, `ready_for_pickup` → `processing`
 
-Existing services call `applyOrderWorkflow` / `applyProductWorkflow` / `applyShipmentWorkflow` when they still update status strings directly; those helpers try **`Transition`** first (mapped event), then fall back to **`SetState`**.
+Existing services call `application/workflow.ApplyOrderWorkflow` / `ApplyProductWorkflow` / `ApplyShipmentWorkflow` when they still update status strings directly; those helpers try **`Transition`** first (mapped event), then fall back to **`SetState`**.
 
 ### HTTP API
 
@@ -269,7 +269,7 @@ Existing services call `applyOrderWorkflow` / `applyProductWorkflow` / `applyShi
 
 **Legacy (prefer transition API for new admin UI):**
 
-- `PUT /orders/:id/status` — maps status string via `workflow_sync`
+- `PUT /orders/:id/status` — maps status string via `application/workflow/sync`
 - `PUT /shipments/:id/status` — manual status + WS broadcast
 
 **Customer:**

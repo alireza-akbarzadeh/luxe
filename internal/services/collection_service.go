@@ -6,6 +6,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appcollection "github.com/alireza-akbarzadeh/luxe/internal/application/collection"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	domaincollection "github.com/alireza-akbarzadeh/luxe/internal/domain/collection"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -37,7 +38,7 @@ func NewCollectionService(db *gorm.DB, engine *workflow.Engine) CollectionServic
 }
 
 func (s *collectionService) syncCollectionWorkflow(ctx context.Context, collectionID uint, status string) {
-	if !applyCollectionWorkflow(ctx, s.engine, collectionID, status, nil) {
+	if !appworkflow.ApplyCollectionWorkflow(ctx, s.engine, collectionID, status, nil) {
 		utils.Log.WithField("collection_id", collectionID).WithField("status", status).
 			Debug("collection workflow sync skipped or failed")
 	}

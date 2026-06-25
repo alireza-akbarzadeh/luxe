@@ -2,9 +2,10 @@
 package bootstrap
 
 import (
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/services"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	"gorm.io/gorm"
@@ -26,8 +27,14 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *serv
 	paymentSvc := services.NewPaymentService(db, cfg)
 	walletSvc := services.NewWalletService(db, cfg)
 
-	workflowEngine := workflow.NewEngine(db)
-	services.RegisterWorkflowGuardsAndHooks(workflowEngine, db, notificationSvc, walletSvc, jobQueue)
+	workflowEngine := infraworkflow.NewEngine(db)
+	appworkflow.RegisterGuardsAndHooks(appworkflow.HookDeps{
+		Engine:   workflowEngine,
+		DB:       db,
+		Notify:   notificationSvc,
+		Wallet:   walletSvc,
+		JobQueue: jobQueue,
+	})
 	couponSvc := services.NewCouponService(db, workflowEngine)
 	roleSvc := services.NewRoleService(db)
 
@@ -36,7 +43,7 @@ func NewServices(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *serv
 	pdpSvc := services.NewPdpService(db, notificationSvc, productSvc, aiSvc)
 	inventorySvc := services.NewInventoryService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
 	productSvc.SetInventory(inventorySvc)
-	services.RegisterInventoryWorkflowHooks(workflowEngine, inventorySvc)
+	appworkflow.RegisterInventoryHooks(workflowEngine, inventorySvc)
 	shipmentSvc := services.NewShipmentService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
 	invoiceSvc := services.NewInvoiceService(db, jobQueue, cfg)
 	categorySvc := services.NewCategoryService(db, workflowEngine)

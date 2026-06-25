@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
@@ -111,7 +112,7 @@ func (s *Service) Register(ctx context.Context, req dto.RegisterRequest, meta Se
 		return "", "", nil, utils.ErrInternal(err)
 	}
 
-	syncUserWorkflowState(ctx, s.engine, user.ID, "email_verification_pending", "register", nil)
+	appworkflow.SyncUserState(ctx, s.engine, user.ID, "email_verification_pending", "register", nil)
 
 	accessToken, refreshToken, err := s.generateTokenPair(ctx, user, meta)
 	if err != nil {
@@ -503,14 +504,14 @@ func (s *Service) VerifyEmail(ctx context.Context, token string) error {
 	vt.UsedAt = &now
 	_ = s.repo.SaveEmailVerificationToken(ctx, vt)
 
-	if err := applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+	if err := appworkflow.ApplyEvent(ctx, s.engine, workflow.TransitionRequest{
 		WorkflowKey: constants.WorkflowEntityUser,
 		EntityID:    user.ID,
 		Event:       "verify_email",
 		ActorID:     &user.ID,
 		ActorRole:   user.Role,
 	}); err != nil {
-		syncUserWorkflowState(ctx, s.engine, user.ID, "active", "verify_email", &user.ID)
+		appworkflow.SyncUserState(ctx, s.engine, user.ID, "active", "verify_email", &user.ID)
 	}
 
 	return nil
@@ -551,31 +552,4 @@ func (s *Service) ResetPassword(ctx context.Context, token string, newPassword s
 	_ = s.repo.RevokeAllUserTokens(ctx, user.ID)
 
 	return nil
-}
-
-func applyWorkflowEvent(ctx context.Context, engine *workflow.Engine, req workflow.TransitionRequest) error {
-	if engine == nil {
-		return nil
-	}
-	_, err := engine.Transition(ctx, req)
-	return err
-}
-
-func syncUserWorkflowState(ctx context.Context, engine *workflow.Engine, userID uint, stateCode, event string, actorID *uint) {
-	if engine == nil {
-		return
-	}
-	if _, err := engine.SetState(ctx, workflow.SetStateRequest{
-		WorkflowKey:     constants.WorkflowEntityUser,
-		EntityID:        userID,
-		TargetStateCode: stateCode,
-		Event:           event,
-		ActorID:         actorID,
-	}); err != nil {
-		utils.Log.WithError(err).
-			WithField("workflow", constants.WorkflowEntityUser).
-			WithField("entity_id", userID).
-			WithField("state", stateCode).
-			Warn("failed to sync workflow state")
-	}
 }

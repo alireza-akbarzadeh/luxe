@@ -1,16 +1,15 @@
-package services
+package workflow
 
 import (
 	"context"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 
-// applyWorkflowEvent runs a validated transition. Returns the engine error when
-// the transition is rejected; nil when the engine is unset.
-func applyWorkflowEvent(ctx context.Context, engine *workflow.Engine, req workflow.TransitionRequest) error {
+// ApplyEvent runs a validated transition. Returns the engine error when rejected; nil when engine is unset.
+func ApplyEvent(ctx context.Context, engine *infraworkflow.Engine, req infraworkflow.TransitionRequest) error {
 	if engine == nil {
 		return nil
 	}
@@ -18,12 +17,12 @@ func applyWorkflowEvent(ctx context.Context, engine *workflow.Engine, req workfl
 	return err
 }
 
-// syncWorkflowState forces an entity to a target state (audit-only, no guards/hooks).
-func syncWorkflowState(ctx context.Context, engine *workflow.Engine, workflowKey string, entityID uint, stateCode, event string, actorID *uint) {
+// SyncState forces an entity to a target state (audit-only, no guards/hooks).
+func SyncState(ctx context.Context, engine *infraworkflow.Engine, workflowKey string, entityID uint, stateCode, event string, actorID *uint) {
 	if engine == nil {
 		return
 	}
-	if _, err := engine.SetState(ctx, workflow.SetStateRequest{
+	if _, err := engine.SetState(ctx, infraworkflow.SetStateRequest{
 		WorkflowKey:     workflowKey,
 		EntityID:        entityID,
 		TargetStateCode: stateCode,
@@ -38,12 +37,11 @@ func syncWorkflowState(ctx context.Context, engine *workflow.Engine, workflowKey
 	}
 }
 
-// syncUserWorkflowState updates the user account workflow pointer (best-effort).
-func syncUserWorkflowState(ctx context.Context, engine *workflow.Engine, userID uint, stateCode, event string, actorID *uint) {
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityUser, userID, stateCode, event, actorID)
+// SyncUserState updates the user account workflow pointer (best-effort).
+func SyncUserState(ctx context.Context, engine *infraworkflow.Engine, userID uint, stateCode, event string, actorID *uint) {
+	SyncState(ctx, engine, constants.WorkflowEntityUser, userID, stateCode, event, actorID)
 }
 
-// orderStatusToEvent maps legacy admin status strings to seeded workflow events.
 var orderStatusToEvent = map[string]string{
 	constants.OrderStatusPaid:      "payment_succeeded",
 	"processing":                   "start_processing",
@@ -54,11 +52,10 @@ var orderStatusToEvent = map[string]string{
 	constants.OrderStatusRefunded:  "refund",
 }
 
-// applyOrderWorkflow tries a validated transition first, then falls back to SetState.
-// Returns true when the engine updated the order (status mirror included).
-func applyOrderWorkflow(
+// ApplyOrderWorkflow tries a validated transition first, then falls back to SetState.
+func ApplyOrderWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	orderID uint,
 	status, actorRole string,
 	actorID *uint,
@@ -68,7 +65,7 @@ func applyOrderWorkflow(
 	}
 
 	if event, ok := orderStatusToEvent[status]; ok {
-		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 			WorkflowKey: constants.WorkflowEntityOrder,
 			EntityID:    orderID,
 			Event:       event,
@@ -93,7 +90,7 @@ func applyOrderWorkflow(
 		return false
 	}
 
-	_, err := engine.SetState(ctx, workflow.SetStateRequest{
+	_, err := engine.SetState(ctx, infraworkflow.SetStateRequest{
 		WorkflowKey:     constants.WorkflowEntityOrder,
 		EntityID:        orderID,
 		TargetStateCode: code,
@@ -103,20 +100,19 @@ func applyOrderWorkflow(
 	return err == nil
 }
 
-// shipmentStatusToEvent maps legacy shipment statuses to workflow events.
 var shipmentStatusToEvent = map[string]string{
 	"processing": "ready",
 	"shipped":    "depart",
 	"delivered":  "deliver",
 }
 
-// applyShipmentWorkflow tries transition then SetState for a legacy shipment status.
-func applyShipmentWorkflow(ctx context.Context, engine *workflow.Engine, shipmentID uint, status string) {
+// ApplyShipmentWorkflow tries transition then SetState for a legacy shipment status.
+func ApplyShipmentWorkflow(ctx context.Context, engine *infraworkflow.Engine, shipmentID uint, status string) {
 	if engine == nil {
 		return
 	}
 	if event, ok := shipmentStatusToEvent[status]; ok {
-		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 			WorkflowKey: constants.WorkflowEntityShipment,
 			EntityID:    shipmentID,
 			Event:       event,
@@ -134,26 +130,24 @@ func applyShipmentWorkflow(ctx context.Context, engine *workflow.Engine, shipmen
 	if !ok {
 		return
 	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityShipment, shipmentID, code, "status_update", nil)
+	SyncState(ctx, engine, constants.WorkflowEntityShipment, shipmentID, code, "status_update", nil)
 }
 
-// productStatusToEvent maps legacy product status changes to workflow events (admin actions).
 var productStatusToEvent = map[string]string{
 	constants.ProductStatusActive: "publish",
 }
 
-// productStatusToStateCode maps legacy product status strings to workflow state codes.
 var productStatusToStateCode = map[string]string{
-	"draft":                            "draft",
-	constants.ProductStatusActive:      "published",
-	constants.ProductStatusInactive:    "discontinued",
-	constants.ProductStatusArchived:    "archived",
+	"draft":                         "draft",
+	constants.ProductStatusActive:   "published",
+	constants.ProductStatusInactive: "discontinued",
+	constants.ProductStatusArchived: "archived",
 }
 
-// applyProductWorkflow tries a validated transition first, then falls back to SetState.
-func applyProductWorkflow(
+// ApplyProductWorkflow tries a validated transition first, then falls back to SetState.
+func ApplyProductWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	productID uint,
 	status, actorRole string,
 	actorID *uint,
@@ -163,7 +157,7 @@ func applyProductWorkflow(
 	}
 
 	if event, ok := productStatusToEvent[status]; ok {
-		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 			WorkflowKey: constants.WorkflowEntityProduct,
 			EntityID:    productID,
 			Event:       event,
@@ -178,14 +172,14 @@ func applyProductWorkflow(
 	if !ok {
 		return false
 	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityProduct, productID, code, "status_update", actorID)
+	SyncState(ctx, engine, constants.WorkflowEntityProduct, productID, code, "status_update", actorID)
 	return true
 }
 
-// applyCategoryWorkflow syncs category is_active into the workflow engine (best-effort).
-func applyCategoryWorkflow(
+// ApplyCategoryWorkflow syncs category is_active into the workflow engine (best-effort).
+func ApplyCategoryWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	categoryID uint,
 	isActive bool,
 	actorID *uint,
@@ -196,7 +190,7 @@ func applyCategoryWorkflow(
 
 	if isActive {
 		for _, event := range []string{"activate", "reactivate"} {
-			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 				WorkflowKey: constants.WorkflowEntityCategory,
 				EntityID:    categoryID,
 				Event:       event,
@@ -206,11 +200,11 @@ func applyCategoryWorkflow(
 				return true
 			}
 		}
-		syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "active", "status_update", actorID)
+		SyncState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "active", "status_update", actorID)
 		return true
 	}
 
-	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+	if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 		WorkflowKey: constants.WorkflowEntityCategory,
 		EntityID:    categoryID,
 		Event:       "deactivate",
@@ -220,7 +214,7 @@ func applyCategoryWorkflow(
 		return true
 	}
 
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "inactive", "status_update", actorID)
+	SyncState(ctx, engine, constants.WorkflowEntityCategory, categoryID, "inactive", "status_update", actorID)
 	return true
 }
 
@@ -231,10 +225,10 @@ var brandStatusToStateCode = map[string]string{
 	"archived": "archived",
 }
 
-// applyBrandWorkflow syncs legacy brand status into the workflow engine (best-effort).
-func applyBrandWorkflow(
+// ApplyBrandWorkflow syncs legacy brand status into the workflow engine (best-effort).
+func ApplyBrandWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	brandID uint,
 	status string,
 	actorID *uint,
@@ -250,7 +244,7 @@ func applyBrandWorkflow(
 	}
 	if events, ok := eventByStatus[status]; ok {
 		for _, event := range events {
-			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 				WorkflowKey: constants.WorkflowEntityBrand,
 				EntityID:    brandID,
 				Event:       event,
@@ -266,14 +260,14 @@ func applyBrandWorkflow(
 	if !ok {
 		code = "draft"
 	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityBrand, brandID, code, "status_update", actorID)
+	SyncState(ctx, engine, constants.WorkflowEntityBrand, brandID, code, "status_update", actorID)
 	return true
 }
 
-// applyCollectionWorkflow syncs legacy collection status into the workflow engine (best-effort).
-func applyCollectionWorkflow(
+// ApplyCollectionWorkflow syncs legacy collection status into the workflow engine (best-effort).
+func ApplyCollectionWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	collectionID uint,
 	status string,
 	actorID *uint,
@@ -289,7 +283,7 @@ func applyCollectionWorkflow(
 	}
 	if events, ok := eventByStatus[status]; ok {
 		for _, event := range events {
-			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 				WorkflowKey: constants.WorkflowEntityCollection,
 				EntityID:    collectionID,
 				Event:       event,
@@ -305,14 +299,14 @@ func applyCollectionWorkflow(
 	if !ok {
 		code = "draft"
 	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
+	SyncState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
 	return true
 }
 
-// applyCouponWorkflow syncs coupon is_active into the workflow engine (best-effort).
-func applyCouponWorkflow(
+// ApplyCouponWorkflow syncs coupon is_active into the workflow engine (best-effort).
+func ApplyCouponWorkflow(
 	ctx context.Context,
-	engine *workflow.Engine,
+	engine *infraworkflow.Engine,
 	couponID uint,
 	isActive bool,
 	actorID *uint,
@@ -323,7 +317,7 @@ func applyCouponWorkflow(
 
 	if isActive {
 		for _, event := range []string{"activate", "resume"} {
-			if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 				WorkflowKey: constants.WorkflowEntityCoupon,
 				EntityID:    couponID,
 				Event:       event,
@@ -333,13 +327,12 @@ func applyCouponWorkflow(
 				return true
 			}
 		}
-		code := "active"
-		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, code, "status_update", actorID)
+		SyncState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "active", "status_update", actorID)
 		return true
 	}
 
 	for _, event := range []string{"pause"} {
-		if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+		if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 			WorkflowKey: constants.WorkflowEntityCoupon,
 			EntityID:    couponID,
 			Event:       event,
@@ -349,21 +342,21 @@ func applyCouponWorkflow(
 			return true
 		}
 	}
-	syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "paused", "status_update", actorID)
+	SyncState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "paused", "status_update", actorID)
 	return true
 }
 
-// applyCouponExhausted moves a coupon to the exhausted workflow state when usage limit is reached.
-func applyCouponExhausted(ctx context.Context, engine *workflow.Engine, couponID uint) {
+// ApplyCouponExhausted moves a coupon to the exhausted workflow state when usage limit is reached.
+func ApplyCouponExhausted(ctx context.Context, engine *infraworkflow.Engine, couponID uint) {
 	if engine == nil {
 		return
 	}
-	if err := applyWorkflowEvent(ctx, engine, workflow.TransitionRequest{
+	if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
 		WorkflowKey: constants.WorkflowEntityCoupon,
 		EntityID:    couponID,
 		Event:       "mark_exhausted",
 		ActorRole:   constants.RoleAdmin,
 	}); err != nil {
-		syncWorkflowState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
+		SyncState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
 	}
 }

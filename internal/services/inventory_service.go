@@ -9,6 +9,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -169,7 +170,7 @@ func (s *inventoryService) handleStockSideEffects(ctx context.Context, product m
 	if before == 0 && after > 0 && s.notifier != nil {
 		_ = s.notifier.NotifyBackInStock(product.ID, product.Name, product.Slug)
 		if s.engine != nil {
-			_ = applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+			_ = appworkflow.ApplyEvent(ctx, s.engine, workflow.TransitionRequest{
 				WorkflowKey: constants.WorkflowEntityProduct,
 				EntityID:    product.ID,
 				Event:       "restock",
@@ -179,7 +180,7 @@ func (s *inventoryService) handleStockSideEffects(ctx context.Context, product m
 	}
 
 	if after == 0 && before > 0 && s.engine != nil {
-		_ = applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+		_ = appworkflow.ApplyEvent(ctx, s.engine, workflow.TransitionRequest{
 			WorkflowKey: constants.WorkflowEntityProduct,
 			EntityID:    product.ID,
 			Event:       "mark_out_of_stock",

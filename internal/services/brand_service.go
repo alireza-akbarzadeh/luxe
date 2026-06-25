@@ -6,6 +6,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appbrand "github.com/alireza-akbarzadeh/luxe/internal/application/brand"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	domainbrand "github.com/alireza-akbarzadeh/luxe/internal/domain/brand"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -37,7 +38,7 @@ func NewBrandService(db *gorm.DB, engine *workflow.Engine) BrandServiceInterface
 }
 
 func (s *brandService) syncBrandWorkflow(ctx context.Context, brandID uint, status string) {
-	if !applyBrandWorkflow(ctx, s.engine, brandID, status, nil) {
+	if !appworkflow.ApplyBrandWorkflow(ctx, s.engine, brandID, status, nil) {
 		utils.Log.WithField("brand_id", brandID).WithField("status", status).
 			Debug("brand workflow sync skipped or failed")
 	}

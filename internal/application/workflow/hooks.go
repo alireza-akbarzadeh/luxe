@@ -1,4 +1,4 @@
-package services
+package workflow
 
 import (
 	"context"
@@ -6,25 +6,48 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
 
-// RegisterWorkflowGuardsAndHooks wires the guard and hook functions referenced by
-// the seeded workflow transitions. New workflows can reference these keys (or new
-// ones registered here) without modifying the engine itself.
-func RegisterWorkflowGuardsAndHooks(
-	engine *workflow.Engine,
-	db *gorm.DB,
-	notification NotificationServiceInterface,
-	wallet WalletServiceInterface,
-	jobQueue asynq.JobQueue,
-) {
-	// ─── Guards ─────────────────────────────────────────────────────────────
+// Notifier sends in-app notifications (implemented by notification service facade).
+type Notifier interface {
+	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
+}
 
-	// A product must have a price before it can enter review.
+// WalletRefunder credits customer wallet on refund hooks.
+type WalletRefunder interface {
+	Refund(userID uint, amount float64, orderID uint) error
+}
+
+// InventoryRestocker restores stock when a return workflow completes.
+type InventoryRestocker interface {
+	RestockForReturn(ctx context.Context, returnID uint) error
+}
+
+// HookDeps groups dependencies for registering workflow guards and hooks.
+type HookDeps struct {
+	Engine   *infraworkflow.Engine
+	DB       *gorm.DB
+	Notify   Notifier
+	Wallet   WalletRefunder
+	JobQueue asynq.JobQueue
+}
+
+// RegisterGuardsAndHooks wires guard and hook functions referenced by seeded workflow transitions.
+func RegisterGuardsAndHooks(deps HookDeps) {
+	engine := deps.Engine
+	db := deps.DB
+	notification := deps.Notify
+	wallet := deps.Wallet
+	jobQueue := deps.JobQueue
+
+	if engine == nil || db == nil {
+		return
+	}
+
 	engine.RegisterGuard("product_has_price", func(ctx context.Context, productID uint) error {
 		var price float64
 		if err := db.WithContext(ctx).Table("products").
@@ -37,7 +60,6 @@ func RegisterWorkflowGuardsAndHooks(
 		return nil
 	})
 
-	// An order may move to paid only if its payment did not explicitly fail.
 	engine.RegisterGuard("order_payment_succeeded", func(ctx context.Context, orderID uint) error {
 		var status string
 		err := db.WithContext(ctx).Table("payments").
@@ -52,7 +74,6 @@ func RegisterWorkflowGuardsAndHooks(
 		return nil
 	})
 
-	// An order can be cancelled unless it is already in a terminal/fulfilled state.
 	engine.RegisterGuard("order_cancellable", func(ctx context.Context, orderID uint) error {
 		var status string
 		if err := db.WithContext(ctx).Table("orders").
@@ -70,8 +91,6 @@ func RegisterWorkflowGuardsAndHooks(
 		}
 		return nil
 	})
-
-	// ─── Hooks ──────────────────────────────────────────────────────────────
 
 	engine.RegisterHook("product_published", func(ctx context.Context, productID uint, _ map[string]interface{}) error {
 		now := time.Now()
@@ -97,27 +116,28 @@ func RegisterWorkflowGuardsAndHooks(
 			Where("id = ?", shipmentID).Update("delivered_at", now).Error
 	})
 
-	// On completed refund, credit the customer's wallet.
-	engine.RegisterHook("return_refunded", func(ctx context.Context, returnID uint, _ map[string]interface{}) error {
-		var row struct {
-			OrderID      uint
-			UserID       uint
-			RefundAmount float64
-		}
-		if err := db.WithContext(ctx).Table("returns").
-			Select("order_id, user_id, refund_amount").
-			Where("id = ?", returnID).Scan(&row).Error; err != nil {
-			return utils.ErrInternal(err)
-		}
-		if row.RefundAmount <= 0 {
-			return nil
-		}
-		return wallet.Refund(row.UserID, row.RefundAmount, row.OrderID)
-	})
+	if wallet != nil {
+		engine.RegisterHook("return_refunded", func(ctx context.Context, returnID uint, _ map[string]interface{}) error {
+			var row struct {
+				OrderID      uint
+				UserID       uint
+				RefundAmount float64
+			}
+			if err := db.WithContext(ctx).Table("returns").
+				Select("order_id, user_id, refund_amount").
+				Where("id = ?", returnID).Scan(&row).Error; err != nil {
+				return utils.ErrInternal(err)
+			}
+			if row.RefundAmount <= 0 {
+				return nil
+			}
+			return wallet.Refund(row.UserID, row.RefundAmount, row.OrderID)
+		})
+	}
 }
 
-// RegisterInventoryWorkflowHooks wires inventory side-effects into return workflow transitions.
-func RegisterInventoryWorkflowHooks(engine *workflow.Engine, inventory InventoryServiceInterface) {
+// RegisterInventoryHooks wires inventory side-effects into return workflow transitions.
+func RegisterInventoryHooks(engine *infraworkflow.Engine, inventory InventoryRestocker) {
 	if engine == nil || inventory == nil {
 		return
 	}
@@ -126,14 +146,12 @@ func RegisterInventoryWorkflowHooks(engine *workflow.Engine, inventory Inventory
 	})
 }
 
-// orderNotifyHook builds a hook that loads the order's user + number and sends an
-// in-app notification plus an async email.
 func orderNotifyHook(
 	db *gorm.DB,
-	notification NotificationServiceInterface,
+	notification Notifier,
 	jobQueue asynq.JobQueue,
 	notifType, title, bodyTemplate string,
-) workflow.HookFunc {
+) infraworkflow.HookFunc {
 	return func(ctx context.Context, orderID uint, _ map[string]interface{}) error {
 		var row struct {
 			UserID      uint
@@ -146,10 +164,12 @@ func orderNotifyHook(
 		}
 		message := fmt.Sprintf(bodyTemplate, row.OrderNumber)
 
-		_ = notification.CreateNotification(row.UserID, notifType, title, message, map[string]interface{}{
-			"order_id":     orderID,
-			"order_number": row.OrderNumber,
-		})
+		if notification != nil {
+			_ = notification.CreateNotification(row.UserID, notifType, title, message, map[string]interface{}{
+				"order_id":     orderID,
+				"order_number": row.OrderNumber,
+			})
+		}
 
 		if jobQueue != nil {
 			var email string

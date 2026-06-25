@@ -6,6 +6,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appcategory "github.com/alireza-akbarzadeh/luxe/internal/application/category"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	domaincategory "github.com/alireza-akbarzadeh/luxe/internal/domain/category"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -45,7 +46,7 @@ func NewCategoryService(db *gorm.DB, engine *workflow.Engine) CategoryServiceInt
 }
 
 func (s *categoryService) syncCategoryWorkflow(ctx context.Context, categoryID uint, isActive bool) {
-	if !applyCategoryWorkflow(ctx, s.engine, categoryID, isActive, nil) {
+	if !appworkflow.ApplyCategoryWorkflow(ctx, s.engine, categoryID, isActive, nil) {
 		utils.Log.WithField("category_id", categoryID).Debug("category workflow sync skipped or failed")
 	}
 }

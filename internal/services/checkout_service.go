@@ -13,6 +13,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
 	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
@@ -100,11 +101,11 @@ func (s *checkoutService) setOrderStateActor(ctx context.Context, orderID uint, 
 		return
 	}
 	if stateCode == "paid" {
-		if applyOrderWorkflow(ctx, s.engine, orderID, constants.OrderStatusPaid, constants.RoleUser, actorID) {
+		if appworkflow.ApplyOrderWorkflow(ctx, s.engine, orderID, constants.OrderStatusPaid, constants.RoleUser, actorID) {
 			return
 		}
 	}
-	syncWorkflowState(ctx, s.engine, constants.WorkflowEntityOrder, orderID, stateCode, event, actorID)
+	appworkflow.SyncState(ctx, s.engine, constants.WorkflowEntityOrder, orderID, stateCode, event, actorID)
 }
 
 // Checkout converts the user's active cart into an order.
@@ -607,7 +608,7 @@ func (s *checkoutService) CancelOrder(ctx context.Context, orderID, userID uint)
 		}
 	}
 
-	if err := applyWorkflowEvent(ctx, s.engine, workflow.TransitionRequest{
+	if err := appworkflow.ApplyEvent(ctx, s.engine, workflow.TransitionRequest{
 		WorkflowKey: constants.WorkflowEntityOrder,
 		EntityID:    order.ID,
 		Event:       "cancel",

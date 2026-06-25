@@ -1,4 +1,4 @@
-package services
+package workflow
 
 import (
 	"context"
@@ -10,19 +10,19 @@ import (
 
 func TestApplyOrderWorkflow_NilEngine(t *testing.T) {
 	t.Parallel()
-	ok := applyOrderWorkflow(context.Background(), nil, 1, constants.OrderStatusShipped, constants.RoleAdmin, nil)
+	ok := ApplyOrderWorkflow(context.Background(), nil, 1, constants.OrderStatusShipped, constants.RoleAdmin, nil)
 	assert.False(t, ok)
 }
 
 func TestApplyProductWorkflow_NilEngine(t *testing.T) {
 	t.Parallel()
-	ok := applyProductWorkflow(context.Background(), nil, 1, constants.ProductStatusActive, constants.RoleAdmin, nil)
+	ok := ApplyProductWorkflow(context.Background(), nil, 1, constants.ProductStatusActive, constants.RoleAdmin, nil)
 	assert.False(t, ok)
 }
 
 func TestApplyShipmentWorkflow_NilEngine(t *testing.T) {
 	t.Parallel()
 	assert.NotPanics(t, func() {
-		applyShipmentWorkflow(context.Background(), nil, 1, "delivered")
+		ApplyShipmentWorkflow(context.Background(), nil, 1, "delivered")
 	})
 }

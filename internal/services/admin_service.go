@@ -5,6 +5,7 @@ import (
 	"context"
 
 	appadmin "github.com/alireza-akbarzadeh/luxe/internal/application/admin"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
@@ -81,9 +82,9 @@ func (s *adminService) ToggleUserActive(ctx context.Context, userID uint, active
 	}
 
 	if active {
-		syncUserWorkflowState(ctx, s.engine, userID, "active", "unblock", nil)
+		appworkflow.SyncUserState(ctx, s.engine, userID, "active", "unblock", nil)
 	} else {
-		syncUserWorkflowState(ctx, s.engine, userID, "blocked", "block", nil)
+		appworkflow.SyncUserState(ctx, s.engine, userID, "blocked", "block", nil)
 	}
 	return nil
 }
