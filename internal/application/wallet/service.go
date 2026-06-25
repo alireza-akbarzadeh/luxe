@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	domainwallet "github.com/alireza-akbarzadeh/luxe/internal/domain/wallet"
 	stripeintegration "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/stripe"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -62,6 +63,9 @@ func (w *Service) GetTransactions(ctx context.Context, userID uint, filters dto.
 }
 
 func (w *Service) Deposit(ctx context.Context, userID uint, amount float64, description string) error {
+	if err := domainwallet.ValidatePositiveAmount(amount); err != nil {
+		return utils.ErrBadRequest("amount must be positive")
+	}
 	return w.updateBalance(ctx, userID, amount, constants.WalletTxTypeDeposit, "", nil, description, constants.WalletTxStatusCompleted)
 }
 
@@ -89,6 +93,9 @@ func (w *Service) CreatePendingDeposit(ctx context.Context, userID uint, amount 
 }
 
 func (w *Service) InitiateDeposit(ctx context.Context, userID uint, amount float64, customerEmail string) (*dto.DepositResponse, error) {
+	if err := domainwallet.ValidatePositiveAmount(amount); err != nil {
+		return nil, utils.ErrBadRequest("amount must be positive")
+	}
 	txID, err := w.CreatePendingDeposit(ctx, userID, amount, "Online deposit via payment gateway")
 	if err != nil {
 		return nil, err
@@ -215,6 +222,9 @@ func (w *Service) FailDeposit(ctx context.Context, transactionID uint) error {
 }
 
 func (w *Service) Withdraw(ctx context.Context, userID uint, amount float64, referenceType string, referenceID *uint, description string) error {
+	if err := domainwallet.ValidatePositiveAmount(amount); err != nil {
+		return utils.ErrBadRequest("amount must be positive")
+	}
 	return w.updateBalance(ctx, userID, -amount, constants.WalletTxTypeAdjustment, referenceType, referenceID, description, constants.WalletTxStatusCompleted)
 }
 
@@ -248,7 +258,7 @@ func (w *Service) updateBalance(ctx context.Context, userID uint, delta float64,
 			}
 		}
 		newBalance := wallet.Balance + delta
-		if newBalance < 0 {
+		if err := domainwallet.CanApplyDelta(wallet.Balance, delta); err != nil {
 			return utils.ErrBadRequest("insufficient wallet balance")
 		}
 		wallet.Balance = newBalance

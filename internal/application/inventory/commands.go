@@ -8,8 +8,9 @@ import (
 	"strings"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	domaininventory "github.com/alireza-akbarzadeh/luxe/internal/domain/inventory"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/datatypes"
@@ -56,19 +57,22 @@ func (c *Commands) ApplyDeltaLocked(ctx context.Context, tx *gorm.DB, params Del
 	}
 
 	before := product.Stock
-	if !product.TrackInventory {
+	stock := productStockFromModel(*product)
+	if !stock.TrackInventory {
 		return DeltaResult{Product: *product, QuantityBefore: before, QuantityAfter: before}, nil
 	}
 
-	after := before + params.Delta
-	if after < 0 {
-		return DeltaResult{}, utils.ErrBadRequest(fmt.Sprintf("insufficient stock for product: %s", product.Name))
-	}
-	if params.Delta < 0 && !params.SkipAvailabilityCheck && !product.AllowBackorder {
-		if !isProductStockAvailable(*product, -params.Delta) {
+	if err := domaininventory.CanApplyDelta(stock, before, params.Delta, params.SkipAvailabilityCheck); err != nil {
+		switch {
+		case errors.Is(err, domaininventory.ErrInsufficientStock),
+			errors.Is(err, domaininventory.ErrNegativeStock):
 			return DeltaResult{}, utils.ErrBadRequest(fmt.Sprintf("insufficient stock for product: %s", product.Name))
+		default:
+			return DeltaResult{}, utils.ErrInternal(err)
 		}
 	}
+
+	after := before + params.Delta
 
 	product.Stock = after
 	if err := c.repo.SaveProduct(ctx, tx, product); err != nil {
@@ -218,7 +222,7 @@ func (c *Commands) RestoreForOrderCancel(ctx context.Context, tx *gorm.DB, order
 	if err != nil {
 		return DeltaResult{}, err
 	}
-	if !shouldDecrementProductStock(*product) {
+	if !domaininventory.ShouldAdjustStock(productStockFromModel(*product)) {
 		return DeltaResult{Product: *product, QuantityBefore: product.Stock, QuantityAfter: product.Stock}, nil
 	}
 
@@ -254,7 +258,7 @@ func (c *Commands) RestockForReturn(ctx context.Context, returnID uint) ([]Delta
 			if err != nil {
 				return err
 			}
-			if !shouldDecrementProductStock(*product) {
+			if !domaininventory.ShouldAdjustStock(productStockFromModel(*product)) {
 				continue
 			}
 
@@ -301,16 +305,10 @@ func mapReasonToAdjustmentType(reason string) string {
 	}
 }
 
-func isProductStockAvailable(product models.Product, quantity int) bool {
-	if !product.TrackInventory {
-		return true
+func productStockFromModel(product models.Product) domaininventory.ProductStock {
+	return domaininventory.ProductStock{
+		TrackInventory: product.TrackInventory,
+		AllowBackorder: product.AllowBackorder,
+		Stock:          product.Stock,
 	}
-	if product.AllowBackorder {
-		return true
-	}
-	return product.Stock >= quantity
-}
-
-func shouldDecrementProductStock(product models.Product) bool {
-	return product.TrackInventory
 }

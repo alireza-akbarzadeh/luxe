@@ -14,6 +14,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
 	domaincheckout "github.com/alireza-akbarzadeh/luxe/internal/domain/checkout"
+	"github.com/alireza-akbarzadeh/luxe/internal/domain/inventory"
 	"gorm.io/gorm"
 )
 
@@ -74,7 +75,7 @@ func ProductStockAvailable(product models.Product, quantity int) bool {
 
 // ShouldDecrementProductStock reports whether inventory should be decremented.
 func ShouldDecrementProductStock(product models.Product) bool {
-	return product.TrackInventory
+	return inventory.ShouldAdjustStock(inventory.ProductStock{TrackInventory: product.TrackInventory})
 }
 
 // ReserveCartStock validates and reserves stock inside a transaction.

@@ -17,6 +17,9 @@ domain/
   workflow/types.go       transition DTOs for application/workflow
   shared/money.go         Money value object
   shared/pagination.go    page params
+  inventory/stock.go      stock availability + delta rules
+  coupon/coupon.go        eligibility + discount calculation
+  wallet/wallet.go        balance + amount rules
 ```
 
 ## Where persistence ports live
@@ -30,8 +33,10 @@ Do **not** add a `domain/*/repository.go` unless `application/` constructors tak
 
 ## What to add here
 
-- Pure rules: `CanCancel`, `ValidateCreate`, `ValidateCheckout`
-- Domain errors and small types used by those rules
-- Shared value objects (`Money`)
+Extract **pure rules** from `application/*/service.go` when you find:
 
-Keep orchestration, GORM, DTO mapping, and workflow in **`application/`**.
+- Calculations (discount, totals, stock deltas)
+- Eligibility checks (can cancel, can apply coupon, sufficient balance)
+- Invariants with no I/O
+
+Do **not** move orchestration, GORM, DTO mapping, or workflow sync here — those stay in **`application/`**.

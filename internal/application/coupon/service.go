@@ -7,6 +7,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
+	domaincoupon "github.com/alireza-akbarzadeh/luxe/internal/domain/coupon"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -73,37 +74,34 @@ func (s *Service) Create(ctx context.Context, req dto.CreateCouponRequest) (*mod
 }
 
 func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, orderTotal float64) (*models.Coupon, float64, error) {
-	coupon, err := s.repo.FindActiveByCode(ctx, code, time.Now())
+	couponModel, err := s.repo.FindActiveByCode(ctx, code, time.Now())
 	if err != nil {
 		return nil, 0, utils.ErrBadRequest("invalid or expired coupon")
 	}
-	if coupon.UsedCount >= coupon.UsageLimit && coupon.UsageLimit > 0 {
-		return nil, 0, utils.ErrBadRequest("coupon usage limit exceeded")
-	}
-	if orderTotal < coupon.MinimumOrderAmount {
-		return nil, 0, utils.ErrBadRequest("order total below minimum amount")
-	}
-	usageCount, err := s.repo.CountCouponUsageByUser(ctx, coupon.ID, userID)
+
+	usageCount, err := s.repo.CountCouponUsageByUser(ctx, couponModel.ID, userID)
 	if err != nil {
 		return nil, 0, utils.ErrInternal(err)
 	}
-	if usageCount > 0 {
-		return nil, 0, utils.ErrBadRequest("coupon already used by this user")
+
+	domainCoupon := couponFromModel(*couponModel)
+	if err := domaincoupon.ValidateEligibility(domainCoupon, orderTotal, int(usageCount), time.Now()); err != nil {
+		switch {
+		case errors.Is(err, domaincoupon.ErrInactiveOrExpired):
+			return nil, 0, utils.ErrBadRequest("invalid or expired coupon")
+		case errors.Is(err, domaincoupon.ErrUsageLimitExceeded):
+			return nil, 0, utils.ErrBadRequest("coupon usage limit exceeded")
+		case errors.Is(err, domaincoupon.ErrBelowMinimumOrder):
+			return nil, 0, utils.ErrBadRequest("order total below minimum amount")
+		case errors.Is(err, domaincoupon.ErrAlreadyUsedByUser):
+			return nil, 0, utils.ErrBadRequest("coupon already used by this user")
+		default:
+			return nil, 0, utils.ErrInternal(err)
+		}
 	}
 
-	discount := 0.0
-	if coupon.DiscountType == "percentage" {
-		discount = orderTotal * (coupon.DiscountValue / 100)
-		if coupon.MaxDiscountAmount != nil && discount > *coupon.MaxDiscountAmount {
-			discount = *coupon.MaxDiscountAmount
-		}
-	} else {
-		discount = coupon.DiscountValue
-		if discount > orderTotal {
-			discount = orderTotal
-		}
-	}
-	return coupon, discount, nil
+	discount := domaincoupon.CalculateDiscount(domainCoupon, orderTotal)
+	return couponModel, discount, nil
 }
 
 func (s *Service) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error {
@@ -116,7 +114,7 @@ func (s *Service) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode
 		return utils.ErrInternal(err)
 	}
 
-	if coupon.UsageLimit > 0 && coupon.UsedCount+1 >= coupon.UsageLimit {
+	if coupon.UsageLimit > 0 && domaincoupon.IsExhaustedAfterUse(couponFromModel(*coupon)) {
 		appworkflow.ApplyCouponExhausted(context.Background(), s.engine, coupon.ID)
 	}
 
@@ -301,4 +299,18 @@ func couponIsActiveDefault(isActive *bool) bool {
 		return false
 	}
 	return *isActive
+}
+
+func couponFromModel(c models.Coupon) domaincoupon.Coupon {
+	return domaincoupon.Coupon{
+		DiscountType:       c.DiscountType,
+		DiscountValue:      c.DiscountValue,
+		MinimumOrderAmount: c.MinimumOrderAmount,
+		MaxDiscountAmount:  c.MaxDiscountAmount,
+		UsageLimit:         c.UsageLimit,
+		UsedCount:          c.UsedCount,
+		IsActive:           c.IsActive,
+		StartDate:          c.StartDate,
+		EndDate:            c.EndDate,
+	}
 }
