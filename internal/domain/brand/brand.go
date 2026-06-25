@@ -1,12 +1,14 @@
 package brand
 
+import "errors"
+
+var ErrInvalidName = errors.New("brand name is required")
+
 // Service holds brand domain rules.
 type Service struct{}
 
 // NewService creates a brand domain service.
-func NewService() *Service {
-	return &Service{}
-}
+func NewService() *Service { return &Service{} }
 
 // ValidateName ensures a brand has a display name.
 func (s *Service) ValidateName(name string) error {

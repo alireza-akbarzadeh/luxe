@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 
-	domainpayment "github.com/alireza-akbarzadeh/luxe/internal/domain/payment"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -16,22 +15,6 @@ type PaymentRepository struct {
 // NewPaymentRepository creates a GORM-backed payment repository.
 func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
 	return &PaymentRepository{db: db}
-}
-
-// GetByOrderID implements domain/payment.Repository.
-func (r *PaymentRepository) GetByOrderID(ctx context.Context, orderID uint) (*domainpayment.Payment, error) {
-	var m models.Payment
-	if err := r.db.WithContext(ctx).Where("order_id = ?", orderID).First(&m).Error; err != nil {
-		return nil, err
-	}
-	return &domainpayment.Payment{
-		ID:          m.ID,
-		OrderID:     m.OrderID,
-		AmountCents: int64(m.Amount * 100),
-		Currency:    m.Currency,
-		Provider:    m.Method,
-		Status:      m.Status,
-	}, nil
 }
 
 // CreatePaymentTx inserts a payment inside an existing transaction.

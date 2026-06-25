@@ -1,12 +1,14 @@
 package collection
 
+import "errors"
+
+var ErrInvalidTitle = errors.New("collection title is required")
+
 // Service holds collection domain rules.
 type Service struct{}
 
 // NewService creates a collection domain service.
-func NewService() *Service {
-	return &Service{}
-}
+func NewService() *Service { return &Service{} }
 
 // ValidateTitle ensures a collection has a title.
 func (s *Service) ValidateTitle(title string) error {

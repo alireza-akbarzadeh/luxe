@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	domainauth "github.com/alireza-akbarzadeh/luxe/internal/domain/auth"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -17,18 +16,6 @@ type AuthRepository struct {
 // NewAuthRepository creates a GORM-backed auth repository.
 func NewAuthRepository(db *gorm.DB) *AuthRepository {
 	return &AuthRepository{db: db}
-}
-
-// FindActiveSession implements domain/auth.Repository.
-func (r *AuthRepository) FindActiveSession(ctx context.Context, tokenHash string) (*domainauth.Session, error) {
-	var t models.RefreshToken
-	err := r.db.WithContext(ctx).
-		Where("token = ? AND revoked = ? AND expires_at > ?", tokenHash, false, time.Now()).
-		First(&t).Error
-	if err != nil {
-		return nil, err
-	}
-	return &domainauth.Session{ID: t.ID, UserID: t.UserID, Revoked: t.Revoked}, nil
 }
 
 // FindUserByEmail loads a user by email.

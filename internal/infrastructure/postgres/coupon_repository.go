@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	domaincoupon "github.com/alireza-akbarzadeh/luxe/internal/domain/coupon"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
@@ -18,20 +17,6 @@ type CouponRepository struct {
 // NewCouponRepository creates a GORM-backed coupon repository.
 func NewCouponRepository(db *gorm.DB) *CouponRepository {
 	return &CouponRepository{db: db}
-}
-
-// GetByCode implements domain/coupon.Repository.
-func (r *CouponRepository) GetByCode(ctx context.Context, code string) (*domaincoupon.Coupon, error) {
-	var m models.Coupon
-	if err := r.db.WithContext(ctx).Where("code = ?", code).First(&m).Error; err != nil {
-		return nil, err
-	}
-	return &domaincoupon.Coupon{
-		ID:           m.ID,
-		Code:         m.Code,
-		DiscountType: m.DiscountType,
-		IsActive:     m.IsActive,
-	}, nil
 }
 
 // FindByID loads a coupon with workflow state preloaded.

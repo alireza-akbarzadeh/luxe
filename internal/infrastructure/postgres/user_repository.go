@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 
-	domainuser "github.com/alireza-akbarzadeh/luxe/internal/domain/user"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -16,15 +15,6 @@ type UserRepository struct {
 // NewUserRepository creates a GORM-backed user repository.
 func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
-}
-
-// GetByID implements domain/user.Repository.
-func (r *UserRepository) GetByID(ctx context.Context, id uint) (*domainuser.User, error) {
-	var m models.User
-	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
-		return nil, err
-	}
-	return toDomainUser(&m), nil
 }
 
 // FindByID loads a user model by ID.
@@ -97,16 +87,4 @@ type UserListFilter struct {
 	FirstName string
 	LastName  string
 	Role      string
-}
-
-func toDomainUser(m *models.User) *domainuser.User {
-	return &domainuser.User{
-		ID:        m.ID,
-		Email:     m.Email,
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Phone:     m.Phone,
-		Role:      m.Role,
-		IsActive:  m.IsActive,
-	}
 }

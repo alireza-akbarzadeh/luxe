@@ -2,10 +2,8 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"time"
 
-	domainorder "github.com/alireza-akbarzadeh/luxe/internal/domain/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -32,18 +30,6 @@ type OrderRepository struct {
 // NewOrderRepository creates a GORM-backed order repository.
 func NewOrderRepository(db *gorm.DB) *OrderRepository {
 	return &OrderRepository{db: db}
-}
-
-// GetByID implements domain/order.Repository.
-func (r *OrderRepository) GetByID(ctx context.Context, id uint) (*domainorder.Order, error) {
-	var m models.Order
-	if err := r.db.WithContext(ctx).First(&m, id).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domainorder.ErrOrderNotFound
-		}
-		return nil, err
-	}
-	return toDomainOrder(&m), nil
 }
 
 // FindByIDAndUserID loads an order scoped to a user with relations.
@@ -118,14 +104,4 @@ func (r *OrderRepository) applyListFilters(query *gorm.DB, q OrderListQuery) *go
 			)
 	}
 	return query
-}
-
-func toDomainOrder(m *models.Order) *domainorder.Order {
-	return &domainorder.Order{
-		ID:         m.ID,
-		UserID:     m.UserID,
-		Status:     m.Status,
-		TotalCents: int64(m.TotalAmount * 100),
-		Currency:   "USD",
-	}
 }

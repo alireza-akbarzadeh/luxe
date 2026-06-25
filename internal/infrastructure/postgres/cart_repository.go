@@ -2,11 +2,9 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -19,18 +17,6 @@ type CartRepository struct {
 // NewCartRepository creates a GORM-backed cart repository.
 func NewCartRepository(db *gorm.DB) *CartRepository {
 	return &CartRepository{db: db}
-}
-
-// GetActiveByUserID implements domain/cart.Repository for the active cart aggregate view.
-func (r *CartRepository) GetActiveByUserID(ctx context.Context, userID uint) (*domaincart.Cart, error) {
-	m, err := r.FindActiveCart(ctx, userID, false)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, domaincart.ErrCartNotFound
-		}
-		return nil, err
-	}
-	return toDomainCart(m), nil
 }
 
 // FindActiveCart loads the user's active cart, optionally preloading items.
@@ -134,22 +120,4 @@ func (r *CartRepository) MarkConverted(ctx context.Context, cartID uint) error {
 func (r *CartRepository) MarkConvertedTx(tx *gorm.DB, cartID uint) error {
 	return tx.Model(&models.Cart{}).Where("id = ?", cartID).
 		Update("status", "converted").Error
-}
-
-func toDomainCart(m *models.Cart) *domaincart.Cart {
-	items := make([]domaincart.Item, 0, len(m.Items))
-	for _, it := range m.Items {
-		items = append(items, domaincart.Item{
-			ID:        it.ID,
-			ProductID: it.ProductID,
-			Quantity:  it.Quantity,
-			UnitCents: int64(it.Price * 100),
-		})
-	}
-	userID := m.UserID
-	return &domaincart.Cart{
-		ID:     m.ID,
-		UserID: &userID,
-		Items:  items,
-	}
 }

@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 
-	domainwallet "github.com/alireza-akbarzadeh/luxe/internal/domain/wallet"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
@@ -17,19 +16,6 @@ type WalletRepository struct {
 // NewWalletRepository creates a GORM-backed wallet repository.
 func NewWalletRepository(db *gorm.DB) *WalletRepository {
 	return &WalletRepository{db: db}
-}
-
-// GetByUserID implements domain/wallet.Repository.
-func (r *WalletRepository) GetByUserID(ctx context.Context, userID uint) (*domainwallet.Wallet, error) {
-	m, err := r.FindWalletByUserID(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-	return &domainwallet.Wallet{
-		UserID:       m.UserID,
-		BalanceCents: int64(m.Balance * 100),
-		Currency:     m.Currency,
-	}, nil
 }
 
 // FindWalletByUserID loads a wallet row for a user.
