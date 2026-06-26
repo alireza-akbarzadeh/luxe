@@ -72,7 +72,7 @@ func (r *StoreRepository) ListVendorStoresQuery(ctx context.Context, userID uint
 // FindByID loads a store with categories preloaded.
 func (r *StoreRepository) FindByID(id uint) (*models.Store, error) {
 	var store models.Store
-	err := r.db.Preload("Categories").First(&store, id).Error
+	err := r.db.Preload("Categories").Preload("User").First(&store, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +112,53 @@ func (r *StoreRepository) Save(store *models.Store) error {
 func (r *StoreRepository) DeleteByID(id uint) (int64, error) {
 	result := r.db.Delete(&models.Store{}, id)
 	return result.RowsAffected, result.Error
+}
+
+// ListAdmin builds a filtered admin store list query.
+func (r *StoreRepository) ListAdmin(filters dto.AdminStoreFilter) *gorm.DB {
+	query := r.db.Model(&models.Store{}).Preload("User").Preload("Categories")
+
+	if filters.Status != "" {
+		query = query.Where("status = ?", filters.Status)
+	}
+	if filters.Search != "" {
+		searchTerm := "%" + strings.ToLower(filters.Search) + "%"
+		query = query.Where("LOWER(name) LIKE ? OR LOWER(description) LIKE ?", searchTerm, searchTerm)
+	}
+	if filters.IsVerified != nil {
+		query = query.Where("is_verified = ?", *filters.IsVerified)
+	}
+
+	switch filters.SortBy {
+	case "oldest":
+		query = query.Order("created_at ASC")
+	default:
+		query = query.Order("created_at DESC")
+	}
+
+	return query
+}
+
+// FindAdminStores executes an admin store list query.
+func (r *StoreRepository) FindAdminStores(query *gorm.DB) ([]*models.Store, error) {
+	var stores []*models.Store
+	err := query.Find(&stores).Error
+	return stores, err
+}
+
+// FindOwnedStore loads a store scoped to the owner unless admin access is allowed.
+func (r *StoreRepository) FindOwnedStore(ctx context.Context, storeID, userID uint, allowAdmin bool) (*models.Store, error) {
+	query := r.db.WithContext(ctx).Preload("Categories").Preload("User")
+	if !allowAdmin {
+		query = query.Where("user_id = ?", userID)
+	}
+
+	var store models.Store
+	err := query.First(&store, storeID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &store, nil
 }
 
 // CountBySlug counts stores with a slug, optionally excluding an id.

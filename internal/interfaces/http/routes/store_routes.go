@@ -31,6 +31,7 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 	adminStores := protected.Group("/admin/stores")
 	adminStores.Use(middleware.ModuleGuard("products"))
 	{
+		adminStores.GET("", ctrl.Store.ListStoresAdmin)
 		adminStores.GET("/:id", ctrl.Store.GetStoreAdmin)
 		adminStores.POST("", ctrl.Store.CreateStore)
 		adminStores.PUT("/:id", ctrl.Store.UpdateStore)
@@ -41,5 +42,7 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 	{
 		vendorStores.GET("", ctrl.Store.ListVendorStores)
 		vendorStores.POST("", ctrl.Store.CreateVendorStore)
+		vendorStores.GET("/:id", ctrl.Store.GetVendorStore)
+		vendorStores.PUT("/:id", ctrl.Store.UpdateVendorStore)
 	}
 }

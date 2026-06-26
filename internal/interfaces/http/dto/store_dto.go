@@ -19,13 +19,14 @@ type StoreFilter struct {
 }
 
 type CreateStoreRequest struct {
-	Name         string `json:"name" validate:"required"`
-	Description  string `json:"description"`
-	LogoURL      string `json:"logo_url"`
-	BannerURL    string `json:"banner_url"`
-	Location     string `json:"location"`
-	ShippingInfo string `json:"shipping_info"`
-	ReturnPolicy string `json:"return_policy"`
+	Name         string          `json:"name" validate:"required"`
+	Description  string          `json:"description"`
+	LogoURL      string          `json:"logo_url"`
+	BannerURL    string          `json:"banner_url"`
+	Location     string          `json:"location"`
+	ShippingInfo string          `json:"shipping_info"`
+	ReturnPolicy string          `json:"return_policy"`
+	Status       string          `json:"status,omitempty" validate:"omitempty,oneof=active pending suspended"`
 	UserID       *uint           `json:"user_id,omitempty"`
 	CategoryIDs  []uint          `json:"category_ids"`
 	Settings     json.RawMessage `json:"settings,omitempty"`
@@ -45,8 +46,39 @@ type VendorCreateStoreRequest struct {
 	Country           string `json:"country" validate:"required"`
 	Website           string `json:"website"`
 	TaxID             string `json:"tax_id"`
-	FulfillmentModel  string `json:"fulfillment_model" validate:"required,oneof=self platform hybrid"`
-	CategoryIDs       []uint `json:"category_ids"`
+	FulfillmentModel  string  `json:"fulfillment_model" validate:"required,oneof=self platform hybrid"`
+	CategoryIDs       []uint  `json:"category_ids"`
+	Latitude          *float64 `json:"latitude,omitempty"`
+	Longitude         *float64 `json:"longitude,omitempty"`
+}
+
+// VendorUpdateStoreRequest updates a vendor-owned store profile.
+type VendorUpdateStoreRequest struct {
+	Name              *string  `json:"name"`
+	Description       *string  `json:"description"`
+	LogoURL           *string  `json:"logo_url"`
+	BannerURL         *string  `json:"banner_url"`
+	Location          *string  `json:"location"`
+	ShippingInfo      *string  `json:"shipping_info"`
+	ReturnPolicy      *string  `json:"return_policy"`
+	BusinessLegalName *string  `json:"business_legal_name"`
+	BusinessType      *string  `json:"business_type" validate:"omitempty,oneof=individual company brand"`
+	Country           *string  `json:"country"`
+	Website           *string  `json:"website"`
+	TaxID             *string  `json:"tax_id"`
+	FulfillmentModel  *string  `json:"fulfillment_model" validate:"omitempty,oneof=self platform hybrid"`
+	CategoryIDs       *[]uint  `json:"category_ids"`
+	Latitude          *float64 `json:"latitude,omitempty"`
+	Longitude         *float64 `json:"longitude,omitempty"`
+}
+
+type AdminStoreFilter struct {
+	Search     string `form:"search"`
+	Status     string `form:"status"`
+	IsVerified *bool  `form:"is_verified"`
+	SortBy     string `form:"sort_by"`
+	Limit      int    `form:"limit"`
+	Offset     int    `form:"offset"`
 }
 
 type UpdateStoreRequest struct {
@@ -79,6 +111,41 @@ type StoreResponse struct {
 	JoinedAt      time.Time          `json:"joined_at"`
 	Categories    []CategoryResponse `json:"categories,omitempty"`
 	IsFollowed    *bool              `json:"is_followed,omitempty"`
+}
+
+// VendorStoreResponse includes vendor/admin fields not exposed on the public catalog.
+type VendorStoreResponse struct {
+	StoreResponse
+	Status   string          `json:"status"`
+	Settings json.RawMessage `json:"settings,omitempty"`
+}
+
+// AdminStoreResponse extends vendor view with ownership metadata.
+type AdminStoreResponse struct {
+	VendorStoreResponse
+	UserID     *uint     `json:"user_id,omitempty"`
+	OwnerEmail string    `json:"owner_email,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+func ToVendorStoreResponse(ctx context.Context, store *models.Store) VendorStoreResponse {
+	return VendorStoreResponse{
+		StoreResponse: ToStoreResponse(ctx, store),
+		Status:        store.Status,
+		Settings:      json.RawMessage(store.Settings),
+	}
+}
+
+func ToAdminStoreResponse(ctx context.Context, store *models.Store) AdminStoreResponse {
+	resp := AdminStoreResponse{
+		VendorStoreResponse: ToVendorStoreResponse(ctx, store),
+		UserID:              store.UserID,
+		CreatedAt:           store.CreatedAt,
+	}
+	if store.User != nil {
+		resp.OwnerEmail = store.User.Email
+	}
+	return resp
 }
 
 func ToStoreResponse(ctx context.Context, store *models.Store) StoreResponse {

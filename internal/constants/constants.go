@@ -231,7 +231,9 @@ const (
 	ProductStatusArchived = "archived"
 
 	// Store statuses
-	StoreStatusActive = "active"
+	StoreStatusActive    = "active"
+	StoreStatusPending   = "pending"
+	StoreStatusSuspended = "suspended"
 
 	// Chat / stock notification statuses
 	ChatRoomStatusActive          = "active"

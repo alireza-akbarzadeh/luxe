@@ -3,12 +3,14 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"gorm.io/datatypes"
 )
 
 // Queries orchestrates store read use cases.
@@ -44,6 +46,36 @@ func (q *Queries) ListStores(limit, offset int, filters dto.StoreFilter) ([]*mod
 		return nil, 0, utils.ErrInternal(err)
 	}
 	return stores, total, nil
+}
+
+// ListAdminStores returns stores for admin management with filters.
+func (q *Queries) ListAdminStores(limit, offset int, filters dto.AdminStoreFilter) ([]*models.Store, int64, error) {
+	query := q.repo.ListAdmin(filters)
+
+	total, err := q.repo.CountQuery(query)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+
+	query = query.Limit(limit).Offset(offset)
+	stores, err := q.repo.FindAdminStores(query)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	return stores, total, nil
+}
+
+// GetVendorStore returns a store owned by the seller (or any store for admins).
+func (q *Queries) GetVendorStore(ctx context.Context, storeID, userID uint, role string) (*models.Store, error) {
+	isAdmin := role == constants.RoleAdmin || role == constants.RoleModerator
+	store, err := q.repo.FindOwnedStore(ctx, storeID, userID, isAdmin)
+	if err != nil {
+		if postgres.IsNotFound(err) {
+			return nil, utils.ErrNotFound("store not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return store, nil
 }
 
 // ListVendorStores returns stores the current user can manage in the vendor panel.
@@ -173,6 +205,11 @@ func (c *Commands) Create(req dto.CreateStoreRequest) (*models.Store, error) {
 		return nil, utils.ErrInternal(err)
 	}
 
+	status := constants.StoreStatusActive
+	if req.Status != "" {
+		status = req.Status
+	}
+
 	store := &models.Store{
 		Name:          req.Name,
 		Slug:          slug,
@@ -182,7 +219,7 @@ func (c *Commands) Create(req dto.CreateStoreRequest) (*models.Store, error) {
 		Location:      req.Location,
 		ShippingInfo:  req.ShippingInfo,
 		ReturnPolicy:  req.ReturnPolicy,
-		Status:        constants.StoreStatusActive,
+		Status:        status,
 		IsVerified:    false,
 		Rating:        0,
 		ReviewCount:   0,
@@ -203,7 +240,7 @@ func (c *Commands) Create(req dto.CreateStoreRequest) (*models.Store, error) {
 	}
 
 	if len(req.Settings) > 0 {
-		store.Settings = req.Settings
+		store.Settings = datatypes.JSON(req.Settings)
 	}
 
 	if err := c.repo.Create(store); err != nil {
@@ -222,14 +259,22 @@ func (c *Commands) CreateForVendor(ctx context.Context, userID uint, req dto.Ven
 		return nil, utils.ErrBadRequest("you already have a vendor store")
 	}
 
-	settings, err := json.Marshal(map[string]string{
+	settingsMap := map[string]string{
 		"business_legal_name": req.BusinessLegalName,
 		"business_type":       req.BusinessType,
 		"country":             req.Country,
 		"website":             req.Website,
 		"tax_id":              req.TaxID,
 		"fulfillment_model":   req.FulfillmentModel,
-	})
+	}
+	if req.Latitude != nil {
+		settingsMap["latitude"] = strconv.FormatFloat(*req.Latitude, 'f', -1, 64)
+	}
+	if req.Longitude != nil {
+		settingsMap["longitude"] = strconv.FormatFloat(*req.Longitude, 'f', -1, 64)
+	}
+
+	settings, err := json.Marshal(settingsMap)
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
@@ -245,10 +290,109 @@ func (c *Commands) CreateForVendor(ctx context.Context, userID uint, req dto.Ven
 		ReturnPolicy: req.ReturnPolicy,
 		UserID:       &userIDCopy,
 		CategoryIDs:  req.CategoryIDs,
-		Settings:     settings,
+		Status:       constants.StoreStatusPending,
+		Settings:     json.RawMessage(settings),
 	}
 
 	return c.Create(createReq)
+}
+
+// UpdateForVendor updates a store owned by the authenticated seller.
+func (c *Commands) UpdateForVendor(ctx context.Context, storeID, userID uint, role string, req dto.VendorUpdateStoreRequest) (*models.Store, error) {
+	store, err := c.queries.GetVendorStore(ctx, storeID, userID, role)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Name != nil {
+		store.Name = *req.Name
+		baseSlug := postgres.GenerateSlug(*req.Name)
+		slug, slugErr := c.repo.UniqueSlug(baseSlug, store.ID)
+		if slugErr != nil {
+			return nil, utils.ErrInternal(slugErr)
+		}
+		store.Slug = slug
+	}
+	if req.Description != nil {
+		store.Description = *req.Description
+	}
+	if req.LogoURL != nil {
+		store.LogoURL = *req.LogoURL
+	}
+	if req.BannerURL != nil {
+		store.BannerURL = *req.BannerURL
+	}
+	if req.Location != nil {
+		store.Location = *req.Location
+	}
+	if req.ShippingInfo != nil {
+		store.ShippingInfo = *req.ShippingInfo
+	}
+	if req.ReturnPolicy != nil {
+		store.ReturnPolicy = *req.ReturnPolicy
+	}
+	if req.CategoryIDs != nil {
+		categories, catErr := c.repo.FindCategoriesByIDs(*req.CategoryIDs)
+		if catErr != nil {
+			return nil, utils.ErrInternal(catErr)
+		}
+		store.Categories = categories
+	}
+
+	settingsUpdates := map[string]string{}
+	if req.BusinessLegalName != nil {
+		settingsUpdates["business_legal_name"] = *req.BusinessLegalName
+	}
+	if req.BusinessType != nil {
+		settingsUpdates["business_type"] = *req.BusinessType
+	}
+	if req.Country != nil {
+		settingsUpdates["country"] = *req.Country
+	}
+	if req.Website != nil {
+		settingsUpdates["website"] = *req.Website
+	}
+	if req.TaxID != nil {
+		settingsUpdates["tax_id"] = *req.TaxID
+	}
+	if req.FulfillmentModel != nil {
+		settingsUpdates["fulfillment_model"] = *req.FulfillmentModel
+	}
+	if req.Latitude != nil {
+		settingsUpdates["latitude"] = strconv.FormatFloat(*req.Latitude, 'f', -1, 64)
+	}
+	if req.Longitude != nil {
+		settingsUpdates["longitude"] = strconv.FormatFloat(*req.Longitude, 'f', -1, 64)
+	}
+	if len(settingsUpdates) > 0 {
+		merged, mergeErr := mergeStoreSettings(store.Settings, settingsUpdates)
+		if mergeErr != nil {
+			return nil, utils.ErrInternal(mergeErr)
+		}
+		store.Settings = merged
+	}
+
+	if err := c.repo.Save(store); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return store, nil
+}
+
+func mergeStoreSettings(existing datatypes.JSON, updates map[string]string) (datatypes.JSON, error) {
+	base := map[string]string{}
+	if len(existing) > 0 {
+		if err := json.Unmarshal(existing, &base); err != nil {
+			return nil, err
+		}
+	}
+	for key, value := range updates {
+		base[key] = value
+	}
+	raw, err := json.Marshal(base)
+	if err != nil {
+		return nil, err
+	}
+	return datatypes.JSON(raw), nil
 }
 
 // Update modifies an existing store.

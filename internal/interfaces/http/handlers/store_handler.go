@@ -228,7 +228,60 @@ func (ctrl *StoreHandler) GetStoreAdmin(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToStoreResponse(c.Request.Context(),store))
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToAdminStoreResponse(c.Request.Context(), store))
+}
+
+// ListStoresAdmin returns paginated stores for admin management.
+// @Summary      List stores (admin)
+// @Description  Paginated store list with status filters for admin review
+// @Tags         Stores
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit      query int    false "Items per page"
+// @Param        offset     query int    false "Offset"
+// @Param        search     query string false "Search name or description"
+// @Param        status     query string false "Filter by status (pending, active, suspended)"
+// @Param        sort_by    query string false "Sort order (newest, oldest)"
+// @Success      200 {object} utils.Response{data=object{stores=[]dto.AdminStoreResponse,total=int,limit=int,offset=int}}
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/stores [get]
+func (ctrl *StoreHandler) ListStoresAdmin(c *gin.Context) {
+	limit := constants.DefaultLimit
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(constants.DefaultLimit))); err == nil && l >= constants.MinLimit {
+		limit = l
+	}
+	if limit > constants.MaxLimit {
+		limit = constants.MaxLimit
+	}
+	offset := constants.MinOffset
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", strconv.Itoa(constants.MinOffset))); err == nil && o >= constants.MinOffset {
+		offset = o
+	}
+
+	var filters dto.AdminStoreFilter
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+
+	stores, total, err := ctrl.queries.ListAdminStores(limit, offset, filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list stores")
+		return
+	}
+
+	responses := make([]dto.AdminStoreResponse, len(stores))
+	for i, store := range stores {
+		responses[i] = dto.ToAdminStoreResponse(c.Request.Context(), store)
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"stores": responses,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
+	})
 }
 
 // CreateStore creates a new store (admin only).
@@ -622,12 +675,89 @@ func (ctrl *StoreHandler) ListVendorStores(c *gin.Context) {
 		return
 	}
 
-	responses := make([]dto.StoreResponse, len(stores))
+	responses := make([]dto.VendorStoreResponse, len(stores))
 	for i, store := range stores {
-		responses[i] = dto.ToStoreResponse(c.Request.Context(),store)
+		responses[i] = dto.ToVendorStoreResponse(c.Request.Context(), store)
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)
+}
+
+// GetVendorStore returns a vendor-owned store with settings.
+// @Summary      Get vendor store
+// @Description  Fetch store details for the authenticated seller
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.VendorStoreResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id} [get]
+func (ctrl *StoreHandler) GetVendorStore(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	storeID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
+		return
+	}
+
+	role, _ := middleware.GetUserRole(c)
+	store, err := ctrl.queries.GetVendorStore(c.Request.Context(), uint(storeID), userID, role)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch vendor store")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToVendorStoreResponse(c.Request.Context(), store))
+}
+
+// UpdateVendorStore updates a vendor-owned store profile.
+// @Summary      Update vendor store
+// @Description  Update storefront and business metadata for the authenticated seller
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Param        request body dto.VendorUpdateStoreRequest true "Updated store data"
+// @Success      200 {object} utils.Response{data=dto.VendorStoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id} [put]
+func (ctrl *StoreHandler) UpdateVendorStore(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	storeID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
+		return
+	}
+
+	var req dto.VendorUpdateStoreRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	role, _ := middleware.GetUserRole(c)
+	store, err := ctrl.commands.UpdateForVendor(c.Request.Context(), uint(storeID), userID, role, req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to update vendor store")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToVendorStoreResponse(c.Request.Context(), store))
 }
 
 // CreateVendorStore registers a storefront for the authenticated seller.
@@ -661,5 +791,5 @@ func (ctrl *StoreHandler) CreateVendorStore(c *gin.Context) {
 		return
 	}
 
-	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(c.Request.Context(), store))
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToVendorStoreResponse(c.Request.Context(), store))
 }
