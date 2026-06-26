@@ -389,26 +389,8 @@ func (ctrl *OrderHandler) PerformTransition(c *gin.Context) {
 	})
 }
 
-func parseVendorStoreID(c *gin.Context) (uint, bool) {
-	return parseUintParam(c, "id")
-}
-
 func (ctrl *OrderHandler) authorizeVendorStore(c *gin.Context) (uint, uint, string, bool) {
-	userID, ok := middleware.GetUserID(c)
-	if !ok {
-		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
-		return 0, 0, "", false
-	}
-	storeID, ok := parseVendorStoreID(c)
-	if !ok {
-		return 0, 0, "", false
-	}
-	role, _ := middleware.GetUserRole(c)
-	if _, err := ctrl.storeQueries.GetVendorStore(c.Request.Context(), storeID, userID, role); err != nil {
-		RespondServiceError(c, err, "store not found")
-		return 0, 0, "", false
-	}
-	return storeID, userID, role, true
+	return authorizeVendorStore(c, ctrl.storeQueries)
 }
 
 func (ctrl *OrderHandler) parseVendorOrderFilters(c *gin.Context) apporder.AdminOrderFilters {

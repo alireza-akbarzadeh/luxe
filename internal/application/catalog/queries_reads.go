@@ -48,6 +48,11 @@ func (q *Queries) FindLowStockActive(ctx context.Context) ([]models.Product, err
 	return q.reader.FindLowStockActive(ctx, constants.ProductStatusActive)
 }
 
+// GetVendorStoreProductStats returns product count summaries for a vendor store.
+func (q *Queries) GetVendorStoreProductStats(ctx context.Context, storeID uint) (dto.VendorProductStats, error) {
+	return q.reader.CountByStoreStatus(ctx, storeID)
+}
+
 // BuildSearchDocument builds the search index document for a product.
 func (q *Queries) BuildSearchDocument(ctx context.Context, product *models.Product) string {
 	var category *models.Category

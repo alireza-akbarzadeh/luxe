@@ -18,4 +18,5 @@ type ProductReader interface {
 	GetSuggestions(ctx context.Context, productIDs []uint, limit int) ([]*models.Product, error)
 	FindLowStockActive(ctx context.Context, activeStatus string) ([]models.Product, error)
 	FindCategoryByID(ctx context.Context, id uint) (*models.Category, error)
+	CountByStoreStatus(ctx context.Context, storeID uint) (dto.VendorProductStats, error)
 }

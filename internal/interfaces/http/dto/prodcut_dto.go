@@ -111,6 +111,7 @@ type ProductListFilters struct {
 	IsDigital  *bool   `form:"is_digital"`
 	IsNew      *bool   `form:"is_new"`
 	Sort       string  `form:"sort"`
+	Search     string  `form:"search"`
 	StoreID    *uint   `json:"store_id,omitempty"`
 	BrandID    *uint   `json:"brand_id,omitempty"`
 }
@@ -340,4 +341,72 @@ type PerformProductTransitionRequest struct {
 type ProductTransitionResponse struct {
 	Transition TransitionResultView `json:"transition"`
 	Product    ProductResponse      `json:"product"`
+}
+
+// VendorProductListItem is a row in the vendor products table (store-scoped).
+type VendorProductListItem struct {
+	ID       uint    `json:"id"`
+	Name     string  `json:"name"`
+	Slug     string  `json:"slug"`
+	SKU      string  `json:"sku"`
+	Price    float64 `json:"price"`
+	Stock    int     `json:"stock"`
+	Status   string  `json:"status"`
+	Category string  `json:"category,omitempty"`
+	Image    string  `json:"image,omitempty"`
+	LowStock bool    `json:"low_stock"`
+}
+
+// VendorProductListData wraps paginated vendor product rows.
+type VendorProductListData struct {
+	Products []VendorProductListItem `json:"products"`
+	Total    int64                   `json:"total"`
+	Limit    int                     `json:"limit"`
+	Offset   int                     `json:"offset"`
+}
+
+// VendorProductStatsResponse summarizes product counts for a vendor store dashboard.
+type VendorProductStatsResponse struct {
+	Total    int64            `json:"total"`
+	ByStatus map[string]int64 `json:"by_status"`
+	LowStock int64            `json:"low_stock"`
+}
+
+// VendorProductStats is the application-layer aggregate for store product counts.
+type VendorProductStats struct {
+	Total    int64
+	ByStatus map[string]int64
+	LowStock int64
+}
+
+// ToVendorProductListItem maps a product model to a vendor list row.
+func ToVendorProductListItem(p models.Product) VendorProductListItem {
+	item := VendorProductListItem{
+		ID:     p.ID,
+		Name:   p.Name,
+		Slug:   p.Slug,
+		SKU:    p.SKU,
+		Price:  p.Price,
+		Stock:  p.Stock,
+		Status: p.Status,
+	}
+	if p.Category != nil {
+		item.Category = p.Category.Name
+	}
+	if len(p.Images) > 0 {
+		item.Image = p.Images[0]
+	}
+	if p.TrackInventory && p.Stock > 0 && p.Stock <= p.LowStockThreshold {
+		item.LowStock = true
+	}
+	return item
+}
+
+// ToVendorProductListItems maps products to vendor list rows.
+func ToVendorProductListItems(products []*models.Product) []VendorProductListItem {
+	items := make([]VendorProductListItem, len(products))
+	for i, p := range products {
+		items[i] = ToVendorProductListItem(*p)
+	}
+	return items
 }

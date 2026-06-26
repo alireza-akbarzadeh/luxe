@@ -248,6 +248,14 @@ func (s *Service) GetByStoreID(storeID uint, limit, offset int, filters dto.Prod
 	return s.List(limit, offset, filters)
 }
 
+func (s *Service) GetVendorStoreProductStats(ctx context.Context, storeID uint) (dto.VendorProductStats, error) {
+	stats, err := s.queries.GetVendorStoreProductStats(ctx, storeID)
+	if err != nil {
+		return dto.VendorProductStats{}, utils.ErrInternal(err)
+	}
+	return stats, nil
+}
+
 func (s *Service) ensureProductExists(ctx context.Context, productID uint) error {
 	exists, err := s.queries.ExistsByID(ctx, productID)
 	if err != nil {

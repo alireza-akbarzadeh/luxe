@@ -467,6 +467,55 @@ definitions:
       total_wallet_balance:
         type: number
     type: object
+  dto.AdminStoreResponse:
+    properties:
+      banner_url:
+        type: string
+      categories:
+        items:
+          $ref: '#/definitions/dto.CategoryResponse'
+        type: array
+      created_at:
+        type: string
+      description:
+        type: string
+      follower_count:
+        type: integer
+      id:
+        type: integer
+      is_followed:
+        type: boolean
+      is_verified:
+        type: boolean
+      joined_at:
+        type: string
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      owner_email:
+        type: string
+      rating:
+        type: number
+      return_policy:
+        type: string
+      review_count:
+        type: integer
+      settings:
+        items:
+          type: integer
+        type: array
+      shipping_info:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      user_id:
+        type: integer
+    type: object
   dto.AdminUserResponse:
     properties:
       created_at:
@@ -1546,6 +1595,12 @@ definitions:
           type: integer
         type: array
       shipping_info:
+        type: string
+      status:
+        enum:
+        - active
+        - pending
+        - suspended
         type: string
       user_id:
         type: integer
@@ -3660,10 +3715,14 @@ definitions:
         - platform
         - hybrid
         type: string
+      latitude:
+        type: number
       location:
         type: string
       logo_url:
         type: string
+      longitude:
+        type: number
       name:
         type: string
       return_policy:
@@ -3684,6 +3743,239 @@ definitions:
     - name
     - return_policy
     - shipping_info
+    type: object
+  dto.VendorOrderDetailResponse:
+    properties:
+      carrier:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      estimated_delivery:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.AdminOrderItemView'
+        type: array
+      notes:
+        type: string
+      order_number:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      store_items_count:
+        type: integer
+      store_subtotal:
+        type: number
+      total_amount:
+        type: number
+      tracking_number:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  dto.VendorOrderListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      orders:
+        items:
+          $ref: '#/definitions/dto.VendorOrderListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.VendorOrderListItem:
+    properties:
+      carrier:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      items_count:
+        type: integer
+      order_number:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      status:
+        type: string
+      store_items_count:
+        type: integer
+      store_subtotal:
+        type: number
+      total_amount:
+        type: number
+      tracking_number:
+        type: string
+    type: object
+  dto.VendorOrderStatsResponse:
+    properties:
+      by_status:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      total:
+        type: integer
+    type: object
+  dto.VendorProductListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/dto.VendorProductListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.VendorProductListItem:
+    properties:
+      category:
+        type: string
+      id:
+        type: integer
+      image:
+        type: string
+      low_stock:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+    type: object
+  dto.VendorProductStatsResponse:
+    properties:
+      by_status:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      low_stock:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.VendorStoreResponse:
+    properties:
+      banner_url:
+        type: string
+      categories:
+        items:
+          $ref: '#/definitions/dto.CategoryResponse'
+        type: array
+      description:
+        type: string
+      follower_count:
+        type: integer
+      id:
+        type: integer
+      is_followed:
+        type: boolean
+      is_verified:
+        type: boolean
+      joined_at:
+        type: string
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      rating:
+        type: number
+      return_policy:
+        type: string
+      review_count:
+        type: integer
+      settings:
+        items:
+          type: integer
+        type: array
+      shipping_info:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+    type: object
+  dto.VendorUpdateStoreRequest:
+    properties:
+      banner_url:
+        type: string
+      business_legal_name:
+        type: string
+      business_type:
+        enum:
+        - individual
+        - company
+        - brand
+        type: string
+      category_ids:
+        items:
+          type: integer
+        type: array
+      country:
+        type: string
+      description:
+        type: string
+      fulfillment_model:
+        enum:
+        - self
+        - platform
+        - hybrid
+        type: string
+      latitude:
+        type: number
+      location:
+        type: string
+      logo_url:
+        type: string
+      longitude:
+        type: number
+      name:
+        type: string
+      return_policy:
+        type: string
+      shipping_info:
+        type: string
+      tax_id:
+        type: string
+      website:
+        type: string
     type: object
   dto.ViewAll:
     properties:
@@ -7085,6 +7377,67 @@ paths:
       tags:
       - Admin
   /admin/stores:
+    get:
+      consumes:
+      - application/json
+      description: Paginated store list with status filters for admin review
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Search name or description
+        in: query
+        name: search
+        type: string
+      - description: Filter by status (pending, active, suspended)
+        in: query
+        name: status
+        type: string
+      - description: Sort order (newest, oldest)
+        in: query
+        name: sort_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    stores:
+                      items:
+                        $ref: '#/definitions/dto.AdminStoreResponse'
+                      type: array
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List stores (admin)
+      tags:
+      - Stores
     post:
       consumes:
       - application/json
@@ -12275,6 +12628,323 @@ paths:
       security:
       - BearerAuth: []
       summary: Create vendor store
+      tags:
+      - Vendor
+  /vendor/stores/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Fetch store details for the authenticated seller
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorStoreResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get vendor store
+      tags:
+      - Vendor
+    put:
+      consumes:
+      - application/json
+      description: Update storefront and business metadata for the authenticated seller
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated store data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VendorUpdateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorStoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update vendor store
+      tags:
+      - Vendor
+  /vendor/stores/{id}/orders:
+    get:
+      consumes:
+      - application/json
+      description: Returns orders containing products from the given store with filtering
+        and search.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Order status
+        in: query
+        name: status
+        type: string
+      - description: Start date (RFC3339)
+        in: query
+        name: from_date
+        type: string
+      - description: End date (RFC3339)
+        in: query
+        name: to_date
+        type: string
+      - description: Minimum amount
+        in: query
+        name: min_amount
+        type: number
+      - description: Maximum amount
+        in: query
+        name: max_amount
+        type: number
+      - description: Search order number or customer
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOrderListData'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List vendor store orders
+      tags:
+      - Vendor
+  /vendor/stores/{id}/orders/{orderId}:
+    get:
+      description: Returns order detail including only line items belonging to the
+        store.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOrderDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get vendor store order
+      tags:
+      - Vendor
+  /vendor/stores/{id}/orders/stats:
+    get:
+      description: Returns total orders and counts grouped by status for the vendor
+        dashboard.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOrderStatsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor store order stats
+      tags:
+      - Vendor
+  /vendor/stores/{id}/products:
+    get:
+      consumes:
+      - application/json
+      description: Returns products belonging to the given store with search and status
+        filters.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Product status
+        in: query
+        name: status
+        type: string
+      - description: Search name, SKU, or barcode
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorProductListData'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List vendor store products
+      tags:
+      - Vendor
+  /vendor/stores/{id}/products/stats:
+    get:
+      description: Returns total products, counts by status, and low-stock count for
+        the vendor dashboard.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorProductStatsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor store product stats
       tags:
       - Vendor
   /wallet:

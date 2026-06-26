@@ -793,3 +793,86 @@ func (ctrl *StoreHandler) CreateVendorStore(c *gin.Context) {
 
 	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToVendorStoreResponse(c.Request.Context(), store))
 }
+
+func (ctrl *StoreHandler) parseVendorProductFilters(c *gin.Context) (dto.ProductListFilters, bool) {
+	var filters dto.ProductListFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return filters, false
+	}
+	if search := c.Query("search"); search != "" {
+		filters.Search = search
+	}
+	return filters, true
+}
+
+// ListVendorStoreProducts returns paginated products for a vendor-owned store.
+// @Summary      List vendor store products
+// @Description  Returns products belonging to the given store with search and status filters.
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path   int     true  "Store ID"
+// @Param        limit   query  int     false "Items per page" default(20)
+// @Param        offset  query  int     false "Offset" default(0)
+// @Param        status  query  string  false "Product status"
+// @Param        search  query  string  false "Search name, SKU, or barcode"
+// @Success      200 {object} utils.Response{data=dto.VendorProductListData}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/products [get]
+func (ctrl *StoreHandler) ListVendorStoreProducts(c *gin.Context) {
+	storeID, _, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	filters, ok := ctrl.parseVendorProductFilters(c)
+	if !ok {
+		return
+	}
+
+	products, total, err := ctrl.productService.GetByStoreID(storeID, limit, offset, filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch vendor products")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.VendorProductListData{
+		Products: dto.ToVendorProductListItems(products),
+		Total:    total,
+		Limit:    limit,
+		Offset:   offset,
+	})
+}
+
+// GetVendorStoreProductStats returns product count summaries for a vendor store.
+// @Summary      Vendor store product stats
+// @Description  Returns total products, counts by status, and low-stock count for the vendor dashboard.
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.VendorProductStatsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/products/stats [get]
+func (ctrl *StoreHandler) GetVendorStoreProductStats(c *gin.Context) {
+	storeID, _, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	stats, err := ctrl.productService.GetVendorStoreProductStats(c.Request.Context(), storeID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch vendor product stats")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.VendorProductStatsResponse{
+		Total:    stats.Total,
+		ByStatus: stats.ByStatus,
+		LowStock: stats.LowStock,
+	})
+}

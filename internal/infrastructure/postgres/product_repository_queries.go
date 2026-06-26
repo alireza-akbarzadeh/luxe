@@ -68,6 +68,13 @@ func (r *ProductRepository) ListDetailed(ctx context.Context, limit, offset int,
 	if filters.Name != "" {
 		query = query.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Name+"%")
 	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		query = query.Where(
+			"LOWER(name) LIKE LOWER(?) OR LOWER(sku) LIKE LOWER(?) OR LOWER(COALESCE(barcode, '')) LIKE LOWER(?)",
+			term, term, term,
+		)
+	}
 	if filters.StoreID != nil && *filters.StoreID != 0 {
 		query = query.Where("store_id = ?", *filters.StoreID)
 	}
