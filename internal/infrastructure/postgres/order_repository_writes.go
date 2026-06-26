@@ -13,6 +13,7 @@ import (
 func (r *OrderRepository) List(ctx context.Context, filter apporder.ListFilter) ([]models.Order, int64, error) {
 	q := OrderListQuery{
 		UserID:      filter.UserID,
+		StoreID:     filter.StoreID,
 		Status:      filter.Status,
 		Search:      filter.Search,
 		FromDate:    filter.FromDate,
@@ -30,12 +31,19 @@ func (r *OrderRepository) list(ctx context.Context, q OrderListQuery) ([]models.
 	var orders []models.Order
 	var total int64
 
-	query := r.applyListFilters(r.db.WithContext(ctx).Model(&models.Order{}), q)
-	if err := query.Count(&total).Error; err != nil {
+	countQuery := r.applyListFilters(r.db.WithContext(ctx).Model(&models.Order{}), q)
+	if q.StoreID != nil {
+		if err := countQuery.Select("COUNT(DISTINCT orders.id)").Scan(&total).Error; err != nil {
+			return nil, 0, err
+		}
+	} else if err := countQuery.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	listQuery := r.applyListFilters(r.db.WithContext(ctx).Model(&models.Order{}), q)
+	if q.StoreID != nil {
+		listQuery = listQuery.Distinct("orders.id")
+	}
 	listQuery = listQuery.Limit(q.Limit).Offset(q.Offset).
 		Preload("Items.Product").
 		Preload("Payment").

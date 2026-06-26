@@ -61,7 +61,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Pdp:      NewPdpHandler(apps.Pdp, apps.Product),
 		Compare:  NewCompareHandler(apps.Compare.Commands, apps.Compare.Queries),
 		Category: NewCategoryHandler(apps.Category),
-		Order:    NewOrderHandler(apps.Order, apps.Checkout),
+		Order:    NewOrderHandler(apps.Order, apps.Checkout, apps.Store.Queries),
 		Shipment: NewShipmentHandler(apps.Shipment),
 		Page:     NewPageHandler(),
 		Store:    NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product),

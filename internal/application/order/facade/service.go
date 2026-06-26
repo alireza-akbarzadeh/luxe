@@ -306,3 +306,30 @@ func (s *Service) PerformTransition(
 		Note:        note,
 	})
 }
+
+func (s *Service) ListVendorStoreOrders(
+	ctx context.Context,
+	storeID uint,
+	filters apporder.AdminOrderFilters,
+	limit, offset int,
+) ([]models.Order, int64, error) {
+	return s.queries.ListVendorStore(ctx, storeID, apporder.ListFilter{
+		Status:      filters.Status,
+		Search:      filters.Search,
+		FromDate:    filters.FromDate,
+		ToDate:      filters.ToDate,
+		MinAmount:   filters.MinAmount,
+		MaxAmount:   filters.MaxAmount,
+		Limit:       limit,
+		Offset:      offset,
+		PreloadUser: true,
+	})
+}
+
+func (s *Service) GetVendorStoreOrderStats(ctx context.Context, storeID uint) (apporder.VendorOrderStats, error) {
+	return s.queries.GetVendorStoreStats(ctx, storeID)
+}
+
+func (s *Service) GetVendorStoreOrder(ctx context.Context, storeID, orderID uint) (*models.Order, error) {
+	return s.queries.GetVendorStoreOrder(ctx, storeID, orderID)
+}

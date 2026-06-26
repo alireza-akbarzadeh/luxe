@@ -11,6 +11,7 @@ import (
 // ListFilter mirrors admin/user order list filters at the application layer.
 type ListFilter struct {
 	UserID      *uint
+	StoreID     *uint
 	Status      string
 	Search      string
 	FromDate    *time.Time
@@ -22,12 +23,20 @@ type ListFilter struct {
 	PreloadUser bool
 }
 
+// VendorOrderStats aggregates order counts for a vendor store.
+type VendorOrderStats struct {
+	Total     int64            `json:"total"`
+	ByStatus  map[string]int64 `json:"by_status"`
+}
+
 // Reader loads order models for HTTP handlers and application use cases.
 type Reader interface {
 	List(ctx context.Context, filter ListFilter) ([]models.Order, int64, error)
 	FindByIDAndUserID(ctx context.Context, orderID, userID uint) (*models.Order, error)
 	FindByID(ctx context.Context, orderID uint, preloadUser bool) (*models.Order, error)
 	FindAdminByID(ctx context.Context, orderID uint) (*models.Order, error)
+	CountByStoreStatus(ctx context.Context, storeID uint) (VendorOrderStats, error)
+	OrderBelongsToStore(ctx context.Context, orderID, storeID uint) (bool, error)
 }
 
 // Writer persists order status changes.

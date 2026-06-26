@@ -62,6 +62,45 @@ func (q *Queries) ListAdmin(ctx context.Context, filter ListFilter) ([]models.Or
 	return orders, total, nil
 }
 
+// ListVendorStore returns paginated orders containing products from the given store.
+func (q *Queries) ListVendorStore(ctx context.Context, storeID uint, filter ListFilter) ([]models.Order, int64, error) {
+	filter.StoreID = &storeID
+	filter.PreloadUser = true
+	orders, total, err := q.reader.List(ctx, filter)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	return orders, total, nil
+}
+
+// GetVendorStoreStats returns order counts for a vendor store.
+func (q *Queries) GetVendorStoreStats(ctx context.Context, storeID uint) (VendorOrderStats, error) {
+	stats, err := q.reader.CountByStoreStatus(ctx, storeID)
+	if err != nil {
+		return VendorOrderStats{}, utils.ErrInternal(err)
+	}
+	return stats, nil
+}
+
+// GetVendorStoreOrder loads an order if it belongs to the store.
+func (q *Queries) GetVendorStoreOrder(ctx context.Context, storeID, orderID uint) (*models.Order, error) {
+	ok, err := q.reader.OrderBelongsToStore(ctx, orderID, storeID)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	if !ok {
+		return nil, utils.ErrNotFound("order not found")
+	}
+	order, err := q.reader.FindAdminByID(ctx, orderID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("order not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return order, nil
+}
+
 // FindByID loads an order by id with optional user preload.
 func (q *Queries) FindByID(ctx context.Context, orderID uint, preloadUser bool) (*models.Order, error) {
 	order, err := q.reader.FindByID(ctx, orderID, preloadUser)

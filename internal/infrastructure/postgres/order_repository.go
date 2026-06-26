@@ -11,6 +11,7 @@ import (
 // OrderListQuery filters order list queries at the persistence layer.
 type OrderListQuery struct {
 	UserID      *uint
+	StoreID     *uint
 	Status      string
 	Search      string
 	FromDate    *time.Time
@@ -76,7 +77,17 @@ func (r *OrderRepository) FindAdminByID(ctx context.Context, orderID uint) (*mod
 	return &order, nil
 }
 
+func (r *OrderRepository) applyStoreScope(query *gorm.DB, storeID uint) *gorm.DB {
+	return query.
+		Joins("JOIN order_items ON order_items.order_id = orders.id AND order_items.deleted_at IS NULL").
+		Joins("JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where("products.store_id = ?", storeID)
+}
+
 func (r *OrderRepository) applyListFilters(query *gorm.DB, q OrderListQuery) *gorm.DB {
+	if q.StoreID != nil {
+		query = r.applyStoreScope(query, *q.StoreID)
+	}
 	if q.UserID != nil {
 		query = query.Where("user_id = ?", *q.UserID)
 	}

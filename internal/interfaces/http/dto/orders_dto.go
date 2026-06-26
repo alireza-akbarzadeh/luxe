@@ -279,3 +279,148 @@ type OrderTransitionResponse struct {
 	Transition TransitionResultView `json:"transition"`
 	Order      interface{}          `json:"order"` // models.Order in responses
 }
+
+// VendorOrderListItem is a row in the vendor orders table (store-scoped).
+type VendorOrderListItem struct {
+	ID              uint      `json:"id"`
+	OrderNumber     string    `json:"order_number"`
+	Status          string    `json:"status"`
+	PaymentStatus   string    `json:"payment_status"`
+	PaymentMethod   string    `json:"payment_method,omitempty"`
+	TotalAmount     float64   `json:"total_amount"`
+	StoreSubtotal   float64   `json:"store_subtotal"`
+	Currency        string    `json:"currency"`
+	CustomerName    string    `json:"customer_name"`
+	CustomerEmail   string    `json:"customer_email"`
+	ItemsCount      int       `json:"items_count"`
+	StoreItemsCount int       `json:"store_items_count"`
+	TrackingNumber  string    `json:"tracking_number,omitempty"`
+	Carrier         string    `json:"carrier,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// VendorOrderListData wraps paginated vendor order rows.
+type VendorOrderListData struct {
+	Orders []VendorOrderListItem `json:"orders"`
+	Total  int64                 `json:"total"`
+	Limit  int                   `json:"limit"`
+	Offset int                   `json:"offset"`
+}
+
+// VendorOrderStatsResponse summarizes order counts for a vendor store dashboard.
+type VendorOrderStatsResponse struct {
+	Total    int64            `json:"total"`
+	ByStatus map[string]int64 `json:"by_status"`
+}
+
+// VendorOrderDetailResponse powers the vendor order detail view (store line items only).
+type VendorOrderDetailResponse struct {
+	AdminOrderDetailResponse
+	StoreSubtotal   float64 `json:"store_subtotal"`
+	StoreItemsCount int     `json:"store_items_count"`
+}
+
+func vendorCustomerName(order models.Order) string {
+	name := strings.TrimSpace(order.User.FirstName + " " + order.User.LastName)
+	if name == "" {
+		return order.User.Email
+	}
+	return name
+}
+
+func vendorPaymentMeta(order models.Order) (status, method string) {
+	status = constants.PaymentStatusPending
+	if order.Payment != nil {
+		if order.Payment.Status != "" {
+			status = order.Payment.Status
+		}
+		method = order.Payment.Method
+	}
+	return status, method
+}
+
+// ToVendorOrderListItem maps an order to a vendor list row for the given store.
+func ToVendorOrderListItem(order models.Order, storeID uint) VendorOrderListItem {
+	paymentStatus, paymentMethod := vendorPaymentMeta(order)
+
+	storeItemsCount := 0
+	storeSubtotal := 0.0
+	for _, item := range order.Items {
+		if item.Product.StoreID == storeID {
+			storeItemsCount += item.Quantity
+			storeSubtotal += item.Total
+		}
+	}
+
+	item := VendorOrderListItem{
+		ID:              order.ID,
+		OrderNumber:     order.OrderNumber,
+		Status:          order.Status,
+		PaymentStatus:   paymentStatus,
+		PaymentMethod:   paymentMethod,
+		TotalAmount:     order.TotalAmount,
+		StoreSubtotal:   storeSubtotal,
+		Currency:        order.Currency,
+		CustomerName:    vendorCustomerName(order),
+		CustomerEmail:   order.User.Email,
+		ItemsCount:      len(order.Items),
+		StoreItemsCount: storeItemsCount,
+		CreatedAt:       order.CreatedAt,
+	}
+
+	if order.Shipment != nil {
+		item.TrackingNumber = order.Shipment.TrackingNumber
+		item.Carrier = order.Shipment.Carrier
+	}
+
+	return item
+}
+
+// ToVendorOrderListItems maps orders to vendor list rows.
+func ToVendorOrderListItems(orders []models.Order, storeID uint) []VendorOrderListItem {
+	items := make([]VendorOrderListItem, len(orders))
+	for i, order := range orders {
+		items[i] = ToVendorOrderListItem(order, storeID)
+	}
+	return items
+}
+
+// ToVendorOrderDetail maps a fully preloaded order to vendor detail (store items only).
+func ToVendorOrderDetail(order models.Order, storeID uint) VendorOrderDetailResponse {
+	base := ToAdminOrderDetail(order)
+
+	filtered := make([]AdminOrderItemView, 0, len(base.Items))
+	storeSubtotal := 0.0
+	storeItemsCount := 0
+	for _, item := range order.Items {
+		if item.Product.StoreID != storeID {
+			continue
+		}
+		storeItemsCount += item.Quantity
+		storeSubtotal += item.Total
+
+		view := AdminOrderItemView{
+			ID:         item.ID,
+			ProductID:  item.ProductID,
+			Name:       item.Product.Name,
+			SKU:        item.Product.SKU,
+			Quantity:   item.Quantity,
+			UnitPrice:  item.Price,
+			TotalPrice: item.Total,
+		}
+		if len(item.Product.Images) > 0 {
+			view.Image = item.Product.Images[0]
+		}
+		if item.Product.Category.Name != "" {
+			view.Category = item.Product.Category.Name
+		}
+		filtered = append(filtered, view)
+	}
+
+	base.Items = filtered
+	return VendorOrderDetailResponse{
+		AdminOrderDetailResponse: base,
+		StoreSubtotal:            storeSubtotal,
+		StoreItemsCount:          storeItemsCount,
+	}
+}

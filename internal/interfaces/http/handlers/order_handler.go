@@ -7,6 +7,7 @@ import (
 	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
 	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
 	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
+	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
@@ -18,13 +19,19 @@ import (
 type OrderHandler struct {
 	orderService *orderfacade.Service
 	checkoutSvc  *appcheckout.Service
+	storeQueries *appstore.Queries
 	validate     *validator.Validate
 }
 
-func NewOrderHandler(orderService *orderfacade.Service, checkoutSvc *appcheckout.Service) *OrderHandler {
+func NewOrderHandler(
+	orderService *orderfacade.Service,
+	checkoutSvc *appcheckout.Service,
+	storeQueries *appstore.Queries,
+) *OrderHandler {
 	return &OrderHandler{
 		orderService: orderService,
 		checkoutSvc:  checkoutSvc,
+		storeQueries: storeQueries,
 		validate:     validator.New(),
 	}
 }
@@ -380,4 +387,168 @@ func (ctrl *OrderHandler) PerformTransition(c *gin.Context) {
 		Transition: toTransitionResultView(result),
 		Order:      order,
 	})
+}
+
+func parseVendorStoreID(c *gin.Context) (uint, bool) {
+	return parseUintParam(c, "id")
+}
+
+func (ctrl *OrderHandler) authorizeVendorStore(c *gin.Context) (uint, uint, string, bool) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return 0, 0, "", false
+	}
+	storeID, ok := parseVendorStoreID(c)
+	if !ok {
+		return 0, 0, "", false
+	}
+	role, _ := middleware.GetUserRole(c)
+	if _, err := ctrl.storeQueries.GetVendorStore(c.Request.Context(), storeID, userID, role); err != nil {
+		RespondServiceError(c, err, "store not found")
+		return 0, 0, "", false
+	}
+	return storeID, userID, role, true
+}
+
+func (ctrl *OrderHandler) parseVendorOrderFilters(c *gin.Context) apporder.AdminOrderFilters {
+	filters := apporder.AdminOrderFilters{}
+	if status := c.Query("status"); status != "" {
+		filters.Status = status
+	}
+	if fromDate := c.Query("from_date"); fromDate != "" {
+		if t, err := time.Parse(time.RFC3339, fromDate); err == nil {
+			filters.FromDate = &t
+		}
+	}
+	if toDate := c.Query("to_date"); toDate != "" {
+		if t, err := time.Parse(time.RFC3339, toDate); err == nil {
+			filters.ToDate = &t
+		}
+	}
+	if minAmount := c.Query("min_amount"); minAmount != "" {
+		if amt, err := strconv.ParseFloat(minAmount, 64); err == nil {
+			filters.MinAmount = &amt
+		}
+	}
+	if maxAmount := c.Query("max_amount"); maxAmount != "" {
+		if amt, err := strconv.ParseFloat(maxAmount, 64); err == nil {
+			filters.MaxAmount = &amt
+		}
+	}
+	if search := c.Query("search"); search != "" {
+		filters.Search = search
+	}
+	return filters
+}
+
+// ListVendorStoreOrders returns paginated orders for a vendor-owned store.
+// @Summary      List vendor store orders
+// @Description  Returns orders containing products from the given store with filtering and search.
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id          path   int     true  "Store ID"
+// @Param        limit       query  int     false "Items per page" default(20)
+// @Param        offset      query  int     false "Offset" default(0)
+// @Param        status      query  string  false "Order status"
+// @Param        from_date   query  string  false "Start date (RFC3339)"
+// @Param        to_date     query  string  false "End date (RFC3339)"
+// @Param        min_amount  query  number  false "Minimum amount"
+// @Param        max_amount  query  number  false "Maximum amount"
+// @Param        search      query  string  false "Search order number or customer"
+// @Success      200 {object} utils.Response{data=dto.VendorOrderListData}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/orders [get]
+func (ctrl *OrderHandler) ListVendorStoreOrders(c *gin.Context) {
+	storeID, _, _, ok := ctrl.authorizeVendorStore(c)
+	if !ok {
+		return
+	}
+
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	filters := ctrl.parseVendorOrderFilters(c)
+
+	orders, total, err := ctrl.orderService.ListVendorStoreOrders(
+		c.Request.Context(),
+		storeID,
+		filters,
+		limit,
+		offset,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to fetch vendor orders")
+		return
+	}
+
+	data := dto.VendorOrderListData{
+		Orders: dto.ToVendorOrderListItems(orders, storeID),
+		Total:  total,
+		Limit:  limit,
+		Offset: offset,
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
+}
+
+// GetVendorStoreOrderStats returns order count summaries for a vendor store.
+// @Summary      Vendor store order stats
+// @Description  Returns total orders and counts grouped by status for the vendor dashboard.
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.VendorOrderStatsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/orders/stats [get]
+func (ctrl *OrderHandler) GetVendorStoreOrderStats(c *gin.Context) {
+	storeID, _, _, ok := ctrl.authorizeVendorStore(c)
+	if !ok {
+		return
+	}
+
+	stats, err := ctrl.orderService.GetVendorStoreOrderStats(c.Request.Context(), storeID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to fetch vendor order stats")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.VendorOrderStatsResponse{
+		Total:    stats.Total,
+		ByStatus: stats.ByStatus,
+	})
+}
+
+// GetVendorStoreOrder returns order detail scoped to a vendor store.
+// @Summary      Get vendor store order
+// @Description  Returns order detail including only line items belonging to the store.
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path int true "Store ID"
+// @Param        orderId  path int true "Order ID"
+// @Success      200 {object} utils.Response{data=dto.VendorOrderDetailResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/orders/{orderId} [get]
+func (ctrl *OrderHandler) GetVendorStoreOrder(c *gin.Context) {
+	storeID, _, _, ok := ctrl.authorizeVendorStore(c)
+	if !ok {
+		return
+	}
+
+	orderID, ok := parseUintParam(c, "orderId")
+	if !ok {
+		return
+	}
+
+	order, err := ctrl.orderService.GetVendorStoreOrder(c.Request.Context(), storeID, orderID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to fetch vendor order")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToVendorOrderDetail(*order, storeID))
 }
