@@ -40,3 +40,6 @@ tmp
 
 # local build artifact
 api
+
+# Local DB exports (may contain sensitive data)
+seed.json

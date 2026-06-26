@@ -9,6 +9,16 @@
 -include .env
 export
 
+# Strip optional double quotes from dotenv-style values (make -include keeps them otherwise).
+strip-quotes = $(subst ",,$(1))
+DB_HOST := $(call strip-quotes,$(DB_HOST))
+DATABASE_URL := $(call strip-quotes,$(DATABASE_URL))
+DB_USER := $(call strip-quotes,$(DB_USER))
+DB_PASSWORD := $(call strip-quotes,$(DB_PASSWORD))
+DB_NAME := $(call strip-quotes,$(DB_NAME))
+DB_PORT := $(call strip-quotes,$(DB_PORT))
+DB_SSLMODE := $(call strip-quotes,$(DB_SSLMODE))
+
 # ─── App ──────────────────────────────────────────────────────────────────────
 BINARY_NAME ?= luxe-api
 GOBASE      := $(shell pwd)
@@ -24,24 +34,32 @@ DETECTED_DB_USER     := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTG
 DETECTED_DB_NAME     := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTGRES_DB 2>/dev/null)
 DETECTED_DB_PASSWORD := $(shell docker exec $(POSTGRES_CONTAINER) printenv POSTGRES_PASSWORD 2>/dev/null)
 
-POSTGRES_HOST      ?= $(or $(DB_HOST),localhost)
+# Full DSN in DB_HOST (Neon/cloud) — same behavior as internal/config/config.go.
+# Prefer DATABASE_URL when both are set.
+REMOTE_DATABASE := 0
+ifneq ($(findstring ://,$(DB_HOST)),)
+ifndef DATABASE_URL
+DATABASE_URL := $(DB_HOST)
+$(info Using DB_HOST as DATABASE_URL for migrate targets.)
+endif
+REMOTE_DATABASE := 1
+POSTGRES_HOST := localhost
+else
+POSTGRES_HOST ?= $(or $(DB_HOST),localhost)
+endif
+
 POSTGRES_PORT      ?= $(or $(DB_PORT),5432)
 POSTGRES_USER      ?= $(or $(DB_USER),$(DETECTED_DB_USER),postgres)
 POSTGRES_PASSWORD  ?= $(or $(DB_PASSWORD),$(DETECTED_DB_PASSWORD),postgres)
 POSTGRES_DB        ?= $(or $(DB_NAME),shopping_platform)
 POSTGRES_SSLMODE   ?= $(or $(DB_SSLMODE),disable)
 
-# Reject accidental full-URL values in DB_HOST — use DATABASE_URL for Neon/cloud DSNs.
-ifeq ($(findstring ://,$(POSTGRES_HOST)),://)
-$(warning DB_HOST looks like a connection URL. Set DATABASE_URL instead; falling back to localhost for make targets.)
-POSTGRES_HOST := localhost
-endif
-
 ifndef DATABASE_URL
 DATABASE_URL := postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)
 MIGRATE_TARGET := $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) as $(POSTGRES_USER)
 else
-MIGRATE_TARGET := DATABASE_URL (remote/custom DSN)
+REMOTE_DATABASE := 1
+MIGRATE_TARGET := $(DATABASE_URL)
 endif
 
 # ─── Docker Compose (optional — set USE_COMPOSE=1 for project-managed stack) ───
@@ -64,7 +82,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-shipping-providers seed-invoices seed-coupons seed-nav-menus-i18n seed-catalog-i18n seed-orders-returns db-info
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-export-json seed-from-json seed-remote seed-shipping-providers seed-invoices seed-coupons seed-nav-menus-i18n seed-catalog-i18n seed-orders-returns db-info
 
 # Default target
 help: ## Show this help message
@@ -87,16 +105,22 @@ help: ## Show this help message
 	{ lastLine = $$0 }' $(MAKEFILE_LIST)
 
 db-info: ## Print resolved database / container settings
-	@echo "${GREEN}Migrate target:${RESET}     $(MIGRATE_TARGET)"
-	@echo "${GREEN}Postgres container:${RESET} $(POSTGRES_CONTAINER)"
-	@echo "${GREEN}Postgres user:${RESET}      $(POSTGRES_USER)"
-	@echo "${GREEN}Postgres database:${RESET}  $(POSTGRES_DB)"
-	@echo "${GREEN}USE_COMPOSE:${RESET}          $(USE_COMPOSE)"
-	@if [ -z "$(DB_PASSWORD)" ] && [ -n "$(DETECTED_DB_PASSWORD)" ]; then \
-		echo "${GREEN}Password:${RESET}             loaded from container env"; \
-	elif [ "$(POSTGRES_PASSWORD)" = "postgres" ] && [ "$(POSTGRES_USER)" != "postgres" ]; then \
-		echo "${YELLOW}Hint: set DB_PASSWORD in .env or ensure $(POSTGRES_CONTAINER) is running.${RESET}"; \
+	@if [ "$(REMOTE_DATABASE)" = "1" ]; then \
+		echo "${GREEN}Migrate target:${RESET}     remote PostgreSQL (DATABASE_URL)"; \
+		echo "${GREEN}DATABASE_URL:${RESET}       $$(echo '$(DATABASE_URL)' | sed -E 's#(://[^:/@]+):[^@]*@#\1:***@#')"; \
+	else \
+		echo "${GREEN}Migrate target:${RESET}     $(MIGRATE_TARGET)"; \
+		echo "${GREEN}Postgres host:${RESET}      $(POSTGRES_HOST):$(POSTGRES_PORT)"; \
+		echo "${GREEN}Postgres user:${RESET}      $(POSTGRES_USER)"; \
+		echo "${GREEN}Postgres database:${RESET}  $(POSTGRES_DB)"; \
+		echo "${GREEN}Postgres container:${RESET} $(POSTGRES_CONTAINER)"; \
+		if [ -z "$(DB_PASSWORD)" ] && [ -n "$(DETECTED_DB_PASSWORD)" ]; then \
+			echo "${GREEN}Password:${RESET}             loaded from container env"; \
+		elif [ "$(POSTGRES_PASSWORD)" = "postgres" ] && [ "$(POSTGRES_USER)" != "postgres" ]; then \
+			echo "${YELLOW}Hint: set DB_PASSWORD in .env or ensure $(POSTGRES_CONTAINER) is running.${RESET}"; \
+		fi; \
 	fi
+	@echo "${GREEN}USE_COMPOSE:${RESET}          $(USE_COMPOSE)"
 
 db-detect: ## Show Postgres user/db from the running container
 	@echo "${GREEN}Container:${RESET} $(POSTGRES_CONTAINER)"
@@ -255,6 +279,31 @@ seed-orders-returns: ## Load demo orders + returns only (requires catalog seed)
 	fi
 	@echo "${GREEN}Orders & returns seed complete${RESET}"
 
+seed-export-json: ## Export catalog/menus from local Docker Postgres into seed.json
+	@echo "${GREEN}Exporting local DB to seed.json via $(POSTGRES_CONTAINER)...${RESET}"
+	@: > seed.json
+	@for t in workflows workflow_states workflow_transitions brands categories stores products product_attributes nav_menus menu_groups menu_items; do \
+		echo "  $$t"; \
+		docker exec $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -tAc \
+			"SELECT coalesce(json_agg(row_to_json(x)), '[]'::json) FROM (SELECT * FROM $$t ORDER BY id) x" >> seed.json; \
+	done
+	@echo "${GREEN}seed.json written ($$(wc -c < seed.json | tr -d ' ') bytes)${RESET}"
+
+seed-from-json: ## Import catalog/menus from seed.json (local DB export) via DATABASE_URL
+	@if [ "$(REMOTE_DATABASE)" != "1" ]; then \
+		echo "${YELLOW}Warning: DATABASE_URL looks local. Set Neon URL in .env for remote seed.${RESET}"; \
+	fi
+	@if [ ! -s seed.json ]; then \
+		echo "${YELLOW}Error: seed.json is missing or empty. Run make seed-export-json or save your DB export to luxe-backend/seed.json${RESET}"; \
+		exit 1; \
+	fi
+	@echo "${GREEN}Seeding from seed.json into DATABASE_URL...${RESET}"
+	@go run ./cmd/seed-json
+	@echo "${GREEN}seed.json import complete${RESET}"
+
+seed-remote: migrate-up seed-from-json ## Migrate Neon then import seed.json (catalog, menus, shipping)
+	@echo "${GREEN}Remote database ready (schema + catalog seed)${RESET}"
+
 clean: ## Clean build artifacts
 	@echo "${YELLOW}Cleaning build artifacts...${RESET}"
 	rm -rf $(GOBIN)
@@ -271,7 +320,11 @@ migrate-create: ## Create a new migration file (usage: make migrate-create name=
 	@$(GOOSE_CMD) create $(name) sql
 
 migrate-up: ## Apply all pending migrations
-	@echo "${GREEN}Running migrations against $(MIGRATE_TARGET)...${RESET}"
+	@if [ "$(REMOTE_DATABASE)" = "1" ]; then \
+		echo "${GREEN}Running migrations against remote DATABASE_URL...${RESET}"; \
+	else \
+		echo "${GREEN}Running migrations against $(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB) as $(POSTGRES_USER)...${RESET}"; \
+	fi
 	@$(GOOSE_CMD) up || { \
 		if [ "$(USE_COMPOSE)" = "1" ]; then \
 			echo "${YELLOW}Host goose failed — retrying via Docker compose migrate profile${RESET}"; \
