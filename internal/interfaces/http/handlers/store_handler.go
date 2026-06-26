@@ -629,3 +629,37 @@ func (ctrl *StoreHandler) ListVendorStores(c *gin.Context) {
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)
 }
+
+// CreateVendorStore registers a storefront for the authenticated seller.
+// @Summary      Create vendor store
+// @Description  Self-service seller onboarding — creates a store owned by the current user
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.VendorCreateStoreRequest true "Store and business profile"
+// @Success      201 {object} utils.Response{data=dto.StoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /vendor/stores [post]
+func (ctrl *StoreHandler) CreateVendorStore(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var req dto.VendorCreateStoreRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	store, err := ctrl.commands.CreateForVendor(c.Request.Context(), userID, req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to create vendor store")
+		return
+	}
+
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(c.Request.Context(), store))
+}

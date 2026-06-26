@@ -2,6 +2,7 @@ package dto
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -25,8 +26,27 @@ type CreateStoreRequest struct {
 	Location     string `json:"location"`
 	ShippingInfo string `json:"shipping_info"`
 	ReturnPolicy string `json:"return_policy"`
-	UserID       *uint  `json:"user_id,omitempty"`
-	CategoryIDs  []uint `json:"category_ids"`
+	UserID       *uint           `json:"user_id,omitempty"`
+	CategoryIDs  []uint          `json:"category_ids"`
+	Settings     json.RawMessage `json:"settings,omitempty"`
+}
+
+// VendorCreateStoreRequest is the self-service seller onboarding payload.
+type VendorCreateStoreRequest struct {
+	Name              string `json:"name" validate:"required"`
+	Description       string `json:"description" validate:"required"`
+	LogoURL           string `json:"logo_url"`
+	BannerURL         string `json:"banner_url"`
+	Location          string `json:"location" validate:"required"`
+	ShippingInfo      string `json:"shipping_info" validate:"required"`
+	ReturnPolicy      string `json:"return_policy" validate:"required"`
+	BusinessLegalName string `json:"business_legal_name" validate:"required"`
+	BusinessType      string `json:"business_type" validate:"required,oneof=individual company brand"`
+	Country           string `json:"country" validate:"required"`
+	Website           string `json:"website"`
+	TaxID             string `json:"tax_id"`
+	FulfillmentModel  string `json:"fulfillment_model" validate:"required,oneof=self platform hybrid"`
+	CategoryIDs       []uint `json:"category_ids"`
 }
 
 type UpdateStoreRequest struct {

@@ -1541,6 +1541,10 @@ definitions:
         type: string
       return_policy:
         type: string
+      settings:
+        items:
+          type: integer
+        type: array
       shipping_info:
         type: string
       user_id:
@@ -3629,6 +3633,57 @@ definitions:
         type: boolean
       public_key:
         type: string
+    type: object
+  dto.VendorCreateStoreRequest:
+    properties:
+      banner_url:
+        type: string
+      business_legal_name:
+        type: string
+      business_type:
+        enum:
+        - individual
+        - company
+        - brand
+        type: string
+      category_ids:
+        items:
+          type: integer
+        type: array
+      country:
+        type: string
+      description:
+        type: string
+      fulfillment_model:
+        enum:
+        - self
+        - platform
+        - hybrid
+        type: string
+      location:
+        type: string
+      logo_url:
+        type: string
+      name:
+        type: string
+      return_policy:
+        type: string
+      shipping_info:
+        type: string
+      tax_id:
+        type: string
+      website:
+        type: string
+    required:
+    - business_legal_name
+    - business_type
+    - country
+    - description
+    - fulfillment_model
+    - location
+    - name
+    - return_policy
+    - shipping_info
     type: object
   dto.ViewAll:
     properties:
@@ -12179,6 +12234,47 @@ paths:
       security:
       - BearerAuth: []
       summary: List vendor stores
+      tags:
+      - Vendor
+    post:
+      consumes:
+      - application/json
+      description: Self-service seller onboarding — creates a store owned by the current
+        user
+      parameters:
+      - description: Store and business profile
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VendorCreateStoreRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create vendor store
       tags:
       - Vendor
   /wallet:

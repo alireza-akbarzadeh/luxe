@@ -40,5 +40,6 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 	vendorStores := protected.Group("/vendor/stores")
 	{
 		vendorStores.GET("", ctrl.Store.ListVendorStores)
+		vendorStores.POST("", ctrl.Store.CreateVendorStore)
 	}
 }

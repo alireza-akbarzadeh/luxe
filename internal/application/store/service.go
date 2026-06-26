@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -201,10 +202,53 @@ func (c *Commands) Create(req dto.CreateStoreRequest) (*models.Store, error) {
 		store.Categories = categories
 	}
 
+	if len(req.Settings) > 0 {
+		store.Settings = req.Settings
+	}
+
 	if err := c.repo.Create(store); err != nil {
 		return nil, utils.ErrInternal(err)
 	}
 	return store, nil
+}
+
+// CreateForVendor registers a storefront for the authenticated seller.
+func (c *Commands) CreateForVendor(ctx context.Context, userID uint, req dto.VendorCreateStoreRequest) (*models.Store, error) {
+	existing, err := c.queries.ListVendorStores(ctx, userID, constants.RoleUser)
+	if err != nil {
+		return nil, err
+	}
+	if len(existing) > 0 {
+		return nil, utils.ErrBadRequest("you already have a vendor store")
+	}
+
+	settings, err := json.Marshal(map[string]string{
+		"business_legal_name": req.BusinessLegalName,
+		"business_type":       req.BusinessType,
+		"country":             req.Country,
+		"website":             req.Website,
+		"tax_id":              req.TaxID,
+		"fulfillment_model":   req.FulfillmentModel,
+	})
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	userIDCopy := userID
+	createReq := dto.CreateStoreRequest{
+		Name:         req.Name,
+		Description:  req.Description,
+		LogoURL:      req.LogoURL,
+		BannerURL:    req.BannerURL,
+		Location:     req.Location,
+		ShippingInfo: req.ShippingInfo,
+		ReturnPolicy: req.ReturnPolicy,
+		UserID:       &userIDCopy,
+		CategoryIDs:  req.CategoryIDs,
+		Settings:     settings,
+	}
+
+	return c.Create(createReq)
 }
 
 // Update modifies an existing store.

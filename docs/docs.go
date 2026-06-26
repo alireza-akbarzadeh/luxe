@@ -12359,6 +12359,73 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Self-service seller onboarding — creates a store owned by the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Vendor"
+                ],
+                "summary": "Create vendor store",
+                "parameters": [
+                    {
+                        "description": "Store and business profile",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.VendorCreateStoreRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
             }
         },
         "/wallet": {
@@ -15233,6 +15300,12 @@ const docTemplate = `{
                 },
                 "return_policy": {
                     "type": "string"
+                },
+                "settings": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "shipping_info": {
                     "type": "string"
@@ -18337,6 +18410,77 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "public_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.VendorCreateStoreRequest": {
+            "type": "object",
+            "required": [
+                "business_legal_name",
+                "business_type",
+                "country",
+                "description",
+                "fulfillment_model",
+                "location",
+                "name",
+                "return_policy",
+                "shipping_info"
+            ],
+            "properties": {
+                "banner_url": {
+                    "type": "string"
+                },
+                "business_legal_name": {
+                    "type": "string"
+                },
+                "business_type": {
+                    "type": "string",
+                    "enum": [
+                        "individual",
+                        "company",
+                        "brand"
+                    ]
+                },
+                "category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "country": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "fulfillment_model": {
+                    "type": "string",
+                    "enum": [
+                        "self",
+                        "platform",
+                        "hybrid"
+                    ]
+                },
+                "location": {
+                    "type": "string"
+                },
+                "logo_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "return_policy": {
+                    "type": "string"
+                },
+                "shipping_info": {
+                    "type": "string"
+                },
+                "tax_id": {
+                    "type": "string"
+                },
+                "website": {
                     "type": "string"
                 }
             }
