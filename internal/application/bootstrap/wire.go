@@ -54,7 +54,7 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 	inventorySvc := appinventory.NewService(db, workflowEngine, pdpSvc, notificationSvc, jobQueue, cfg.InventoryAlertEmails)
 	productSvc.SetInventory(inventorySvc)
 	appworkflow.RegisterInventoryHooks(workflowEngine, inventorySvc)
-	shipmentSvc := appshipment.NewService(db, jobQueue, notificationSvc, wsHub, workflowEngine)
+	shipmentSvc := appshipment.NewService(db, jobQueue, notificationSvc, notificationSvc, wsHub, workflowEngine)
 
 	apps.Product = productSvc
 	apps.Pdp = pdpSvc
@@ -65,6 +65,7 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 	apps.Shipment = shipmentSvc
 	apps.Checkout = appcheckout.NewService(
 		db,
+		notificationSvc,
 		notificationSvc,
 		apps.Coupon,
 		apps.Payment,
@@ -78,7 +79,7 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 		inventorySvc,
 		appcheckout.StripeEnabled(cfg),
 	)
-	apps.Order = orderfacade.NewService(db, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine)
+	apps.Order = orderfacade.NewService(db, notificationSvc, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine)
 	apps.Admin = appadmin.NewService(db, workflowEngine, apps.Role.Queries)
 	apps.Import = importdata.NewService(productSvc, apps.Category)
 

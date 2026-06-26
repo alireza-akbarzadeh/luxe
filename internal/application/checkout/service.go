@@ -34,11 +34,22 @@ type Notifier interface {
 	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
 }
 
+// VendorStoreNotifier pushes store-scoped realtime events for vendor dashboards.
+type VendorStoreNotifier interface {
+	NotifyVendorStoresForOrder(
+		ctx context.Context,
+		orderID uint,
+		wsEventType, notifType, title, message string,
+		data map[string]interface{},
+	)
+}
+
 // Service orchestrates cart-to-order checkout, payment, and fulfillment.
 type Service struct {
 	checkoutRepo     *postgres.CheckoutRepository
 	cartRepo         *postgres.CartRepository
 	notifier         Notifier
+	vendorNotify     VendorStoreNotifier
 	couponService    *appcoupon.Service
 	paymentService   *apppayment.Service
 	shipmentService  *appshipment.Service
@@ -59,6 +70,7 @@ type Service struct {
 func NewService(
 	db *gorm.DB,
 	notifier Notifier,
+	vendorNotify VendorStoreNotifier,
 	couponService *appcoupon.Service,
 	paymentService *apppayment.Service,
 	shipmentService *appshipment.Service,
@@ -75,6 +87,7 @@ func NewService(
 		checkoutRepo:     postgres.NewCheckoutRepository(db),
 		cartRepo:         postgres.NewCartRepository(db),
 		notifier:         notifier,
+		vendorNotify:     vendorNotify,
 		couponService:    couponService,
 		paymentService:   paymentService,
 		shipmentService:  shipmentService,
@@ -367,6 +380,44 @@ func (s *Service) broadcastOrderUpdate(orderID, userID uint, eventType string, d
 			s.salesFeed.PublishOrderEvent("cancellation", title, message, 0)
 		}
 	}
+
+	s.notifyVendorOrderEvent(orderID, eventType, data)
+}
+
+func (s *Service) notifyVendorOrderEvent(orderID uint, eventType string, data map[string]interface{}) {
+	if s.vendorNotify == nil {
+		return
+	}
+
+	title, _ := data["title"].(string)
+	message, _ := data["message"].(string)
+	if title == "" {
+		title = "Order update"
+	}
+	if message == "" {
+		message = fmt.Sprintf("Order #%v was updated", data["order_id"])
+	}
+
+	wsEvent := websocket.EventVendorOrderUpdate
+	notifType := "vendor_order_update"
+	switch eventType {
+	case "payment_succeeded", "order_created":
+		wsEvent = websocket.EventVendorOrderNew
+		notifType = "vendor_order_new"
+	case "shipment_processing", "shipment_shipped", "shipment_created", "shipment_status_update", "shipment_delivered":
+		wsEvent = websocket.EventVendorOrderShipment
+		notifType = "vendor_order_shipment"
+	}
+
+	s.vendorNotify.NotifyVendorStoresForOrder(
+		context.Background(),
+		orderID,
+		wsEvent,
+		notifType,
+		title,
+		message,
+		data,
+	)
 }
 
 // processShipment handles the shipping steps (called after payment success)
@@ -504,19 +555,28 @@ func (s *Service) enqueueFulfillmentJob(ctx context.Context, orderID uint, req d
 // sendOrderCreatedNotification sends the initial "order placed" notification asynchronously.
 func (s *Service) sendOrderCreatedNotification(userID uint, order *models.Order) {
 	go func() {
+		data := map[string]interface{}{
+			"order_id":     order.ID,
+			"order_number": order.OrderNumber,
+			"status":       order.Status,
+			"total_amount": order.TotalAmount,
+			"currency":     order.Currency,
+		}
 		_ = s.notifier.CreateNotification(
 			userID,
 			"order_created",
 			"Order Placed Successfully",
 			fmt.Sprintf("Your order #%s has been placed and is being processed.", order.OrderNumber),
-			map[string]interface{}{
-				"order_id":     order.ID,
-				"order_number": order.OrderNumber,
-				"status":       order.Status,
-				"total_amount": order.TotalAmount,
-				"currency":     order.Currency,
-			},
+			data,
 		)
+		s.notifyVendorOrderEvent(order.ID, "order_created", map[string]interface{}{
+			"title":        "New order received",
+			"message":      fmt.Sprintf("Order %s was placed and is awaiting payment.", order.OrderNumber),
+			"order_id":     order.ID,
+			"order_number": order.OrderNumber,
+			"status":       order.Status,
+			"total_amount": order.TotalAmount,
+		})
 	}()
 }
 

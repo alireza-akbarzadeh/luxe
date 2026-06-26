@@ -22,13 +22,24 @@ type Notifier interface {
 	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
 }
 
+// VendorStoreNotifier pushes store-scoped realtime events for vendor dashboards.
+type VendorStoreNotifier interface {
+	NotifyVendorStoresForOrder(
+		ctx context.Context,
+		orderID uint,
+		wsEventType, notifType, title, message string,
+		data map[string]interface{},
+	)
+}
+
 // Service orchestrates shipment creation, status updates, and provider management.
 type Service struct {
-	commands   *Commands
-	queries    *Queries
-	workerPool asynq.JobQueue
-	notifier   Notifier
-	wsHub      *websocket.Hub
+	commands     *Commands
+	queries      *Queries
+	workerPool   asynq.JobQueue
+	notifier     Notifier
+	vendorNotify VendorStoreNotifier
+	wsHub        *websocket.Hub
 	engine     *workflow.Engine
 }
 
@@ -37,16 +48,18 @@ func NewService(
 	db *gorm.DB,
 	workerPool asynq.JobQueue,
 	notifier Notifier,
+	vendorNotify VendorStoreNotifier,
 	wsHub *websocket.Hub,
 	engine *workflow.Engine,
 ) *Service {
 	repo := postgres.NewShipmentRepository(db)
 	return &Service{
-		commands:   NewCommands(repo),
-		queries:    NewQueries(repo),
-		workerPool: workerPool,
-		notifier:   notifier,
-		wsHub:      wsHub,
+		commands:     NewCommands(repo),
+		queries:      NewQueries(repo),
+		workerPool:   workerPool,
+		notifier:     notifier,
+		vendorNotify: vendorNotify,
+		wsHub:        wsHub,
 		engine:     engine,
 	}
 }
@@ -74,6 +87,17 @@ func (s *Service) broadcastShipmentUpdate(
 	go func() {
 		_ = s.notifier.CreateNotification(userID, eventType, title, message, data)
 	}()
+	if s.vendorNotify != nil {
+		s.vendorNotify.NotifyVendorStoresForOrder(
+			context.Background(),
+			orderID,
+			websocket.EventVendorOrderShipment,
+			"vendor_order_shipment",
+			title,
+			message,
+			data,
+		)
+	}
 }
 
 func (s *Service) toCreateInput(req CreateShipmentRequest) CreateInput {

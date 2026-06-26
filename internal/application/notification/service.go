@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
@@ -19,20 +20,24 @@ type PushSender interface {
 
 // Service orchestrates in-app notifications and WebSocket broadcasts.
 type Service struct {
-	commands *Commands
-	queries  *Queries
-	wsHub    *websocket.Hub
-	push     PushSender
+	commands  *Commands
+	queries   *Queries
+	wsHub     *websocket.Hub
+	push      PushSender
+	orderRepo *postgres.OrderRepository
+	storeRepo *postgres.StoreRepository
 }
 
 // NewService wires notification commands and queries.
 func NewService(db *gorm.DB, wsHub *websocket.Hub, push PushSender) *Service {
 	repo := postgres.NewNotificationRepository(db)
 	return &Service{
-		commands: NewCommands(repo),
-		queries:  NewQueries(repo),
-		wsHub:    wsHub,
-		push:     push,
+		commands:  NewCommands(repo),
+		queries:   NewQueries(repo),
+		wsHub:     wsHub,
+		push:      push,
+		orderRepo: postgres.NewOrderRepository(db),
+		storeRepo: postgres.NewStoreRepository(db),
 	}
 }
 
@@ -115,7 +120,18 @@ func (s *Service) SendChatMessage(senderID uint, roomID string, content string) 
 		"content":    content,
 		"type":       "text",
 		"created_at": message.CreatedAt,
+		"room_id":    roomID,
 	})
+
+	if strings.HasPrefix(roomID, "store_") || strings.HasPrefix(roomID, "vendor_") {
+		s.BroadcastToRoom(roomID, websocket.EventVendorMessage, map[string]interface{}{
+			"id":         message.ID,
+			"sender_id":  senderID,
+			"content":    content,
+			"room_id":    roomID,
+			"created_at": message.CreatedAt,
+		})
+	}
 
 	return nil
 }

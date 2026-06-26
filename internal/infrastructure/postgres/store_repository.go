@@ -69,6 +69,15 @@ func (r *StoreRepository) ListVendorStoresQuery(ctx context.Context, userID uint
 	return query
 }
 
+// ListOwnedStoreIDs returns store ids owned by the given user.
+func (r *StoreRepository) ListOwnedStoreIDs(ctx context.Context, userID uint) ([]uint, error) {
+	var storeIDs []uint
+	err := r.db.WithContext(ctx).Model(&models.Store{}).
+		Where("user_id = ?", userID).
+		Pluck("id", &storeIDs).Error
+	return storeIDs, err
+}
+
 // FindByID loads a store with categories preloaded.
 func (r *StoreRepository) FindByID(id uint) (*models.Store, error) {
 	var store models.Store

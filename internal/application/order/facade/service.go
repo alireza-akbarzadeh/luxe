@@ -25,10 +25,21 @@ type Notifier interface {
 	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
 }
 
+// VendorStoreNotifier pushes store-scoped realtime events for vendor dashboards.
+type VendorStoreNotifier interface {
+	NotifyVendorStoresForOrder(
+		ctx context.Context,
+		orderID uint,
+		wsEventType, notifType, title, message string,
+		data map[string]interface{},
+	)
+}
+
 // Service orchestrates order queries, status updates, and workflow transitions.
 type Service struct {
-	notifier  Notifier
-	hub       *websocket.Hub
+	notifier      Notifier
+	vendorNotify  VendorStoreNotifier
+	hub           *websocket.Hub
 	salesFeed *appsalesfeed.Service
 	jobQueue  asynq.JobQueue
 	engine    *workflow.Engine
@@ -40,6 +51,7 @@ type Service struct {
 func NewService(
 	db *gorm.DB,
 	notifier Notifier,
+	vendorNotify VendorStoreNotifier,
 	hub *websocket.Hub,
 	salesFeed *appsalesfeed.Service,
 	jobQueue asynq.JobQueue,
@@ -47,8 +59,9 @@ func NewService(
 ) *Service {
 	repo := postgres.NewOrderRepository(db)
 	return &Service{
-		notifier:  notifier,
-		hub:       hub,
+		notifier:     notifier,
+		vendorNotify: vendorNotify,
+		hub:          hub,
 		salesFeed: salesFeed,
 		jobQueue:  jobQueue,
 		engine:    engine,
@@ -130,19 +143,31 @@ func (s *Service) UpdateOrderStatus(ctx context.Context, orderID uint, status st
 
 	go func() {
 		title, msgText := s.getOrderStatusNotificationMessage(status, order.OrderNumber)
+		data := map[string]interface{}{
+			"order_id":     order.ID,
+			"order_number": order.OrderNumber,
+			"old_status":   oldStatus,
+			"new_status":   status,
+			"updated_at":   order.UpdatedAt,
+		}
 		_ = s.notifier.CreateNotification(
 			order.UserID,
 			"order_status_update",
 			title,
 			msgText,
-			map[string]interface{}{
-				"order_id":     order.ID,
-				"order_number": order.OrderNumber,
-				"old_status":   oldStatus,
-				"new_status":   status,
-				"updated_at":   order.UpdatedAt,
-			},
+			data,
 		)
+		if s.vendorNotify != nil {
+			s.vendorNotify.NotifyVendorStoresForOrder(
+				ctx,
+				order.ID,
+				websocket.EventVendorOrderUpdate,
+				"vendor_order_update",
+				title,
+				msgText,
+				data,
+			)
+		}
 	}()
 
 	s.enqueueOrderStatusEmail(ctx, order, status)

@@ -37,6 +37,18 @@ func (r *OrderRepository) CountByStoreStatus(ctx context.Context, storeID uint) 
 	return stats, nil
 }
 
+// ListStoreIDsForOrder returns distinct store ids linked to an order via line items.
+func (r *OrderRepository) ListStoreIDsForOrder(ctx context.Context, orderID uint) ([]uint, error) {
+	var storeIDs []uint
+	err := r.db.WithContext(ctx).
+		Model(&models.OrderItem{}).
+		Joins("JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where("order_items.order_id = ? AND order_items.deleted_at IS NULL AND products.store_id IS NOT NULL", orderID).
+		Distinct("products.store_id").
+		Pluck("products.store_id", &storeIDs).Error
+	return storeIDs, err
+}
+
 // OrderBelongsToStore checks whether an order contains line items from the store.
 func (r *OrderRepository) OrderBelongsToStore(ctx context.Context, orderID, storeID uint) (bool, error) {
 	var count int64
@@ -49,4 +61,16 @@ func (r *OrderRepository) OrderBelongsToStore(ctx context.Context, orderID, stor
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// ListStoreIDsForOrder returns distinct store ids linked to an order via line items.
+func (r *OrderRepository) ListStoreIDsForOrder(ctx context.Context, orderID uint) ([]uint, error) {
+	var storeIDs []uint
+	err := r.db.WithContext(ctx).
+		Model(&models.OrderItem{}).
+		Joins("JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where("order_items.order_id = ? AND order_items.deleted_at IS NULL AND products.store_id IS NOT NULL", orderID).
+		Distinct("products.store_id").
+		Pluck("products.store_id", &storeIDs).Error
+	return storeIDs, err
 }
