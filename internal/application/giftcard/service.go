@@ -163,3 +163,45 @@ func (s *Service) Claim(ctx context.Context, userID uint, email, code string) (*
 	}
 	return card, nil
 }
+
+// SpendForMembership deducts from a claimed gift card to pay for Luxe Plus.
+func (s *Service) SpendForMembership(ctx context.Context, userID uint, email, code string, amount float64) error {
+	card, err := s.repo.FindByCode(ctx, code)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("gift card not found")
+		}
+		return utils.ErrInternal(err)
+	}
+	if !strings.EqualFold(card.RecipientEmail, email) {
+		return utils.ErrForbidden("this gift card is not addressed to your account")
+	}
+	if card.Status != constants.GiftCardStatusActive {
+		return utils.ErrBadRequest("gift card is not active")
+	}
+	if card.ExpiresAt != nil && card.ExpiresAt.Before(time.Now()) {
+		return utils.ErrBadRequest("gift card has expired")
+	}
+	if card.Balance < amount {
+		return utils.ErrBadRequest("insufficient gift card balance")
+	}
+	if card.RecipientUserID != nil && *card.RecipientUserID != userID {
+		return utils.ErrForbidden("gift card already claimed by another account")
+	}
+
+	card.Balance -= amount
+	if card.Balance <= 0 {
+		card.Balance = 0
+		now := time.Now()
+		card.Status = constants.GiftCardStatusRedeemed
+		card.RedeemedAt = &now
+	}
+	if card.RecipientUserID == nil {
+		card.RecipientUserID = &userID
+	}
+
+	if err := s.repo.Save(ctx, card); err != nil {
+		return utils.ErrInternal(err)
+	}
+	return nil
+}

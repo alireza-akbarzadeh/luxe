@@ -244,6 +244,14 @@ const (
 	FreeSupportPriority       = "standard"
 	PlusShippingPriorityLabel = "express"
 
+	// Luxe Plus subscription payment methods
+	PlusPaymentWallet        = "wallet"
+	PlusPaymentGiftCard      = "gift_card"
+	PlusPaymentStripe        = "stripe"
+	PlusStripeMetadataType   = "plus_membership"
+	PlusPaymentStatusCompleted = "completed"
+	PlusPaymentStatusPending   = "pending"
+
 	// Product statuses
 	ProductStatusDraft    = "draft"
 	ProductStatusActive   = "active"

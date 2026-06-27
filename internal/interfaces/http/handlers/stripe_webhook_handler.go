@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appwallet "github.com/alireza-akbarzadeh/luxe/internal/application/wallet"
 	appwebhook "github.com/alireza-akbarzadeh/luxe/internal/application/webhookevent"
@@ -17,26 +18,29 @@ import (
 )
 
 type StripeWebhookHandler struct {
-	paymentService  *apppayment.Service
-	checkoutService *appcheckout.Service
-	walletService   *appwallet.Service
-	webhookCommands *appwebhook.Commands
-	webhookSecret   string
+	paymentService    *apppayment.Service
+	checkoutService   *appcheckout.Service
+	walletService     *appwallet.Service
+	membershipService *appmembership.Service
+	webhookCommands   *appwebhook.Commands
+	webhookSecret     string
 }
 
 func NewStripeWebhookHandler(
 	paymentService *apppayment.Service,
 	checkoutService *appcheckout.Service,
 	walletService *appwallet.Service,
+	membershipService *appmembership.Service,
 	webhookCommands *appwebhook.Commands,
 	cfg *config.Config,
 ) *StripeWebhookHandler {
 	return &StripeWebhookHandler{
-		paymentService:  paymentService,
-		checkoutService: checkoutService,
-		walletService:   walletService,
-		webhookCommands: webhookCommands,
-		webhookSecret:   cfg.Stripe.WebhookSecret,
+		paymentService:    paymentService,
+		checkoutService:   checkoutService,
+		walletService:     walletService,
+		membershipService: membershipService,
+		webhookCommands:   webhookCommands,
+		webhookSecret:     cfg.Stripe.WebhookSecret,
 	}
 }
 
@@ -91,6 +95,8 @@ func (ctrl *StripeWebhookHandler) Handle(c *gin.Context) {
 
 		if isWalletDepositSession(session) {
 			handlerErr = ctrl.walletService.ConfirmDepositByStripeSession(ctx, session.ID, paymentIntentID)
+		} else if isPlusMembershipSession(session) {
+			handlerErr = ctrl.membershipService.ConfirmStripeSubscription(ctx, session)
 		} else {
 			orderID, err := ctrl.paymentService.ConfirmStripeSession(ctx, session.ID, paymentIntentID)
 			if err == nil {
@@ -128,4 +134,8 @@ func (ctrl *StripeWebhookHandler) Handle(c *gin.Context) {
 
 func isWalletDepositSession(session stripe.CheckoutSession) bool {
 	return session.Metadata != nil && session.Metadata["type"] == "wallet_deposit"
+}
+
+func isPlusMembershipSession(session stripe.CheckoutSession) bool {
+	return session.Metadata != nil && session.Metadata["type"] == "plus_membership"
 }

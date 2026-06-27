@@ -8550,7 +8550,10 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Charges the user's wallet and activates Plus membership for one year.",
+                "description": "Pay with wallet balance, a gift card code, or Stripe Checkout (redirect to checkout_url when pending).",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -8558,6 +8561,17 @@ const docTemplate = `{
                     "Plus"
                 ],
                 "summary": "Subscribe to Luxe Plus",
+                "parameters": [
+                    {
+                        "description": "Payment method",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscribePlusRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -8570,7 +8584,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.MembershipStatusResponse"
+                                            "$ref": "#/definitions/dto.SubscribePlusResponse"
                                         }
                                     }
                                 }
@@ -18762,6 +18776,45 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "publishable_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SubscribePlusRequest": {
+            "type": "object",
+            "required": [
+                "payment_method"
+            ],
+            "properties": {
+                "gift_card_code": {
+                    "type": "string"
+                },
+                "payment_method": {
+                    "type": "string",
+                    "enum": [
+                        "wallet",
+                        "gift_card",
+                        "stripe"
+                    ]
+                }
+            }
+        },
+        "dto.SubscribePlusResponse": {
+            "type": "object",
+            "properties": {
+                "checkout_url": {
+                    "type": "string"
+                },
+                "membership": {
+                    "$ref": "#/definitions/dto.MembershipStatusResponse"
+                },
+                "payment_method": {
+                    "type": "string"
+                },
+                "payment_status": {
+                    "type": "string"
+                },
+                "stripe_session_id": {
                     "type": "string"
                 }
             }

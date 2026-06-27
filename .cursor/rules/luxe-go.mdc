@@ -46,9 +46,9 @@ Single new route on existing domain → `/add-api-endpoint` instead.
 
 ## Swagger
 Never edit `docs/docs.go`, `docs/swagger.json`, `docs/swagger.yaml` (generated, gitignored).
-Edit handler `@Summary`/`@Router` comments → `make swagger` → **restart API**.
+Edit handler `@Summary`/`@Router`/`@Success utils.Response{data=dto.X}` comments → `make swagger` → **restart API**.
 
-**Frontend sync:** any Swagger/DTO/route change → tell **luxe-front** agent to run `pnpm api:gen` after restart (not optional).
+**Frontend sync (mandatory):** `make swagger` → restart API → luxe-front `pnpm api:gen` → `pnpm check`. Never add hand-written clients in luxe-front `src/lib/api/` for new routes — use Orval hooks in `src/services/`.
 
 ## Clean code
 - Smallest correct diff; match surrounding style

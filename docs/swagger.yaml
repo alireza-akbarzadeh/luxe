@@ -3220,6 +3220,32 @@ definitions:
       publishable_key:
         type: string
     type: object
+  dto.SubscribePlusRequest:
+    properties:
+      gift_card_code:
+        type: string
+      payment_method:
+        enum:
+        - wallet
+        - gift_card
+        - stripe
+        type: string
+    required:
+    - payment_method
+    type: object
+  dto.SubscribePlusResponse:
+    properties:
+      checkout_url:
+        type: string
+      membership:
+        $ref: '#/definitions/dto.MembershipStatusResponse'
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      stripe_session_id:
+        type: string
+    type: object
   dto.SuggestionItem:
     properties:
       id:
@@ -10320,8 +10346,17 @@ paths:
       - Plus
   /plus/subscribe:
     post:
-      description: Charges the user's wallet and activates Plus membership for one
-        year.
+      consumes:
+      - application/json
+      description: Pay with wallet balance, a gift card code, or Stripe Checkout (redirect
+        to checkout_url when pending).
+      parameters:
+      - description: Payment method
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubscribePlusRequest'
       produces:
       - application/json
       responses:
@@ -10332,7 +10367,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.MembershipStatusResponse'
+                  $ref: '#/definitions/dto.SubscribePlusResponse'
               type: object
         "400":
           description: Bad Request

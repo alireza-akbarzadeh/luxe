@@ -229,6 +229,8 @@ func WireApplications(
 	}
 
 	walletSvc := appwallet.NewService(postgres.NewWalletRepository(db), stripeGateway, stripeEnabled)
+	giftCardSvc := appgiftcard.NewService(postgres.NewGiftCardRepository(db))
+	membershipSvc := appmembership.NewService(userRepo, walletSvc, giftCardSvc, stripeGateway, stripeEnabled)
 
 	return &Applications{
 		AI:   appai.NewService(postgres.NewProductRepository(db), cfg.AI),
@@ -284,7 +286,7 @@ func WireApplications(
 		},
 		Workflow: appworkflow.NewModule(db, engine),
 		Return: returnApp{
-			Commands: appreturn.NewCommands(returnRepo, engine, appmembership.NewService(userRepo, walletSvc)),
+			Commands: appreturn.NewCommands(returnRepo, engine, membershipSvc),
 			Queries:  appreturn.NewQueries(returnRepo),
 		},
 		Role: roleApp{
@@ -305,8 +307,8 @@ func WireApplications(
 		Brand:       appbrand.NewService(db, engine),
 		Category:    appcategory.NewService(db, engine),
 		Collection:  appcollection.NewService(db, engine),
-		GiftCard:    appgiftcard.NewService(postgres.NewGiftCardRepository(db)),
-		Membership:  appmembership.NewService(userRepo, walletSvc),
+		GiftCard:    giftCardSvc,
+		Membership:  membershipSvc,
 	}
 }
 

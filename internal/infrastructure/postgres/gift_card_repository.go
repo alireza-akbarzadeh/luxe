@@ -81,6 +81,11 @@ func (r *GiftCardRepository) ListReceived(ctx context.Context, userID uint, emai
 	return cards, err
 }
 
+// Save persists gift card changes.
+func (r *GiftCardRepository) Save(ctx context.Context, card *models.GiftCard) error {
+	return r.db.WithContext(ctx).Save(card).Error
+}
+
 // CodeExists reports whether a gift card code is already taken.
 func (r *GiftCardRepository) CodeExists(ctx context.Context, code string) (bool, error) {
 	var count int64

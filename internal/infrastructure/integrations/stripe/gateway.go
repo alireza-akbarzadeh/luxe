@@ -130,3 +130,56 @@ func (g *Gateway) CreateWalletDepositSession(userID, walletTxID uint, amount flo
 
 	return sess.URL, sess.ID, nil
 }
+
+// CreatePlusMembershipSession builds a Stripe Checkout session for Luxe Plus annual membership.
+func (g *Gateway) CreatePlusMembershipSession(userID uint, amount float64, currency, customerEmail string) (checkoutURL, sessionID string, err error) {
+	if g.secretKey == "" {
+		return "", "", fmt.Errorf("stripe secret key is not configured")
+	}
+
+	stripe.Key = g.secretKey
+
+	currency = strings.ToLower(currency)
+	if currency == "" {
+		currency = "usd"
+	}
+
+	amountCents := int64(math.Round(amount * 100))
+	if amountCents < 1 {
+		return "", "", fmt.Errorf("membership price must be greater than zero")
+	}
+
+	successURL := fmt.Sprintf("%s/plus/landing?plus=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
+	cancelURL := fmt.Sprintf("%s/plus/landing?plus=cancelled", g.frontendURL)
+
+	params := &stripe.CheckoutSessionParams{
+		Mode:              stripe.String(string(stripe.CheckoutSessionModePayment)),
+		SuccessURL:        stripe.String(successURL),
+		CancelURL:         stripe.String(cancelURL),
+		ClientReferenceID: stripe.String(fmt.Sprint(userID)),
+		CustomerEmail:     stripe.String(customerEmail),
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+					Currency: stripe.String(currency),
+					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+						Name: stripe.String("Luxe Plus — annual membership"),
+					},
+					UnitAmount: stripe.Int64(amountCents),
+				},
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Metadata: map[string]string{
+			"type":    "plus_membership",
+			"user_id": fmt.Sprint(userID),
+		},
+	}
+
+	sess, err := session.New(params)
+	if err != nil {
+		return "", "", fmt.Errorf("stripe plus membership session: %w", err)
+	}
+
+	return sess.URL, sess.ID, nil
+}

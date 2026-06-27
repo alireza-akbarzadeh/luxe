@@ -45,3 +45,18 @@ type MembershipStatusResponse struct {
 	Currency         string                    `json:"currency"`
 	Benefits         PlusMemberBenefitsSummary `json:"benefits"`
 }
+
+// SubscribePlusRequest selects how the user pays for Luxe Plus.
+type SubscribePlusRequest struct {
+	PaymentMethod string `json:"payment_method" validate:"required,oneof=wallet gift_card stripe"`
+	GiftCardCode  string `json:"gift_card_code,omitempty"`
+}
+
+// SubscribePlusResponse is returned after initiating or completing a Plus subscription.
+type SubscribePlusResponse struct {
+	Membership      MembershipStatusResponse `json:"membership"`
+	PaymentMethod   string                   `json:"payment_method"`
+	PaymentStatus   string                   `json:"payment_status"`
+	CheckoutURL     string                   `json:"checkout_url,omitempty"`
+	StripeSessionID string                   `json:"stripe_session_id,omitempty"`
+}

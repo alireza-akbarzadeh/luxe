@@ -3,19 +3,25 @@ package handlers
 import (
 	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 // PlusHandler serves Luxe Plus membership endpoints.
 type PlusHandler struct {
 	membership *appmembership.Service
+	validate   *validator.Validate
 }
 
 // NewPlusHandler creates a Plus handler.
 func NewPlusHandler(membership *appmembership.Service) *PlusHandler {
-	return &PlusHandler{membership: membership}
+	return &PlusHandler{
+		membership: membership,
+		validate:   validator.New(),
+	}
 }
 
 // GetBenefits returns the public Luxe Plus benefits catalog.
@@ -54,13 +60,15 @@ func (h *PlusHandler) GetMembership(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, status)
 }
 
-// Subscribe activates Luxe Plus for one year (wallet charge).
+// Subscribe activates Luxe Plus for one year via wallet, gift card, or Stripe Checkout.
 // @Summary      Subscribe to Luxe Plus
-// @Description  Charges the user's wallet and activates Plus membership for one year.
+// @Description  Pay with wallet balance, a gift card code, or Stripe Checkout (redirect to checkout_url when pending).
 // @Tags         Plus
+// @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Success      200 {object} utils.Response{data=dto.MembershipStatusResponse}
+// @Param        request body dto.SubscribePlusRequest true "Payment method"
+// @Success      200 {object} utils.Response{data=dto.SubscribePlusResponse}
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
 // @Failure      409 {object} utils.Response
@@ -72,11 +80,30 @@ func (h *PlusHandler) Subscribe(c *gin.Context) {
 		return
 	}
 
-	status, err := h.membership.Subscribe(c.Request.Context(), userID)
+	var req dto.SubscribePlusRequest
+	if c.Request.ContentLength == 0 {
+		req.PaymentMethod = constants.PlusPaymentWallet
+	} else if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	email, _ := middleware.GetUserEmail(c)
+
+	result, err := h.membership.Subscribe(c.Request.Context(), userID, email, req)
 	if err != nil {
 		RespondServiceError(c, err, "failed to subscribe to Luxe Plus")
 		return
 	}
 
-	utils.SuccessResponse(c, "Luxe Plus activated", status)
+	message := "Luxe Plus activated"
+	if result.PaymentStatus == constants.PlusPaymentStatusPending {
+		message = "complete payment at checkout_url to activate Luxe Plus"
+	}
+
+	utils.SuccessResponse(c, message, result)
 }
