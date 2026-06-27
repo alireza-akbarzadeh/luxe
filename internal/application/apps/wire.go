@@ -35,7 +35,6 @@ import (
 	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
-	appstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/storefront"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -173,7 +172,6 @@ type Applications struct {
 	Shipment     *appshipment.Service
 	SalesFeed    *appsalesfeed.Service
 	GiftCard     *appgiftcard.Service
-	Storefront   *appstorefront.Service
 }
 
 type legalSettingReader struct {
@@ -304,7 +302,6 @@ func WireApplications(
 		Category:    appcategory.NewService(db, engine),
 		Collection:  appcollection.NewService(db, engine),
 		GiftCard:    appgiftcard.NewService(postgres.NewGiftCardRepository(db)),
-		Storefront:  appstorefront.NewService(postgres.NewStorefrontRepository(db)),
 	}
 }
 

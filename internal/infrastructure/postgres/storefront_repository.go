@@ -140,16 +140,8 @@ func (r *StorefrontRepository) ListHomeCategories(ctx context.Context, limit int
 	return rows, err
 }
 
-// ListTopRatedProducts returns highly rated active products as a sales fallback.
-func (r *StorefrontRepository) ListTopRatedProducts(ctx context.Context, limit int) ([]*models.Product, error) {
-	var products []*models.Product
-	err := r.preloadProducts(r.db.WithContext(ctx)).
-		Where("status = ?", constants.ProductStatusActive).
-		Order("reviews_count DESC, rating DESC").
-		Limit(limit).
-		Find(&products).Error
-	return products, err
-}
+// FindCategoryCoverImages returns the first product image per category id.
+func (r *StorefrontRepository) FindCategoryCoverImages(ctx context.Context, categoryIDs []uint) (map[uint]string, error) {
 	out := make(map[uint]string, len(categoryIDs))
 	if len(categoryIDs) == 0 {
 		return out, nil
