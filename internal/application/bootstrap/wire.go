@@ -71,6 +71,7 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 		apps.Payment,
 		shipmentSvc,
 		apps.Wallet,
+		apps.Membership,
 		apps.Invoice.Commands,
 		jobQueue,
 		wsHub,

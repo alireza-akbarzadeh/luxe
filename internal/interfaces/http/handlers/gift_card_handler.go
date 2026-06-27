@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
@@ -131,7 +133,7 @@ func (ctrl *GiftCardHandler) ClaimGiftCard(c *gin.Context) {
 	}
 	email, ok := middleware.GetUserEmail(c)
 	if !ok || email == "" {
-		utils.BadRequestResponse(c, "account email is required to claim gift cards")
+		utils.ErrorResponse(c, http.StatusBadRequest, "account email is required to claim gift cards")
 		return
 	}
 	card, err := ctrl.service.Claim(c.Request.Context(), userID, email, c.Param("code"))

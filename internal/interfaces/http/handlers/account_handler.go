@@ -103,6 +103,10 @@ func (ac *AccountHandler) GetAccountSummary(c *gin.Context) {
 		AddressCount:           addressCount,
 		LikedProductsCount:     likedCount,
 		RecentOrders:           orderDTOs,
+		MembershipTier:         membershipTier(user),
+		IsPlusActive:           dtoIsPlusActive(user),
+		PlusSubscribedAt:       user.PlusSubscribedAt,
+		PlusExpiresAt:          user.PlusExpiresAt,
 	}
 	utils.SuccessResponse(c, "dashboard summary retrieved", resp)
 }
@@ -122,6 +126,17 @@ func toAddressDTO(addr *models.Address) *dto.DefaultAddressDTO {
 		Country:      addr.Country,
 		Phone:        addr.Phone,
 	}
+}
+
+func membershipTier(user *models.User) string {
+	if dtoIsPlusActive(user) {
+		return constants.MembershipTierPlus
+	}
+	return constants.MembershipTierFree
+}
+
+func dtoIsPlusActive(user *models.User) bool {
+	return dto.ToUserResponse(user).IsPlusActive
 }
 
 // GetUserOrderAccount returns user's order history with product images and pagination.

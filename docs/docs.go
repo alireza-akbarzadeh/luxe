@@ -7407,6 +7407,181 @@ const docTemplate = `{
                 }
             }
         },
+        "/gift-cards": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a digital gift card sent to a recipient email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "Create gift card giveaway",
+                "parameters": [
+                    {
+                        "description": "Gift card details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateGiftCardRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.GiftCardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/gift-cards/received": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "List received gift cards",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/gift-cards/sent": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "List sent gift cards",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/gift-cards/{code}/claim": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "Claim gift card",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gift card code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.GiftCardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Readiness-style check (database + Redis when configured). Same as /health/ready.",
@@ -8288,6 +8463,136 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/plus/benefits": {
+            "get": {
+                "description": "Public catalog of Plus membership perks for the landing page.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plus"
+                ],
+                "summary": "Luxe Plus benefits",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PlusBenefitsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/plus/membership": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns whether the user is on Free or active Luxe Plus, with expiry and perks.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plus"
+                ],
+                "summary": "Membership status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MembershipStatusResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/plus/subscribe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Charges the user's wallet and activates Plus membership for one year.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plus"
+                ],
+                "summary": "Subscribe to Luxe Plus",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.MembershipStatusResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -12338,6 +12643,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me/reviews": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns paginated product reviews written by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Reviews"
+                ],
+                "summary": "List my product reviews",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "delete": {
                 "security": [
@@ -15661,6 +16005,40 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateGiftCardRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "recipient_email",
+                "recipient_name",
+                "sender_name"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "recipient_email": {
+                    "type": "string"
+                },
+                "recipient_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                },
+                "sender_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                }
+            }
+        },
         "dto.CreateMenuGroupRequest": {
             "type": "object",
             "required": [
@@ -16170,13 +16548,25 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
+                "is_plus_active": {
+                    "type": "boolean"
+                },
                 "last_name": {
                     "type": "string"
                 },
                 "liked_products_count": {
                     "type": "integer"
                 },
+                "membership_tier": {
+                    "type": "string"
+                },
                 "phone": {
+                    "type": "string"
+                },
+                "plus_expires_at": {
+                    "type": "string"
+                },
+                "plus_subscribed_at": {
                     "type": "string"
                 },
                 "recent_orders": {
@@ -16315,6 +16705,59 @@ const docTemplate = `{
             ],
             "properties": {
                 "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GiftCardResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "initial_amount": {
+                    "type": "number"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "recipient_email": {
+                    "type": "string"
+                },
+                "recipient_name": {
+                    "type": "string"
+                },
+                "recipient_user_id": {
+                    "type": "integer"
+                },
+                "redeemed_at": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_user_id": {
+                    "type": "integer"
+                },
+                "status": {
                     "type": "string"
                 }
             }
@@ -16660,6 +17103,32 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/dto.UserResponse"
+                }
+            }
+        },
+        "dto.MembershipStatusResponse": {
+            "type": "object",
+            "properties": {
+                "annual_price": {
+                    "type": "number"
+                },
+                "benefits": {
+                    "$ref": "#/definitions/dto.PlusMemberBenefitsSummary"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "is_plus_active": {
+                    "type": "boolean"
+                },
+                "plus_expires_at": {
+                    "type": "string"
+                },
+                "plus_subscribed_at": {
+                    "type": "string"
+                },
+                "tier": {
+                    "type": "string"
                 }
             }
         },
@@ -17045,6 +17514,80 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PlusBenefitFeature": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PlusBenefitsResponse": {
+            "type": "object",
+            "properties": {
+                "annual_price": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "discount_percent": {
+                    "type": "integer"
+                },
+                "features": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PlusBenefitFeature"
+                    }
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "priority_shipping": {
+                    "type": "boolean"
+                },
+                "priority_support": {
+                    "type": "boolean"
+                },
+                "return_window_days": {
+                    "$ref": "#/definitions/dto.PlusTierWindow"
+                }
+            }
+        },
+        "dto.PlusMemberBenefitsSummary": {
+            "type": "object",
+            "properties": {
+                "discount_percent": {
+                    "type": "integer"
+                },
+                "priority_shipping": {
+                    "type": "boolean"
+                },
+                "priority_support": {
+                    "type": "boolean"
+                },
+                "return_window_days": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PlusTierWindow": {
+            "type": "object",
+            "properties": {
+                "free": {
+                    "type": "integer"
+                },
+                "plus": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.PresignUploadRequest": {
             "type": "object",
             "required": [
@@ -17351,6 +17894,12 @@ const docTemplate = `{
                 },
                 "product_id": {
                     "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "product_slug": {
+                    "type": "string"
                 }
             }
         },
@@ -19072,7 +19621,13 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_plus_active": {
+                    "type": "boolean"
+                },
                 "last_name": {
+                    "type": "string"
+                },
+                "membership_tier": {
                     "type": "string"
                 },
                 "phone": {
@@ -20676,7 +21231,17 @@ const docTemplate = `{
                     "maxLength": 100,
                     "minLength": 1
                 },
+                "membership_tier": {
+                    "description": "Luxe Plus membership",
+                    "type": "string"
+                },
                 "phone": {
+                    "type": "string"
+                },
+                "plus_expires_at": {
+                    "type": "string"
+                },
+                "plus_subscribed_at": {
                     "type": "string"
                 },
                 "privacy_accepted_at": {

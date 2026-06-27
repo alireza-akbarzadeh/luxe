@@ -1,10 +1,14 @@
 package returnorder
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
-	ErrOrderNotEligible = errors.New("returns are only allowed for delivered or completed orders")
-	ErrOpenReturnExists = errors.New("an open return already exists for this order")
+	ErrOrderNotEligible    = errors.New("returns are only allowed for delivered or completed orders")
+	ErrOpenReturnExists    = errors.New("an open return already exists for this order")
+	ErrReturnWindowExpired = errors.New("the return window for this order has expired")
 )
 
 const (
@@ -24,6 +28,18 @@ func ValidateCreateRequest(orderStatus string, openReturnCount int64) error {
 	}
 	if openReturnCount > 0 {
 		return ErrOpenReturnExists
+	}
+	return nil
+}
+
+// ValidateReturnWindow ensures the order is still within the tier return window.
+func ValidateReturnWindow(reference time.Time, windowDays int) error {
+	if windowDays <= 0 {
+		return nil
+	}
+	deadline := reference.Add(time.Duration(windowDays) * 24 * time.Hour)
+	if time.Now().After(deadline) {
+		return ErrReturnWindowExpired
 	}
 	return nil
 }

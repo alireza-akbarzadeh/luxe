@@ -7,6 +7,7 @@ import (
 
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
 	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
+	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
@@ -54,6 +55,7 @@ type Service struct {
 	paymentService   *apppayment.Service
 	shipmentService  *appshipment.Service
 	walletService    *appwallet.Service
+	membershipService *appmembership.Service
 	invoiceCommands  *appinvoice.Commands
 	workerPool       asynq.JobQueue
 	hub              *websocket.Hub
@@ -75,6 +77,7 @@ func NewService(
 	paymentService *apppayment.Service,
 	shipmentService *appshipment.Service,
 	walletService *appwallet.Service,
+	membershipService *appmembership.Service,
 	invoiceCommands *appinvoice.Commands,
 	workerPool asynq.JobQueue,
 	hub *websocket.Hub,
@@ -92,6 +95,7 @@ func NewService(
 		paymentService:   paymentService,
 		shipmentService:  shipmentService,
 		walletService:    walletService,
+		membershipService: membershipService,
 		invoiceCommands:  invoiceCommands,
 		workerPool:       workerPool,
 		hub:              hub,
@@ -156,7 +160,14 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 		if err != nil {
 			return err
 		}
-		totalAmount := subtotal - discount
+		plusDiscount := float64(0)
+		if s.membershipService != nil {
+			plusDiscount, err = s.membershipService.PlusOrderDiscount(ctx, userID, subtotal-discount)
+			if err != nil {
+				return err
+			}
+		}
+		totalAmount := subtotal - discount - plusDiscount
 		if totalAmount < 0 {
 			totalAmount = 0
 		}

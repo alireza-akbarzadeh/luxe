@@ -196,6 +196,7 @@ const (
 	WalletTxTypePayment     = "payment"
 	WalletTxTypeRefund      = "refund"
 	WalletTxTypeAdjustment  = "adjustment"
+	WalletTxTypeMembership  = "membership"
 
 	// Wallet transaction statuses
 	WalletTxStatusPending   = "pending"
@@ -229,6 +230,19 @@ const (
 	RoleUser      = "user"
 	RoleAdmin     = "admin"
 	RoleModerator = "moderator"
+
+	// Membership tiers (Luxe Plus)
+	MembershipTierFree = "free"
+	MembershipTierPlus = "plus"
+
+	// Luxe Plus benefit values (enforced in checkout, returns, shipping)
+	PlusAnnualPriceUSD        = 49.99
+	PlusCheckoutDiscountPct   = 10
+	PlusReturnWindowDays      = 60
+	FreeReturnWindowDays      = 30
+	PlusSupportPriority       = "priority"
+	FreeSupportPriority       = "standard"
+	PlusShippingPriorityLabel = "express"
 
 	// Product statuses
 	ProductStatusDraft    = "draft"

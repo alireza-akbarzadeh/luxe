@@ -29,6 +29,7 @@ import (
 	appgiftcard "github.com/alireza-akbarzadeh/luxe/internal/application/giftcard"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
 	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
+	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
@@ -172,6 +173,7 @@ type Applications struct {
 	Shipment     *appshipment.Service
 	SalesFeed    *appsalesfeed.Service
 	GiftCard     *appgiftcard.Service
+	Membership   *appmembership.Service
 }
 
 type legalSettingReader struct {
@@ -225,6 +227,8 @@ func WireApplications(
 	if cfg != nil {
 		frontendURL = strings.TrimRight(cfg.Email.FrontendURL, "/")
 	}
+
+	walletSvc := appwallet.NewService(postgres.NewWalletRepository(db), stripeGateway, stripeEnabled)
 
 	return &Applications{
 		AI:   appai.NewService(postgres.NewProductRepository(db), cfg.AI),
@@ -280,7 +284,7 @@ func WireApplications(
 		},
 		Workflow: appworkflow.NewModule(db, engine),
 		Return: returnApp{
-			Commands: appreturn.NewCommands(returnRepo, engine),
+			Commands: appreturn.NewCommands(returnRepo, engine, appmembership.NewService(userRepo, walletSvc)),
 			Queries:  appreturn.NewQueries(returnRepo),
 		},
 		Role: roleApp{
@@ -297,11 +301,12 @@ func WireApplications(
 		},
 		Coupon:  appcoupon.NewService(postgres.NewCouponRepository(db), engine),
 		Payment: apppayment.NewService(postgres.NewPaymentRepository(db), stripeGateway, stripeEnabled),
-		Wallet:  appwallet.NewService(postgres.NewWalletRepository(db), stripeGateway, stripeEnabled),
+		Wallet:  walletSvc,
 		Brand:       appbrand.NewService(db, engine),
 		Category:    appcategory.NewService(db, engine),
 		Collection:  appcollection.NewService(db, engine),
 		GiftCard:    appgiftcard.NewService(postgres.NewGiftCardRepository(db)),
+		Membership:  appmembership.NewService(userRepo, walletSvc),
 	}
 }
 

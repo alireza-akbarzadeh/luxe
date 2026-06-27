@@ -73,14 +73,7 @@ func (ctrl *AuthHandler) Register(c *gin.Context) {
 		Data: dto.RegisterResponseData{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
-			User: dto.UserResponse{
-				ID:        user.ID,
-				Email:     user.Email,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-				Role:      user.Role,
-				Phone:     user.Phone,
-			},
+			User: dto.ToUserResponse(user),
 		},
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -115,14 +108,7 @@ func (ctrl *AuthHandler) Login(c *gin.Context) {
 		Data: dto.LoginResponseData{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
-			User: dto.UserResponse{
-				ID:        user.ID,
-				Email:     user.Email,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-				Role:      user.Role,
-				Phone:     user.Phone,
-			},
+			User: dto.ToUserResponse(user),
 		},
 	}
 	c.JSON(http.StatusOK, resp)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	domainreturn "github.com/alireza-akbarzadeh/luxe/internal/domain/returnorder"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -18,13 +19,14 @@ var openReturnExcludedStatuses = []string{"rejected", "closed", "refunded"}
 
 // Commands orchestrates return write use cases.
 type Commands struct {
-	repo   *postgres.ReturnRepository
-	engine *workflow.Engine
+	repo       *postgres.ReturnRepository
+	engine     *workflow.Engine
+	membership *appmembership.Service
 }
 
 // NewCommands creates return command use cases.
-func NewCommands(repo *postgres.ReturnRepository, engine *workflow.Engine) *Commands {
-	return &Commands{repo: repo, engine: engine}
+func NewCommands(repo *postgres.ReturnRepository, engine *workflow.Engine, membership *appmembership.Service) *Commands {
+	return &Commands{repo: repo, engine: engine, membership: membership}
 }
 
 // Create inserts a return request and syncs workflow state.
@@ -51,6 +53,19 @@ func (c *Commands) Create(ctx context.Context, userID uint, req dto.CreateReturn
 		default:
 			return nil, utils.ErrInternal(err)
 		}
+	}
+
+	windowDays := constants.FreeReturnWindowDays
+	if c.membership != nil {
+		if days, err := c.membership.UserReturnWindowDays(ctx, userID); err == nil {
+			windowDays = days
+		}
+	}
+	if err := domainreturn.ValidateReturnWindow(order.UpdatedAt, windowDays); err != nil {
+		if errors.Is(err, domainreturn.ErrReturnWindowExpired) {
+			return nil, utils.ErrBadRequest(err.Error())
+		}
+		return nil, utils.ErrInternal(err)
 	}
 
 	ret := &models.Return{

@@ -75,6 +75,7 @@ func (r *Router) Setup() {
 		SetupReturnRoutes(protected, r.handlerContainer)
 		SetupInvoiceRoutes(protected, r.handlerContainer)
 		SetupGiftCardRoutes(protected, r.handlerContainer)
+		SetupPlusRoutes(public, protected, r.handlerContainer)
 		SetupWebSocketRoutes(v1, protected, r.handlerContainer, r.cfg)
 		SetupPushRoutes(v1, protected, r.handlerContainer)
 		SetupAiRoutes(public, protected, r.handlerContainer)

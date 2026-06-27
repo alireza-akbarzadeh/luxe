@@ -37,6 +37,11 @@ type User struct {
 	PrivacyAcceptedAt *time.Time `json:"privacy_accepted_at,omitempty"`
 	TermsVersion      *string    `json:"terms_version,omitempty"`
 	PrivacyVersion    *string    `json:"privacy_version,omitempty"`
+
+	// Luxe Plus membership
+	MembershipTier    string     `gorm:"not null;default:'free';index" json:"membership_tier"`
+	PlusSubscribedAt  *time.Time `json:"plus_subscribed_at,omitempty"`
+	PlusExpiresAt     *time.Time `json:"plus_expires_at,omitempty"`
 }
 
 type PasswordResetToken struct {

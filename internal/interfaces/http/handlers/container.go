@@ -48,6 +48,7 @@ type Container struct {
 	Push      *PushHandler
 	Ai        *AiHandler
 	GiftCard  *GiftCardHandler
+	Plus      *PlusHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
@@ -92,5 +93,6 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Push:      NewPushHandler(apps.Push),
 		Ai:        NewAiHandler(apps.AI),
 		GiftCard:  NewGiftCardHandler(apps.GiftCard),
+		Plus:      NewPlusHandler(apps.Membership),
 	}
 }

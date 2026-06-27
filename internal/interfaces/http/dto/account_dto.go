@@ -30,6 +30,10 @@ type DashboardSummaryResponse struct {
 	AddressCount           int                `json:"address_count"`
 	LikedProductsCount     int                `json:"liked_products_count"`
 	RecentOrders           []OrderResponse    `json:"recent_orders"`
+	MembershipTier         string             `json:"membership_tier"`
+	IsPlusActive           bool               `json:"is_plus_active"`
+	PlusSubscribedAt       *time.Time         `json:"plus_subscribed_at,omitempty"`
+	PlusExpiresAt          *time.Time         `json:"plus_expires_at,omitempty"`
 }
 
 type OrderItemDetailDTO struct {
