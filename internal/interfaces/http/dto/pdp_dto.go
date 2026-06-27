@@ -72,13 +72,15 @@ type ProductAnswerResponse struct {
 }
 
 type ProductQuestionResponse struct {
-	ID        uint                    `json:"id"`
-	ProductID uint                    `json:"product_id"`
-	Author    string                  `json:"author"`
-	Body      string                  `json:"body"`
-	CreatedAt time.Time               `json:"created_at"`
-	IsOwner   bool                    `json:"is_owner,omitempty"`
-	Answers   []ProductAnswerResponse `json:"answers"`
+	ID          uint                    `json:"id"`
+	ProductID   uint                    `json:"product_id"`
+	ProductName string                  `json:"product_name,omitempty"`
+	ProductSlug string                  `json:"product_slug,omitempty"`
+	Author      string                  `json:"author"`
+	Body        string                  `json:"body"`
+	CreatedAt   time.Time               `json:"created_at"`
+	IsOwner     bool                    `json:"is_owner,omitempty"`
+	Answers     []ProductAnswerResponse `json:"answers"`
 }
 
 func ToProductAnswerResponse(answer *models.ProductAnswer) ProductAnswerResponse {
@@ -127,6 +129,15 @@ func ToProductQuestionResponse(question *models.ProductQuestion, viewerUserID ui
 		IsOwner:   viewerUserID != 0 && question.UserID == viewerUserID,
 		Answers:   answers,
 	}
+}
+
+func ToUserProductQuestionResponse(question *models.ProductQuestion, viewerUserID uint) ProductQuestionResponse {
+	resp := ToProductQuestionResponse(question, viewerUserID)
+	if question.Product.ID != 0 {
+		resp.ProductName = question.Product.Name
+		resp.ProductSlug = question.Product.Slug
+	}
+	return resp
 }
 
 type StockNotificationStatusResponse struct {

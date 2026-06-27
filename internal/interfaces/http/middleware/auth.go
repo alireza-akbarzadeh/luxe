@@ -69,6 +69,16 @@ func GetUserRole(c *gin.Context) (string, bool) {
 	return role, ok
 }
 
+// GetUserEmail returns the email from context when present.
+func GetUserEmail(c *gin.Context) (string, bool) {
+	val, exists := c.Get("user_email")
+	if !exists {
+		return "", false
+	}
+	email, ok := val.(string)
+	return email, ok
+}
+
 func GuestAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := ExtractToken(c)

@@ -26,6 +26,7 @@ import (
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
+	appgiftcard "github.com/alireza-akbarzadeh/luxe/internal/application/giftcard"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
 	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
@@ -34,6 +35,7 @@ import (
 	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
+	appstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/storefront"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -170,6 +172,8 @@ type Applications struct {
 	Order        *orderfacade.Service
 	Shipment     *appshipment.Service
 	SalesFeed    *appsalesfeed.Service
+	GiftCard     *appgiftcard.Service
+	Storefront   *appstorefront.Service
 }
 
 type legalSettingReader struct {
@@ -299,6 +303,8 @@ func WireApplications(
 		Brand:       appbrand.NewService(db, engine),
 		Category:    appcategory.NewService(db, engine),
 		Collection:  appcollection.NewService(db, engine),
+		GiftCard:    appgiftcard.NewService(postgres.NewGiftCardRepository(db)),
+		Storefront:  appstorefront.NewService(postgres.NewStorefrontRepository(db)),
 	}
 }
 

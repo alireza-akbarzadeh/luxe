@@ -185,6 +185,26 @@ func (r *ReviewRepository) CountAdmin(ctx context.Context, filters dto.AdminRevi
 	return total, err
 }
 
+// CountByUser counts reviews authored by a user.
+func (r *ReviewRepository) CountByUser(ctx context.Context, userID uint) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.Review{}).Where("user_id = ?", userID).Count(&total).Error
+	return total, err
+}
+
+// ListByUser returns paginated reviews authored by a user.
+func (r *ReviewRepository) ListByUser(ctx context.Context, userID uint, limit, offset int) ([]models.Review, error) {
+	var reviews []models.Review
+	err := r.db.WithContext(ctx).
+		Preload("Product").
+		Preload("WorkflowState").
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(limit).Offset(offset).
+		Find(&reviews).Error
+	return reviews, err
+}
+
 // ListAdmin returns paginated reviews for moderation.
 func (r *ReviewRepository) ListAdmin(ctx context.Context, filters dto.AdminReviewListFilters) ([]models.Review, error) {
 	q := r.applyAdminFilters(r.db.WithContext(ctx).Model(&models.Review{}), filters)

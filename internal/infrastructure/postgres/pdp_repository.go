@@ -148,6 +148,28 @@ func (r *PdpRepository) GetAnswerByID(ctx context.Context, id uint) (*models.Pro
 	return &answer, nil
 }
 
+// CountQuestionsByUser counts questions asked by a user.
+func (r *PdpRepository) CountQuestionsByUser(ctx context.Context, userID uint) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.ProductQuestion{}).Where("user_id = ?", userID).Count(&total).Error
+	return total, err
+}
+
+// ListQuestionsByUser returns paginated questions asked by a user.
+func (r *PdpRepository) ListQuestionsByUser(ctx context.Context, userID uint, limit, offset int) ([]models.ProductQuestion, error) {
+	var questions []models.ProductQuestion
+	err := r.db.WithContext(ctx).
+		Preload("Product").
+		Preload("Answers", func(db *gorm.DB) *gorm.DB {
+			return db.Preload("User").Order("created_at ASC")
+		}).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(limit).Offset(offset).
+		Find(&questions).Error
+	return questions, err
+}
+
 // GetQuestionWithProductStore loads a question with product and store.
 func (r *PdpRepository) GetQuestionWithProductStore(ctx context.Context, questionID uint) (*models.ProductQuestion, error) {
 	var question models.ProductQuestion

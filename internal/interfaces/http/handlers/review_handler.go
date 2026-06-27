@@ -190,6 +190,40 @@ func (rc *ReviewHandler) GetMyProductReview(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.EnrichReviewResponse(dto.ToReviewResponse(review, userID), review))
 }
 
+// GetMyReviews lists product reviews authored by the authenticated user.
+// @Summary      List my product reviews
+// @Description  Returns paginated product reviews written by the authenticated user
+// @Tags         Reviews
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit  query int false "Items per page"
+// @Param        offset query int false "Offset"
+// @Success      200 {object} utils.Response
+// @Router       /users/me/reviews [get]
+func (rc *ReviewHandler) GetMyReviews(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	reviews, total, err := rc.queries.ListByUser(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list reviews")
+		return
+	}
+	items := make([]dto.UserReviewResponse, len(reviews))
+	for i := range reviews {
+		items[i] = dto.ToUserReviewResponse(&reviews[i], userID)
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"reviews": items,
+		"total":   total,
+		"limit":   limit,
+		"offset":  offset,
+	})
+}
+
 // ListReviewsAdmin lists product reviews for moderation (admin only).
 // @Summary      List product reviews (admin)
 // @Description  Paginated list of product reviews with optional status and product filters

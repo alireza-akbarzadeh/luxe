@@ -207,6 +207,12 @@ const (
 	WalletRefTypeOrder = "order"
 	WalletRefTypeAdmin = "admin"
 
+	// Gift card statuses
+	GiftCardStatusActive   = "active"
+	GiftCardStatusRedeemed = "redeemed"
+	GiftCardStatusExpired  = "expired"
+	GiftCardStatusCancelled = "cancelled"
+
 	// Shipment statuses
 	ShipmentStatusPending   = "pending"
 	ShipmentStatusShipped   = "shipped"

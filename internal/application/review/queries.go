@@ -71,6 +71,19 @@ func (q *Queries) GetUserReviewForProduct(ctx context.Context, userID, productID
 	return review, nil
 }
 
+// ListByUser returns paginated reviews authored by a user.
+func (q *Queries) ListByUser(ctx context.Context, userID uint, limit, offset int) ([]models.Review, int64, error) {
+	total, err := q.repo.CountByUser(ctx, userID)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	reviews, err := q.repo.ListByUser(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	return reviews, total, nil
+}
+
 // ListAdmin returns paginated reviews for moderation.
 func (q *Queries) ListAdmin(ctx context.Context, filters dto.AdminReviewListFilters) ([]models.Review, int64, error) {
 	total, err := q.repo.CountAdmin(ctx, filters)

@@ -96,6 +96,23 @@ func EnrichReviewResponse(resp ReviewResponse, review *models.Review) ReviewResp
 	return resp
 }
 
+type UserReviewResponse struct {
+	ReviewResponse
+	ProductName string `json:"product_name,omitempty"`
+	ProductSlug string `json:"product_slug,omitempty"`
+}
+
+func ToUserReviewResponse(review *models.Review, viewerUserID uint) UserReviewResponse {
+	resp := UserReviewResponse{
+		ReviewResponse: EnrichReviewResponse(ToReviewResponse(review, viewerUserID), review),
+	}
+	if review.Product.ID != 0 {
+		resp.ProductName = review.Product.Name
+		resp.ProductSlug = review.Product.Slug
+	}
+	return resp
+}
+
 func ToAdminReviewResponse(review *models.Review) AdminReviewResponse {
 	resp := AdminReviewResponse{
 		ReviewResponse: EnrichReviewResponse(ToReviewResponse(review, 0), review),

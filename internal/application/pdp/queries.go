@@ -66,6 +66,19 @@ func (q *Queries) IsStockSubscribed(ctx context.Context, userID, productID uint)
 	return count > 0, err
 }
 
+// ListQuestionsByUser returns paginated product Q&A asked by a user.
+func (q *Queries) ListQuestionsByUser(ctx context.Context, userID uint, limit, offset int) ([]models.ProductQuestion, int64, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	total, err := q.repo.CountQuestionsByUser(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	questions, err := q.repo.ListQuestionsByUser(ctx, userID, limit, offset)
+	return questions, total, err
+}
+
 // ListQuestions returns paginated questions for a product.
 func (q *Queries) ListQuestions(ctx context.Context, productID uint, limit, offset int) ([]models.ProductQuestion, int64, error) {
 	if limit <= 0 {
