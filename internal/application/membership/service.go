@@ -20,6 +20,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// Notifier sends in-app notifications to users.
+type Notifier interface {
+	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
+}
+
 // Service orchestrates Luxe Plus membership use cases.
 type Service struct {
 	users         *postgres.UserRepository
@@ -27,6 +32,7 @@ type Service struct {
 	giftCards     *appgiftcard.Service
 	stripe        *stripeintegration.Gateway
 	stripeEnabled bool
+	notifier      Notifier
 }
 
 // NewService wires membership dependencies.
@@ -44,6 +50,11 @@ func NewService(
 		stripe:        stripe,
 		stripeEnabled: stripeEnabled,
 	}
+}
+
+// SetNotifier injects the notification service (called from bootstrap after wiring).
+func (s *Service) SetNotifier(notifier Notifier) {
+	s.notifier = notifier
 }
 
 // BenefitsCatalog returns the public Plus plan benefits for marketing pages.
@@ -234,6 +245,70 @@ func (s *Service) ConfirmStripeSubscription(ctx context.Context, session stripe.
 	return s.activatePlus(ctx, user)
 }
 
+// ConfirmStripeSubscriptionBySessionID activates Plus using the Stripe session ID from the success redirect.
+func (s *Service) ConfirmStripeSubscriptionBySessionID(ctx context.Context, userID uint, sessionID string) (dto.ConfirmPlusStripeResponse, error) {
+	if !s.stripeEnabled || s.stripe == nil {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrBadRequest("card payment is not configured")
+	}
+
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrBadRequest("session_id is required")
+	}
+
+	checkoutSession, err := s.stripe.GetCheckoutSession(sessionID)
+	if err != nil {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrBadRequest("invalid or expired checkout session")
+	}
+
+	if checkoutSession.Metadata == nil || checkoutSession.Metadata["type"] != constants.PlusStripeMetadataType {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrBadRequest("not a Luxe Plus checkout session")
+	}
+
+	ownerIDStr := checkoutSession.Metadata["user_id"]
+	ownerID64, parseErr := strconv.ParseUint(ownerIDStr, 10, 64)
+	if parseErr != nil || ownerID64 == 0 || uint(ownerID64) != userID {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrForbidden("checkout session does not belong to this account")
+	}
+
+	if checkoutSession.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrBadRequest("payment is not completed yet — refresh in a moment")
+	}
+
+	if err := s.ConfirmStripeSubscription(ctx, *checkoutSession); err != nil {
+		return dto.ConfirmPlusStripeResponse{}, err
+	}
+
+	user, err := s.users.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.ConfirmPlusStripeResponse{}, utils.ErrNotFound("user not found")
+		}
+		return dto.ConfirmPlusStripeResponse{}, utils.ErrInternal(err)
+	}
+
+	amount := float64(checkoutSession.AmountTotal) / 100
+	currency := strings.ToUpper(string(checkoutSession.Currency))
+	if currency == "" {
+		currency = "USD"
+	}
+
+	paidAt := time.Unix(checkoutSession.Created, 0).UTC()
+
+	return dto.ConfirmPlusStripeResponse{
+		Membership: ToStatusResponse(user),
+		Receipt: dto.PlusPaymentReceipt{
+			PaymentMethod:   constants.PlusPaymentStripe,
+			Amount:          amount,
+			Currency:        currency,
+			PaidAt:          &paidAt,
+			StripeSessionID: checkoutSession.ID,
+			Status:          constants.PlusPaymentStatusCompleted,
+			PlanName:        "Luxe Plus",
+		},
+	}, nil
+}
+
 func (s *Service) activatePlus(ctx context.Context, user *models.User) error {
 	now := time.Now()
 	expires := now.AddDate(1, 0, 0)
@@ -244,7 +319,43 @@ func (s *Service) activatePlus(ctx context.Context, user *models.User) error {
 	if err := s.users.SaveUser(ctx, user); err != nil {
 		return utils.ErrInternal(err)
 	}
+	s.notifyMembershipActivated(user)
 	return nil
+}
+
+func (s *Service) notifyMembershipActivated(user *models.User) {
+	if s.notifier == nil || user == nil {
+		return
+	}
+
+	expiresLabel := ""
+	if user.PlusExpiresAt != nil {
+		expiresLabel = user.PlusExpiresAt.Format("January 2, 2006")
+	}
+
+	message := "Welcome to Luxe Plus! Your membership is active"
+	if expiresLabel != "" {
+		message += fmt.Sprintf(" until %s", expiresLabel)
+	}
+	message += ". Enjoy member savings, fast delivery, and extended returns."
+
+	data := map[string]interface{}{
+		"membership_tier": constants.MembershipTierPlus,
+		"account_tab":     "overview",
+	}
+	if user.PlusExpiresAt != nil {
+		data["plus_expires_at"] = user.PlusExpiresAt
+	}
+
+	go func() {
+		_ = s.notifier.CreateNotification(
+			user.ID,
+			constants.NotificationTypeMembershipActivated,
+			"Luxe Plus activated",
+			message,
+			data,
+		)
+	}()
 }
 
 // PlusOrderDiscount returns the checkout discount for an active Plus member.

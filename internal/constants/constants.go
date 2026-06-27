@@ -267,6 +267,10 @@ const (
 	ChatRoomStatusActive          = "active"
 	StockNotificationStatusActive = "active"
 
+	// In-app notification types (customer)
+	NotificationTypeMembershipActivated = "membership_activated"
+	NotificationTypeWalletDeposit       = "wallet_deposit"
+
 	// Webhook event statuses
 	WebhookStatusReceived  = "received"
 	WebhookStatusProcessed = "processed"

@@ -156,6 +156,9 @@ func (s *WebPushService) notificationURL(data interface{}) string {
 		if orderID, ok := m["order_id"]; ok {
 			return fmt.Sprintf("%s/order-tracking/%v", base, orderID)
 		}
+		if tab, ok := m["account_tab"].(string); ok && tab != "" {
+			return fmt.Sprintf("%s/account?tab=%s", base, tab)
+		}
 	}
 
 	return base + "/notifications"

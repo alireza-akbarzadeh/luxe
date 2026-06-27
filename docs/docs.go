@@ -8612,6 +8612,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/plus/subscribe/confirm-stripe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Idempotent activation using checkout session_id from the Stripe success redirect.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Plus"
+                ],
+                "summary": "Confirm Stripe Plus payment",
+                "parameters": [
+                    {
+                        "description": "Stripe session ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ConfirmPlusStripeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ConfirmPlusStripeResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Get products with pagination and optional filters",
@@ -15751,6 +15820,28 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ConfirmPlusStripeRequest": {
+            "type": "object",
+            "required": [
+                "session_id"
+            ],
+            "properties": {
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ConfirmPlusStripeResponse": {
+            "type": "object",
+            "properties": {
+                "membership": {
+                    "$ref": "#/definitions/dto.MembershipStatusResponse"
+                },
+                "receipt": {
+                    "$ref": "#/definitions/dto.PlusPaymentReceipt"
+                }
+            }
+        },
         "dto.CouponData": {
             "type": "object",
             "properties": {
@@ -17627,6 +17718,32 @@ const docTemplate = `{
                 },
                 "return_window_days": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.PlusPaymentReceipt": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "payment_method": {
+                    "type": "string"
+                },
+                "plan_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stripe_session_id": {
+                    "type": "string"
                 }
             }
         },

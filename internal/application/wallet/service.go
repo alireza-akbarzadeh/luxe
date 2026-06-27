@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	domainwallet "github.com/alireza-akbarzadeh/luxe/internal/domain/wallet"
@@ -12,19 +15,33 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"github.com/stripe/stripe-go/v82"
 	"gorm.io/gorm"
 )
+
+const walletDepositStripeMetadataType = "wallet_deposit"
+
+// Notifier sends in-app notifications to users.
+type Notifier interface {
+	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
+}
 
 // Service orchestrates wallet use cases.
 type Service struct {
 	repo          *postgres.WalletRepository
 	stripe        *stripeintegration.Gateway
 	stripeEnabled bool
+	notifier      Notifier
 }
 
 // NewService creates wallet use cases.
 func NewService(repo *postgres.WalletRepository, stripeGateway *stripeintegration.Gateway, stripeEnabled bool) *Service {
 	return &Service{repo: repo, stripe: stripeGateway, stripeEnabled: stripeEnabled}
+}
+
+// SetNotifier injects the notification service (called from bootstrap after wiring).
+func (w *Service) SetNotifier(notifier Notifier) {
+	w.notifier = notifier
 }
 
 func (w *Service) GetOrCreateWallet(ctx context.Context, userID uint) (*models.Wallet, error) {
@@ -137,6 +154,78 @@ func (w *Service) InitiateDeposit(ctx context.Context, userID uint, amount float
 	}, nil
 }
 
+// ConfirmDepositBySessionID credits the wallet using the Stripe session ID from the success redirect.
+func (w *Service) ConfirmDepositBySessionID(ctx context.Context, userID uint, sessionID string) (dto.ConfirmWalletDepositResponse, error) {
+	if !w.stripeEnabled || w.stripe == nil {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrBadRequest("card payment is not configured")
+	}
+
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrBadRequest("session_id is required")
+	}
+
+	checkoutSession, err := w.stripe.GetCheckoutSession(sessionID)
+	if err != nil {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrBadRequest("invalid or expired checkout session")
+	}
+
+	if checkoutSession.Metadata == nil || checkoutSession.Metadata["type"] != walletDepositStripeMetadataType {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrBadRequest("not a wallet deposit checkout session")
+	}
+
+	ownerIDStr := checkoutSession.Metadata["user_id"]
+	ownerID64, parseErr := strconv.ParseUint(ownerIDStr, 10, 64)
+	if parseErr != nil || ownerID64 == 0 || uint(ownerID64) != userID {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrForbidden("checkout session does not belong to this account")
+	}
+
+	if checkoutSession.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrBadRequest("payment is not completed yet — refresh in a moment")
+	}
+
+	paymentIntentID := ""
+	if checkoutSession.PaymentIntent != nil {
+		paymentIntentID = checkoutSession.PaymentIntent.ID
+	}
+
+	if err := w.ConfirmDepositByStripeSession(ctx, checkoutSession.ID, paymentIntentID); err != nil {
+		return dto.ConfirmWalletDepositResponse{}, err
+	}
+
+	txRecord, err := w.repo.FindTransactionByStripeSession(ctx, checkoutSession.ID)
+	if err != nil {
+		return dto.ConfirmWalletDepositResponse{}, utils.ErrInternal(err)
+	}
+
+	balance, err := w.GetBalance(ctx, userID)
+	if err != nil {
+		return dto.ConfirmWalletDepositResponse{}, err
+	}
+
+	amount := float64(checkoutSession.AmountTotal) / 100
+	currency := strings.ToUpper(string(checkoutSession.Currency))
+	if currency == "" {
+		currency = "USD"
+	}
+
+	paidAt := time.Unix(checkoutSession.Created, 0).UTC()
+
+	return dto.ConfirmWalletDepositResponse{
+		Balance:  balance,
+		Currency: currency,
+		Receipt: dto.WalletDepositReceipt{
+			Amount:          amount,
+			Currency:        currency,
+			BalanceAfter:    txRecord.BalanceAfter,
+			PaidAt:          &paidAt,
+			StripeSessionID: checkoutSession.ID,
+			Status:          constants.WalletTxStatusCompleted,
+			TransactionID:   txRecord.ID,
+		},
+	}, nil
+}
+
 func (w *Service) ConfirmDepositByStripeSession(ctx context.Context, sessionID, paymentIntentID string) error {
 	txRecord, err := w.repo.FindTransactionByStripeSession(ctx, sessionID)
 	if err != nil {
@@ -182,7 +271,10 @@ func (w *Service) FailDepositByStripeSession(ctx context.Context, sessionID stri
 }
 
 func (w *Service) ConfirmDeposit(ctx context.Context, transactionID uint) error {
-	return w.repo.WithTx(func(tx *gorm.DB) error {
+	var userID uint
+	var amount, balanceAfter float64
+
+	err := w.repo.WithTx(func(tx *gorm.DB) error {
 		txRecord, err := w.repo.FindTransactionTx(tx, transactionID)
 		if err != nil {
 			return err
@@ -210,8 +302,39 @@ func (w *Service) ConfirmDeposit(ctx context.Context, transactionID uint) error 
 		}
 		txRecord.Status = constants.WalletTxStatusCompleted
 		txRecord.BalanceAfter = newBalance
+		userID = txRecord.UserID
+		amount = txRecord.Amount
+		balanceAfter = newBalance
 		return w.repo.SaveTransactionTx(tx, txRecord)
 	})
+	if err != nil {
+		return err
+	}
+
+	w.notifyDepositCompleted(userID, transactionID, amount, balanceAfter)
+	return nil
+}
+
+func (w *Service) notifyDepositCompleted(userID, transactionID uint, amount, balanceAfter float64) {
+	if w.notifier == nil {
+		return
+	}
+
+	go func() {
+		_ = w.notifier.CreateNotification(
+			userID,
+			constants.NotificationTypeWalletDeposit,
+			"Wallet topped up",
+			fmt.Sprintf("$%.2f was added to your wallet. New balance: $%.2f.", amount, balanceAfter),
+			map[string]interface{}{
+				"transaction_id": transactionID,
+				"amount":         amount,
+				"balance_after":  balanceAfter,
+				"currency":       "USD",
+				"account_tab":    "payment",
+			},
+		)
+	}()
 }
 
 func (w *Service) FailDeposit(ctx context.Context, transactionID uint) error {

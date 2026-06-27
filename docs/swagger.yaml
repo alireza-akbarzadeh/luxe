@@ -1155,6 +1155,20 @@ definitions:
     required:
     - product_ids
     type: object
+  dto.ConfirmPlusStripeRequest:
+    properties:
+      session_id:
+        type: string
+    required:
+    - session_id
+    type: object
+  dto.ConfirmPlusStripeResponse:
+    properties:
+      membership:
+        $ref: '#/definitions/dto.MembershipStatusResponse'
+      receipt:
+        $ref: '#/definitions/dto.PlusPaymentReceipt'
+    type: object
   dto.CouponData:
     properties:
       coupon:
@@ -2429,6 +2443,23 @@ definitions:
         type: boolean
       return_window_days:
         type: integer
+    type: object
+  dto.PlusPaymentReceipt:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+      paid_at:
+        type: string
+      payment_method:
+        type: string
+      plan_name:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
     type: object
   dto.PlusTierWindow:
     properties:
@@ -10384,6 +10415,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Subscribe to Luxe Plus
+      tags:
+      - Plus
+  /plus/subscribe/confirm-stripe:
+    post:
+      consumes:
+      - application/json
+      description: Idempotent activation using checkout session_id from the Stripe
+        success redirect.
+      parameters:
+      - description: Stripe session ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ConfirmPlusStripeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ConfirmPlusStripeResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Confirm Stripe Plus payment
       tags:
       - Plus
   /products:

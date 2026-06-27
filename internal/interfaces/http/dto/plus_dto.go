@@ -60,3 +60,25 @@ type SubscribePlusResponse struct {
 	CheckoutURL     string                   `json:"checkout_url,omitempty"`
 	StripeSessionID string                   `json:"stripe_session_id,omitempty"`
 }
+
+// ConfirmPlusStripeRequest confirms Luxe Plus after Stripe Checkout redirect.
+type ConfirmPlusStripeRequest struct {
+	SessionID string `json:"session_id" validate:"required"`
+}
+
+// PlusPaymentReceipt summarizes a completed Plus membership payment.
+type PlusPaymentReceipt struct {
+	PaymentMethod   string     `json:"payment_method"`
+	Amount          float64    `json:"amount"`
+	Currency        string     `json:"currency"`
+	PaidAt          *time.Time `json:"paid_at,omitempty"`
+	StripeSessionID string     `json:"stripe_session_id"`
+	Status          string     `json:"status"`
+	PlanName        string     `json:"plan_name"`
+}
+
+// ConfirmPlusStripeResponse is returned after confirming a Stripe Plus checkout session.
+type ConfirmPlusStripeResponse struct {
+	Membership MembershipStatusResponse `json:"membership"`
+	Receipt    PlusPaymentReceipt       `json:"receipt"`
+}

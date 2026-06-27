@@ -11,6 +11,7 @@ func SetupWalletRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	// Register without trailing slashes — Gin's RedirectTrailingSlash 301 breaks browser/proxy calls.
 	protected.GET("/wallet", ctrl.Wallet.GetWallet)
 	protected.POST("/wallet/deposit", ctrl.Wallet.Deposit)
+	protected.POST("/wallet/deposit/confirm-stripe", ctrl.Wallet.ConfirmStripeDeposit)
 	protected.POST("/wallet/withdraw", ctrl.Wallet.Withdraw)
 	protected.GET("/wallet/transactions/:id", ctrl.Wallet.GetTransaction)
 	protected.POST("/wallet/deposit/:id/cancel", ctrl.Wallet.CancelPendingDeposit)

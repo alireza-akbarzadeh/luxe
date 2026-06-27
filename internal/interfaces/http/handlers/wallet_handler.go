@@ -120,6 +120,40 @@ func (ctrl *WalletHandler) Deposit(c *gin.Context) {
 	utils.SuccessResponse(c, message, result)
 }
 
+// ConfirmStripeDeposit confirms a wallet deposit after returning from Stripe Checkout.
+// @Summary      Confirm Stripe wallet deposit
+// @Description  Idempotent wallet credit using checkout session_id from the Stripe success redirect.
+// @Tags         Wallet
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ConfirmWalletDepositRequest true "Stripe session ID"
+// @Success      200 {object} utils.Response{data=dto.ConfirmWalletDepositResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Router       /wallet/deposit/confirm-stripe [post]
+func (ctrl *WalletHandler) ConfirmStripeDeposit(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrorUnauthorized)
+		return
+	}
+
+	var req dto.ConfirmWalletDepositRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	result, err := ctrl.walletService.ConfirmDepositBySessionID(c.Request.Context(), userID, req.SessionID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to confirm wallet deposit")
+		return
+	}
+
+	utils.SuccessResponse(c, "deposit added to your wallet", result)
+}
+
 // AdminAdjust adjusts a user's wallet balance (admin only).
 // @Summary      Admin adjust wallet
 // @Description  Increase or decrease any user's wallet balance. Requires admin role.

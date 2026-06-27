@@ -95,8 +95,8 @@ func (g *Gateway) CreateWalletDepositSession(userID, walletTxID uint, amount flo
 		return "", "", fmt.Errorf("deposit amount must be greater than zero")
 	}
 
-	successURL := fmt.Sprintf("%s/wallet?deposit=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
-	cancelURL := fmt.Sprintf("%s/wallet?deposit=cancelled", g.frontendURL)
+	successURL := fmt.Sprintf("%s/account?tab=payment&deposit=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
+	cancelURL := fmt.Sprintf("%s/account?tab=payment&deposit=cancelled", g.frontendURL)
 
 	params := &stripe.CheckoutSessionParams{
 		Mode:              stripe.String(string(stripe.CheckoutSessionModePayment)),
@@ -149,7 +149,7 @@ func (g *Gateway) CreatePlusMembershipSession(userID uint, amount float64, curre
 		return "", "", fmt.Errorf("membership price must be greater than zero")
 	}
 
-	successURL := fmt.Sprintf("%s/plus/landing?plus=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
+	successURL := fmt.Sprintf("%s/account?plus=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
 	cancelURL := fmt.Sprintf("%s/plus/landing?plus=cancelled", g.frontendURL)
 
 	params := &stripe.CheckoutSessionParams{
@@ -182,4 +182,23 @@ func (g *Gateway) CreatePlusMembershipSession(userID uint, amount float64, curre
 	}
 
 	return sess.URL, sess.ID, nil
+}
+
+// GetCheckoutSession retrieves a Stripe Checkout session by ID.
+func (g *Gateway) GetCheckoutSession(sessionID string) (*stripe.CheckoutSession, error) {
+	if g.secretKey == "" {
+		return nil, fmt.Errorf("stripe secret key is not configured")
+	}
+	if strings.TrimSpace(sessionID) == "" {
+		return nil, fmt.Errorf("session id is required")
+	}
+
+	stripe.Key = g.secretKey
+
+	sess, err := session.Get(sessionID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("stripe checkout session get: %w", err)
+	}
+
+	return sess, nil
 }

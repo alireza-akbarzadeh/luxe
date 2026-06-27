@@ -107,3 +107,42 @@ func (h *PlusHandler) Subscribe(c *gin.Context) {
 
 	utils.SuccessResponse(c, message, result)
 }
+
+// ConfirmStripe confirms Luxe Plus after returning from Stripe Checkout.
+// @Summary      Confirm Stripe Plus payment
+// @Description  Idempotent activation using checkout session_id from the Stripe success redirect.
+// @Tags         Plus
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ConfirmPlusStripeRequest true "Stripe session ID"
+// @Success      200 {object} utils.Response{data=dto.ConfirmPlusStripeResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Router       /plus/subscribe/confirm-stripe [post]
+func (h *PlusHandler) ConfirmStripe(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var req dto.ConfirmPlusStripeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+	if err := h.validate.Struct(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	result, err := h.membership.ConfirmStripeSubscriptionBySessionID(c.Request.Context(), userID, req.SessionID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to confirm Luxe Plus payment")
+		return
+	}
+
+	utils.SuccessResponse(c, "Luxe Plus activated", result)
+}

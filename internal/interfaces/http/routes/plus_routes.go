@@ -16,5 +16,6 @@ func SetupPlusRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Containe
 	{
 		protectedPlus.GET("/membership", ctrl.Plus.GetMembership)
 		protectedPlus.POST("/subscribe", ctrl.Plus.Subscribe)
+		protectedPlus.POST("/subscribe/confirm-stripe", ctrl.Plus.ConfirmStripe)
 	}
 }
