@@ -290,3 +290,37 @@ func (ctrl *PdpHandler) GetStockStatus(c *gin.Context) {
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.StockNotificationStatusResponse{Subscribed: subscribed})
 }
+
+// GetMyQuestions lists product Q&A asked by the authenticated user.
+// @Summary      List my product questions
+// @Description  Returns paginated product questions (FAQ) asked by the authenticated user
+// @Tags         Products
+// @Produce      json
+// @Security     BearerAuth
+// @Param        limit  query int false "Items per page"
+// @Param        offset query int false "Offset"
+// @Success      200 {object} utils.Response
+// @Router       /users/me/questions [get]
+func (ctrl *PdpHandler) GetMyQuestions(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	limit, offset := paginationParams(c, constants.DefaultLimit)
+	questions, total, err := ctrl.pdpService.ListQuestionsByUser(c.Request.Context(), userID, limit, offset)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list questions")
+		return
+	}
+	items := make([]dto.ProductQuestionResponse, len(questions))
+	for i := range questions {
+		items[i] = dto.ToUserProductQuestionResponse(&questions[i], userID)
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"questions": items,
+		"total":     total,
+		"limit":     limit,
+		"offset":    offset,
+	})
+}

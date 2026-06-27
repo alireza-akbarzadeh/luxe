@@ -24,5 +24,6 @@ func SetupUserRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	{
 		userMe.GET("/liked-products", ctrl.UserLike.GetUserLikedProductIDs)
 		userMe.GET("/reviews", ctrl.Review.GetMyReviews)
+		userMe.GET("/questions", ctrl.Pdp.GetMyQuestions)
 	}
 }

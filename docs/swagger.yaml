@@ -12918,6 +12918,31 @@ paths:
       summary: Get user's liked product IDs
       tags:
       - Product Likes
+  /users/me/questions:
+    get:
+      description: Returns paginated product questions (FAQ) asked by the authenticated
+        user
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List my product questions
+      tags:
+      - Products
   /users/me/reviews:
     get:
       description: Returns paginated product reviews written by the authenticated

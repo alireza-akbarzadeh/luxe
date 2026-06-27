@@ -160,6 +160,9 @@ func (s *Service) Claim(ctx context.Context, userID uint, email, code string) (*
 	}
 	if card.RecipientUserID == nil {
 		card.RecipientUserID = &userID
+		if err := s.repo.Save(ctx, card); err != nil {
+			return nil, utils.ErrInternal(err)
+		}
 	}
 	return card, nil
 }

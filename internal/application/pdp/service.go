@@ -134,8 +134,8 @@ func (s *Service) ListQuestions(productID uint, limit, offset int) ([]models.Pro
 	return s.queries.ListQuestions(context.Background(), productID, limit, offset)
 }
 
-func (s *Service) ListQuestionsByUser(userID uint, limit, offset int) ([]models.ProductQuestion, int64, error) {
-	return s.queries.ListQuestionsByUser(context.Background(), userID, limit, offset)
+func (s *Service) ListQuestionsByUser(ctx context.Context, userID uint, limit, offset int) ([]models.ProductQuestion, int64, error) {
+	return s.queries.ListQuestionsByUser(ctx, userID, limit, offset)
 }
 
 func (s *Service) CreateQuestion(userID, productID uint, body string) (*models.ProductQuestion, error) {
