@@ -38,7 +38,7 @@ func NewOrderHandler(
 
 // Checkout creates an order from the current cart.
 // @Summary      Checkout
-// @Description  Converts the authenticated user's cart into an order, creates pending payment and shipment, and starts background fulfillment.
+// @Description  Converts the authenticated user's cart into an order. For Stripe, returns checkout_url in data — redirect the customer to complete payment. Mock/wallet orders start fulfillment immediately.
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
@@ -74,6 +74,41 @@ func (ctrl *OrderHandler) Checkout(c *gin.Context) {
 	}
 
 	utils.CreatedResponse(c, "order created successfully", result)
+}
+
+// ConfirmStripeCheckout confirms order payment after returning from Stripe Checkout.
+// @Summary      Confirm Stripe checkout
+// @Description  Idempotent order payment confirmation using checkout session_id from the Stripe success redirect.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ConfirmCheckoutStripeRequest true "Stripe session ID"
+// @Success      200 {object} utils.Response{data=models.Order}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /checkout/confirm-stripe [post]
+func (ctrl *OrderHandler) ConfirmStripeCheckout(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var req dto.ConfirmCheckoutStripeRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	order, err := ctrl.checkoutSvc.ConfirmStripeOrderBySessionID(c.Request.Context(), userID, req.SessionID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to confirm order payment")
+		return
+	}
+
+	utils.SuccessResponse(c, "payment confirmed — your order is being prepared", order)
 }
 
 // GetUserOrders returns paginated orders for the authenticated user.

@@ -41,7 +41,7 @@ func (g *Gateway) CreateCheckoutSession(order *models.Order, paymentID uint, cus
 		return "", "", fmt.Errorf("order total must be greater than zero")
 	}
 
-	successURL := fmt.Sprintf("%s/orders/%d?payment=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL, order.ID)
+	successURL := fmt.Sprintf("%s/order-confirmed/%d?payment=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL, order.ID)
 	cancelURL := fmt.Sprintf("%s/checkout?payment=cancelled&order_id=%d", g.frontendURL, order.ID)
 
 	params := &stripe.CheckoutSessionParams{

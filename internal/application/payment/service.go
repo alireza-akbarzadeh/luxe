@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -13,6 +14,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"github.com/stripe/stripe-go/v82"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
@@ -88,6 +90,30 @@ func (s *Service) CreateStripeCheckoutSession(order *models.Order, payment *mode
 	}
 
 	return checkoutURL, sessionID, nil
+}
+
+// GetStripeCheckoutSession loads a Stripe Checkout session by ID.
+func (s *Service) GetStripeCheckoutSession(sessionID string) (*stripe.CheckoutSession, error) {
+	if !s.stripeEnabled || s.stripe == nil {
+		return nil, utils.ErrBadRequest("stripe payments are not configured")
+	}
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return nil, utils.ErrBadRequest("session_id is required")
+	}
+	return s.stripe.GetCheckoutSession(sessionID)
+}
+
+// FindByStripeSession loads a payment row linked to a Stripe Checkout session.
+func (s *Service) FindByStripeSession(ctx context.Context, sessionID string) (*models.Payment, error) {
+	payment, err := s.repo.FindByStripeSession(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("payment not found for session")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return payment, nil
 }
 
 func (s *Service) ConfirmStripeSession(ctx context.Context, sessionID, paymentIntentID string) (uint, error) {

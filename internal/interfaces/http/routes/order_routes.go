@@ -9,6 +9,7 @@ import (
 
 func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	protected.POST("/checkout", ctrl.Order.Checkout)
+	protected.POST("/checkout/confirm-stripe", ctrl.Order.ConfirmStripeCheckout)
 	protected.GET(constants.RouteOrders+constants.RouteOrdersMy, ctrl.Order.GetUserOrders)
 
 	// Admin list must use GET "" (not GET "/") so /orders matches without a trailing slash.

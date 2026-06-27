@@ -9,6 +9,11 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
+// ConfirmCheckoutStripeRequest confirms order payment after Stripe Checkout redirect.
+type ConfirmCheckoutStripeRequest struct {
+	SessionID string `json:"session_id" validate:"required"`
+}
+
 // CheckoutResult is returned from checkout; MarshalJSON flattens the order for backward-compatible API responses.
 type CheckoutResult struct {
 	Order           *models.Order

@@ -1155,6 +1155,13 @@ definitions:
     required:
     - product_ids
     type: object
+  dto.ConfirmCheckoutStripeRequest:
+    properties:
+      session_id:
+        type: string
+    required:
+    - session_id
+    type: object
   dto.ConfirmPlusStripeRequest:
     properties:
       session_id:
@@ -1168,6 +1175,22 @@ definitions:
         $ref: '#/definitions/dto.MembershipStatusResponse'
       receipt:
         $ref: '#/definitions/dto.PlusPaymentReceipt'
+    type: object
+  dto.ConfirmWalletDepositRequest:
+    properties:
+      session_id:
+        type: string
+    required:
+    - session_id
+    type: object
+  dto.ConfirmWalletDepositResponse:
+    properties:
+      balance:
+        type: number
+      currency:
+        type: string
+      receipt:
+        $ref: '#/definitions/dto.WalletDepositReceipt'
     type: object
   dto.CouponData:
     properties:
@@ -4183,6 +4206,23 @@ definitions:
         type: string
       labelI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
+    type: object
+  dto.WalletDepositReceipt:
+    properties:
+      amount:
+        type: number
+      balance_after:
+        type: number
+      currency:
+        type: string
+      paid_at:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      transaction_id:
+        type: integer
     type: object
   dto.WalletDetailResponse:
     properties:
@@ -9069,8 +9109,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Converts the authenticated user's cart into an order, creates pending
-        payment and shipment, and starts background fulfillment.
+      description: Converts the authenticated user's cart into an order. For Stripe,
+        returns checkout_url in data — redirect the customer to complete payment.
+        Mock/wallet orders start fulfillment immediately.
       parameters:
       - description: Checkout details (address, payment info, optional shipping provider)
         in: body
@@ -9105,6 +9146,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Checkout
+      tags:
+      - Orders
+  /checkout/confirm-stripe:
+    post:
+      consumes:
+      - application/json
+      description: Idempotent order payment confirmation using checkout session_id
+        from the Stripe success redirect.
+      parameters:
+      - description: Stripe session ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ConfirmCheckoutStripeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Confirm Stripe checkout
       tags:
       - Orders
   /collections:
@@ -13548,6 +13635,48 @@ paths:
       security:
       - BearerAuth: []
       summary: Cancel pending deposit
+      tags:
+      - Wallet
+  /wallet/deposit/confirm-stripe:
+    post:
+      consumes:
+      - application/json
+      description: Idempotent wallet credit using checkout session_id from the Stripe
+        success redirect.
+      parameters:
+      - description: Stripe session ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ConfirmWalletDepositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ConfirmWalletDepositResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Confirm Stripe wallet deposit
       tags:
       - Wallet
   /wallet/transactions/{id}:

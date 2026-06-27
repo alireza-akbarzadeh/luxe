@@ -6444,7 +6444,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Converts the authenticated user's cart into an order, creates pending payment and shipment, and starts background fulfillment.",
+                "description": "Converts the authenticated user's cart into an order. For Stripe, returns checkout_url in data — redirect the customer to complete payment. Mock/wallet orders start fulfillment immediately.",
                 "consumes": [
                     "application/json"
                 ],
@@ -6499,6 +6499,81 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/checkout/confirm-stripe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Idempotent order payment confirmation using checkout session_id from the Stripe success redirect.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Confirm Stripe checkout",
+                "parameters": [
+                    {
+                        "description": "Stripe session ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ConfirmCheckoutStripeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/models.Order"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -13644,6 +13719,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/wallet/deposit/confirm-stripe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Idempotent wallet credit using checkout session_id from the Stripe success redirect.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Confirm Stripe wallet deposit",
+                "parameters": [
+                    {
+                        "description": "Stripe session ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ConfirmWalletDepositRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ConfirmWalletDepositResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/wallet/deposit/{id}/cancel": {
             "post": {
                 "security": [
@@ -15820,6 +15964,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ConfirmCheckoutStripeRequest": {
+            "type": "object",
+            "required": [
+                "session_id"
+            ],
+            "properties": {
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ConfirmPlusStripeRequest": {
             "type": "object",
             "required": [
@@ -15839,6 +15994,31 @@ const docTemplate = `{
                 },
                 "receipt": {
                     "$ref": "#/definitions/dto.PlusPaymentReceipt"
+                }
+            }
+        },
+        "dto.ConfirmWalletDepositRequest": {
+            "type": "object",
+            "required": [
+                "session_id"
+            ],
+            "properties": {
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ConfirmWalletDepositResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "receipt": {
+                    "$ref": "#/definitions/dto.WalletDepositReceipt"
                 }
             }
         },
@@ -20312,6 +20492,32 @@ const docTemplate = `{
                 },
                 "labelI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
+                }
+            }
+        },
+        "dto.WalletDepositReceipt": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "balance_after": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "paid_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "stripe_session_id": {
+                    "type": "string"
+                },
+                "transaction_id": {
+                    "type": "integer"
                 }
             }
         },

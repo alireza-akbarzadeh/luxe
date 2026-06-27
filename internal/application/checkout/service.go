@@ -3,6 +3,7 @@ package checkout
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
@@ -25,6 +26,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/alireza-akbarzadeh/luxe/internal/websocket"
+	"github.com/stripe/stripe-go/v82"
 	"gorm.io/gorm"
 )
 
@@ -238,6 +240,67 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 
 	s.enqueueFulfillmentJob(ctx, order.ID, req)
 	return result, nil
+}
+
+// ConfirmStripeOrderBySessionID finalizes an order after Stripe Checkout redirect (idempotent with webhook).
+func (s *Service) ConfirmStripeOrderBySessionID(ctx context.Context, userID uint, sessionID string) (*models.Order, error) {
+	if !s.stripeEnabled {
+		return nil, utils.ErrBadRequest("stripe payments are not configured")
+	}
+
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return nil, utils.ErrBadRequest("session_id is required")
+	}
+
+	checkoutSession, err := s.paymentService.GetStripeCheckoutSession(sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if checkoutSession.Metadata != nil {
+		metaType := checkoutSession.Metadata["type"]
+		if metaType == "wallet_deposit" || metaType == constants.PlusStripeMetadataType {
+			return nil, utils.ErrBadRequest("not an order checkout session")
+		}
+	}
+
+	payment, err := s.paymentService.FindByStripeSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if payment.UserID != userID {
+		return nil, utils.ErrForbidden("checkout session does not belong to this account")
+	}
+
+	if checkoutSession.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
+		return nil, utils.ErrBadRequest("payment is not completed yet — refresh in a moment")
+	}
+
+	paymentIntentID := ""
+	if checkoutSession.PaymentIntent != nil {
+		paymentIntentID = checkoutSession.PaymentIntent.ID
+	}
+
+	orderID, err := s.paymentService.ConfirmStripeSession(ctx, sessionID, paymentIntentID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.CompletePaidOrder(ctx, orderID); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	order, err := s.checkoutRepo.FindOrderWithPayment(ctx, orderID)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	if err := s.checkoutRepo.PreloadOrderDetails(ctx, order); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	return order, nil
 }
 
 // CompletePaidOrder finalizes an order after external payment confirmation (Stripe webhook).
