@@ -45,6 +45,7 @@ type Writer interface {
 	UpdateStatusByIDs(ctx context.Context, orderIDs []uint, status string) (int64, error)
 	FindOverduePaid(ctx context.Context, cutoff time.Time, excludedStatuses []string) ([]models.Order, error)
 	Save(ctx context.Context, order *models.Order) error
+	UpdateShipmentByOrderID(ctx context.Context, orderID uint, updates map[string]interface{}) error
 }
 
 // ListFilterFromDTO maps storefront order filters.

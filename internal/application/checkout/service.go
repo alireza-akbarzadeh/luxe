@@ -340,7 +340,7 @@ func (s *Service) CompletePaidOrder(ctx context.Context, orderID uint) error {
 		"status":         constants.OrderStatusPaid,
 	})
 
-	return s.processShipment(ctx, orderID)
+	return nil
 }
 
 // ProcessOrder is the background job handler that orchestrates payment and shipment.
@@ -408,7 +408,7 @@ func (s *Service) ProcessOrder(ctx context.Context, orderID uint, cardInfo dto.C
 
 	s.ensureInvoice(ctx, orderID)
 
-	return s.processShipment(ctx, orderID)
+	return nil
 }
 
 func (s *Service) broadcastOrderUpdate(orderID, userID uint, eventType string, data map[string]interface{}) {
@@ -492,55 +492,6 @@ func (s *Service) notifyVendorOrderEvent(orderID uint, eventType string, data ma
 		message,
 		data,
 	)
-}
-
-// processShipment handles the shipping steps (called after payment success)
-func (s *Service) processShipment(ctx context.Context, orderID uint) error {
-	shipment, err := s.checkoutRepo.FindShipmentByOrderID(ctx, orderID)
-	if err != nil {
-		return fmt.Errorf("shipment not found: %w", err)
-	}
-
-	oldStatus := shipment.Status
-	shipment.Status = "processing"
-	if err := s.checkoutRepo.SaveShipment(ctx, shipment); err != nil {
-		return err
-	}
-
-	s.broadcastOrderUpdate(orderID, shipment.UserID, "shipment_processing", map[string]interface{}{
-		"title":       "Preparing Shipment",
-		"message":     "Your order is being prepared for shipping.",
-		"order_id":    orderID,
-		"shipment_id": shipment.ID,
-		"old_status":  oldStatus,
-		"new_status":  "processing",
-	})
-
-	// 2. Simulate carrier API – generate tracking & mark shipped
-	time.Sleep(2 * time.Second) // simulate carrier delay
-
-	trackingNumber := fmt.Sprintf("TRK-%d-%d", orderID, time.Now().Unix())
-	now := time.Now()
-	if err := s.checkoutRepo.UpdateShipmentFields(ctx, orderID, map[string]interface{}{
-		"status":          constants.ShipmentStatusShipped,
-		"tracking_number": trackingNumber,
-		"shipped_at":      now,
-	}); err != nil {
-		return err
-	}
-
-	s.broadcastOrderUpdate(orderID, shipment.UserID, "shipment_shipped", map[string]interface{}{
-		"title":           "Package Shipped",
-		"message":         fmt.Sprintf("Your package is on the way! Tracking: %s", trackingNumber),
-		"order_id":        orderID,
-		"shipment_id":     shipment.ID,
-		"tracking_number": trackingNumber,
-		"carrier":         shipment.Carrier,
-		"shipped_at":      now,
-		"status":          constants.ShipmentStatusShipped,
-	})
-
-	return nil
 }
 
 // getCarrier resolves the shipping carrier name from the request or falls back to the first active provider.

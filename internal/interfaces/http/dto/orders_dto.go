@@ -273,10 +273,11 @@ func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
 	return detail
 }
 
-// PerformOrderTransitionRequest triggers a workflow event on an order (admin).
+// PerformOrderTransitionRequest triggers a workflow event on an order (admin or vendor).
 type PerformOrderTransitionRequest struct {
-	Event string `json:"event" validate:"required,min=1,max=64"`
-	Note  string `json:"note"  validate:"omitempty,max=512"`
+	Event          string `json:"event" validate:"required,min=1,max=64"`
+	Note           string `json:"note" validate:"omitempty,max=512"`
+	TrackingNumber string `json:"tracking_number" validate:"omitempty,max=128"`
 }
 
 // OrderTransitionResponse is returned after a successful order workflow transition.

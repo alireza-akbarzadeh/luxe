@@ -47,6 +47,8 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 		vendorStores.GET("/:id/orders/stats", ctrl.Order.GetVendorStoreOrderStats)
 		vendorStores.GET("/:id/orders", ctrl.Order.ListVendorStoreOrders)
 		vendorStores.GET("/:id/orders/:orderId", ctrl.Order.GetVendorStoreOrder)
+		vendorStores.GET("/:id/orders/:orderId/available-transitions", ctrl.Order.GetVendorStoreOrderTransitions)
+		vendorStores.POST("/:id/orders/:orderId/transition", ctrl.Order.PerformVendorStoreOrderTransition)
 		vendorStores.GET("/:id/products/stats", ctrl.Store.GetVendorStoreProductStats)
 		vendorStores.GET("/:id/products", ctrl.Store.ListVendorStoreProducts)
 	}

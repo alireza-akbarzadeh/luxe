@@ -2684,6 +2684,9 @@ definitions:
       note:
         maxLength: 512
         type: string
+      tracking_number:
+        maxLength: 128
+        type: string
     required:
     - event
     type: object
@@ -14146,6 +14149,92 @@ paths:
       security:
       - BearerAuth: []
       summary: Get vendor store order
+      tags:
+      - Vendor
+  /vendor/stores/{id}/orders/{orderId}/available-transitions:
+    get:
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AvailableTransitionsView'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List vendor order workflow transitions
+      tags:
+      - Vendor
+  /vendor/stores/{id}/orders/{orderId}/transition:
+    post:
+      consumes:
+      - application/json
+      description: Fires events such as start_processing, pack, or ship for orders
+        containing this store's products.
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Order ID
+        in: path
+        name: orderId
+        required: true
+        type: integer
+      - description: Workflow event
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PerformOrderTransitionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOrderDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Transition vendor store order workflow
       tags:
       - Vendor
   /vendor/stores/{id}/orders/stats:

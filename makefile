@@ -201,31 +201,50 @@ dev-setup: ## Wait for Postgres and run migrations (compose stack when USE_COMPO
 	@$(MAKE) migrate-up
 	@echo "${GREEN}Dev setup complete${RESET}"
 
-seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
-	@echo "${GREEN}Seeding dev demo data into $(POSTGRES_DB) via $(POSTGRES_CONTAINER)...${RESET}"
-	@if command -v psql >/dev/null 2>&1; then \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-dev.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-shipping-providers.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-home-personalization.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-invoices.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-coupons.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-nav-menus-i18n.sql; \
-		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog-i18n.sql; \
+# Dev seed scripts in dependency order. Optional files are skipped when absent.
+SEED_DEV_SQL_FILES := \
+	scripts/seed-dev.sql \
+	scripts/seed-catalog.sql \
+	scripts/seed-shipping-providers.sql \
+	scripts/seed-orders-returns.sql \
+	scripts/seed-home-personalization.sql \
+	scripts/seed-invoices.sql \
+	scripts/seed-coupons.sql \
+	scripts/seed-nav-menus-i18n.sql \
+	scripts/seed-catalog-i18n.sql
+
+seed-dev: ## Load dev demo data (local/staging only; psql, docker, or go for Neon)
+	@if [ "$(REMOTE_DATABASE)" = "1" ]; then \
+		echo "${GREEN}Seeding dev demo data into remote DATABASE_URL...${RESET}"; \
 	else \
-		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-dev.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-shipping-providers.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-home-personalization.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-invoices.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-nav-menus-i18n.sql; \
-		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog-i18n.sql; \
+		echo "${GREEN}Seeding dev demo data into $(POSTGRES_DB) via $(POSTGRES_CONTAINER)...${RESET}"; \
 	fi
-	@echo "${GREEN}Dev seed complete${RESET}"
+	@set -e; \
+	SEED_BACKEND=go; \
+	if command -v psql >/dev/null 2>&1; then \
+		SEED_BACKEND=psql; \
+	elif [ "$(REMOTE_DATABASE)" != "1" ] && docker info >/dev/null 2>&1; then \
+		SEED_BACKEND=docker; \
+		echo "${YELLOW}psql not found — seeding via docker exec $(POSTGRES_CONTAINER)${RESET}"; \
+	fi; \
+	if [ "$$SEED_BACKEND" = "go" ]; then \
+		echo "${YELLOW}Using go run ./cmd/seed-sql (Neon / remote DATABASE_URL)${RESET}"; \
+		go run ./cmd/seed-sql; \
+	else \
+		for f in $(SEED_DEV_SQL_FILES); do \
+			if [ ! -f "$$f" ]; then \
+				echo "${YELLOW}Skipping missing $$f${RESET}"; \
+				continue; \
+			fi; \
+			echo "${GREEN}Running $$f...${RESET}"; \
+			if [ "$$SEED_BACKEND" = "psql" ]; then \
+				psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f "$$f"; \
+			else \
+				docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < "$$f"; \
+			fi; \
+		done; \
+		echo "${GREEN}Dev seed complete${RESET}"; \
+	fi
 
 seed-shipping-providers: ## Load demo shipping providers (checkout + admin carriers page)
 	@echo "${GREEN}Seeding shipping providers into $(POSTGRES_DB)...${RESET}"

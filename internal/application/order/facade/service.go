@@ -315,6 +315,7 @@ func (s *Service) PerformTransition(
 	orderID uint,
 	event, note, actorRole string,
 	actorID *uint,
+	trackingNumber string,
 ) (*workflow.TransitionResult, error) {
 	if s.engine == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
@@ -322,7 +323,49 @@ func (s *Service) PerformTransition(
 	if _, err := s.GetOrderAdmin(ctx, orderID); err != nil {
 		return nil, err
 	}
-	return s.engine.Transition(ctx, workflow.TransitionRequest{
+	return s.transitionOrder(ctx, orderID, event, note, actorRole, actorID, trackingNumber)
+}
+
+func (s *Service) VendorAvailableTransitions(ctx context.Context, storeID, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {
+	if s.engine == nil {
+		return nil, nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetVendorStoreOrder(ctx, storeID, orderID); err != nil {
+		return nil, nil, err
+	}
+	return s.engine.AvailableTransitions(ctx, constants.WorkflowEntityOrder, orderID)
+}
+
+func (s *Service) VendorPerformTransition(
+	ctx context.Context,
+	storeID, orderID uint,
+	event, note, actorRole string,
+	actorID *uint,
+	trackingNumber string,
+) (*workflow.TransitionResult, error) {
+	if s.engine == nil {
+		return nil, utils.ErrInternal(fmt.Errorf("workflow engine not configured"))
+	}
+	if _, err := s.GetVendorStoreOrder(ctx, storeID, orderID); err != nil {
+		return nil, err
+	}
+	return s.transitionOrder(ctx, orderID, event, note, actorRole, actorID, trackingNumber)
+}
+
+func (s *Service) transitionOrder(
+	ctx context.Context,
+	orderID uint,
+	event, note, actorRole string,
+	actorID *uint,
+	trackingNumber string,
+) (*workflow.TransitionResult, error) {
+	orderBefore, err := s.queries.FindByID(ctx, orderID, true)
+	if err != nil {
+		return nil, err
+	}
+	oldStatus := orderBefore.Status
+
+	result, err := s.engine.Transition(ctx, workflow.TransitionRequest{
 		WorkflowKey: constants.WorkflowEntityOrder,
 		EntityID:    orderID,
 		Event:       event,
@@ -330,6 +373,125 @@ func (s *Service) PerformTransition(
 		ActorRole:   actorRole,
 		Note:        note,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	if event == "ship" {
+		if err := s.commands.MarkShipmentShipped(ctx, orderID, trackingNumber); err != nil {
+			utils.Log.WithError(err).WithField("order_id", orderID).Warn("failed to update shipment after ship transition")
+		}
+	}
+
+	orderAfter, reloadErr := s.GetOrderAdmin(ctx, orderID)
+	if reloadErr != nil {
+		return result, nil
+	}
+
+	s.publishOrderTransitionEffects(ctx, orderAfter, oldStatus, orderAfter.Status, event, trackingNumber)
+	return result, nil
+}
+
+func (s *Service) publishOrderTransitionEffects(
+	ctx context.Context,
+	orderAfter *models.Order,
+	oldStatus, newStatus, event, trackingNumber string,
+) {
+	if oldStatus == newStatus {
+		return
+	}
+
+	if s.hub != nil && orderAfter != nil {
+		roomID := fmt.Sprintf("order_%d", orderAfter.ID)
+		s.hub.BroadcastToRoom(roomID, websocket.Message{
+			Type:   "order_status_update",
+			RoomID: roomID,
+			Data: map[string]interface{}{
+				"order_id":     orderAfter.ID,
+				"order_number": orderAfter.OrderNumber,
+				"old_status":   oldStatus,
+				"new_status":   newStatus,
+				"updated_at":   orderAfter.UpdatedAt,
+			},
+			Timestamp: time.Now(),
+		})
+
+		if event == "ship" || newStatus == constants.OrderStatusShipped {
+			shipmentData := map[string]interface{}{
+				"title":           "Package Shipped",
+				"message":         fmt.Sprintf("Your order #%s has been shipped.", orderAfter.OrderNumber),
+				"order_id":        orderAfter.ID,
+				"order_number":    orderAfter.OrderNumber,
+				"status":          constants.ShipmentStatusShipped,
+				"tracking_number": trackingNumber,
+			}
+			if orderAfter.Shipment != nil {
+				shipmentData["carrier"] = orderAfter.Shipment.Carrier
+				if trackingNumber == "" && orderAfter.Shipment.TrackingNumber != "" {
+					shipmentData["tracking_number"] = orderAfter.Shipment.TrackingNumber
+				}
+			}
+			s.hub.BroadcastToRoom(roomID, websocket.Message{
+				Type:      "shipment_shipped",
+				RoomID:    roomID,
+				Data:      shipmentData,
+				Timestamp: time.Now(),
+			})
+		}
+	}
+
+	if s.salesFeed != nil && orderAfter != nil {
+		eventType := "status_change"
+		title := fmt.Sprintf("Order %s updated", orderAfter.OrderNumber)
+		subtitle := fmt.Sprintf("Status changed to %s", newStatus)
+		if newStatus == constants.OrderStatusShipped {
+			eventType = "shipment"
+			title = "Order shipped"
+			subtitle = fmt.Sprintf("%s is on its way", orderAfter.OrderNumber)
+		}
+		s.salesFeed.PublishOrderEvent(eventType, title, subtitle, orderAfter.TotalAmount)
+	}
+
+	if orderAfter == nil || s.notifier == nil {
+		return
+	}
+
+	go func() {
+		title, msgText := s.getOrderStatusNotificationMessage(newStatus, orderAfter.OrderNumber)
+		data := map[string]interface{}{
+			"order_id":     orderAfter.ID,
+			"order_number": orderAfter.OrderNumber,
+			"old_status":   oldStatus,
+			"new_status":   newStatus,
+			"updated_at":   orderAfter.UpdatedAt,
+		}
+		_ = s.notifier.CreateNotification(
+			orderAfter.UserID,
+			"order_status_update",
+			title,
+			msgText,
+			data,
+		)
+		if s.vendorNotify != nil {
+			wsEvent := websocket.EventVendorOrderUpdate
+			notifType := "vendor_order_update"
+			if newStatus == constants.OrderStatusShipped {
+				wsEvent = websocket.EventVendorOrderShipment
+				notifType = "vendor_order_shipment"
+			}
+			s.vendorNotify.NotifyVendorStoresForOrder(
+				ctx,
+				orderAfter.ID,
+				wsEvent,
+				notifType,
+				title,
+				msgText,
+				data,
+			)
+		}
+	}()
+
+	s.enqueueOrderStatusEmail(ctx, orderAfter, newStatus)
 }
 
 func (s *Service) ListVendorStoreOrders(

@@ -406,6 +406,7 @@ func (ctrl *OrderHandler) PerformTransition(c *gin.Context) {
 		req.Note,
 		actorRole,
 		actorIDPtr,
+		req.TrackingNumber,
 	)
 	if err != nil {
 		RespondServiceError(c, err, "failed to transition order")
@@ -568,4 +569,98 @@ func (ctrl *OrderHandler) GetVendorStoreOrder(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToVendorOrderDetail(*order, storeID))
+}
+
+// GetVendorStoreOrderTransitions lists workflow actions a vendor may apply to an order.
+// @Summary      List vendor order workflow transitions
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path int true "Store ID"
+// @Param        orderId  path int true "Order ID"
+// @Success      200 {object} utils.Response{data=dto.AvailableTransitionsView}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/orders/{orderId}/available-transitions [get]
+func (ctrl *OrderHandler) GetVendorStoreOrderTransitions(c *gin.Context) {
+	storeID, _, _, ok := ctrl.authorizeVendorStore(c)
+	if !ok {
+		return
+	}
+
+	orderID, ok := parseUintParam(c, "orderId")
+	if !ok {
+		return
+	}
+
+	current, transitions, err := ctrl.orderService.VendorAvailableTransitions(c.Request.Context(), storeID, orderID)
+	if err != nil {
+		RespondServiceError(c, err, "failed to load order transitions")
+		return
+	}
+
+	views := make([]dto.TransitionView, 0, len(transitions))
+	for i := range transitions {
+		views = append(views, toTransitionView(&transitions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
+		"current_state": toStateView(current),
+		"transitions":   views,
+	})
+}
+
+// PerformVendorStoreOrderTransition applies a workflow event to a vendor-scoped order.
+// @Summary      Transition vendor store order workflow
+// @Description  Fires events such as start_processing, pack, or ship for orders containing this store's products.
+// @Tags         Vendor
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path int true "Store ID"
+// @Param        orderId  path int true "Order ID"
+// @Param        request  body dto.PerformOrderTransitionRequest true "Workflow event"
+// @Success      200 {object} utils.Response{data=dto.VendorOrderDetailResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /vendor/stores/{id}/orders/{orderId}/transition [post]
+func (ctrl *OrderHandler) PerformVendorStoreOrderTransition(c *gin.Context) {
+	storeID, userID, role, ok := ctrl.authorizeVendorStore(c)
+	if !ok {
+		return
+	}
+
+	orderID, ok := parseUintParam(c, "orderId")
+	if !ok {
+		return
+	}
+
+	var req dto.PerformOrderTransitionRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	actorIDPtr := &userID
+	result, err := ctrl.orderService.VendorPerformTransition(
+		c.Request.Context(),
+		storeID,
+		orderID,
+		req.Event,
+		req.Note,
+		role,
+		actorIDPtr,
+		req.TrackingNumber,
+	)
+	if err != nil {
+		RespondServiceError(c, err, "failed to transition order")
+		return
+	}
+
+	order, err := ctrl.orderService.GetVendorStoreOrder(c.Request.Context(), storeID, orderID)
+	if err != nil {
+		RespondServiceError(c, err, "transition applied but failed to reload order")
+		return
+	}
+
+	_ = result
+	utils.SuccessResponse(c, "transition applied", dto.ToVendorOrderDetail(*order, storeID))
 }

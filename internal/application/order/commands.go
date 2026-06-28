@@ -44,3 +44,15 @@ func (c *Commands) SaveDelayed(ctx context.Context, order *models.Order) error {
 	order.Status = constants.OrderStatusDelayed
 	return c.writer.Save(ctx, order)
 }
+
+// MarkShipmentShipped records carrier tracking when an order is marked shipped.
+func (c *Commands) MarkShipmentShipped(ctx context.Context, orderID uint, trackingNumber string) error {
+	updates := map[string]interface{}{
+		"status":     constants.ShipmentStatusShipped,
+		"shipped_at": time.Now(),
+	}
+	if trackingNumber != "" {
+		updates["tracking_number"] = trackingNumber
+	}
+	return c.writer.UpdateShipmentByOrderID(ctx, orderID, updates)
+}

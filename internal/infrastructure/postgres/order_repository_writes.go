@@ -88,3 +88,8 @@ func (r *OrderRepository) FindOverduePaid(ctx context.Context, cutoff time.Time,
 func (r *OrderRepository) Save(ctx context.Context, order *models.Order) error {
 	return r.db.WithContext(ctx).Save(order).Error
 }
+
+// UpdateShipmentByOrderID updates shipment columns for the given order.
+func (r *OrderRepository) UpdateShipmentByOrderID(ctx context.Context, orderID uint, updates map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(&models.Shipment{}).Where("order_id = ?", orderID).Updates(updates).Error
+}
