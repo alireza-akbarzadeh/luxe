@@ -79,5 +79,6 @@ func (r *Router) Setup() {
 		SetupWebSocketRoutes(v1, protected, r.handlerContainer, r.cfg)
 		SetupPushRoutes(v1, protected, r.handlerContainer)
 		SetupAiRoutes(public, protected, r.handlerContainer)
+		SetupHomeRoutes(public, protected, r.handlerContainer)
 	}
 }

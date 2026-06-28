@@ -27,6 +27,7 @@ import (
 	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
 	appgiftcard "github.com/alireza-akbarzadeh/luxe/internal/application/giftcard"
+	apphome "github.com/alireza-akbarzadeh/luxe/internal/application/home"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
 	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
@@ -174,6 +175,7 @@ type Applications struct {
 	SalesFeed    *appsalesfeed.Service
 	GiftCard     *appgiftcard.Service
 	Membership   *appmembership.Service
+	Home         *apphome.Service
 }
 
 type legalSettingReader struct {
@@ -309,6 +311,10 @@ func WireApplications(
 		Collection:  appcollection.NewService(db, engine),
 		GiftCard:    giftCardSvc,
 		Membership:  membershipSvc,
+		Home: apphome.NewService(
+			postgres.NewStorefrontRepository(db),
+			postgres.NewHomeRepository(db),
+		),
 	}
 }
 
