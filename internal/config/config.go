@@ -12,6 +12,15 @@ import (
 
 const devJWTSecret = "dev_secret_do_not_use_in_production"
 
+// unquoteEnv strips optional double quotes from dotenv values.
+func unquoteEnv(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
 type Config struct {
 	AppEnv                string
 	Server                ServerConfig
@@ -127,23 +136,20 @@ func Load() (*Config, error) {
 		appEnv = "local"
 	}
 
-	configName := ".env"
+	configFile := ".env"
 	if appEnv != "" && appEnv != "local" {
-		configName = ".env." + appEnv
+		configFile = ".env." + appEnv
 	}
 
-	viper.SetConfigName(configName)
-	viper.SetConfigType("env")
-	viper.AddConfigPath(".")
+	// SetConfigName(".env") + type "env" resolves to ".env.env", not ".env".
+	viper.SetConfigFile(configFile)
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		if appEnv != "local" {
-			return nil, fmt.Errorf("failed to read config %s: %w", configName, err)
+		if appEnv != "local" && appEnv != "" {
+			return nil, fmt.Errorf("failed to read config %s: %w", configFile, err)
 		}
-		viper.SetConfigName(".env")
-		_ = viper.ReadInConfig()
 	}
 
 	viper.SetDefault("SERVER_PORT", "8080")
@@ -256,8 +262,8 @@ func Load() (*Config, error) {
 			Mode: viper.GetString("GIN_MODE"),
 		},
 		Database: DatabaseConfig{
-			URL:           viper.GetString("DATABASE_URL"),
-			Host:          viper.GetString("DB_HOST"),
+			URL:           unquoteEnv(viper.GetString("DATABASE_URL")),
+			Host:          unquoteEnv(viper.GetString("DB_HOST")),
 			Port:          viper.GetString("DB_PORT"),
 			User:          viper.GetString("DB_USER"),
 			Password:      viper.GetString("DB_PASSWORD"),
