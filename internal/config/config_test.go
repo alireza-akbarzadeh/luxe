@@ -26,6 +26,23 @@ func TestLoad_readsDotEnvWithNeonDBHost(t *testing.T) {
 	}
 }
 
+func TestLoad_stripsChannelBindingFromNeonURL(t *testing.T) {
+	t.Chdir(t, mustWriteTempEnv(t, "DATABASE_URL=postgresql://user:secret@ep-example.neon.tech/neondb?sslmode=require&channel_binding=require\nJWT_SECRET=test_secret\n"))
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	dsn := cfg.DSN()
+	if contains(dsn, "channel_binding") {
+		t.Fatalf("DSN should not include channel_binding, got: %s", redactDSN(dsn))
+	}
+	if !containsAll(dsn, "sslmode=require", "neon.tech") {
+		t.Fatalf("unexpected DSN: %s", redactDSN(dsn))
+	}
+}
+
 func TestDSN_prefersDatabaseURL(t *testing.T) {
 	cfg := &Config{
 		Database: DatabaseConfig{

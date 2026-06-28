@@ -21,6 +21,28 @@ func unquoteEnv(s string) string {
 	return s
 }
 
+// normalizePostgresURL removes query params unsupported by the Go pg driver (e.g. channel_binding).
+func normalizePostgresURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return raw
+	}
+	const needle = "channel_binding="
+	idx := strings.Index(raw, needle)
+	if idx < 0 {
+		return raw
+	}
+	end := idx + len(needle)
+	for end < len(raw) && raw[end] != '&' {
+		end++
+	}
+	trimmed := raw[:idx]
+	if end < len(raw) {
+		trimmed += raw[end+1:]
+	}
+	return strings.TrimSuffix(trimmed, "?")
+}
+
 type Config struct {
 	AppEnv                string
 	Server                ServerConfig
@@ -142,7 +164,9 @@ func Load() (*Config, error) {
 	}
 
 	// SetConfigName(".env") + type "env" resolves to ".env.env", not ".env".
+	// SetConfigFile(".env") alone fails: filepath.Ext(".env") is "" so Viper cannot infer format.
 	viper.SetConfigFile(configFile)
+	viper.SetConfigType("env")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
@@ -343,6 +367,7 @@ func Load() (*Config, error) {
 		(strings.HasPrefix(cfg.Database.Host, "postgresql://") || strings.HasPrefix(cfg.Database.Host, "postgres://")) {
 		cfg.Database.URL = cfg.Database.Host
 	}
+	cfg.Database.URL = normalizePostgresURL(cfg.Database.URL)
 
 	AppConfig = cfg
 
