@@ -132,6 +132,19 @@ func (r *HomeRepository) ListUserOrderCategoryIDs(ctx context.Context, userID ui
 	return ids, err
 }
 
+// ListUserLikedCategoryIDs returns distinct category ids from a user's wishlisted products.
+func (r *HomeRepository) ListUserLikedCategoryIDs(ctx context.Context, userID uint, limit int) ([]uint, error) {
+	var ids []uint
+	err := r.db.WithContext(ctx).Table("product_likes pl").
+		Select("DISTINCT p.category_id").
+		Joins("INNER JOIN products p ON p.id = pl.product_id AND p.deleted_at IS NULL").
+		Where("pl.user_id = ? AND p.category_id IS NOT NULL", userID).
+		Order("pl.created_at DESC").
+		Limit(limit).
+		Pluck("p.category_id", &ids).Error
+	return ids, err
+}
+
 // ListUserLikedProductIDs returns wishlisted product ids for recommendations.
 func (r *HomeRepository) ListUserLikedProductIDs(ctx context.Context, userID uint, limit int) ([]uint, error) {
 	var ids []uint

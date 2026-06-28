@@ -1864,6 +1864,13 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.FavoriteCategoriesResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/dto.HomeCategoryItem'
+        type: array
+    type: object
   dto.FeaturedItem:
     properties:
       badge:
@@ -1924,6 +1931,334 @@ definitions:
         type: integer
       status:
         type: string
+    type: object
+  dto.HomeBrandItem:
+    properties:
+      banner_url:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      logo_url:
+        type: string
+      min_price:
+        type: number
+      name:
+        type: string
+      product_count:
+        type: integer
+      rating:
+        type: number
+      revenue:
+        type: number
+      slug:
+        type: string
+      status:
+        type: string
+      units_sold:
+        type: integer
+      updated_at:
+        type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.HomeBrandsResponse:
+    properties:
+      brands:
+        items:
+          $ref: '#/definitions/dto.HomeBrandItem'
+        type: array
+    type: object
+  dto.HomeCategoriesResponse:
+    properties:
+      favorite:
+        items:
+          $ref: '#/definitions/dto.HomeCategoryItem'
+        type: array
+      featured:
+        items:
+          $ref: '#/definitions/dto.HomeCategoryItem'
+        type: array
+      for_you:
+        items:
+          $ref: '#/definitions/dto.HomeCategoryItem'
+        type: array
+      personalized_rails:
+        items:
+          $ref: '#/definitions/dto.HomeProductRail'
+        type: array
+      popular:
+        items:
+          $ref: '#/definitions/dto.HomeCategoryItem'
+        type: array
+    type: object
+  dto.HomeCategoryItem:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      product_count:
+        type: integer
+      slug:
+        type: string
+    type: object
+  dto.HomeCollectionItem:
+    properties:
+      cta_label:
+        type: string
+      description:
+        type: string
+      eyebrow:
+        type: string
+      href:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      slug:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.HomeCollectionsResponse:
+    properties:
+      collections:
+        items:
+          $ref: '#/definitions/dto.HomeCollectionItem'
+        type: array
+    type: object
+  dto.HomeFlashDealItem:
+    properties:
+      ends_at:
+        type: string
+      id:
+        type: integer
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+      quantity_limit:
+        type: integer
+    type: object
+  dto.HomeFlashDealsResponse:
+    properties:
+      deals:
+        items:
+          $ref: '#/definitions/dto.HomeFlashDealItem'
+        type: array
+    type: object
+  dto.HomeManifestResponse:
+    properties:
+      cache_ttl_seconds:
+        type: integer
+      sections:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.HomeProductItem:
+    properties:
+      allow_backorder:
+        type: boolean
+      attributes:
+        items:
+          $ref: '#/definitions/dto.ProductAttributeResponse'
+        type: array
+      barcode:
+        type: string
+      brand:
+        $ref: '#/definitions/dto.BrandResponse'
+      brand_id:
+        type: integer
+      category:
+        $ref: '#/definitions/dto.CategoryResponse'
+      category_id:
+        type: integer
+      channels:
+        items:
+          type: string
+        type: array
+      colors:
+        items:
+          type: string
+        type: array
+      compare_at_price:
+        type: number
+      cost:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      descriptionI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
+      discount_percent:
+        type: integer
+      flash_ends_at:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          type: string
+        type: array
+      is_digital:
+        type: boolean
+      is_new:
+        type: boolean
+      low_stock_threshold:
+        type: integer
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      name:
+        type: string
+      nameI18n:
+        $ref: '#/definitions/i18n.LocalizedMap'
+      price:
+        type: number
+      published_at:
+        type: string
+      quantity_limit:
+        type: integer
+      rating:
+        type: number
+      reviews_count:
+        type: integer
+      sizes:
+        items:
+          type: string
+        type: array
+      sku:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      stock:
+        type: integer
+      store:
+        $ref: '#/definitions/dto.ProductStoreSummary'
+      store_id:
+        type: integer
+      tags:
+        items:
+          type: string
+        type: array
+      track_inventory:
+        type: boolean
+      units_sold:
+        type: integer
+      updated_at:
+        type: string
+      visibility:
+        description: Publishing extras
+        type: string
+      warehouse_location:
+        type: string
+      weight:
+        type: number
+      wishlist_count:
+        type: integer
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.HomeProductRail:
+    properties:
+      key:
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/dto.HomeProductItem'
+        type: array
+      title:
+        type: string
+    type: object
+  dto.HomeProductsResponse:
+    properties:
+      products:
+        items:
+          $ref: '#/definitions/dto.HomeProductItem'
+        type: array
+    type: object
+  dto.HomeSectionItem:
+    properties:
+      filters:
+        additionalProperties: true
+        type: object
+      href:
+        type: string
+      image_url:
+        type: string
+      key:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.HomeSectionsResponse:
+    properties:
+      sections:
+        items:
+          $ref: '#/definitions/dto.HomeSectionItem'
+        type: array
+    type: object
+  dto.HomeShopByPriceItem:
+    properties:
+      href:
+        type: string
+      key:
+        type: string
+      max_price:
+        type: number
+      preview_count:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.HomeShopByPriceResponse:
+    properties:
+      buckets:
+        items:
+          $ref: '#/definitions/dto.HomeShopByPriceItem'
+        type: array
+    type: object
+  dto.HomeStoreItem:
+    properties:
+      banner_url:
+        type: string
+      id:
+        type: integer
+      logo_url:
+        type: string
+      name:
+        type: string
+      product_count:
+        type: integer
+      rating:
+        type: number
+      revenue:
+        type: number
+      review_count:
+        type: integer
+      slug:
+        type: string
+      units_sold:
+        type: integer
+    type: object
+  dto.HomeStoresResponse:
+    properties:
+      stores:
+        items:
+          $ref: '#/definitions/dto.HomeStoreItem'
+        type: array
     type: object
   dto.ImportRowResult:
     properties:
@@ -3147,6 +3482,15 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  dto.SetFavoriteCategoriesRequest:
+    properties:
+      category_ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - category_ids
     type: object
   dto.SetRolePermissionsRequest:
     properties:
@@ -9924,6 +10268,353 @@ paths:
       summary: Readiness probe
       tags:
       - health
+  /home:
+    get:
+      description: Lightweight list of homepage section keys and cache TTL
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeManifestResponse'
+              type: object
+      summary: Homepage manifest
+      tags:
+      - Home
+  /home/categories:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeCategoriesResponse'
+              type: object
+      summary: Homepage categories
+      tags:
+      - Home
+  /home/customer-favorites:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: Customer favorites
+      tags:
+      - Home
+  /home/featured-stores:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeStoresResponse'
+              type: object
+      summary: Featured stores
+      tags:
+      - Home
+  /home/flash-deals:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeFlashDealsResponse'
+              type: object
+      summary: Flash deals
+      tags:
+      - Home
+  /home/most-wishlisted:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: Most wishlisted products
+      tags:
+      - Home
+  /home/new-arrivals:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: New arrivals
+      tags:
+      - Home
+  /home/popular-collections:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeCollectionsResponse'
+              type: object
+      summary: Popular collections
+      tags:
+      - Home
+  /home/recently-restocked:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: Recently restocked
+      tags:
+      - Home
+  /home/recently-viewed:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Recently viewed products
+      tags:
+      - Home
+  /home/recommended:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Recommended products
+      tags:
+      - Home
+  /home/seasonal-picks:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeSectionsResponse'
+              type: object
+      summary: Seasonal picks
+      tags:
+      - Home
+  /home/shop-by-price:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeShopByPriceResponse'
+              type: object
+      summary: Shop by price
+      tags:
+      - Home
+  /home/top-brands:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeBrandsResponse'
+              type: object
+      summary: Top brands
+      tags:
+      - Home
+  /home/top-products:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: Top products
+      tags:
+      - Home
+  /home/trending-products:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeProductsResponse'
+              type: object
+      summary: Trending products
+      tags:
+      - Home
   /nav-menus:
     get:
       produces:
@@ -11328,6 +12019,24 @@ paths:
       security:
       - BearerAuth: []
       summary: Transition product workflow state (admin)
+      tags:
+      - Products
+  /products/{id}/view:
+    post:
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      security:
+      - BearerAuth: []
+      summary: Record product view
       tags:
       - Products
   /products/bulk:
@@ -13047,6 +13756,52 @@ paths:
       summary: Delete a user
       tags:
       - User
+  /users/me/favorite-categories:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FavoriteCategoriesResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get favorite categories
+      tags:
+      - Home
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Category IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SetFavoriteCategoriesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.FavoriteCategoriesResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Set favorite categories
+      tags:
+      - Home
   /users/me/liked-products:
     get:
       consumes:

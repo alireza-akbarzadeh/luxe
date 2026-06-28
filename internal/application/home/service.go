@@ -103,11 +103,53 @@ func (s *Service) GetCategories(ctx context.Context, userID *uint, limit int) (d
 			}
 			resp.PersonalizedRails = s.buildPersonalizedRails(ctx, favs, 8)
 		}
-	} else {
+	}
+
+	forYou, err := s.buildForYouCategories(ctx, userID, limit, popular)
+	if err != nil {
+		return resp, err
+	}
+	resp.ForYou = forYou
+
+	if userID == nil {
 		s.cache.Set(cacheKey, resp, publicCacheTTL)
 	}
 
 	return resp, nil
+}
+
+func (s *Service) buildForYouCategories(ctx context.Context, userID *uint, limit int, popular []dto.HomeCategoryItem) ([]dto.HomeCategoryItem, error) {
+	if userID != nil {
+		cacheKey := fmt.Sprintf("home:for-you:%d:%d", *userID, limit)
+		if cached, ok := s.cache.Get(cacheKey); ok {
+			return cached.([]dto.HomeCategoryItem), nil
+		}
+
+		favs, err := s.home.ListFavoriteCategories(ctx, *userID)
+		if err != nil {
+			return nil, err
+		}
+		if len(favs) > 0 {
+			items := capCategoryItems(categoriesToHomeItems(ctx, s.storefront, favs), limit)
+			s.cache.Set(cacheKey, items, personalCacheTTL)
+			return items, nil
+		}
+
+		orderCats, _ := s.home.ListUserOrderCategoryIDs(ctx, *userID, limit)
+		likedCats, _ := s.home.ListUserLikedCategoryIDs(ctx, *userID, limit)
+		merged := mergeUniqueCategoryIDs(orderCats, likedCats)
+		if len(merged) > 0 {
+			cats, err := s.storefront.ListCategoriesByIDs(ctx, merged)
+			if err != nil {
+				return nil, err
+			}
+			items := capCategoryItems(categoriesToHomeItems(ctx, s.storefront, cats), limit)
+			s.cache.Set(cacheKey, items, personalCacheTTL)
+			return items, nil
+		}
+	}
+
+	return capCategoryItems(popular, limit), nil
 }
 
 func (s *Service) buildPersonalizedRails(ctx context.Context, categories []models.Category, perRail int) []dto.HomeProductRail {

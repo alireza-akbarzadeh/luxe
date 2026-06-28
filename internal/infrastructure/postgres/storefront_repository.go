@@ -309,6 +309,30 @@ func (r *StorefrontRepository) ListFeaturedStores(ctx context.Context, limit int
 	return rows, err
 }
 
+// ListCategoriesByIDs loads active categories preserving the given id order.
+func (r *StorefrontRepository) ListCategoriesByIDs(ctx context.Context, ids []uint) ([]models.Category, error) {
+	if len(ids) == 0 {
+		return []models.Category{}, nil
+	}
+	var categories []models.Category
+	if err := r.db.WithContext(ctx).
+		Where("id IN ? AND is_active = ? AND deleted_at IS NULL", ids, true).
+		Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	byID := make(map[uint]models.Category, len(categories))
+	for _, c := range categories {
+		byID[c.ID] = c
+	}
+	ordered := make([]models.Category, 0, len(ids))
+	for _, id := range ids {
+		if c, ok := byID[id]; ok {
+			ordered = append(ordered, c)
+		}
+	}
+	return ordered, nil
+}
+
 // ListProductsByCategory returns active products in a category ordered by rating.
 func (r *StorefrontRepository) ListProductsByCategory(ctx context.Context, categoryID uint, limit int) ([]*models.Product, error) {
 	var products []*models.Product

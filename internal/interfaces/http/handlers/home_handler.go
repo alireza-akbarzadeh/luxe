@@ -44,7 +44,7 @@ func optionalUserID(c *gin.Context) *uint {
 // @Success      200 {object} utils.Response{data=dto.HomeManifestResponse}
 // @Router       /home [get]
 func (h *HomeHandler) Manifest(c *gin.Context) {
-	utils.OK(c, "homepage manifest", h.svc.Manifest())
+	utils.SuccessResponse(c, "homepage manifest", h.svc.Manifest())
 }
 
 // GetCategories returns popular, featured, and personalized categories.
@@ -60,7 +60,7 @@ func (h *HomeHandler) GetCategories(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load homepage categories")
 		return
 	}
-	utils.OK(c, "homepage categories", data)
+	utils.SuccessResponse(c, "homepage categories", data)
 }
 
 // GetTopBrands returns sales-ranked brands.
@@ -76,7 +76,7 @@ func (h *HomeHandler) GetTopBrands(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load top brands")
 		return
 	}
-	utils.OK(c, "top brands", dto.HomeBrandsResponse{Brands: brands})
+	utils.SuccessResponse(c, "top brands", dto.HomeBrandsResponse{Brands: brands})
 }
 
 // GetTopProducts returns best-selling products.
@@ -92,7 +92,7 @@ func (h *HomeHandler) GetTopProducts(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load top products")
 		return
 	}
-	utils.OK(c, "top products", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "top products", dto.HomeProductsResponse{Products: products})
 }
 
 // GetTrendingProducts returns trending products.
@@ -108,7 +108,7 @@ func (h *HomeHandler) GetTrendingProducts(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load trending products")
 		return
 	}
-	utils.OK(c, "trending products", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "trending products", dto.HomeProductsResponse{Products: products})
 }
 
 // GetNewArrivals returns newest products.
@@ -124,7 +124,7 @@ func (h *HomeHandler) GetNewArrivals(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load new arrivals")
 		return
 	}
-	utils.OK(c, "new arrivals", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "new arrivals", dto.HomeProductsResponse{Products: products})
 }
 
 // GetFlashDeals returns active flash deals.
@@ -140,7 +140,7 @@ func (h *HomeHandler) GetFlashDeals(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load flash deals")
 		return
 	}
-	utils.OK(c, "flash deals", dto.HomeFlashDealsResponse{Deals: deals})
+	utils.SuccessResponse(c, "flash deals", dto.HomeFlashDealsResponse{Deals: deals})
 }
 
 // GetRecommended returns personalized recommendations for the logged-in user.
@@ -154,7 +154,7 @@ func (h *HomeHandler) GetFlashDeals(c *gin.Context) {
 func (h *HomeHandler) GetRecommended(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.Unauthorized(c, "authentication required")
+		utils.UnauthorizedResponse(c, "authentication required")
 		return
 	}
 	products, err := h.svc.GetRecommended(c.Request.Context(), userID, parseHomeLimit(c))
@@ -162,7 +162,7 @@ func (h *HomeHandler) GetRecommended(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load recommendations")
 		return
 	}
-	utils.OK(c, "recommended products", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "recommended products", dto.HomeProductsResponse{Products: products})
 }
 
 // GetRecentlyViewed returns recently viewed products for the logged-in user.
@@ -176,7 +176,7 @@ func (h *HomeHandler) GetRecommended(c *gin.Context) {
 func (h *HomeHandler) GetRecentlyViewed(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.Unauthorized(c, "authentication required")
+		utils.UnauthorizedResponse(c, "authentication required")
 		return
 	}
 	products, err := h.svc.GetRecentlyViewed(c.Request.Context(), userID, parseHomeLimit(c))
@@ -184,7 +184,7 @@ func (h *HomeHandler) GetRecentlyViewed(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load recently viewed")
 		return
 	}
-	utils.OK(c, "recently viewed", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "recently viewed", dto.HomeProductsResponse{Products: products})
 }
 
 // GetMostWishlisted returns most wishlisted products.
@@ -200,7 +200,7 @@ func (h *HomeHandler) GetMostWishlisted(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load wishlisted products")
 		return
 	}
-	utils.OK(c, "most wishlisted", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "most wishlisted", dto.HomeProductsResponse{Products: products})
 }
 
 // GetCustomerFavorites returns highest-rated products.
@@ -216,7 +216,7 @@ func (h *HomeHandler) GetCustomerFavorites(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load customer favorites")
 		return
 	}
-	utils.OK(c, "customer favorites", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "customer favorites", dto.HomeProductsResponse{Products: products})
 }
 
 // GetPopularCollections returns curated collections.
@@ -232,7 +232,7 @@ func (h *HomeHandler) GetPopularCollections(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load collections")
 		return
 	}
-	utils.OK(c, "popular collections", dto.HomeCollectionsResponse{Collections: collections})
+	utils.SuccessResponse(c, "popular collections", dto.HomeCollectionsResponse{Collections: collections})
 }
 
 // GetFeaturedStores returns top stores.
@@ -248,7 +248,7 @@ func (h *HomeHandler) GetFeaturedStores(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load featured stores")
 		return
 	}
-	utils.OK(c, "featured stores", dto.HomeStoresResponse{Stores: stores})
+	utils.SuccessResponse(c, "featured stores", dto.HomeStoresResponse{Stores: stores})
 }
 
 // GetShopByPrice returns shop-by-price buckets.
@@ -263,7 +263,7 @@ func (h *HomeHandler) GetShopByPrice(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load price buckets")
 		return
 	}
-	utils.OK(c, "shop by price", dto.HomeShopByPriceResponse{Buckets: buckets})
+	utils.SuccessResponse(c, "shop by price", dto.HomeShopByPriceResponse{Buckets: buckets})
 }
 
 // GetSeasonalPicks returns seasonal homepage sections.
@@ -279,7 +279,7 @@ func (h *HomeHandler) GetSeasonalPicks(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load seasonal picks")
 		return
 	}
-	utils.OK(c, "seasonal picks", dto.HomeSectionsResponse{Sections: sections})
+	utils.SuccessResponse(c, "seasonal picks", dto.HomeSectionsResponse{Sections: sections})
 }
 
 // GetRecentlyRestocked returns recently restocked products.
@@ -295,7 +295,7 @@ func (h *HomeHandler) GetRecentlyRestocked(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load restocked products")
 		return
 	}
-	utils.OK(c, "recently restocked", dto.HomeProductsResponse{Products: products})
+	utils.SuccessResponse(c, "recently restocked", dto.HomeProductsResponse{Products: products})
 }
 
 // GetFavoriteCategories returns the user's favorite categories.
@@ -308,7 +308,7 @@ func (h *HomeHandler) GetRecentlyRestocked(c *gin.Context) {
 func (h *HomeHandler) GetFavoriteCategories(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.Unauthorized(c, "authentication required")
+		utils.UnauthorizedResponse(c, "authentication required")
 		return
 	}
 	categories, err := h.svc.GetFavoriteCategories(c.Request.Context(), userID)
@@ -316,7 +316,7 @@ func (h *HomeHandler) GetFavoriteCategories(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to load favorite categories")
 		return
 	}
-	utils.OK(c, "favorite categories", dto.FavoriteCategoriesResponse{Categories: categories})
+	utils.SuccessResponse(c, "favorite categories", dto.FavoriteCategoriesResponse{Categories: categories})
 }
 
 // SetFavoriteCategories replaces the user's favorite categories.
@@ -331,7 +331,7 @@ func (h *HomeHandler) GetFavoriteCategories(c *gin.Context) {
 func (h *HomeHandler) SetFavoriteCategories(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.Unauthorized(c, "authentication required")
+		utils.UnauthorizedResponse(c, "authentication required")
 		return
 	}
 	var req dto.SetFavoriteCategoriesRequest
@@ -366,12 +366,12 @@ func (h *HomeHandler) SetFavoriteCategories(c *gin.Context) {
 func (h *HomeHandler) RecordProductView(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
 	if !ok {
-		utils.Unauthorized(c, "authentication required")
+		utils.UnauthorizedResponse(c, "authentication required")
 		return
 	}
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		utils.BadRequest(c, "invalid product id")
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid product id")
 		return
 	}
 	if err := h.svc.RecordProductView(c.Request.Context(), userID, uint(id)); err != nil {

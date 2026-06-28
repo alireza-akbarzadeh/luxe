@@ -11,23 +11,6 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
-// Service serves homepage aggregation queries.
-type Service struct {
-	storefront *postgres.StorefrontRepository
-	home       *postgres.HomeRepository
-	cache      *ttlCache
-}
-
-// NewService wires homepage use cases.
-func NewService(db interface{ /* gorm */ }, storefront *postgres.StorefrontRepository, home *postgres.HomeRepository) *Service {
-	_ = db
-	return &Service{
-		storefront: storefront,
-		home:       home,
-		cache:      newTTLCache(),
-	}
-}
-
 func clampLimit(limit int) int {
 	if limit <= 0 {
 		return defaultLimit
@@ -85,4 +68,48 @@ func trendingTitleForCategory(name string) string {
 		return "Trending Now"
 	}
 	return fmt.Sprintf("Trending %s", n)
+}
+
+func capCategoryItems(items []dto.HomeCategoryItem, limit int) []dto.HomeCategoryItem {
+	if len(items) <= limit {
+		return items
+	}
+	return items[:limit]
+}
+
+func mergeUniqueCategoryIDs(lists ...[]uint) []uint {
+	seen := make(map[uint]struct{})
+	out := make([]uint, 0)
+	for _, list := range lists {
+		for _, id := range list {
+			if id == 0 {
+				continue
+			}
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func categoriesToHomeItems(ctx context.Context, storefront *postgres.StorefrontRepository, categories []models.Category) []dto.HomeCategoryItem {
+	if len(categories) == 0 {
+		return []dto.HomeCategoryItem{}
+	}
+	ids := make([]uint, 0, len(categories))
+	for _, c := range categories {
+		ids = append(ids, c.ID)
+	}
+	covers, _ := storefront.FindCategoryCoverImages(ctx, ids)
+	out := make([]dto.HomeCategoryItem, 0, len(categories))
+	for _, c := range categories {
+		out = append(out, dto.HomeCategoryItem{
+			ID: c.ID, Name: c.Name, Slug: c.Slug, Description: c.Description,
+			ImageURL: covers[c.ID],
+		})
+	}
+	return out
 }

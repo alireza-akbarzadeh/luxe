@@ -6,6 +6,7 @@ import "time"
 type HomeCategoriesResponse struct {
 	Popular           []HomeCategoryItem `json:"popular"`
 	Featured          []HomeCategoryItem `json:"featured"`
+	ForYou            []HomeCategoryItem `json:"for_you"`
 	Favorite          []HomeCategoryItem `json:"favorite,omitempty"`
 	PersonalizedRails []HomeProductRail  `json:"personalized_rails,omitempty"`
 }

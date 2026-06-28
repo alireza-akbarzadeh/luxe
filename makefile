@@ -208,6 +208,7 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-catalog.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-shipping-providers.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-orders-returns.sql; \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-home-personalization.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-invoices.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-coupons.sql; \
 		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-nav-menus-i18n.sql; \
@@ -218,6 +219,7 @@ seed-dev: ## Load dev demo data (local/staging only; uses psql or docker exec)
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-shipping-providers.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-orders-returns.sql; \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-home-personalization.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-invoices.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-coupons.sql; \
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-nav-menus-i18n.sql; \
