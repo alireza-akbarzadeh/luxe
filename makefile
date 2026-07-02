@@ -208,6 +208,7 @@ SEED_DEV_SQL_FILES := \
 	scripts/seed-shipping-providers.sql \
 	scripts/seed-orders-returns.sql \
 	scripts/seed-home-personalization.sql \
+	scripts/seed-home-content.sql \
 	scripts/seed-invoices.sql \
 	scripts/seed-coupons.sql \
 	scripts/seed-nav-menus-i18n.sql \
