@@ -190,7 +190,7 @@ func (r *StorefrontRepository) ListTopBrandsBySales(ctx context.Context, limit i
 			brands.*,
 			COUNT(DISTINCT products.id) AS product_count,
 			COALESCE(SUM(order_items.quantity), 0) AS units_sold,
-			COALESCE(SUM(order_items.quantity * order_items.unit_price), 0) AS revenue,
+			COALESCE(SUM(order_items.quantity * order_items.price), 0) AS revenue,
 			COALESCE(MIN(products.price), 0) AS min_price`).
 		Joins("INNER JOIN products ON products.brand_id = brands.id AND products.deleted_at IS NULL AND products.status = ?", constants.ProductStatusActive).
 		Joins("LEFT JOIN order_items ON order_items.product_id = products.id").
@@ -297,7 +297,7 @@ func (r *StorefrontRepository) ListFeaturedStores(ctx context.Context, limit int
 			stores.*,
 			COUNT(DISTINCT products.id) AS product_count,
 			COALESCE(SUM(order_items.quantity), 0) AS units_sold,
-			COALESCE(SUM(order_items.quantity * order_items.unit_price), 0) AS revenue`).
+			COALESCE(SUM(order_items.quantity * order_items.price), 0) AS revenue`).
 		Joins("INNER JOIN products ON products.store_id = stores.id AND products.deleted_at IS NULL AND products.status = ?", constants.ProductStatusActive).
 		Joins("LEFT JOIN order_items ON order_items.product_id = products.id").
 		Joins("LEFT JOIN orders o ON o.id = order_items.order_id AND o.deleted_at IS NULL AND o.created_at >= ? AND o.status IN ?", since, revenueOrderStatuses).
