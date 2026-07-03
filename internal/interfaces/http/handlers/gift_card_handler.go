@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -175,4 +176,61 @@ func (ctrl *GiftCardHandler) ClaimGiftCard(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, "gift card claimed", dto.ToGiftCardResponse(card))
+}
+
+// LookupGiftRecipients searches Luxe members by email or phone for gifting.
+// @Summary      Lookup gift card recipient
+// @Description  Search active members by email or phone (min 3 characters)
+// @Tags         GiftCards
+// @Produce      json
+// @Security     BearerAuth
+// @Param        q query string true "Email or phone fragment"
+// @Success      200 {object} utils.Response{data=[]dto.GiftRecipientLookupResponse}
+// @Router       /gift-cards/recipient-lookup [get]
+func (ctrl *GiftCardHandler) LookupGiftRecipients(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	query := strings.TrimSpace(c.Query("q"))
+	if len(query) < 3 {
+		utils.SuccessResponse(c, constants.MsgFetchSuccess, []dto.GiftRecipientLookupResponse{})
+		return
+	}
+	items, err := ctrl.service.LookupRecipients(c.Request.Context(), userID, query)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to lookup recipients")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, items)
+}
+
+// TransferGiftCard assigns an active gift card to another Luxe member.
+// @Summary      Transfer gift card to member
+// @Tags         GiftCards
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        code path string true "Gift card code"
+// @Param        request body dto.TransferGiftCardRequest true "Recipient user ID"
+// @Success      200 {object} utils.Response{data=dto.GiftCardResponse}
+// @Router       /gift-cards/{code}/transfer [post]
+func (ctrl *GiftCardHandler) TransferGiftCard(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	email, _ := middleware.GetUserEmail(c)
+	var req dto.TransferGiftCardRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	card, err := ctrl.service.Transfer(c.Request.Context(), userID, email, c.Param("code"), req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to transfer gift card")
+		return
+	}
+	utils.SuccessResponse(c, "gift card transferred", card)
 }

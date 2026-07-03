@@ -41,6 +41,8 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 	apps := WireApplications(db, cfg, jobQueue, workflowEngine)
 	apps.Membership.SetNotifier(notificationSvc)
 	apps.Wallet.SetNotifier(notificationSvc)
+	apps.GiftCard.SetNotifier(notificationSvc)
+	apps.GiftCard.SetJobQueue(jobQueue)
 
 	workflowHooksRepo := postgres.NewWorkflowHooksRepository(db)
 	appworkflow.RegisterGuardsAndHooks(appworkflow.HookDeps{

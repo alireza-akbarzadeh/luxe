@@ -235,7 +235,7 @@ func WireApplications(
 	}
 
 	walletSvc := appwallet.NewService(postgres.NewWalletRepository(db), stripeGateway, stripeEnabled)
-	giftCardSvc := appgiftcard.NewService(postgres.NewGiftCardRepository(db), stripeGateway, stripeEnabled)
+	giftCardSvc := appgiftcard.NewService(postgres.NewGiftCardRepository(db), userRepo, stripeGateway, stripeEnabled, frontendURL)
 	membershipSvc := appmembership.NewService(userRepo, walletSvc, giftCardSvc, stripeGateway, stripeEnabled)
 
 	aiSvc := appai.NewService(postgres.NewProductRepository(db), postgres.NewPdpRepository(db), cfg.AI)

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"strings"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
@@ -66,9 +67,47 @@ func (r *UserRepository) ListUsers(ctx context.Context, filter UserListFilter) (
 	return users, total, nil
 }
 
-// SaveUser persists user changes.
+// Save persists user changes.
 func (r *UserRepository) SaveUser(ctx context.Context, user *models.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
+}
+
+// SearchGiftRecipients finds active users by email or phone for gifting (privacy-scoped lookup).
+func (r *UserRepository) SearchGiftRecipients(
+	ctx context.Context,
+	excludeUserID uint,
+	query string,
+	limit int,
+) ([]models.User, error) {
+	query = strings.TrimSpace(query)
+	if len(query) < 3 {
+		return nil, nil
+	}
+	if limit <= 0 || limit > 20 {
+		limit = 10
+	}
+
+	q := r.db.WithContext(ctx).
+		Model(&models.User{}).
+		Where("is_active = ?", true).
+		Where("id != ?", excludeUserID)
+
+	if strings.Contains(query, "@") {
+		q = q.Where("LOWER(email) LIKE LOWER(?)", "%"+query+"%")
+	} else {
+		normalizedPhone := strings.TrimPrefix(query, "+")
+		q = q.Where(
+			"phone LIKE ? OR LOWER(email) LIKE LOWER(?)",
+			"%"+normalizedPhone+"%",
+			"%"+query+"%",
+		)
+	}
+
+	var users []models.User
+	if err := q.Limit(limit).Order("first_name ASC, last_name ASC").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }
 
 // DeleteUser soft-deletes a user by ID.

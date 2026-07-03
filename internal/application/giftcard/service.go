@@ -22,24 +22,52 @@ import (
 
 const giftCardStripeMetadataType = "gift_card_purchase"
 
+// Notifier sends in-app notifications to users.
+type Notifier interface {
+	CreateNotification(userID uint, notificationType, title, message string, data interface{}) error
+}
+
+// EmailQueue enqueues transactional email delivery.
+type EmailQueue interface {
+	EnqueueSendEmail(ctx context.Context, to, subject, body string) error
+}
+
 // Service orchestrates gift card use cases.
 type Service struct {
 	repo          *postgres.GiftCardRepository
+	users         *postgres.UserRepository
 	stripe        *stripeintegration.Gateway
 	stripeEnabled bool
+	notifier      Notifier
+	jobQueue      EmailQueue
+	frontendURL   string
 }
 
 // NewService creates gift card use cases.
 func NewService(
 	repo *postgres.GiftCardRepository,
+	users *postgres.UserRepository,
 	stripe *stripeintegration.Gateway,
 	stripeEnabled bool,
+	frontendURL string,
 ) *Service {
 	return &Service{
 		repo:          repo,
+		users:         users,
 		stripe:        stripe,
 		stripeEnabled: stripeEnabled,
+		frontendURL:   strings.TrimRight(strings.TrimSpace(frontendURL), "/"),
 	}
+}
+
+// SetNotifier injects the notification service (called from bootstrap after wiring).
+func (s *Service) SetNotifier(notifier Notifier) {
+	s.notifier = notifier
+}
+
+// SetJobQueue injects the async email queue (called from bootstrap after wiring).
+func (s *Service) SetJobQueue(queue EmailQueue) {
+	s.jobQueue = queue
 }
 
 func generateGiftCardCode() (string, error) {
@@ -190,7 +218,68 @@ func (s *Service) activateCard(ctx context.Context, card *models.GiftCard) error
 	if err := s.repo.Save(ctx, card); err != nil {
 		return utils.ErrInternal(err)
 	}
+	s.notifyActivated(card)
 	return nil
+}
+
+func (s *Service) notifyActivated(card *models.GiftCard) {
+	if card == nil {
+		return
+	}
+
+	amountLabel := formatMoney(card.Balance, card.Currency)
+	accountURL := strings.TrimRight(s.frontendURL, "/")
+	if accountURL == "" {
+		accountURL = "https://luxe.app/account"
+	}
+
+	data := map[string]interface{}{
+		"account_tab":  "giftCards",
+		"gift_card_id": card.ID,
+		"code":         card.Code,
+	}
+
+	go func() {
+		if s.notifier != nil {
+			_ = s.notifier.CreateNotification(
+				card.SenderUserID,
+				constants.NotificationTypeGiftCardSent,
+				"Gift card delivered",
+				fmt.Sprintf("Your %s gift card for %s is active.", amountLabel, card.RecipientName),
+				data,
+			)
+
+			if card.RecipientUserID != nil {
+				_ = s.notifier.CreateNotification(
+					*card.RecipientUserID,
+					constants.NotificationTypeGiftCardReceived,
+					"You received a gift card",
+					fmt.Sprintf("%s sent you a %s Luxe gift card.", card.SenderName, amountLabel),
+					data,
+				)
+			}
+		}
+
+		if s.jobQueue == nil {
+			return
+		}
+
+		recipientSubject, recipientBody := giftCardReceivedEmail(
+			card.SenderName,
+			card.RecipientName,
+			amountLabel,
+			card.Code,
+			card.Message,
+			accountURL,
+		)
+		_ = s.jobQueue.EnqueueSendEmail(context.Background(), card.RecipientEmail, recipientSubject, recipientBody)
+
+		sender, err := s.users.FindByID(context.Background(), card.SenderUserID)
+		if err == nil && sender.Email != "" {
+			sentSubject, sentBody := giftCardSentEmail(card.SenderName, card.RecipientName, amountLabel, accountURL)
+			_ = s.jobQueue.EnqueueSendEmail(context.Background(), sender.Email, sentSubject, sentBody)
+		}
+	}()
 }
 
 func (s *Service) cancelCard(ctx context.Context, card *models.GiftCard) error {

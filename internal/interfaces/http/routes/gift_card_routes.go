@@ -12,4 +12,6 @@ func SetupGiftCardRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	protected.GET("/gift-cards/sent", ctrl.GiftCard.ListSentGiftCards)
 	protected.GET("/gift-cards/received", ctrl.GiftCard.ListReceivedGiftCards)
 	protected.POST("/gift-cards/:code/claim", ctrl.GiftCard.ClaimGiftCard)
+	protected.GET("/gift-cards/recipient-lookup", ctrl.GiftCard.LookupGiftRecipients)
+	protected.POST("/gift-cards/:code/transfer", ctrl.GiftCard.TransferGiftCard)
 }

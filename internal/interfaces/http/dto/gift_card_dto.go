@@ -24,6 +24,17 @@ type ConfirmGiftCardStripeRequest struct {
 	SessionID string `json:"session_id" validate:"required"`
 }
 
+type TransferGiftCardRequest struct {
+	RecipientUserID uint `json:"recipient_user_id" validate:"required,gt=0"`
+}
+
+type GiftRecipientLookupResponse struct {
+	ID          uint   `json:"id"`
+	DisplayName string `json:"display_name"`
+	MaskedEmail string `json:"masked_email,omitempty"`
+	MaskedPhone string `json:"masked_phone,omitempty"`
+}
+
 type GiftCardResponse struct {
 	ID              uint       `json:"id"`
 	Code            string     `json:"code"`

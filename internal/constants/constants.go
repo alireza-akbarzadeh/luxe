@@ -271,6 +271,9 @@ const (
 	// In-app notification types (customer)
 	NotificationTypeMembershipActivated = "membership_activated"
 	NotificationTypeWalletDeposit       = "wallet_deposit"
+	NotificationTypeGiftCardSent          = "gift_card_sent"
+	NotificationTypeGiftCardReceived    = "gift_card_received"
+	NotificationTypeGiftCardTransferred = "gift_card_transferred"
 
 	// Webhook event statuses
 	WebhookStatusReceived  = "received"
