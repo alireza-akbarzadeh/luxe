@@ -49,7 +49,7 @@ BEGIN
         images = ARRAY[
             'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
             'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=800',
-            'https://images.unsplash.com/photo-1587836374828-4db968944bda?w=800',
+            'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
             'https://images.unsplash.com/photo-1614162692292-7c008625e467?w=800',
             'https://images.unsplash.com/photo-1547996160-20dfa5d0dfd1?w=800',
             'https://images.unsplash.com/photo-1611658890348-2b2546a56333?w=800'
