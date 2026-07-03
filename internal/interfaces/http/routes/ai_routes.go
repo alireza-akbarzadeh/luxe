@@ -12,6 +12,7 @@ func SetupAiRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, ctrl *ha
 	public.POST("/ai/shopping-assistant", ctrl.Ai.ShoppingAssistant)
 	public.POST("/ai/search-intent", ctrl.Ai.SearchIntent)
 	public.POST("/ai/visual-search", ctrl.Ai.VisualSearch)
+	public.POST("/ai/compare-insight", ctrl.Ai.CompareInsight)
 
 	admin := protected.Group("/admin")
 	admin.Use(middleware.RequireStaff())

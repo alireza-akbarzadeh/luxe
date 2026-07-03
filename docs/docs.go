@@ -5366,6 +5366,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/compare-insight": {
+            "post": {
+                "description": "Explains trade-offs and recommendations between 2–4 compared products",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI compare insight",
+                "parameters": [
+                    {
+                        "description": "Compare insight request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiCompareInsightRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiCompareInsightResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/product-brief": {
             "post": {
                 "description": "Structured pros, cons, fit guidance, and alternatives grounded in product data",
@@ -16206,6 +16270,59 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.AiCompareBestFor": {
+            "type": "object",
+            "properties": {
+                "label": {
+                    "type": "string"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiCompareInsightRequest": {
+            "type": "object",
+            "required": [
+                "product_ids"
+            ],
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "minItems": 2,
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.AiCompareInsightResponse": {
+            "type": "object",
+            "properties": {
+                "best_for": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiCompareBestFor"
+                    }
+                },
+                "recommendation": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "tradeoffs": {
                     "type": "array",
                     "items": {
                         "type": "string"

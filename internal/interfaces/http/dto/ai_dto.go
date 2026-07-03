@@ -106,3 +106,23 @@ type AiVisualSearchResponse struct {
 	Products       []ProductResponse `json:"products"`
 	Total          int64             `json:"total"`
 }
+
+// AiCompareInsightRequest asks for an AI explanation of 2–4 products side by side.
+type AiCompareInsightRequest struct {
+	ProductIDs []uint `json:"product_ids" binding:"required,min=2,max=4,dive,gt=0"`
+}
+
+// AiCompareBestFor maps a shopper goal to the best matching product in a comparison.
+type AiCompareBestFor struct {
+	Label       string `json:"label"`
+	ProductName string `json:"product_name"`
+	Reason      string `json:"reason"`
+}
+
+// AiCompareInsightResponse explains trade-offs between compared products.
+type AiCompareInsightResponse struct {
+	Summary        string             `json:"summary"`
+	Recommendation string             `json:"recommendation"`
+	BestFor        []AiCompareBestFor `json:"best_for,omitempty"`
+	Tradeoffs      []string           `json:"tradeoffs,omitempty"`
+}

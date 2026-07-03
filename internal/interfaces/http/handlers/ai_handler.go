@@ -14,10 +14,11 @@ import (
 type AiHandler struct {
 	aiService      *appai.Service
 	searchQueries  appai.SearchQueries
+	compareQueries appai.CompareQueries
 }
 
-func NewAiHandler(aiService *appai.Service, searchQueries appai.SearchQueries) *AiHandler {
-	return &AiHandler{aiService: aiService, searchQueries: searchQueries}
+func NewAiHandler(aiService *appai.Service, searchQueries appai.SearchQueries, compareQueries appai.CompareQueries) *AiHandler {
+	return &AiHandler{aiService: aiService, searchQueries: searchQueries, compareQueries: compareQueries}
 }
 
 // GetStatus returns whether AI is enabled and which provider is configured.
@@ -255,4 +256,47 @@ func (ac *AiHandler) VisualSearch(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "visual search", result)
+}
+
+// CompareInsight returns AI explanations for side-by-side product comparison.
+// @Summary      AI compare insight
+// @Description  Explains trade-offs and recommendations between 2–4 compared products
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiCompareInsightRequest true "Compare insight request"
+// @Success      200 {object} utils.Response{data=dto.AiCompareInsightResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/compare-insight [post]
+func (ac *AiHandler) CompareInsight(c *gin.Context) {
+	var req dto.AiCompareInsightRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.CompareInsight(c.Request.Context(), subjectKey, ac.compareQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai compare insight failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "insight", result)
 }

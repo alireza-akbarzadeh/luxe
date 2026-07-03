@@ -569,6 +569,41 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiCompareBestFor:
+    properties:
+      label:
+        type: string
+      product_name:
+        type: string
+      reason:
+        type: string
+    type: object
+  dto.AiCompareInsightRequest:
+    properties:
+      product_ids:
+        items:
+          type: integer
+        maxItems: 4
+        minItems: 2
+        type: array
+    required:
+    - product_ids
+    type: object
+  dto.AiCompareInsightResponse:
+    properties:
+      best_for:
+        items:
+          $ref: '#/definitions/dto.AiCompareBestFor'
+        type: array
+      recommendation:
+        type: string
+      summary:
+        type: string
+      tradeoffs:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiGenerateRequest:
     properties:
       context:
@@ -8888,6 +8923,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Product AI chat
+      tags:
+      - AI
+  /ai/compare-insight:
+    post:
+      consumes:
+      - application/json
+      description: Explains trade-offs and recommendations between 2–4 compared products
+      parameters:
+      - description: Compare insight request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiCompareInsightRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiCompareInsightResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI compare insight
       tags:
       - AI
   /ai/product-brief:
