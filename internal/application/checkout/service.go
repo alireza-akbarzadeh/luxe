@@ -210,18 +210,6 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 		return nil, err
 	}
 
-	for _, change := range stockChanges {
-		if change.QuantityBefore != change.QuantityAfter {
-			s.inventoryService.RunStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
-		}
-	}
-
-	if err := s.checkoutRepo.PreloadOrderDetails(ctx, order); err != nil {
-		return nil, utils.ErrInternal(err)
-	}
-	s.sendOrderCreatedNotification(userID, order)
-	s.setOrderState(ctx, order.ID, "pending_payment", "order_created")
-
 	result := &dto.CheckoutResult{Order: order}
 
 	if req.PaymentMethod == "stripe" {
@@ -235,11 +223,53 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 		}
 		result.CheckoutURL = checkoutURL
 		result.StripeSessionID = sessionID
+
+		orderID := order.ID
+		uid := userID
+		changes := append([]appinventory.DeltaResult(nil), stockChanges...)
+		go s.deferPostCheckoutSideEffects(uid, orderID, changes)
+
 		return result, nil
 	}
 
+	for _, change := range stockChanges {
+		if change.QuantityBefore != change.QuantityAfter {
+			s.inventoryService.RunStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
+		}
+	}
+
+	if err := s.checkoutRepo.PreloadOrderDetails(ctx, order); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	s.sendOrderCreatedNotification(userID, order)
+	s.setOrderState(ctx, order.ID, "pending_payment", "order_created")
+
 	s.enqueueFulfillmentJob(ctx, order.ID, req)
 	return result, nil
+}
+
+// deferPostCheckoutSideEffects runs non-blocking work after a Stripe checkout URL is returned.
+func (s *Service) deferPostCheckoutSideEffects(userID, orderID uint, stockChanges []appinventory.DeltaResult) {
+	ctx := context.Background()
+
+	for _, change := range stockChanges {
+		if change.QuantityBefore != change.QuantityAfter {
+			s.inventoryService.RunStockSideEffects(ctx, change.Product, change.QuantityBefore, change.QuantityAfter)
+		}
+	}
+
+	order, err := s.checkoutRepo.FindOrderWithPayment(ctx, orderID)
+	if err != nil {
+		utils.Log.WithError(err).WithField("order_id", orderID).Warn("post-checkout order load failed")
+		s.setOrderState(ctx, orderID, "pending_payment", "order_created")
+		return
+	}
+	if err := s.checkoutRepo.PreloadOrderDetails(ctx, order); err != nil {
+		utils.Log.WithError(err).WithField("order_id", orderID).Warn("post-checkout preload failed")
+	} else {
+		s.sendOrderCreatedNotification(userID, order)
+	}
+	s.setOrderState(ctx, orderID, "pending_payment", "order_created")
 }
 
 // ConfirmStripeOrderBySessionID finalizes an order after Stripe Checkout redirect (idempotent with webhook).
