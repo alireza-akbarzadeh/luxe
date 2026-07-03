@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -171,12 +172,17 @@ func Load() (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		if appEnv != "local" && appEnv != "" {
+		var notFound viper.ConfigFileNotFoundError
+		if !errors.As(err, &notFound) && appEnv != "local" && appEnv != "" {
 			return nil, fmt.Errorf("failed to read config %s: %w", configFile, err)
 		}
 	}
 
 	viper.SetDefault("SERVER_PORT", "8080")
+	// Render and other PaaS set PORT; prefer explicit SERVER_PORT when both exist.
+	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" && strings.TrimSpace(os.Getenv("SERVER_PORT")) == "" {
+		viper.Set("SERVER_PORT", port)
+	}
 	viper.SetDefault("GIN_MODE", "debug")
 	viper.SetDefault("SHIPMENT_DELIVERY_DELAY", "24h")
 

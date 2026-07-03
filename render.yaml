@@ -1,0 +1,45 @@
+# Render Blueprint — luxe API (Go)
+# Docs: documentation/DEPLOY_RENDER.md
+#
+# Connect this repo in Render → New → Blueprint, or merge into an existing Blueprint.
+# Set secret env vars in the Render dashboard after the first sync.
+
+services:
+  - type: web
+    name: luxe-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /health/live
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: GIN_MODE
+        value: release
+      - key: LOG_LEVEL
+        value: info
+      # Neon — paste from Neon dashboard (must include sslmode=require)
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # Your storefront URL (Vercel, Render, or custom domain)
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOW_ORIGINS
+        sync: false
+      # Optional — durable background jobs (order processing, emails)
+      # - key: REDIS_URL
+      #   fromService:
+      #     name: luxe-redis
+      #     type: redis
+      #     property: connectionString
+      # Stripe, R2, email, etc. — add in dashboard as needed
+
+# Optional Redis for Asynq (uncomment web env REDIS_URL + this service)
+# databases:
+# - name: luxe-redis
+#   plan: free
+#   ipAllowList: []

@@ -1,37 +1,33 @@
-# Stage 1: Build the Go binary
+# Stage 1: Build the Go binary and goose CLI
 FROM golang:1.25.5-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
 RUN apk add --no-cache git ca-certificates
 
-# Copy go mod files
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
+RUN go install github.com/pressly/goose/v3/cmd/goose@v3.22.1
+
 COPY . .
 
-# Build the binary
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/bin/shopping-platform-api ./cmd/api
 
-# Stage 2: Create a minimal runtime image
+# Stage 2: Minimal runtime image
 FROM alpine:3.19
 
 WORKDIR /app
 
-# Install ca-certificates for HTTPS calls (if needed)
 RUN apk --no-cache add ca-certificates tzdata
 
-# Copy binary from builder
 COPY --from=builder /app/bin/shopping-platform-api /app/shopping-platform-api
+COPY --from=builder /go/bin/goose /usr/local/bin/goose
+COPY internal/migrations /app/internal/migrations
+COPY scripts/docker-entrypoint.sh /app/docker-entrypoint.sh
 
-# Copy .env.example (optional, but we'll use environment variables)
-COPY .env.example .env
+RUN chmod +x /app/docker-entrypoint.sh
 
-# Expose the application port
 EXPOSE 8080
 
-# Run the binary
-CMD ["/app/shopping-platform-api"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
