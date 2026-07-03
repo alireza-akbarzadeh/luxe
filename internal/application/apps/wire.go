@@ -235,7 +235,7 @@ func WireApplications(
 	membershipSvc := appmembership.NewService(userRepo, walletSvc, giftCardSvc, stripeGateway, stripeEnabled)
 
 	return &Applications{
-		AI:   appai.NewService(postgres.NewProductRepository(db), cfg.AI),
+		AI:   appai.NewService(postgres.NewProductRepository(db), postgres.NewPdpRepository(db), cfg.AI),
 		Auth: appauth.NewService(postgres.NewAuthRepository(db), cfg, jobQueue, engine, legalSettingReader{queries: settingsQueries}),
 		Audit: auditApp{
 			Commands: appaudit.NewCommands(auditRepo),

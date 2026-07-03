@@ -23,6 +23,7 @@ const (
 	TaskSeoMeta            = "seo_meta"
 	TaskCouponCopy         = "coupon_copy"
 	TaskProductChat        = "product_chat"
+	TaskProductBrief       = "product_brief"
 	TaskQaReply            = "qa_reply"
 )
 
@@ -33,13 +34,19 @@ type ProductReader interface {
 	GetDetailedByID(ctx context.Context, id uint) (*models.Product, error)
 }
 
+// AlternativeReader loads cross-store listings for the same barcode.
+type AlternativeReader interface {
+	FindAlternativesByBarcode(ctx context.Context, barcode string, excludeID, storeID uint, limit int) ([]*models.Product, error)
+}
+
 // Service generates admin copy and grounded shopper chat replies.
 type Service struct {
-	products ProductReader
-	cfg      config.AIConfig
-	provider aiint.Provider
-	adminRL  *aiRateLimiter
-	chatRL   *aiRateLimiter
+	products     ProductReader
+	alternatives AlternativeReader
+	cfg          config.AIConfig
+	provider     aiint.Provider
+	adminRL      *aiRateLimiter
+	chatRL       *aiRateLimiter
 }
 
 type aiRateLimiter struct {
@@ -81,7 +88,7 @@ func (r *aiRateLimiter) allow(key string) bool {
 }
 
 // NewService wires the configured LLM provider, product reader, and rate limiters.
-func NewService(products ProductReader, cfg config.AIConfig) *Service {
+func NewService(products ProductReader, alternatives AlternativeReader, cfg config.AIConfig) *Service {
 	adminMax := cfg.MaxRequestsPerHour
 	if adminMax <= 0 {
 		adminMax = 20
@@ -91,11 +98,12 @@ func NewService(products ProductReader, cfg config.AIConfig) *Service {
 		chatMax = 30
 	}
 	return &Service{
-		products: products,
-		cfg:      cfg,
-		provider: aiint.NewFromConfig(cfg),
-		adminRL:  newAiRateLimiter(adminMax),
-		chatRL:   newAiRateLimiter(chatMax),
+		products:     products,
+		alternatives: alternatives,
+		cfg:          cfg,
+		provider:     aiint.NewFromConfig(cfg),
+		adminRL:      newAiRateLimiter(adminMax),
+		chatRL:       newAiRateLimiter(chatMax),
 	}
 }
 
@@ -202,6 +210,54 @@ Product facts:
 	}, nil
 }
 
+func (s *Service) ProductBrief(ctx context.Context, subjectKey string, req dto.AiProductBriefRequest) (*dto.AiProductBriefResponse, error) {
+	if !s.Enabled() {
+		return nil, utils.NewAppError(503, "AI is not enabled", nil)
+	}
+	if !s.chatRL.allow("brief:" + subjectKey) {
+		return nil, utils.ErrTooManyRequests()
+	}
+
+	product, err := s.products.GetDetailedByID(ctx, req.ProductID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("product not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+
+	facts, _ := productFacts(product)
+	altFacts := alternativeFacts(ctx, s.alternatives, product)
+	system := `You summarize products for online shoppers in under 30 seconds of reading time.
+Respond with JSON only using this exact shape:
+{"pros":["..."],"cons":["..."],"who_should_buy":["..."],"who_should_not":["..."],"alternatives":["..."]}
+Each array must have 2-4 concise plain-text bullets (no markdown, no numbering).
+Use ONLY the product facts below. For alternatives, prefer listed cross-store alternatives; if none are listed, suggest comparable product types from the same category without inventing specific product names.
+Do not invent specs, prices, or policies not present in the facts.
+
+Product facts:
+` + facts + altFacts
+
+	user := "Summarize this product for a shopper deciding whether to buy."
+	resp, err := s.complete(ctx, system, user, 900)
+	if err != nil {
+		return nil, utils.NewAppError(503, "AI provider unavailable", err)
+	}
+
+	brief, err := parseProductBriefJSON(resp.Content)
+	if err != nil {
+		return nil, utils.NewAppError(503, "AI returned invalid brief", err)
+	}
+
+	utils.Log.WithFields(map[string]any{
+		"product_id": req.ProductID,
+		"subject":    subjectKey,
+		"task":       TaskProductBrief,
+	}).Info("ai product brief completed")
+
+	return brief, nil
+}
+
 func (s *Service) ReplyToQuestion(ctx context.Context, product *models.Product, question string) (string, error) {
 	if !s.Enabled() || product == nil {
 		return "", fmt.Errorf("ai disabled")
@@ -302,6 +358,82 @@ func (s *Service) parseGenerateResponse(task, content string) (*dto.AiGenerateRe
 	}
 
 	return &dto.AiGenerateResponse{Text: content}, nil
+}
+
+func parseProductBriefJSON(content string) (*dto.AiProductBriefResponse, error) {
+	trimmed := strings.TrimSpace(content)
+	if idx := strings.Index(trimmed, "{"); idx >= 0 {
+		if end := strings.LastIndex(trimmed, "}"); end > idx {
+			trimmed = trimmed[idx : end+1]
+		}
+	}
+
+	var raw struct {
+		Pros         []string `json:"pros"`
+		Cons         []string `json:"cons"`
+		WhoShouldBuy []string `json:"who_should_buy"`
+		WhoShouldNot []string `json:"who_should_not"`
+		Alternatives []string `json:"alternatives"`
+	}
+	if err := json.Unmarshal([]byte(trimmed), &raw); err != nil {
+		return nil, err
+	}
+
+	brief := &dto.AiProductBriefResponse{
+		Pros:         sanitizeStringList(raw.Pros),
+		Cons:         sanitizeStringList(raw.Cons),
+		WhoShouldBuy: sanitizeStringList(raw.WhoShouldBuy),
+		WhoShouldNot: sanitizeStringList(raw.WhoShouldNot),
+		Alternatives: sanitizeStringList(raw.Alternatives),
+	}
+	if len(brief.Pros) == 0 && len(brief.Cons) == 0 {
+		return nil, fmt.Errorf("empty brief")
+	}
+	return brief, nil
+}
+
+func sanitizeStringList(items []string) []string {
+	if len(items) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		clean := sanitizeAIText(item)
+		if clean != "" {
+			out = append(out, clean)
+		}
+	}
+	return out
+}
+
+func alternativeFacts(ctx context.Context, reader AlternativeReader, product *models.Product) string {
+	if reader == nil || product == nil {
+		return ""
+	}
+	barcode := strings.TrimSpace(product.Barcode)
+	if barcode == "" {
+		return ""
+	}
+
+	alts, err := reader.FindAlternativesByBarcode(ctx, barcode, product.ID, product.StoreID, 4)
+	if err != nil || len(alts) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("\nCross-store alternatives (same product, different sellers):\n")
+	for _, alt := range alts {
+		storeName := ""
+		if alt.Store != nil {
+			storeName = alt.Store.Name
+		}
+		fmt.Fprintf(&b, "- %s", strings.TrimSpace(alt.Name))
+		if storeName != "" {
+			fmt.Fprintf(&b, " at %s", storeName)
+		}
+		fmt.Fprintf(&b, " — %.2f\n", alt.Price)
+	}
+	return b.String()
 }
 
 func parseSEOJSON(content string) map[string]string {

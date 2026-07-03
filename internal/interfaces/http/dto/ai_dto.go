@@ -36,3 +36,36 @@ type AiStatusResponse struct {
 	Provider string `json:"provider"`
 	Model    string `json:"model"`
 }
+
+// AiProductBriefRequest asks for a structured 30-second product summary.
+type AiProductBriefRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiProductBriefResponse is a scannable product brief for PDP shoppers.
+type AiProductBriefResponse struct {
+	Pros         []string `json:"pros"`
+	Cons         []string `json:"cons"`
+	WhoShouldBuy []string `json:"who_should_buy"`
+	WhoShouldNot []string `json:"who_should_not"`
+	Alternatives []string `json:"alternatives"`
+}
+
+// AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
+type AiShoppingAssistantRequest struct {
+	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`
+}
+
+// AiRecommendedProduct pairs a catalog item with a short fit explanation.
+type AiRecommendedProduct struct {
+	Product ProductResponse `json:"product"`
+	Reason  string          `json:"reason"`
+}
+
+// AiShoppingAssistantResponse returns assistant text, follow-ups, and product picks.
+type AiShoppingAssistantResponse struct {
+	Reply             string                 `json:"reply"`
+	FollowUpQuestions []string               `json:"follow_up_questions,omitempty"`
+	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources           []string               `json:"sources,omitempty"`
+}

@@ -12,11 +12,12 @@ import (
 )
 
 type AiHandler struct {
-	aiService *appai.Service
+	aiService      *appai.Service
+	searchQueries  appai.SearchQueries
 }
 
-func NewAiHandler(aiService *appai.Service) *AiHandler {
-	return &AiHandler{aiService: aiService}
+func NewAiHandler(aiService *appai.Service, searchQueries appai.SearchQueries) *AiHandler {
+	return &AiHandler{aiService: aiService, searchQueries: searchQueries}
 }
 
 // GetStatus returns whether AI is enabled and which provider is configured.
@@ -101,4 +102,78 @@ func (ac *AiHandler) Chat(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "reply", result)
+}
+
+// ProductBrief returns a structured 30-second product summary for shoppers.
+// @Summary      Product AI brief
+// @Description  Structured pros, cons, fit guidance, and alternatives grounded in product data
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiProductBriefRequest true "Brief request"
+// @Success      200 {object} utils.Response{data=dto.AiProductBriefResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/product-brief [post]
+func (ac *AiHandler) ProductBrief(c *gin.Context) {
+	var req dto.AiProductBriefRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ProductBrief(c.Request.Context(), subjectKey, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok && appErr.Code == http.StatusServiceUnavailable {
+			utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+			return
+		}
+		utils.HandleServiceError(c, err, "ai product brief failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "brief", result)
+}
+
+// ShoppingAssistant runs conversational product discovery for shoppers.
+// @Summary      AI shopping assistant
+// @Description  Natural-language shopping assistant with follow-up questions and product recommendations
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiShoppingAssistantRequest true "Assistant request"
+// @Success      200 {object} utils.Response{data=dto.AiShoppingAssistantResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/shopping-assistant [post]
+func (ac *AiHandler) ShoppingAssistant(c *gin.Context) {
+	var req dto.AiShoppingAssistantRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ShoppingAssistant(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok && appErr.Code == http.StatusServiceUnavailable {
+			utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+			return
+		}
+		utils.HandleServiceError(c, err, "ai shopping assistant failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "assistant", result)
 }
