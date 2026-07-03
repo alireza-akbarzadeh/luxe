@@ -89,3 +89,20 @@ type AiSearchIntentResponse struct {
 	IsNew          *bool   `json:"is_new,omitempty"`
 	IsDigital      *bool   `json:"is_digital,omitempty"`
 }
+
+// AiVisualSearchRequest uploads a product photo for similarity search.
+type AiVisualSearchRequest struct {
+	ImageBase64 string `json:"image_base64" binding:"required"`
+}
+
+// AiVisualSearchResponse returns AI interpretation and matching catalog products.
+type AiVisualSearchResponse struct {
+	Interpretation string            `json:"interpretation"`
+	SearchQuery    string            `json:"search_query"`
+	MinPrice       float64           `json:"min_price,omitempty"`
+	MaxPrice       float64           `json:"max_price,omitempty"`
+	MinRating      float64           `json:"min_rating,omitempty"`
+	Sort           string            `json:"sort,omitempty"`
+	Products       []ProductResponse `json:"products"`
+	Total          int64             `json:"total"`
+}

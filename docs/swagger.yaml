@@ -693,6 +693,34 @@ definitions:
       provider:
         type: string
     type: object
+  dto.AiVisualSearchRequest:
+    properties:
+      image_base64:
+        type: string
+    required:
+    - image_base64
+    type: object
+  dto.AiVisualSearchResponse:
+    properties:
+      interpretation:
+        type: string
+      max_price:
+        type: number
+      min_price:
+        type: number
+      min_rating:
+        type: number
+      products:
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      search_query:
+        type: string
+      sort:
+        type: string
+      total:
+        type: integer
+    type: object
   dto.AuditLogSummaryResponse:
     properties:
       last_24_hours:
@@ -8976,6 +9004,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI shopping assistant
+      tags:
+      - AI
+  /ai/visual-search:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes a product image and returns visually similar catalog matches
+      parameters:
+      - description: Visual search request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiVisualSearchRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVisualSearchResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI visual search
       tags:
       - AI
   /auth/change-password:
