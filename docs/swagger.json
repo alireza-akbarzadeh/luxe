@@ -6923,6 +6923,12 @@
                         "description": "Filter by status",
                         "name": "status",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by theme (e.g. lifestyle)",
+                        "name": "theme",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -12716,6 +12722,93 @@
                 }
             }
         },
+        "/shop-looks": {
+            "get": {
+                "description": "Returns active shop-the-look scenes for homepage and listing pages",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shop-looks"
+                ],
+                "summary": "List shop looks",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items (default 12, max 24)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ShopLookListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/shop-looks/{slug}": {
+            "get": {
+                "description": "Returns a shoppable scene with hotspot coordinates and product cards",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shop-looks"
+                ],
+                "summary": "Get shop look",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop look slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ShopLookResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/stores": {
             "get": {
                 "description": "Get stores with pagination, search, location, rating, category filters",
@@ -17169,6 +17262,9 @@
                 "status": {
                     "type": "string"
                 },
+                "theme": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -17700,6 +17796,10 @@
                         "inactive",
                         "archived"
                     ]
+                },
+                "theme": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "title": {
                     "type": "string",
@@ -20932,6 +21032,86 @@
                 }
             }
         },
+        "dto.ShopLookListItem": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tag_count": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ShopLookListResponse": {
+            "type": "object",
+            "properties": {
+                "looks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ShopLookListItem"
+                    }
+                }
+            }
+        },
+        "dto.ShopLookResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ShopLookTagResponse"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ShopLookTagResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.HomeProductItem"
+                },
+                "x_percent": {
+                    "type": "number"
+                },
+                "y_percent": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.SidebarGroup": {
             "type": "object",
             "properties": {
@@ -21455,6 +21635,10 @@
                         "inactive",
                         "archived"
                     ]
+                },
+                "theme": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "title": {
                     "type": "string",

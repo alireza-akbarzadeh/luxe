@@ -6365,6 +6365,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/bundles/suggest": {
+            "post": {
+                "description": "Returns bundles anchored on one or more product IDs (e.g. cart items)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bundles"
+                ],
+                "summary": "Suggest smart bundles",
+                "parameters": [
+                    {
+                        "description": "Anchor product IDs",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SuggestSmartBundlesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SmartBundlesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/cart": {
             "get": {
                 "security": [
@@ -6928,6 +6980,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by status",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by theme (e.g. lifestyle)",
+                        "name": "theme",
                         "in": "query"
                     }
                 ],
@@ -10959,6 +11017,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/products/{id}/smart-bundles": {
+            "get": {
+                "description": "Returns dynamic product bundles based on compatibility and shopper intent",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Bundles"
+                ],
+                "summary": "Smart bundles for a product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Shopper intent (everyday, workspace, travel, gift)",
+                        "name": "intent",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max bundles (default 3)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SmartBundlesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/products/{id}/stock-notifications": {
             "get": {
                 "security": [
@@ -12711,6 +12828,93 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/shop-looks": {
+            "get": {
+                "description": "Returns active shop-the-look scenes for homepage and listing pages",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shop-looks"
+                ],
+                "summary": "List shop looks",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items (default 12, max 24)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ShopLookListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/shop-looks/{slug}": {
+            "get": {
+                "description": "Returns a shoppable scene with hotspot coordinates and product cards",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shop-looks"
+                ],
+                "summary": "Get shop look",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Shop look slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ShopLookResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -17175,6 +17379,9 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "theme": {
+                    "type": "string"
+                },
                 "title": {
                     "type": "string"
                 },
@@ -17706,6 +17913,10 @@ const docTemplate = `{
                         "inactive",
                         "archived"
                     ]
+                },
+                "theme": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "title": {
                     "type": "string",
@@ -20938,6 +21149,86 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ShopLookListItem": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tag_count": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ShopLookListResponse": {
+            "type": "object",
+            "properties": {
+                "looks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ShopLookListItem"
+                    }
+                }
+            }
+        },
+        "dto.ShopLookResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ShopLookTagResponse"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ShopLookTagResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.HomeProductItem"
+                },
+                "x_percent": {
+                    "type": "number"
+                },
+                "y_percent": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.SidebarGroup": {
             "type": "object",
             "properties": {
@@ -20968,6 +21259,49 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "label": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SmartBundleItem": {
+            "type": "object",
+            "properties": {
+                "compatibility_score": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "intent": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductResponse"
+                    }
+                },
+                "subtotal": {
+                    "type": "number"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SmartBundlesResponse": {
+            "type": "object",
+            "properties": {
+                "bundles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SmartBundleItem"
+                    }
+                },
+                "intent": {
                     "type": "string"
                 }
             }
@@ -21112,6 +21446,31 @@ const docTemplate = `{
                 },
                 "stripe_session_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.SuggestSmartBundlesRequest": {
+            "type": "object",
+            "required": [
+                "product_ids"
+            ],
+            "properties": {
+                "intent": {
+                    "type": "string",
+                    "maxLength": 32
+                },
+                "limit": {
+                    "type": "integer",
+                    "maximum": 6,
+                    "minimum": 1
+                },
+                "product_ids": {
+                    "type": "array",
+                    "maxItems": 8,
+                    "minItems": 1,
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -21461,6 +21820,10 @@ const docTemplate = `{
                         "inactive",
                         "archived"
                     ]
+                },
+                "theme": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "title": {
                     "type": "string",

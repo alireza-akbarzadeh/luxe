@@ -279,7 +279,7 @@ BEGIN
     'Sunburst dial chronograph with tachymeter bezel, sapphire glass, and quick-release leather strap.',
     1299.00, 1499.00, 360.00, 11, 'LUX-A-WATCH-002', '3700123456202',
     cat_watches, store_gold, brand_stellar, 'active', 4.7, 28, FALSE,
-    ARRAY['https://images.unsplash.com/photo-1587836374828-4db968944bda?w=900'],
+    ARRAY['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900'],
     '["Silver","Gold","Blue"]'::jsonb, '["42mm"]'::jsonb,
     ARRAY['watch','chronograph','heritage'], 'public', TRUE, FALSE, 0.44,
     'Heritage Chronograph 42mm', 'Swiss-style chronograph with sunburst dial.',

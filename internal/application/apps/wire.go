@@ -38,6 +38,7 @@ import (
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
+	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -178,6 +179,7 @@ type Applications struct {
 	Membership   *appmembership.Service
 	Home         *apphome.Service
 	ShopLook     *appshoplook.Service
+	Bundle       *appbundle.Service
 }
 
 type legalSettingReader struct {
@@ -236,8 +238,10 @@ func WireApplications(
 	giftCardSvc := appgiftcard.NewService(postgres.NewGiftCardRepository(db))
 	membershipSvc := appmembership.NewService(userRepo, walletSvc, giftCardSvc, stripeGateway, stripeEnabled)
 
+	aiSvc := appai.NewService(postgres.NewProductRepository(db), postgres.NewPdpRepository(db), cfg.AI)
+
 	return &Applications{
-		AI:   appai.NewService(postgres.NewProductRepository(db), postgres.NewPdpRepository(db), cfg.AI),
+		AI:   aiSvc,
 		Auth: appauth.NewService(postgres.NewAuthRepository(db), cfg, jobQueue, engine, legalSettingReader{queries: settingsQueries}),
 		Audit: auditApp{
 			Commands: appaudit.NewCommands(auditRepo),
@@ -318,6 +322,7 @@ func WireApplications(
 			postgres.NewHomeRepository(db),
 		),
 		ShopLook: appshoplook.NewService(db),
+		Bundle:   appbundle.NewService(db, aiSvc),
 	}
 }
 

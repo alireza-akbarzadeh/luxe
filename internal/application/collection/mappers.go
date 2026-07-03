@@ -32,6 +32,7 @@ func BuildCreateModel(req *dto.CreateCollectionRequest, slug string) *models.Col
 		PreviewSort:       req.PreviewSort,
 		PreviewIsNew:      req.PreviewIsNew,
 		PreviewCategoryID: req.PreviewCategoryID,
+		Theme:             req.Theme,
 	}
 }
 
@@ -73,6 +74,9 @@ func ApplyUpdateDTO(collection *models.Collection, req *dto.UpdateCollectionRequ
 	if req.PreviewCategoryID != nil {
 		collection.PreviewCategoryID = req.PreviewCategoryID
 	}
+	if req.Theme != nil {
+		collection.Theme = *req.Theme
+	}
 }
 
 // ToResponse maps a collection model to an API response.
@@ -91,6 +95,7 @@ func ToResponse(c *models.Collection) *dto.CollectionResponse {
 		PreviewSort:       c.PreviewSort,
 		PreviewIsNew:      c.PreviewIsNew,
 		PreviewCategoryID: c.PreviewCategoryID,
+		Theme:             c.Theme,
 		CreatedAt:         c.CreatedAt,
 		UpdatedAt:         c.UpdatedAt,
 	}

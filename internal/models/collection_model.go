@@ -29,6 +29,7 @@ type Collection struct {
 	PreviewSort       string `gorm:"not null;default:''" json:"preview_sort"`
 	PreviewIsNew      *bool  `json:"preview_is_new,omitempty"`
 	PreviewCategoryID *uint  `gorm:"index" json:"preview_category_id,omitempty"`
+	Theme             string `gorm:"not null;default:'';index" json:"theme"`
 }
 
 func (Collection) TableName() string {

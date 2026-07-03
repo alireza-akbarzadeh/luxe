@@ -1168,6 +1168,8 @@ definitions:
         type: integer
       status:
         type: string
+      theme:
+        type: string
       title:
         type: string
       updated_at:
@@ -1521,6 +1523,9 @@ definitions:
         - active
         - inactive
         - archived
+        type: string
+      theme:
+        maxLength: 64
         type: string
       title:
         maxLength: 255
@@ -3690,6 +3695,58 @@ definitions:
       transition:
         $ref: '#/definitions/dto.TransitionResultView'
     type: object
+  dto.ShopLookListItem:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      slug:
+        type: string
+      tag_count:
+        type: integer
+      title:
+        type: string
+    type: object
+  dto.ShopLookListResponse:
+    properties:
+      looks:
+        items:
+          $ref: '#/definitions/dto.ShopLookListItem'
+        type: array
+    type: object
+  dto.ShopLookResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      slug:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/dto.ShopLookTagResponse'
+        type: array
+      title:
+        type: string
+    type: object
+  dto.ShopLookTagResponse:
+    properties:
+      id:
+        type: integer
+      label:
+        type: string
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+      x_percent:
+        type: number
+      y_percent:
+        type: number
+    type: object
   dto.SidebarGroup:
     properties:
       group:
@@ -4039,6 +4096,9 @@ definitions:
         - active
         - inactive
         - archived
+        type: string
+      theme:
+        maxLength: 64
         type: string
       title:
         maxLength: 255
@@ -9915,6 +9975,10 @@ paths:
         in: query
         name: status
         type: string
+      - description: Filter by theme (e.g. lifestyle)
+        in: query
+        name: theme
+        type: string
       produces:
       - application/json
       responses:
@@ -13444,6 +13508,58 @@ paths:
       summary: Update an existing shipping provider
       tags:
       - Shipping Providers
+  /shop-looks:
+    get:
+      description: Returns active shop-the-look scenes for homepage and listing pages
+      parameters:
+      - description: Max items (default 12, max 24)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ShopLookListResponse'
+              type: object
+      summary: List shop looks
+      tags:
+      - shop-looks
+  /shop-looks/{slug}:
+    get:
+      description: Returns a shoppable scene with hotspot coordinates and product
+        cards
+      parameters:
+      - description: Shop look slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ShopLookResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get shop look
+      tags:
+      - shop-looks
   /stores:
     get:
       consumes:

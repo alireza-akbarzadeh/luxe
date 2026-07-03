@@ -84,7 +84,7 @@ BEGIN
         'Limited dial variant — currently sold out. Subscribe for back-in-stock alerts.',
         1399.00, 1599.00, 0, 'PDP-WATCH-OOS-001', '8801234567891', cat_id, store_luxe,
         'active', 4.9, 24,
-        ARRAY['https://images.unsplash.com/photo-1587836374828-4db968944bda?w=800'],
+        ARRAY['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'],
         ARRAY['watch','limited','sold-out'],
         'public', true, 0.44
     ) ON CONFLICT (slug) DO NOTHING;

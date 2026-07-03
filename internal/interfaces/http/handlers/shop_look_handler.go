@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"net/http"
 	"strconv"
 
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
@@ -55,7 +56,7 @@ func (h *ShopLookHandler) ListShopLooks(c *gin.Context) {
 func (h *ShopLookHandler) GetShopLook(c *gin.Context) {
 	slug := c.Param("slug")
 	if slug == "" {
-		utils.BadRequestResponse(c, "slug is required")
+		utils.ErrorResponse(c, http.StatusBadRequest, "slug is required")
 		return
 	}
 

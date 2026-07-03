@@ -50,6 +50,7 @@ func (r *Router) Setup() {
 		SetupAuthRoutes(public, protected, r.handlerContainer)
 		SetupAddressRoutes(protected, r.handlerContainer)
 		SetupSearchRoutes(public, r.handlerContainer)
+		SetupBundleRoutes(public, r.handlerContainer)
 		SetupAccountRoutes(protected, r.handlerContainer)
 		SetupProductRoutes(public, protected, r.handlerContainer)
 		SetupCompareRoutes(public, protected, r.handlerContainer)

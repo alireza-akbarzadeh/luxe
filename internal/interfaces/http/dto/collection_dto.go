@@ -15,6 +15,7 @@ type CreateCollectionRequest struct {
 	PreviewSort       string `json:"preview_sort" validate:"omitempty,max=64"`
 	PreviewIsNew      *bool  `json:"preview_is_new"`
 	PreviewCategoryID *uint  `json:"preview_category_id"`
+	Theme             string `json:"theme" validate:"omitempty,max=64"`
 }
 
 type UpdateCollectionRequest struct {
@@ -30,6 +31,7 @@ type UpdateCollectionRequest struct {
 	PreviewSort       *string `json:"preview_sort" validate:"omitempty,max=64"`
 	PreviewIsNew      *bool   `json:"preview_is_new"`
 	PreviewCategoryID *uint   `json:"preview_category_id"`
+	Theme             *string `json:"theme" validate:"omitempty,max=64"`
 }
 
 type ListCollectionsRequest struct {
@@ -37,6 +39,7 @@ type ListCollectionsRequest struct {
 	Limit  int    `form:"limit,default=20"`
 	Search string `form:"search"`
 	Status string `form:"status"`
+	Theme  string `form:"theme"`
 }
 
 type CollectionResponse struct {
@@ -54,6 +57,7 @@ type CollectionResponse struct {
 	PreviewSort       string     `json:"preview_sort"`
 	PreviewIsNew      *bool     `json:"preview_is_new,omitempty"`
 	PreviewCategoryID *uint     `json:"preview_category_id,omitempty"`
+	Theme             string    `json:"theme,omitempty"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }

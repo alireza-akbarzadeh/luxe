@@ -67,6 +67,9 @@ func (r *CollectionRepository) List(ctx context.Context, req *dto.ListCollection
 	if req.Status != "" {
 		query = query.Where("status = ?", req.Status)
 	}
+	if req.Theme != "" {
+		query = query.Where("theme = ?", req.Theme)
+	}
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
