@@ -177,3 +177,39 @@ func (ac *AiHandler) ShoppingAssistant(c *gin.Context) {
 
 	utils.SuccessResponse(c, "assistant", result)
 }
+
+// SearchIntent parses natural-language search into catalog filters.
+// @Summary      AI search intent
+// @Description  Extracts keywords, budget, and filters from a natural-language search phrase
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiSearchIntentRequest true "Search intent request"
+// @Success      200 {object} utils.Response{data=dto.AiSearchIntentResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /ai/search-intent [post]
+func (ac *AiHandler) SearchIntent(c *gin.Context) {
+	var req dto.AiSearchIntentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ParseSearchIntent(c.Request.Context(), subjectKey, req.Query)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok && appErr.Code == http.StatusTooManyRequests {
+			utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+			return
+		}
+		utils.HandleServiceError(c, err, "ai search intent failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "intent", result)
+}

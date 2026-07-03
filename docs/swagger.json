@@ -5424,6 +5424,64 @@
                 }
             }
         },
+        "/ai/search-intent": {
+            "post": {
+                "description": "Extracts keywords, budget, and filters from a natural-language search phrase",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI search intent",
+                "parameters": [
+                    {
+                        "description": "Search intent request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiSearchIntentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiSearchIntentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/shopping-assistant": {
             "post": {
                 "description": "Natural-language shopping assistant with follow-up questions and product recommendations",
@@ -16167,6 +16225,55 @@
                     "$ref": "#/definitions/dto.ProductResponse"
                 },
                 "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiSearchIntentRequest": {
+            "type": "object",
+            "required": [
+                "query"
+            ],
+            "properties": {
+                "query": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiSearchIntentResponse": {
+            "type": "object",
+            "properties": {
+                "in_stock": {
+                    "type": "boolean"
+                },
+                "interpretation": {
+                    "type": "string"
+                },
+                "is_digital": {
+                    "type": "boolean"
+                },
+                "is_intent_query": {
+                    "type": "boolean"
+                },
+                "is_new": {
+                    "type": "boolean"
+                },
+                "max_price": {
+                    "type": "number"
+                },
+                "min_price": {
+                    "type": "number"
+                },
+                "min_rating": {
+                    "type": "number"
+                },
+                "on_sale": {
+                    "type": "boolean"
+                },
+                "search_query": {
+                    "type": "string"
+                },
+                "sort": {
                     "type": "string"
                 }
             }

@@ -625,6 +625,38 @@ definitions:
       reason:
         type: string
     type: object
+  dto.AiSearchIntentRequest:
+    properties:
+      query:
+        type: string
+    required:
+    - query
+    type: object
+  dto.AiSearchIntentResponse:
+    properties:
+      in_stock:
+        type: boolean
+      interpretation:
+        type: string
+      is_digital:
+        type: boolean
+      is_intent_query:
+        type: boolean
+      is_new:
+        type: boolean
+      max_price:
+        type: number
+      min_price:
+        type: number
+      min_rating:
+        type: number
+      on_sale:
+        type: boolean
+      search_query:
+        type: string
+      sort:
+        type: string
+    type: object
   dto.AiShoppingAssistantRequest:
     properties:
       messages:
@@ -8868,6 +8900,42 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Product AI brief
+      tags:
+      - AI
+  /ai/search-intent:
+    post:
+      consumes:
+      - application/json
+      description: Extracts keywords, budget, and filters from a natural-language
+        search phrase
+      parameters:
+      - description: Search intent request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiSearchIntentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiSearchIntentResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI search intent
       tags:
       - AI
   /ai/shopping-assistant:

@@ -69,3 +69,23 @@ type AiShoppingAssistantResponse struct {
 	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
 	Sources           []string               `json:"sources,omitempty"`
 }
+
+// AiSearchIntentRequest parses a natural-language search phrase.
+type AiSearchIntentRequest struct {
+	Query string `json:"query" binding:"required"`
+}
+
+// AiSearchIntentResponse maps shopper language to catalog search parameters.
+type AiSearchIntentResponse struct {
+	IsIntentQuery  bool    `json:"is_intent_query"`
+	Interpretation string  `json:"interpretation,omitempty"`
+	SearchQuery    string  `json:"search_query"`
+	MinPrice       float64 `json:"min_price,omitempty"`
+	MaxPrice       float64 `json:"max_price,omitempty"`
+	MinRating      float64 `json:"min_rating,omitempty"`
+	Sort           string  `json:"sort,omitempty"`
+	InStock        *bool   `json:"in_stock,omitempty"`
+	OnSale         *bool   `json:"on_sale,omitempty"`
+	IsNew          *bool   `json:"is_new,omitempty"`
+	IsDigital      *bool   `json:"is_digital,omitempty"`
+}
