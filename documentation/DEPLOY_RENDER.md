@@ -92,8 +92,8 @@ OpenAPI (for frontend codegen): `https://YOUR-SERVICE.onrender.com/openapi`
 
 | Variable | Value |
 |----------|--------|
-| `NEXT_PUBLIC_API_URL` | `https://YOUR-SERVICE.onrender.com/api/v1` |
-| `BACKEND_API_URL` | `https://YOUR-SERVICE.onrender.com/api/v1` |
+| `NEXT_PUBLIC_API_URL` | `https://luxe-3pvz.onrender.com/api/v1` |
+| `BACKEND_API_URL` | `https://luxe-3pvz.onrender.com/api/v1` |
 | `NEXT_PUBLIC_SITE_URL` | `https://your-project.vercel.app` (or custom domain) |
 
 3. **Redeploy** the frontend after saving env vars.
