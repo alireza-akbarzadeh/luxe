@@ -29,7 +29,7 @@ func NewGiftCardHandler(service *appgiftcard.Service) *GiftCardHandler {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        request body dto.CreateGiftCardRequest true "Gift card details"
-// @Success      201 {object} utils.Response{data=dto.GiftCardResponse}
+// @Success      201 {object} utils.Response{data=dto.CreateGiftCardResponse}
 // @Router       /gift-cards [post]
 func (ctrl *GiftCardHandler) CreateGiftCard(c *gin.Context) {
 	userID, ok := middleware.GetUserID(c)
@@ -41,12 +41,45 @@ func (ctrl *GiftCardHandler) CreateGiftCard(c *gin.Context) {
 	if !utils.BindAndValidate(c, &req, ctrl.validate) {
 		return
 	}
-	card, err := ctrl.service.Create(c.Request.Context(), userID, req)
+	email, _ := middleware.GetUserEmail(c)
+	card, err := ctrl.service.Create(c.Request.Context(), userID, email, req)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to create gift card")
 		return
 	}
-	utils.CreatedResponse(c, "gift card created", dto.ToGiftCardResponse(card))
+	message := "gift card created"
+	if card.CheckoutURL != "" {
+		message = "complete payment at Stripe checkout"
+	}
+	utils.CreatedResponse(c, message, card)
+}
+
+// ConfirmStripePurchase confirms a gift card purchase after returning from Stripe Checkout.
+// @Summary      Confirm Stripe gift card purchase
+// @Description  Activates a pending gift card using checkout session_id from the Stripe success redirect.
+// @Tags         GiftCards
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ConfirmGiftCardStripeRequest true "Stripe session ID"
+// @Success      200 {object} utils.Response{data=dto.GiftCardResponse}
+// @Router       /gift-cards/confirm-stripe [post]
+func (ctrl *GiftCardHandler) ConfirmStripePurchase(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+	var req dto.ConfirmGiftCardStripeRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	card, err := ctrl.service.ConfirmBySessionID(c.Request.Context(), userID, req.SessionID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to confirm gift card purchase")
+		return
+	}
+	utils.SuccessResponse(c, "gift card purchase confirmed", card)
 }
 
 // ListSentGiftCards returns gift cards the user has given away.

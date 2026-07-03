@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	appgiftcard "github.com/alireza-akbarzadeh/luxe/internal/application/giftcard"
 	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appwallet "github.com/alireza-akbarzadeh/luxe/internal/application/wallet"
@@ -22,6 +23,7 @@ type StripeWebhookHandler struct {
 	checkoutService   *appcheckout.Service
 	walletService     *appwallet.Service
 	membershipService *appmembership.Service
+	giftCardService   *appgiftcard.Service
 	webhookCommands   *appwebhook.Commands
 	webhookSecret     string
 }
@@ -31,6 +33,7 @@ func NewStripeWebhookHandler(
 	checkoutService *appcheckout.Service,
 	walletService *appwallet.Service,
 	membershipService *appmembership.Service,
+	giftCardService *appgiftcard.Service,
 	webhookCommands *appwebhook.Commands,
 	cfg *config.Config,
 ) *StripeWebhookHandler {
@@ -39,6 +42,7 @@ func NewStripeWebhookHandler(
 		checkoutService:   checkoutService,
 		walletService:     walletService,
 		membershipService: membershipService,
+		giftCardService:   giftCardService,
 		webhookCommands:   webhookCommands,
 		webhookSecret:     cfg.Stripe.WebhookSecret,
 	}
@@ -97,6 +101,8 @@ func (ctrl *StripeWebhookHandler) Handle(c *gin.Context) {
 			handlerErr = ctrl.walletService.ConfirmDepositByStripeSession(ctx, session.ID, paymentIntentID)
 		} else if isPlusMembershipSession(session) {
 			handlerErr = ctrl.membershipService.ConfirmStripeSubscription(ctx, session)
+		} else if isGiftCardSession(session) {
+			handlerErr = ctrl.giftCardService.ConfirmByStripeSession(ctx, session.ID, paymentIntentID)
 		} else {
 			orderID, err := ctrl.paymentService.ConfirmStripeSession(ctx, session.ID, paymentIntentID)
 			if err == nil {
@@ -116,6 +122,8 @@ func (ctrl *StripeWebhookHandler) Handle(c *gin.Context) {
 		}
 		if isWalletDepositSession(session) {
 			handlerErr = ctrl.walletService.FailDepositByStripeSession(ctx, session.ID)
+		} else if isGiftCardSession(session) {
+			handlerErr = ctrl.giftCardService.FailByStripeSession(ctx, session.ID)
 		}
 
 	default:
@@ -138,4 +146,8 @@ func isWalletDepositSession(session stripe.CheckoutSession) bool {
 
 func isPlusMembershipSession(session stripe.CheckoutSession) bool {
 	return session.Metadata != nil && session.Metadata["type"] == "plus_membership"
+}
+
+func isGiftCardSession(session stripe.CheckoutSession) bool {
+	return session.Metadata != nil && session.Metadata["type"] == "gift_card_purchase"
 }

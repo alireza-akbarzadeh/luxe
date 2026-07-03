@@ -70,6 +70,32 @@ type AiShoppingAssistantResponse struct {
 	Sources           []string               `json:"sources,omitempty"`
 }
 
+// AiGiftFinderFollowUpAnswer captures a shopper reply to a clarifying gift question.
+type AiGiftFinderFollowUpAnswer struct {
+	Question string `json:"question" binding:"required"`
+	Answer   string `json:"answer" binding:"required"`
+}
+
+// AiGiftFinderRequest is a structured gift recommendation wizard submission.
+type AiGiftFinderRequest struct {
+	Recipient        string                       `json:"recipient" binding:"required"`
+	Occasion         string                       `json:"occasion" binding:"required"`
+	BudgetMin        float64                      `json:"budget_min,omitempty"`
+	BudgetMax        float64                      `json:"budget_max,omitempty"`
+	Interests        string                       `json:"interests,omitempty"`
+	AdditionalNotes  string                       `json:"additional_notes,omitempty"`
+	FollowUpAnswers  []AiGiftFinderFollowUpAnswer `json:"follow_up_answers,omitempty"`
+}
+
+// AiGiftFinderResponse returns gift guidance, optional follow-ups, and product picks.
+type AiGiftFinderResponse struct {
+	Reply             string                 `json:"reply"`
+	GiftMessageIdeas  []string               `json:"gift_message_ideas,omitempty"`
+	FollowUpQuestions []string               `json:"follow_up_questions,omitempty"`
+	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources           []string               `json:"sources,omitempty"`
+}
+
 // AiSearchIntentRequest parses a natural-language search phrase.
 type AiSearchIntentRequest struct {
 	Query string `json:"query" binding:"required"`

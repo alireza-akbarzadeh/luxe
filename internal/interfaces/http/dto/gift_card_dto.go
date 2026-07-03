@@ -15,6 +15,15 @@ type CreateGiftCardRequest struct {
 	DeliveryDate   string  `json:"delivery_date" validate:"omitempty"`
 }
 
+type CreateGiftCardResponse struct {
+	GiftCardResponse
+	CheckoutURL string `json:"checkout_url,omitempty"`
+}
+
+type ConfirmGiftCardStripeRequest struct {
+	SessionID string `json:"session_id" validate:"required"`
+}
+
 type GiftCardResponse struct {
 	ID              uint       `json:"id"`
 	Code            string     `json:"code"`

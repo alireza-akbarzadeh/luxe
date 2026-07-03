@@ -15,6 +15,7 @@ type GiftCard struct {
 	Balance         float64    `gorm:"type:decimal(10,2);not null" json:"balance"`
 	Currency        string     `gorm:"size:3;not null;default:USD" json:"currency"`
 	Status          string     `gorm:"size:20;not null;default:active;index" json:"status"`
+	StripeSessionID string     `gorm:"size:255;index" json:"stripe_session_id,omitempty"`
 	DeliveryDate    *time.Time `json:"delivery_date,omitempty"`
 	ExpiresAt       *time.Time `json:"expires_at,omitempty"`
 	RedeemedAt      *time.Time `json:"redeemed_at,omitempty"`

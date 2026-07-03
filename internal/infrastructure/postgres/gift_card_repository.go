@@ -81,6 +81,16 @@ func (r *GiftCardRepository) ListReceived(ctx context.Context, userID uint, emai
 	return cards, err
 }
 
+// FindByStripeSessionID loads a gift card by Stripe Checkout session ID.
+func (r *GiftCardRepository) FindByStripeSessionID(ctx context.Context, sessionID string) (*models.GiftCard, error) {
+	var card models.GiftCard
+	err := r.db.WithContext(ctx).Where("stripe_session_id = ?", sessionID).First(&card).Error
+	if err != nil {
+		return nil, err
+	}
+	return &card, nil
+}
+
 // Save persists gift card changes.
 func (r *GiftCardRepository) Save(ctx context.Context, card *models.GiftCard) error {
 	return r.db.WithContext(ctx).Save(card).Error

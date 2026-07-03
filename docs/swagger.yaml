@@ -623,6 +623,59 @@ definitions:
       text:
         type: string
     type: object
+  dto.AiGiftFinderFollowUpAnswer:
+    properties:
+      answer:
+        type: string
+      question:
+        type: string
+    required:
+    - answer
+    - question
+    type: object
+  dto.AiGiftFinderRequest:
+    properties:
+      additional_notes:
+        type: string
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      follow_up_answers:
+        items:
+          $ref: '#/definitions/dto.AiGiftFinderFollowUpAnswer'
+        type: array
+      interests:
+        type: string
+      occasion:
+        type: string
+      recipient:
+        type: string
+    required:
+    - occasion
+    - recipient
+    type: object
+  dto.AiGiftFinderResponse:
+    properties:
+      follow_up_questions:
+        items:
+          type: string
+        type: array
+      gift_message_ideas:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      reply:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiProductBriefRequest:
     properties:
       product_id:
@@ -1323,6 +1376,13 @@ definitions:
     required:
     - session_id
     type: object
+  dto.ConfirmGiftCardStripeRequest:
+    properties:
+      session_id:
+        type: string
+    required:
+    - session_id
+    type: object
   dto.ConfirmPlusStripeRequest:
     properties:
       session_id:
@@ -1591,6 +1651,43 @@ definitions:
     - recipient_email
     - recipient_name
     - sender_name
+    type: object
+  dto.CreateGiftCardResponse:
+    properties:
+      balance:
+        type: number
+      checkout_url:
+        type: string
+      code:
+        type: string
+      created_at:
+        type: string
+      currency:
+        type: string
+      delivery_date:
+        type: string
+      expires_at:
+        type: string
+      id:
+        type: integer
+      initial_amount:
+        type: number
+      message:
+        type: string
+      recipient_email:
+        type: string
+      recipient_name:
+        type: string
+      recipient_user_id:
+        type: integer
+      redeemed_at:
+        type: string
+      sender_name:
+        type: string
+      sender_user_id:
+        type: integer
+      status:
+        type: string
     type: object
   dto.CreateMenuGroupRequest:
     properties:
@@ -3769,6 +3866,34 @@ definitions:
       label:
         type: string
     type: object
+  dto.SmartBundleItem:
+    properties:
+      compatibility_score:
+        type: integer
+      description:
+        type: string
+      id:
+        type: string
+      intent:
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/dto.ProductResponse'
+        type: array
+      subtotal:
+        type: number
+      title:
+        type: string
+    type: object
+  dto.SmartBundlesResponse:
+    properties:
+      bundles:
+        items:
+          $ref: '#/definitions/dto.SmartBundleItem'
+        type: array
+      intent:
+        type: string
+    type: object
   dto.StateView:
     properties:
       code:
@@ -3862,6 +3987,24 @@ definitions:
         type: string
       stripe_session_id:
         type: string
+    type: object
+  dto.SuggestSmartBundlesRequest:
+    properties:
+      intent:
+        maxLength: 32
+        type: string
+      limit:
+        maximum: 6
+        minimum: 1
+        type: integer
+      product_ids:
+        items:
+          type: integer
+        maxItems: 8
+        minItems: 1
+        type: array
+    required:
+    - product_ids
     type: object
   dto.SuggestionItem:
     properties:
@@ -9024,6 +9167,46 @@ paths:
       summary: AI compare insight
       tags:
       - AI
+  /ai/gift-finder:
+    post:
+      consumes:
+      - application/json
+      description: Guided gift recommendations with follow-up questions and catalog
+        picks
+      parameters:
+      - description: Gift finder request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiGiftFinderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiGiftFinderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI gift finder
+      tags:
+      - AI
   /ai/product-brief:
     post:
       consumes:
@@ -9617,6 +9800,38 @@ paths:
       summary: Update a brand
       tags:
       - brands
+  /bundles/suggest:
+    post:
+      consumes:
+      - application/json
+      description: Returns bundles anchored on one or more product IDs (e.g. cart
+        items)
+      parameters:
+      - description: Anchor product IDs
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SuggestSmartBundlesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SmartBundlesResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Suggest smart bundles
+      tags:
+      - Bundles
   /cart:
     get:
       description: Retrieve all items in the authenticated user's cart
@@ -10555,7 +10770,7 @@ paths:
             - $ref: '#/definitions/utils.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.GiftCardResponse'
+                  $ref: '#/definitions/dto.CreateGiftCardResponse'
               type: object
       security:
       - BearerAuth: []
@@ -10587,6 +10802,36 @@ paths:
       security:
       - BearerAuth: []
       summary: Claim gift card
+      tags:
+      - GiftCards
+  /gift-cards/confirm-stripe:
+    post:
+      consumes:
+      - application/json
+      description: Activates a pending gift card using checkout session_id from the
+        Stripe success redirect.
+      parameters:
+      - description: Stripe session ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ConfirmGiftCardStripeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.GiftCardResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Confirm Stripe gift card purchase
       tags:
       - GiftCards
   /gift-cards/received:
@@ -12321,6 +12566,43 @@ paths:
       summary: Get related products
       tags:
       - Products
+  /products/{id}/smart-bundles:
+    get:
+      description: Returns dynamic product bundles based on compatibility and shopper
+        intent
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Shopper intent (everyday, workspace, travel, gift)
+        in: query
+        name: intent
+        type: string
+      - description: Max bundles (default 3)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SmartBundlesResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Smart bundles for a product
+      tags:
+      - Bundles
   /products/{id}/stock-notifications:
     delete:
       parameters:

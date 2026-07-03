@@ -209,9 +209,10 @@ const (
 	WalletRefTypeAdmin = "admin"
 
 	// Gift card statuses
-	GiftCardStatusActive   = "active"
-	GiftCardStatusRedeemed = "redeemed"
-	GiftCardStatusExpired  = "expired"
+	GiftCardStatusPending   = "pending"
+	GiftCardStatusActive    = "active"
+	GiftCardStatusRedeemed  = "redeemed"
+	GiftCardStatusExpired   = "expired"
 	GiftCardStatusCancelled = "cancelled"
 
 	// Shipment statuses

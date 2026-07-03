@@ -184,6 +184,68 @@ func (g *Gateway) CreatePlusMembershipSession(userID uint, amount float64, curre
 	return sess.URL, sess.ID, nil
 }
 
+// CreateGiftCardSession builds a Stripe Checkout session for purchasing a digital gift card.
+func (g *Gateway) CreateGiftCardSession(
+	giftCardID uint,
+	amount float64,
+	currency, customerEmail, recipientName string,
+) (checkoutURL, sessionID string, err error) {
+	if g.secretKey == "" {
+		return "", "", fmt.Errorf("stripe secret key is not configured")
+	}
+
+	stripe.Key = g.secretKey
+
+	currency = strings.ToLower(currency)
+	if currency == "" {
+		currency = "usd"
+	}
+
+	amountCents := int64(math.Round(amount * 100))
+	if amountCents < 1 {
+		return "", "", fmt.Errorf("gift card amount must be greater than zero")
+	}
+
+	productName := "Luxe digital gift card"
+	if strings.TrimSpace(recipientName) != "" {
+		productName = fmt.Sprintf("Luxe gift card for %s", recipientName)
+	}
+
+	successURL := fmt.Sprintf("%s/gift-cards?purchase=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
+	cancelURL := fmt.Sprintf("%s/gift-cards?purchase=cancelled", g.frontendURL)
+
+	params := &stripe.CheckoutSessionParams{
+		Mode:              stripe.String(string(stripe.CheckoutSessionModePayment)),
+		SuccessURL:        stripe.String(successURL),
+		CancelURL:         stripe.String(cancelURL),
+		ClientReferenceID: stripe.String(fmt.Sprint(giftCardID)),
+		CustomerEmail:     stripe.String(customerEmail),
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+					Currency: stripe.String(currency),
+					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+						Name: stripe.String(productName),
+					},
+					UnitAmount: stripe.Int64(amountCents),
+				},
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Metadata: map[string]string{
+			"type":         "gift_card_purchase",
+			"gift_card_id": fmt.Sprint(giftCardID),
+		},
+	}
+
+	sess, err := session.New(params)
+	if err != nil {
+		return "", "", fmt.Errorf("stripe gift card session: %w", err)
+	}
+
+	return sess.URL, sess.ID, nil
+}
+
 // GetCheckoutSession retrieves a Stripe Checkout session by ID.
 func (g *Gateway) GetCheckoutSession(sessionID string) (*stripe.CheckoutSession, error) {
 	if g.secretKey == "" {

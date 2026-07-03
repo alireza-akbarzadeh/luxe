@@ -179,6 +179,43 @@ func (ac *AiHandler) ShoppingAssistant(c *gin.Context) {
 	utils.SuccessResponse(c, "assistant", result)
 }
 
+// GiftFinder recommends gifts from structured recipient, occasion, and budget inputs.
+// @Summary      AI gift finder
+// @Description  Guided gift recommendations with follow-up questions and catalog picks
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiGiftFinderRequest true "Gift finder request"
+// @Success      200 {object} utils.Response{data=dto.AiGiftFinderResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/gift-finder [post]
+func (ac *AiHandler) GiftFinder(c *gin.Context) {
+	var req dto.AiGiftFinderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.GiftFinder(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok && appErr.Code == http.StatusServiceUnavailable {
+			utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+			return
+		}
+		utils.HandleServiceError(c, err, "ai gift finder failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "gift finder", result)
+}
+
 // SearchIntent parses natural-language search into catalog filters.
 // @Summary      AI search intent
 // @Description  Extracts keywords, budget, and filters from a natural-language search phrase

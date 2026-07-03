@@ -83,7 +83,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Collection: NewCollectionHandler(apps.Collection),
 		Settings:   NewSettingHandler(apps.Settings.Commands, apps.Settings.Queries),
 		WebSocket: NewWebSocketHandler(runtime.WebSocketHub, apps.Notification),
-		Stripe:    NewStripeWebhookHandler(apps.Payment, apps.Checkout, apps.Wallet, apps.Membership, apps.Webhook.Commands, cfg),
+		Stripe:    NewStripeWebhookHandler(apps.Payment, apps.Checkout, apps.Wallet, apps.Membership, apps.GiftCard, apps.Webhook.Commands, cfg),
 		Audit:     NewAuditHandler(apps.Audit.Queries),
 		Upload:    NewUploadHandler(apps.Upload),
 		Admin:     NewAdminHandler(apps.Admin, apps.Order, apps.Webhook.Queries),

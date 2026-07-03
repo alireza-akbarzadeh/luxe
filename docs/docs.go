@@ -5430,6 +5430,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/gift-finder": {
+            "post": {
+                "description": "Guided gift recommendations with follow-up questions and catalog picks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI gift finder",
+                "parameters": [
+                    {
+                        "description": "Gift finder request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiGiftFinderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiGiftFinderResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/product-brief": {
             "post": {
                 "description": "Structured pros, cons, fit guidance, and alternatives grounded in product data",
@@ -7886,6 +7950,57 @@ const docTemplate = `{
                 "responses": {
                     "201": {
                         "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CreateGiftCardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/gift-cards/confirm-stripe": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Activates a pending gift card using checkout session_id from the Stripe success redirect.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "Confirm Stripe gift card purchase",
+                "parameters": [
+                    {
+                        "description": "Stripe session ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ConfirmGiftCardStripeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "allOf": [
                                 {
@@ -16563,6 +16678,86 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AiGiftFinderFollowUpAnswer": {
+            "type": "object",
+            "required": [
+                "answer",
+                "question"
+            ],
+            "properties": {
+                "answer": {
+                    "type": "string"
+                },
+                "question": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiGiftFinderRequest": {
+            "type": "object",
+            "required": [
+                "occasion",
+                "recipient"
+            ],
+            "properties": {
+                "additional_notes": {
+                    "type": "string"
+                },
+                "budget_max": {
+                    "type": "number"
+                },
+                "budget_min": {
+                    "type": "number"
+                },
+                "follow_up_answers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiGiftFinderFollowUpAnswer"
+                    }
+                },
+                "interests": {
+                    "type": "string"
+                },
+                "occasion": {
+                    "type": "string"
+                },
+                "recipient": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiGiftFinderResponse": {
+            "type": "object",
+            "properties": {
+                "follow_up_questions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "gift_message_ideas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiRecommendedProduct"
+                    }
+                },
+                "reply": {
+                    "type": "string"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "dto.AiProductBriefRequest": {
             "type": "object",
             "required": [
@@ -17613,6 +17808,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ConfirmGiftCardStripeRequest": {
+            "type": "object",
+            "required": [
+                "session_id"
+            ],
+            "properties": {
+                "session_id": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ConfirmPlusStripeRequest": {
             "type": "object",
             "required": [
@@ -18002,6 +18208,62 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 1
+                }
+            }
+        },
+        "dto.CreateGiftCardResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "checkout_url": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "initial_amount": {
+                    "type": "number"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "recipient_email": {
+                    "type": "string"
+                },
+                "recipient_name": {
+                    "type": "string"
+                },
+                "recipient_user_id": {
+                    "type": "integer"
+                },
+                "redeemed_at": {
+                    "type": "string"
+                },
+                "sender_name": {
+                    "type": "string"
+                },
+                "sender_user_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },

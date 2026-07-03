@@ -307,16 +307,40 @@ WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Collections');
 INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
 SELECT
   'Gift Cards',
-  'link',
-  '/gift-cards',
+  'mega',
   NULL,
   NULL,
-  NULL,
+  '{"label":"Shop gift cards","href":"/gift-cards"}'::jsonb,
+  '[
+    {"title":"Gifting","links":[
+      {"title":"Buy a gift card","href":"/gift-cards"},
+      {"title":"Gift finder","href":"/gift-cards/finder"}
+    ]}
+  ]'::jsonb,
   NULL,
   7,
   NOW(),
   NOW()
 WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Gift Cards');
+
+-- Consolidate gift nav on existing databases (dropdown + remove duplicate top-level item)
+UPDATE nav_menus
+SET
+  type = 'mega',
+  href = NULL,
+  badge = NULL,
+  view_all = '{"label":"Shop gift cards","href":"/gift-cards"}'::jsonb,
+  columns = '[
+    {"title":"Gifting","links":[
+      {"title":"Buy a gift card","href":"/gift-cards"},
+      {"title":"Gift finder","href":"/gift-cards/finder"}
+    ]}
+  ]'::jsonb,
+  featured = NULL,
+  updated_at = NOW()
+WHERE label = 'Gift Cards';
+
+DELETE FROM nav_menus WHERE label = 'Gift Finder';
 
 -- Roles & permissions (idempotent)
 INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
