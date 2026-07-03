@@ -8058,6 +8058,55 @@ const docTemplate = `{
                 }
             }
         },
+        "/gift-cards/recipient-lookup": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search active members by email or phone (min 3 characters)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "Lookup gift card recipient",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email or phone fragment",
+                        "name": "q",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.GiftRecipientLookupResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/gift-cards/sent": {
             "get": {
                 "security": [
@@ -8120,6 +8169,63 @@ const docTemplate = `{
                         "name": "code",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.GiftCardResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/gift-cards/{code}/transfer": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "GiftCards"
+                ],
+                "summary": "Transfer gift card to member",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gift card code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Recipient user ID",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.TransferGiftCardRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -19001,6 +19107,23 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.GiftRecipientLookupResponse": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "masked_email": {
+                    "type": "string"
+                },
+                "masked_phone": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.HomeBrandItem": {
             "type": "object",
             "properties": {
@@ -21858,6 +21981,17 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.TransferGiftCardRequest": {
+            "type": "object",
+            "required": [
+                "recipient_user_id"
+            ],
+            "properties": {
+                "recipient_user_id": {
+                    "type": "integer"
                 }
             }
         },

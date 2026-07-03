@@ -2193,6 +2193,17 @@ definitions:
       status:
         type: string
     type: object
+  dto.GiftRecipientLookupResponse:
+    properties:
+      display_name:
+        type: string
+      id:
+        type: integer
+      masked_email:
+        type: string
+      masked_phone:
+        type: string
+    type: object
   dto.HomeBrandItem:
     properties:
       banner_url:
@@ -4087,6 +4098,13 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  dto.TransferGiftCardRequest:
+    properties:
+      recipient_user_id:
+        type: integer
+    required:
+    - recipient_user_id
     type: object
   dto.TransitionResultView:
     properties:
@@ -10804,6 +10822,39 @@ paths:
       summary: Claim gift card
       tags:
       - GiftCards
+  /gift-cards/{code}/transfer:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Gift card code
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Recipient user ID
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TransferGiftCardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.GiftCardResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Transfer gift card to member
+      tags:
+      - GiftCards
   /gift-cards/confirm-stripe:
     post:
       consumes:
@@ -10855,6 +10906,34 @@ paths:
       security:
       - BearerAuth: []
       summary: List received gift cards
+      tags:
+      - GiftCards
+  /gift-cards/recipient-lookup:
+    get:
+      description: Search active members by email or phone (min 3 characters)
+      parameters:
+      - description: Email or phone fragment
+        in: query
+        name: q
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.GiftRecipientLookupResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Lookup gift card recipient
       tags:
       - GiftCards
   /gift-cards/sent:
