@@ -51,6 +51,21 @@ type AiProductBriefResponse struct {
 	Alternatives []string `json:"alternatives"`
 }
 
+// AiReviewSummaryRequest asks for an AI synthesis of shopper reviews for a product.
+type AiReviewSummaryRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiReviewSummaryResponse distills verified buyer reviews into scannable themes.
+type AiReviewSummaryResponse struct {
+	Summary       string   `json:"summary"`
+	Highlights    []string `json:"highlights"`
+	WatchOuts     []string `json:"watch_outs,omitempty"`
+	ReviewCount   int64    `json:"review_count"`
+	AverageRating float64  `json:"average_rating"`
+	Sources       []string `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

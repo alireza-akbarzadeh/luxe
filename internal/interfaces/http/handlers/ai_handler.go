@@ -12,13 +12,24 @@ import (
 )
 
 type AiHandler struct {
-	aiService      *appai.Service
-	searchQueries  appai.SearchQueries
-	compareQueries appai.CompareQueries
+	aiService       *appai.Service
+	searchQueries   appai.SearchQueries
+	compareQueries  appai.CompareQueries
+	reviewQueries   appai.ReviewSummaryQueries
 }
 
-func NewAiHandler(aiService *appai.Service, searchQueries appai.SearchQueries, compareQueries appai.CompareQueries) *AiHandler {
-	return &AiHandler{aiService: aiService, searchQueries: searchQueries, compareQueries: compareQueries}
+func NewAiHandler(
+	aiService *appai.Service,
+	searchQueries appai.SearchQueries,
+	compareQueries appai.CompareQueries,
+	reviewQueries appai.ReviewSummaryQueries,
+) *AiHandler {
+	return &AiHandler{
+		aiService:      aiService,
+		searchQueries:  searchQueries,
+		compareQueries: compareQueries,
+		reviewQueries:  reviewQueries,
+	}
 }
 
 // GetStatus returns whether AI is enabled and which provider is configured.
@@ -336,4 +347,50 @@ func (ac *AiHandler) CompareInsight(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "insight", result)
+}
+
+// ReviewSummary synthesizes buyer reviews into scannable themes for PDP shoppers.
+// @Summary      AI review summary
+// @Description  Summarizes verified customer reviews into highlights and caveats
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiReviewSummaryRequest true "Review summary request"
+// @Success      200 {object} utils.Response{data=dto.AiReviewSummaryResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/review-summary [post]
+func (ac *AiHandler) ReviewSummary(c *gin.Context) {
+	var req dto.AiReviewSummaryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ReviewSummary(c.Request.Context(), subjectKey, ac.reviewQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai review summary failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "review summary", result)
 }

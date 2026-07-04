@@ -713,6 +713,34 @@ definitions:
       reason:
         type: string
     type: object
+  dto.AiReviewSummaryRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiReviewSummaryResponse:
+    properties:
+      average_rating:
+        type: number
+      highlights:
+        items:
+          type: string
+        type: array
+      review_count:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      watch_outs:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiSearchIntentRequest:
     properties:
       query:
@@ -9263,6 +9291,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Product AI brief
+      tags:
+      - AI
+  /ai/review-summary:
+    post:
+      consumes:
+      - application/json
+      description: Summarizes verified customer reviews into highlights and caveats
+      parameters:
+      - description: Review summary request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiReviewSummaryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiReviewSummaryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI review summary
       tags:
       - AI
   /ai/search-intent:
