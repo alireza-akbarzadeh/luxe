@@ -51,6 +51,9 @@ func ErrorResponse(c *gin.Context, status int, message string) {
 		Code:    status,
 	})
 }
+func BadRequestResponse(c *gin.Context, message string) {
+	ErrorResponse(c, http.StatusBadRequest, message)
+}
 
 // UnauthorizedResponse sends a 401 Unauthorized error.
 func UnauthorizedResponse(c *gin.Context, message string) {
