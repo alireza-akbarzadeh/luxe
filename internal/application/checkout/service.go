@@ -204,6 +204,10 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 			}
 		}
 
+		// Stripe keeps the cart active until Checkout session creation succeeds.
+		if req.PaymentMethod == "stripe" {
+			return nil
+		}
 		return s.cartRepo.MarkConvertedTx(tx, cart.ID)
 	})
 	if err != nil {
@@ -219,7 +223,14 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 		}
 		checkoutURL, sessionID, err := s.paymentService.CreateStripeCheckoutSession(order, payment, req.Email)
 		if err != nil {
+			if cancelErr := s.CancelOrder(ctx, order.ID, userID); cancelErr != nil {
+				utils.Log.WithError(cancelErr).WithField("order_id", order.ID).
+					Warn("failed to roll back order after stripe session error")
+			}
 			return nil, err
+		}
+		if err := s.cartRepo.MarkConverted(ctx, cart.ID); err != nil {
+			return nil, utils.ErrInternal(err)
 		}
 		result.CheckoutURL = checkoutURL
 		result.StripeSessionID = sessionID
