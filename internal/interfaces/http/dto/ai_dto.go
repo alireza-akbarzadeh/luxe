@@ -82,6 +82,30 @@ type AiReturnRiskResponse struct {
 	Sources         []string `json:"sources,omitempty"`
 }
 
+// AiTrustScoreRequest asks for a composite trust score on a product PDP.
+type AiTrustScoreRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiTrustScoreFactor is one dimension of the trust breakdown.
+type AiTrustScoreFactor struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Score int    `json:"score"`
+	Note  string `json:"note"`
+}
+
+// AiTrustScoreResponse explains how trustworthy a listing appears to shoppers.
+type AiTrustScoreResponse struct {
+	Score         int                  `json:"score"`
+	Confidence    string               `json:"confidence"`
+	Summary       string               `json:"summary"`
+	Factors       []AiTrustScoreFactor `json:"factors"`
+	ReviewCount   int64                `json:"review_count,omitempty"`
+	AverageRating float64              `json:"average_rating,omitempty"`
+	Sources       []string             `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

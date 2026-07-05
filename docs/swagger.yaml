@@ -839,6 +839,45 @@ definitions:
       provider:
         type: string
     type: object
+  dto.AiTrustScoreFactor:
+    properties:
+      key:
+        type: string
+      label:
+        type: string
+      note:
+        type: string
+      score:
+        type: integer
+    type: object
+  dto.AiTrustScoreRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiTrustScoreResponse:
+    properties:
+      average_rating:
+        type: number
+      confidence:
+        type: string
+      factors:
+        items:
+          $ref: '#/definitions/dto.AiTrustScoreFactor'
+        type: array
+      review_count:
+        type: integer
+      score:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
   dto.AiVisualSearchRequest:
     properties:
       image_base64:
@@ -9475,6 +9514,46 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI shopping assistant
+      tags:
+      - AI
+  /ai/trust-score:
+    post:
+      consumes:
+      - application/json
+      description: Scores listing trust using reviews, seller profile, listing quality,
+        and order history
+      parameters:
+      - description: Trust score request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiTrustScoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiTrustScoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI product trust score
       tags:
       - AI
   /ai/visual-search:
