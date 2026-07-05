@@ -24,6 +24,8 @@ func SetupAiRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, ctrl *ha
 	public.POST("/ai/purchase-advisor", ctrl.Ai.PurchaseAdvisor)
 	public.POST("/ai/size-recommendation", ctrl.Ai.SizeRecommendation)
 	protected.POST("/ai/wishlist-intelligence", ctrl.Ai.WishlistIntelligence)
+	protected.POST("/ai/shopping-memory", ctrl.Ai.ShoppingMemory)
+	public.POST("/ai/goal-shopping", ctrl.Ai.GoalShopping)
 
 	admin := protected.Group("/admin")
 	admin.Use(middleware.RequireStaff())

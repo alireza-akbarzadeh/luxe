@@ -747,6 +747,42 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiGoalShoppingRequest:
+    properties:
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      goal:
+        type: string
+      preferences:
+        type: string
+      timeline:
+        type: string
+    required:
+    - goal
+    type: object
+  dto.AiGoalShoppingResponse:
+    properties:
+      follow_up_questions:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      reply:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      steps:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiPricePredictionRequest:
     properties:
       days:
@@ -968,6 +1004,39 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  dto.AiShoppingMemoryRequest:
+    properties:
+      limit:
+        type: integer
+    type: object
+  dto.AiShoppingMemoryResponse:
+    properties:
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      signals:
+        items:
+          $ref: '#/definitions/dto.AiShoppingMemorySignal'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      style_notes:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
+  dto.AiShoppingMemorySignal:
+    properties:
+      detail:
+        type: string
+      label:
+        type: string
     type: object
   dto.AiSizeRecommendationRequest:
     properties:
@@ -9733,6 +9802,45 @@ paths:
       summary: AI gift finder
       tags:
       - AI
+  /ai/goal-shopping:
+    post:
+      consumes:
+      - application/json
+      description: Plans discovery steps and product picks for a shopper-defined goal
+      parameters:
+      - description: Goal shopping request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiGoalShoppingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiGoalShoppingResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI goal-based shopping
+      tags:
+      - AI
   /ai/price-prediction:
     post:
       consumes:
@@ -10004,6 +10112,48 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI shopping assistant
+      tags:
+      - AI
+  /ai/shopping-memory:
+    post:
+      consumes:
+      - application/json
+      description: Summarizes style signals from recently viewed items, wishlist,
+        and favorite categories
+      parameters:
+      - description: Shopping memory request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiShoppingMemoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiShoppingMemoryResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI shopping memory
       tags:
       - AI
   /ai/size-recommendation:

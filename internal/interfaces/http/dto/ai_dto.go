@@ -254,6 +254,62 @@ type AiWishlistIntelligenceResponse struct {
 	Sources          []string                `json:"sources,omitempty"`
 }
 
+// AiShoppingMemoryRequest analyzes the authenticated shopper's recent signals.
+type AiShoppingMemoryRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// AiShoppingMemorySignal is one remembered preference or behavior pattern.
+type AiShoppingMemorySignal struct {
+	Label  string `json:"label"`
+	Detail string `json:"detail"`
+}
+
+// AiShoppingMemoryResponse summarizes taste and picks from browsing history.
+type AiShoppingMemoryResponse struct {
+	Summary         string                 `json:"summary"`
+	StyleNotes      []string               `json:"style_notes,omitempty"`
+	Signals         []AiShoppingMemorySignal `json:"signals,omitempty"`
+	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources         []string               `json:"sources,omitempty"`
+}
+
+// AiGoalShoppingRequest finds products for a stated shopping goal.
+type AiGoalShoppingRequest struct {
+	Goal        string  `json:"goal" binding:"required"`
+	BudgetMin   float64 `json:"budget_min,omitempty"`
+	BudgetMax   float64 `json:"budget_max,omitempty"`
+	Timeline    string  `json:"timeline,omitempty"`
+	Preferences string  `json:"preferences,omitempty"`
+}
+
+// AiGoalShoppingResponse returns a plan and catalog picks for a shopping goal.
+type AiGoalShoppingResponse struct {
+	Reply             string                 `json:"reply"`
+	Steps             []string               `json:"steps,omitempty"`
+	FollowUpQuestions []string               `json:"follow_up_questions,omitempty"`
+	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources           []string               `json:"sources,omitempty"`
+}
+
+// AiMoodShoppingRequest finds products that match a shopper's mood or vibe.
+type AiMoodShoppingRequest struct {
+	Mood      string  `json:"mood" binding:"required"`
+	Context   string  `json:"context,omitempty"`
+	BudgetMin float64 `json:"budget_min,omitempty"`
+	BudgetMax float64 `json:"budget_max,omitempty"`
+}
+
+// AiMoodShoppingResponse returns mood-aligned style cues and catalog picks.
+type AiMoodShoppingResponse struct {
+	Reply             string                 `json:"reply"`
+	MoodTags          []string               `json:"mood_tags,omitempty"`
+	StyleCues         []string               `json:"style_cues,omitempty"`
+	FollowUpQuestions []string               `json:"follow_up_questions,omitempty"`
+	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources           []string               `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

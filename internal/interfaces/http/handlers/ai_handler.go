@@ -21,8 +21,9 @@ type AiHandler struct {
 	reviewQueries   appai.ReviewSummaryQueries
 	returnQueries   appai.ReturnRiskQueries
 	priceHistory    appai.PriceHistoryQueries
-	deliveryStats   appai.DeliveryStatsQueries
-	wishlistQueries appai.WishlistIntelligenceQueries
+	deliveryStats          appai.DeliveryStatsQueries
+	wishlistQueries        appai.WishlistIntelligenceQueries
+	shoppingMemoryQueries  appai.ShoppingMemoryQueries
 }
 
 func NewAiHandler(
@@ -34,16 +35,18 @@ func NewAiHandler(
 	priceHistory appai.PriceHistoryQueries,
 	deliveryStats appai.DeliveryStatsQueries,
 	wishlistQueries appai.WishlistIntelligenceQueries,
+	shoppingMemoryQueries appai.ShoppingMemoryQueries,
 ) *AiHandler {
 	return &AiHandler{
-		aiService:       aiService,
-		searchQueries:   searchQueries,
-		compareQueries:  compareQueries,
-		reviewQueries:   reviewQueries,
-		returnQueries:   returnQueries,
-		priceHistory:    priceHistory,
-		deliveryStats:   deliveryStats,
-		wishlistQueries: wishlistQueries,
+		aiService:             aiService,
+		searchQueries:         searchQueries,
+		compareQueries:        compareQueries,
+		reviewQueries:         reviewQueries,
+		returnQueries:         returnQueries,
+		priceHistory:          priceHistory,
+		deliveryStats:         deliveryStats,
+		wishlistQueries:       wishlistQueries,
+		shoppingMemoryQueries: shoppingMemoryQueries,
 	}
 }
 
@@ -868,4 +871,124 @@ func (ac *AiHandler) WishlistIntelligence(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "wishlist intelligence", result)
+}
+
+type shoppingMemoryAdapter struct {
+	home     *postgres.HomeRepository
+	wishlist appai.WishlistIntelligenceQueries
+}
+
+func (a shoppingMemoryAdapter) ListRecentlyViewedProductIDs(ctx context.Context, userID uint, limit int) ([]uint, error) {
+	return a.home.ListRecentlyViewedProductIDs(ctx, userID, limit)
+}
+
+func (a shoppingMemoryAdapter) ListFavoriteCategoryIDs(ctx context.Context, userID uint) ([]uint, error) {
+	return a.home.ListFavoriteCategoryIDs(ctx, userID)
+}
+
+func (a shoppingMemoryAdapter) GetUserWishlist(userID uint, limit, offset int, sortBy string) ([]models.Product, int64, error) {
+	return a.wishlist.GetUserWishlist(userID, limit, offset, sortBy)
+}
+
+// ShoppingMemory summarizes authenticated shopper taste from recent activity.
+// @Summary      AI shopping memory
+// @Description  Summarizes style signals from recently viewed items, wishlist, and favorite categories
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiShoppingMemoryRequest true "Shopping memory request"
+// @Success      200 {object} utils.Response{data=dto.AiShoppingMemoryResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/shopping-memory [post]
+func (ac *AiHandler) ShoppingMemory(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiShoppingMemoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.ShoppingMemory(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.shoppingMemoryQueries,
+		ac.searchQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai shopping memory failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "shopping memory", result)
+}
+
+// GoalShopping recommends products for a stated shopping goal.
+// @Summary      AI goal-based shopping
+// @Description  Plans discovery steps and product picks for a shopper-defined goal
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiGoalShoppingRequest true "Goal shopping request"
+// @Success      200 {object} utils.Response{data=dto.AiGoalShoppingResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/goal-shopping [post]
+func (ac *AiHandler) GoalShopping(c *gin.Context) {
+	var req dto.AiGoalShoppingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.GoalShopping(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai goal shopping failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "goal shopping", result)
 }
