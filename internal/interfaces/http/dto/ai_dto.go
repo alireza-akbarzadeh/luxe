@@ -66,6 +66,22 @@ type AiReviewSummaryResponse struct {
 	Sources       []string `json:"sources,omitempty"`
 }
 
+// AiReturnRiskRequest asks for return-risk guidance for a product PDP.
+type AiReturnRiskRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiReturnRiskResponse explains return likelihood and how to buy with confidence.
+type AiReturnRiskResponse struct {
+	RiskLevel       string   `json:"risk_level"`
+	Summary         string   `json:"summary"`
+	CommonReasons   []string `json:"common_reasons,omitempty"`
+	Tips            []string `json:"tips,omitempty"`
+	ReturnRatePct   *float64 `json:"return_rate_pct,omitempty"`
+	OrderSampleSize int64    `json:"order_sample_size,omitempty"`
+	Sources         []string `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

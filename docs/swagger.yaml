@@ -713,6 +713,36 @@ definitions:
       reason:
         type: string
     type: object
+  dto.AiReturnRiskRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiReturnRiskResponse:
+    properties:
+      common_reasons:
+        items:
+          type: string
+        type: array
+      order_sample_size:
+        type: integer
+      return_rate_pct:
+        type: number
+      risk_level:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiReviewSummaryRequest:
     properties:
       product_id:
@@ -9291,6 +9321,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Product AI brief
+      tags:
+      - AI
+  /ai/return-risk:
+    post:
+      consumes:
+      - application/json
+      description: Assesses return risk using product facts, reviews, and return history
+      parameters:
+      - description: Return risk request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiReturnRiskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiReturnRiskResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI return risk insight
       tags:
       - AI
   /ai/review-summary:

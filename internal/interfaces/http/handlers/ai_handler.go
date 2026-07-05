@@ -16,6 +16,7 @@ type AiHandler struct {
 	searchQueries   appai.SearchQueries
 	compareQueries  appai.CompareQueries
 	reviewQueries   appai.ReviewSummaryQueries
+	returnQueries   appai.ReturnRiskQueries
 }
 
 func NewAiHandler(
@@ -23,12 +24,14 @@ func NewAiHandler(
 	searchQueries appai.SearchQueries,
 	compareQueries appai.CompareQueries,
 	reviewQueries appai.ReviewSummaryQueries,
+	returnQueries appai.ReturnRiskQueries,
 ) *AiHandler {
 	return &AiHandler{
 		aiService:      aiService,
 		searchQueries:  searchQueries,
 		compareQueries: compareQueries,
 		reviewQueries:  reviewQueries,
+		returnQueries:  returnQueries,
 	}
 }
 
@@ -393,4 +396,50 @@ func (ac *AiHandler) ReviewSummary(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "review summary", result)
+}
+
+// ReturnRisk explains return likelihood and practical tips for PDP shoppers.
+// @Summary      AI return risk insight
+// @Description  Assesses return risk using product facts, reviews, and return history
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiReturnRiskRequest true "Return risk request"
+// @Success      200 {object} utils.Response{data=dto.AiReturnRiskResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/return-risk [post]
+func (ac *AiHandler) ReturnRisk(c *gin.Context) {
+	var req dto.AiReturnRiskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ReturnRisk(c.Request.Context(), subjectKey, ac.returnQueries, ac.reviewQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai return risk failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "return risk", result)
 }

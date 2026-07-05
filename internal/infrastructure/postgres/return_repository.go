@@ -99,3 +99,52 @@ func (r *ReturnRepository) ListAdmin(ctx context.Context, filters dto.AdminRetur
 		Find(&returns).Error
 	return returns, err
 }
+
+// ProductReturnStats aggregates order and return signals for a catalog product.
+func (r *ReturnRepository) ProductReturnStats(ctx context.Context, productID uint) (orderCount int64, returnCount int64, reasons []string, err error) {
+	if productID == 0 {
+		return 0, 0, nil, nil
+	}
+
+	err = r.db.WithContext(ctx).Model(&models.OrderItem{}).
+		Where("product_id = ?", productID).
+		Distinct("order_id").
+		Count(&orderCount).Error
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	err = r.db.WithContext(ctx).Model(&models.Return{}).
+		Joins("JOIN order_items ON order_items.order_id = returns.order_id AND order_items.deleted_at IS NULL").
+		Where("order_items.product_id = ?", productID).
+		Distinct("returns.id").
+		Count(&returnCount).Error
+	if err != nil {
+		return 0, 0, nil, err
+	}
+
+	type reasonCount struct {
+		Reason string
+		Count  int64
+	}
+	var rows []reasonCount
+	err = r.db.WithContext(ctx).Model(&models.Return{}).
+		Select("returns.reason AS reason, COUNT(DISTINCT returns.id) AS count").
+		Joins("JOIN order_items ON order_items.order_id = returns.order_id AND order_items.deleted_at IS NULL").
+		Where("order_items.product_id = ? AND returns.reason <> ''", productID).
+		Group("returns.reason").
+		Order("count DESC").
+		Limit(5).
+		Scan(&rows).Error
+	if err != nil {
+		return orderCount, returnCount, nil, err
+	}
+
+	reasons = make([]string, 0, len(rows))
+	for _, row := range rows {
+		if row.Reason != "" {
+			reasons = append(reasons, row.Reason)
+		}
+	}
+	return orderCount, returnCount, reasons, nil
+}

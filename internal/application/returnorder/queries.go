@@ -75,3 +75,12 @@ func (q *Queries) ListAdmin(ctx context.Context, filters dto.AdminReturnListFilt
 	}
 	return returns, total, nil
 }
+
+// ProductReturnStats loads aggregate return signals for AI return-risk insights.
+func (q *Queries) ProductReturnStats(ctx context.Context, productID uint) (orderCount int64, returnCount int64, reasons []string, err error) {
+	orderCount, returnCount, reasons, err = q.repo.ProductReturnStats(ctx, productID)
+	if err != nil {
+		return 0, 0, nil, utils.ErrInternal(err)
+	}
+	return orderCount, returnCount, reasons, nil
+}
