@@ -52,8 +52,9 @@ type Container struct {
 	Plus      *PlusHandler
 	Home      *HomeHandler
 	ShopLook          *ShopLookHandler
-	CreatorStorefront *CreatorStorefrontHandler
-	Bundle            *BundleHandler
+	CreatorStorefront       *CreatorStorefrontHandler
+	CommunityShoppingList   *CommunityShoppingListHandler
+	Bundle                  *BundleHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
@@ -101,7 +102,8 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Plus:      NewPlusHandler(apps.Membership),
 		Home:      NewHomeHandler(apps.Home),
 		ShopLook:          NewShopLookHandler(apps.ShopLook),
-		CreatorStorefront: NewCreatorStorefrontHandler(apps.CreatorStorefront),
-		Bundle:            NewBundleHandler(apps.Bundle),
+		CreatorStorefront:     NewCreatorStorefrontHandler(apps.CreatorStorefront),
+		CommunityShoppingList: NewCommunityShoppingListHandler(apps.CommunityShoppingList),
+		Bundle:                NewBundleHandler(apps.Bundle),
 	}
 }

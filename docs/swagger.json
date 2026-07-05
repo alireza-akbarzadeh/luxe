@@ -8733,6 +8733,93 @@
                 }
             }
         },
+        "/community-lists": {
+            "get": {
+                "description": "Returns active community-curated shopping lists for discovery pages",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "community-lists"
+                ],
+                "summary": "List community shopping lists",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items (default 12, max 24)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CommunityShoppingListListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/community-lists/{slug}": {
+            "get": {
+                "description": "Returns a community shopping list with shoppable product items",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "community-lists"
+                ],
+                "summary": "Get community shopping list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "List slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CommunityShoppingListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/compare": {
             "get": {
                 "security": [
@@ -20654,6 +20741,98 @@
                 },
                 "titleI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
+                }
+            }
+        },
+        "dto.CommunityShoppingListItemResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "note": {
+                    "type": "string"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.HomeProductItem"
+                }
+            }
+        },
+        "dto.CommunityShoppingListListItem": {
+            "type": "object",
+            "properties": {
+                "author_handle": {
+                    "type": "string"
+                },
+                "author_name": {
+                    "type": "string"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "item_count": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "theme": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CommunityShoppingListListResponse": {
+            "type": "object",
+            "properties": {
+                "lists": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CommunityShoppingListListItem"
+                    }
+                }
+            }
+        },
+        "dto.CommunityShoppingListResponse": {
+            "type": "object",
+            "properties": {
+                "author_handle": {
+                    "type": "string"
+                },
+                "author_name": {
+                    "type": "string"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CommunityShoppingListItemResponse"
+                    }
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "theme": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
                 }
             }
         },

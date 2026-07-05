@@ -2075,6 +2075,66 @@ definitions:
       titleI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
     type: object
+  dto.CommunityShoppingListItemResponse:
+    properties:
+      id:
+        type: integer
+      note:
+        type: string
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+    type: object
+  dto.CommunityShoppingListListItem:
+    properties:
+      author_handle:
+        type: string
+      author_name:
+        type: string
+      cover_image_url:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      item_count:
+        type: integer
+      slug:
+        type: string
+      theme:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.CommunityShoppingListListResponse:
+    properties:
+      lists:
+        items:
+          $ref: '#/definitions/dto.CommunityShoppingListListItem'
+        type: array
+    type: object
+  dto.CommunityShoppingListResponse:
+    properties:
+      author_handle:
+        type: string
+      author_name:
+        type: string
+      cover_image_url:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.CommunityShoppingListItemResponse'
+        type: array
+      slug:
+        type: string
+      theme:
+        type: string
+      title:
+        type: string
+    type: object
   dto.CompareListResponse:
     properties:
       product_ids:
@@ -12217,6 +12277,57 @@ paths:
       summary: Update a collection
       tags:
       - collections
+  /community-lists:
+    get:
+      description: Returns active community-curated shopping lists for discovery pages
+      parameters:
+      - description: Max items (default 12, max 24)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CommunityShoppingListListResponse'
+              type: object
+      summary: List community shopping lists
+      tags:
+      - community-lists
+  /community-lists/{slug}:
+    get:
+      description: Returns a community shopping list with shoppable product items
+      parameters:
+      - description: List slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CommunityShoppingListResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get community shopping list
+      tags:
+      - community-lists
   /compare:
     get:
       consumes:

@@ -38,6 +38,7 @@ import (
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
+	appcommunityshoppinglist "github.com/alireza-akbarzadeh/luxe/internal/application/communityshoppinglist"
 	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
 	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
@@ -180,8 +181,9 @@ type Applications struct {
 	Membership   *appmembership.Service
 	Home         *apphome.Service
 	ShopLook          *appshoplook.Service
-	CreatorStorefront *appcreatorstorefront.Service
-	Bundle       *appbundle.Service
+	CreatorStorefront       *appcreatorstorefront.Service
+	CommunityShoppingList   *appcommunityshoppinglist.Service
+	Bundle                  *appbundle.Service
 }
 
 type legalSettingReader struct {
@@ -324,8 +326,9 @@ func WireApplications(
 			postgres.NewHomeRepository(db),
 		),
 		ShopLook:          appshoplook.NewService(db),
-		CreatorStorefront: appcreatorstorefront.NewService(db),
-		Bundle:   appbundle.NewService(db, aiSvc),
+		CreatorStorefront:     appcreatorstorefront.NewService(db),
+		CommunityShoppingList: appcommunityshoppinglist.NewService(db),
+		Bundle:                appbundle.NewService(db, aiSvc),
 	}
 }
 

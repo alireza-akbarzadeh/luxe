@@ -215,6 +215,7 @@ SEED_DEV_SQL_FILES := \
 	scripts/seed-home-content.sql \
 	scripts/seed-shop-looks.sql \
 	scripts/seed-creators.sql \
+	scripts/seed-community-lists.sql \
 	scripts/seed-lifestyle-collections.sql \
 	scripts/seed-invoices.sql \
 	scripts/seed-coupons.sql \
