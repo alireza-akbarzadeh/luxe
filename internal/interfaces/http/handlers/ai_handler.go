@@ -1442,3 +1442,53 @@ func (ac *AiHandler) InteractiveViewer(c *gin.Context) {
 
 	utils.SuccessResponse(c, "interactive viewer", result)
 }
+
+// ProductConfigurator recommends variant selections for a product listing.
+// @Summary      AI product configurator
+// @Description  Recommends variant option values from shopper context and listing attributes
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiProductConfiguratorRequest true "Product configurator request"
+// @Success      200 {object} utils.Response{data=dto.AiProductConfiguratorResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/product-configurator [post]
+func (ac *AiHandler) ProductConfigurator(c *gin.Context) {
+	var req dto.AiProductConfiguratorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.ProductConfigurator(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			case http.StatusNotFound:
+				utils.NotFoundResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai product configurator failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "product configurator", result)
+}

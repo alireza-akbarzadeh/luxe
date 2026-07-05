@@ -463,6 +463,29 @@ type AiInteractiveViewerResponse struct {
 	Sources    []string                 `json:"sources,omitempty"`
 }
 
+// AiProductConfiguratorRequest asks for guided variant selections on a PDP.
+type AiProductConfiguratorRequest struct {
+	ProductID   uint              `json:"product_id" binding:"required,gt=0"`
+	Context     string            `json:"context,omitempty"`
+	Preferences map[string]string `json:"preferences,omitempty"`
+}
+
+// AiProductConfiguratorSelection is one recommended variant option.
+type AiProductConfiguratorSelection struct {
+	Attribute string `json:"attribute"`
+	Value     string `json:"value"`
+	Reason    string `json:"reason,omitempty"`
+}
+
+// AiProductConfiguratorResponse returns recommended configuration and optional add-ons.
+type AiProductConfiguratorResponse struct {
+	Summary    string                           `json:"summary"`
+	Selections []AiProductConfiguratorSelection `json:"selections,omitempty"`
+	Tips       []string                         `json:"tips,omitempty"`
+	AddOns     []AiRecommendedProduct           `json:"add_ons,omitempty"`
+	Sources    []string                         `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

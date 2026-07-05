@@ -994,6 +994,49 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiProductConfiguratorRequest:
+    properties:
+      context:
+        type: string
+      preferences:
+        additionalProperties:
+          type: string
+        type: object
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiProductConfiguratorResponse:
+    properties:
+      add_ons:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      selections:
+        items:
+          $ref: '#/definitions/dto.AiProductConfiguratorSelection'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiProductConfiguratorSelection:
+    properties:
+      attribute:
+        type: string
+      reason:
+        type: string
+      value:
+        type: string
+    type: object
   dto.AiProductViewerHotspot:
     properties:
       description:
@@ -10404,6 +10447,50 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Product AI brief
+      tags:
+      - AI
+  /ai/product-configurator:
+    post:
+      consumes:
+      - application/json
+      description: Recommends variant option values from shopper context and listing
+        attributes
+      parameters:
+      - description: Product configurator request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiProductConfiguratorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiProductConfiguratorResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI product configurator
       tags:
       - AI
   /ai/purchase-advisor:
