@@ -11942,6 +11942,60 @@
                 }
             }
         },
+        "/products/{id}/timeline": {
+            "get": {
+                "description": "Returns notable listing, pricing, stock, workflow, and review milestones for PDP",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get product lifecycle timeline",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Product ID or slug",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 365,
+                        "description": "Number of days to include",
+                        "name": "days",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductTimelineData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/products/{id}/transition": {
             "post": {
                 "security": [
@@ -21845,6 +21899,60 @@
                     "type": "string"
                 },
                 "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProductTimelineData": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "type": "integer"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductTimelineEvent"
+                    }
+                }
+            }
+        },
+        "dto.ProductTimelineEvent": {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "$ref": "#/definitions/dto.ProductTimelineMeta"
+                },
+                "occurred_at": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProductTimelineMeta": {
+            "type": "object",
+            "properties": {
+                "price_from": {
+                    "type": "number"
+                },
+                "price_to": {
+                    "type": "number"
+                },
+                "review_count": {
+                    "type": "integer"
+                },
+                "review_rating": {
+                    "type": "integer"
+                },
+                "stock_quantity": {
+                    "type": "integer"
+                },
+                "workflow_event": {
+                    "type": "string"
+                },
+                "workflow_state": {
                     "type": "string"
                 }
             }

@@ -202,3 +202,36 @@ func (r *PdpRepository) GetLatestInventoryAdjustmentBefore(ctx context.Context, 
 	}
 	return &row, nil
 }
+
+// ListApprovedReviewsChronological returns approved reviews oldest-first for timeline milestones.
+func (r *PdpRepository) ListApprovedReviewsChronological(ctx context.Context, productID uint, since time.Time, limit int) ([]models.Review, error) {
+	var rows []models.Review
+	q := r.db.WithContext(ctx).Model(&models.Review{}).
+		Where("product_id = ?", productID).
+		Where(`workflow_state_id IN (
+			SELECT ws.id FROM workflow_states ws
+			INNER JOIN workflows w ON w.id = ws.workflow_id
+			WHERE w.key = ? AND ws.code = 'approved'
+		)`, constants.WorkflowEntityReview).
+		Order("created_at ASC")
+	if !since.IsZero() {
+		q = q.Where("created_at >= ?", since)
+	}
+	if limit > 0 {
+		q = q.Limit(limit)
+	}
+	err := q.Find(&rows).Error
+	return rows, err
+}
+
+// ListProductWorkflowLogsSince returns successful workflow transitions for a product.
+func (r *PdpRepository) ListProductWorkflowLogsSince(ctx context.Context, productID uint, since time.Time) ([]models.WorkflowTransitionLog, error) {
+	var rows []models.WorkflowTransitionLog
+	err := r.db.WithContext(ctx).
+		Preload("FromState").Preload("ToState").
+		Where("entity_type = ? AND entity_id = ? AND success = ?", constants.WorkflowEntityProduct, productID, true).
+		Where("created_at >= ?", since).
+		Order("created_at ASC").
+		Find(&rows).Error
+	return rows, err
+}

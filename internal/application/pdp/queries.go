@@ -73,6 +73,38 @@ func (q *Queries) GetStockHeatmap(ctx context.Context, product *models.Product, 
 	return buildStockHeatmap(*product, adjustments, days), nil
 }
 
+// GetProductTimeline aggregates lifecycle events for PDP transparency.
+func (q *Queries) GetProductTimeline(ctx context.Context, product *models.Product, days int) (dto.ProductTimelineData, error) {
+	if product == nil {
+		return dto.ProductTimelineData{}, gorm.ErrRecordNotFound
+	}
+
+	days = normalizeTimelineDays(days)
+	since := time.Now().UTC().AddDate(0, 0, -days)
+
+	priceRows, err := q.repo.ListPriceHistory(ctx, product.ID, since)
+	if err != nil {
+		return dto.ProductTimelineData{}, err
+	}
+
+	adjustments, err := q.repo.ListInventoryAdjustmentsSince(ctx, product.ID, since)
+	if err != nil {
+		return dto.ProductTimelineData{}, err
+	}
+
+	workflowLogs, err := q.repo.ListProductWorkflowLogsSince(ctx, product.ID, since)
+	if err != nil {
+		return dto.ProductTimelineData{}, err
+	}
+
+	reviews, err := q.repo.ListApprovedReviewsChronological(ctx, product.ID, since, 120)
+	if err != nil {
+		return dto.ProductTimelineData{}, err
+	}
+
+	return buildProductTimeline(*product, priceRows, adjustments, workflowLogs, reviews, days), nil
+}
+
 // GetAlternatives loads same-barcode products from other stores.
 func (q *Queries) GetAlternatives(ctx context.Context, product *models.Product, limit int) ([]*models.Product, error) {
 	if product.Barcode == "" {

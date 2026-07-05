@@ -100,6 +100,30 @@ func (ctrl *PdpHandler) GetStockHeatmap(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
 }
 
+// GetProductTimeline godoc
+// @Summary      Get product lifecycle timeline
+// @Description  Returns notable listing, pricing, stock, workflow, and review milestones for PDP
+// @Tags         Products
+// @Produce      json
+// @Param        id   path  string true  "Product ID or slug"
+// @Param        days query int    false "Number of days to include" default(365)
+// @Success      200 {object} utils.Response{data=dto.ProductTimelineData}
+// @Failure      404 {object} utils.Response
+// @Router       /products/{id}/timeline [get]
+func (ctrl *PdpHandler) GetProductTimeline(c *gin.Context) {
+	productID, ok := ctrl.resolveProductID(c)
+	if !ok {
+		return
+	}
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "365"))
+	data, err := ctrl.pdpService.GetProductTimeline(c.Request.Context(), productID, days)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch product timeline")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
+}
+
 // GetAlternatives godoc
 // @Summary      Get cross-store product alternatives
 // @Description  Lists the same product model from other stores (matched by barcode)

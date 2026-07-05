@@ -163,3 +163,27 @@ type StockHeatmapData struct {
 	OutOfStockDays    int                 `json:"out_of_stock_days"`
 	LowStockDays      int                 `json:"low_stock_days"`
 }
+
+// ProductTimelineMeta carries optional fields for timeline event rendering.
+type ProductTimelineMeta struct {
+	PriceFrom     *float64 `json:"price_from,omitempty"`
+	PriceTo       *float64 `json:"price_to,omitempty"`
+	StockQuantity *int     `json:"stock_quantity,omitempty"`
+	ReviewRating  *int     `json:"review_rating,omitempty"`
+	ReviewCount   *int     `json:"review_count,omitempty"`
+	WorkflowState string   `json:"workflow_state,omitempty"`
+	WorkflowEvent string   `json:"workflow_event,omitempty"`
+}
+
+// ProductTimelineEvent is a single lifecycle milestone on the PDP timeline.
+type ProductTimelineEvent struct {
+	Type       string              `json:"type"`
+	OccurredAt time.Time           `json:"occurred_at"`
+	Meta       ProductTimelineMeta `json:"meta,omitempty"`
+}
+
+// ProductTimelineData summarizes notable product lifecycle events.
+type ProductTimelineData struct {
+	Days   int                    `json:"days"`
+	Events []ProductTimelineEvent `json:"events"`
+}

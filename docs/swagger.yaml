@@ -3678,6 +3678,41 @@ definitions:
       slug:
         type: string
     type: object
+  dto.ProductTimelineData:
+    properties:
+      days:
+        type: integer
+      events:
+        items:
+          $ref: '#/definitions/dto.ProductTimelineEvent'
+        type: array
+    type: object
+  dto.ProductTimelineEvent:
+    properties:
+      meta:
+        $ref: '#/definitions/dto.ProductTimelineMeta'
+      occurred_at:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.ProductTimelineMeta:
+    properties:
+      price_from:
+        type: number
+      price_to:
+        type: number
+      review_count:
+        type: integer
+      review_rating:
+        type: integer
+      stock_quantity:
+        type: integer
+      workflow_event:
+        type: string
+      workflow_state:
+        type: string
+    type: object
   dto.ProductTransitionResponse:
     properties:
       product:
@@ -13350,6 +13385,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Subscribe to back-in-stock notifications
+      tags:
+      - Products
+  /products/{id}/timeline:
+    get:
+      description: Returns notable listing, pricing, stock, workflow, and review milestones
+        for PDP
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 365
+        description: Number of days to include
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductTimelineData'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get product lifecycle timeline
       tags:
       - Products
   /products/{id}/transition:

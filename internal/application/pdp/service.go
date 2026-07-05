@@ -79,6 +79,18 @@ func (s *Service) GetStockHeatmap(ctx context.Context, productID uint, days int)
 	return data, nil
 }
 
+func (s *Service) GetProductTimeline(ctx context.Context, productID uint, days int) (dto.ProductTimelineData, error) {
+	product, err := s.products.GetByID(productID)
+	if err != nil {
+		return dto.ProductTimelineData{}, err
+	}
+	data, err := s.queries.GetProductTimeline(ctx, product, days)
+	if err != nil {
+		return dto.ProductTimelineData{}, utils.ErrInternal(err)
+	}
+	return data, nil
+}
+
 func (s *Service) GetAlternatives(ctx context.Context, productID uint, limit int) ([]dto.ProductAlternativeResponse, error) {
 	product, err := s.products.GetByID(productID)
 	if err != nil {
