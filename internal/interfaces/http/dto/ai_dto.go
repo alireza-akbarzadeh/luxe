@@ -106,6 +106,88 @@ type AiTrustScoreResponse struct {
 	Sources       []string             `json:"sources,omitempty"`
 }
 
+// AiDurabilityScoreRequest asks for a durability / longevity assessment on a PDP.
+type AiDurabilityScoreRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiDurabilityHighlight is one durability signal from specs or reviews.
+type AiDurabilityHighlight struct {
+	Label string `json:"label"`
+	Note  string `json:"note"`
+}
+
+// AiDurabilityScoreResponse explains expected product longevity for shoppers.
+type AiDurabilityScoreResponse struct {
+	Score            int                     `json:"score"`
+	Tier             string                  `json:"tier"`
+	Summary          string                  `json:"summary"`
+	LifespanEstimate string                  `json:"lifespan_estimate,omitempty"`
+	Highlights       []AiDurabilityHighlight `json:"highlights,omitempty"`
+	CareTips         []string                `json:"care_tips,omitempty"`
+	Sources          []string                `json:"sources,omitempty"`
+}
+
+// AiSustainabilityScoreRequest asks for an environmental / ethical assessment on a PDP.
+type AiSustainabilityScoreRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiSustainabilityPillar is one sustainability dimension with a sub-score.
+type AiSustainabilityPillar struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Score int    `json:"score"`
+	Note  string `json:"note"`
+}
+
+// AiSustainabilityScoreResponse explains eco and ethical shopping signals.
+type AiSustainabilityScoreResponse struct {
+	Score      int                      `json:"score"`
+	Rating     string                   `json:"rating"`
+	Summary    string                   `json:"summary"`
+	Pillars    []AiSustainabilityPillar `json:"pillars,omitempty"`
+	Highlights []string                 `json:"highlights,omitempty"`
+	WatchOuts  []string                 `json:"watch_outs,omitempty"`
+	Sources    []string                 `json:"sources,omitempty"`
+}
+
+// AiPricePredictionRequest asks for a short-term price trend forecast on a PDP.
+type AiPricePredictionRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+	Days      int  `json:"days,omitempty"`
+}
+
+// AiPricePredictionResponse explains price trend and buy/wait guidance.
+type AiPricePredictionResponse struct {
+	Trend          string   `json:"trend"`
+	Direction      string   `json:"direction"`
+	Summary        string   `json:"summary"`
+	PredictedRange string   `json:"predicted_range,omitempty"`
+	Recommendation string   `json:"recommendation"`
+	Confidence     string   `json:"confidence"`
+	Highlights     []string `json:"highlights,omitempty"`
+	Sources        []string `json:"sources,omitempty"`
+}
+
+// AiDeliveryPredictionRequest asks for estimated delivery timing on a PDP.
+type AiDeliveryPredictionRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiDeliveryPredictionResponse explains expected delivery window and speed.
+type AiDeliveryPredictionResponse struct {
+	Speed            string   `json:"speed"`
+	DeliveryWindow   string   `json:"delivery_window"`
+	EstimatedDaysMin *int     `json:"estimated_days_min,omitempty"`
+	EstimatedDaysMax *int     `json:"estimated_days_max,omitempty"`
+	Summary          string   `json:"summary"`
+	Confidence       string   `json:"confidence"`
+	Highlights       []string `json:"highlights,omitempty"`
+	Factors          []string `json:"factors,omitempty"`
+	Sources          []string `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

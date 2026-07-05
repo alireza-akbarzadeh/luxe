@@ -185,3 +185,37 @@ func (r *ShipmentRepository) DeleteProvider(ctx context.Context, id uint) (int64
 	result := r.db.WithContext(ctx).Delete(&models.ShippingProviders{}, id)
 	return result.RowsAffected, result.Error
 }
+
+// StoreDeliveryStats aggregates delivered shipment timing for a store's catalog.
+func (r *ShipmentRepository) StoreDeliveryStats(ctx context.Context, storeID uint) (deliveredCount int64, avgDays float64, err error) {
+	if storeID == 0 {
+		return 0, 0, nil
+	}
+
+	type row struct {
+		Count   int64
+		AvgDays *float64
+	}
+	var stats row
+
+	err = r.db.WithContext(ctx).Model(&models.Shipment{}).
+		Select(`COUNT(DISTINCT shipments.id) AS count,
+			AVG(EXTRACT(EPOCH FROM (shipments.delivered_at - shipments.shipped_at)) / 86400) AS avg_days`).
+		Joins("JOIN orders ON orders.id = shipments.order_id AND orders.deleted_at IS NULL").
+		Joins("JOIN order_items ON order_items.order_id = orders.id AND order_items.deleted_at IS NULL").
+		Joins("JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where(
+			"products.store_id = ? AND shipments.shipped_at IS NOT NULL AND shipments.delivered_at IS NOT NULL AND shipments.deleted_at IS NULL",
+			storeID,
+		).
+		Scan(&stats).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if stats.AvgDays != nil {
+		avgDays = *stats.AvgDays
+	}
+
+	return stats.Count, avgDays, nil
+}

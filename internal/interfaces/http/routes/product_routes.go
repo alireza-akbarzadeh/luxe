@@ -9,6 +9,7 @@ import (
 func SetupProductRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Container) {
 	public.GET("/products", ctrl.Product.List)
 	public.GET("/products/:id/price-history", ctrl.Pdp.GetPriceHistory)
+	public.GET("/products/:id/stock-heatmap", ctrl.Pdp.GetStockHeatmap)
 	public.GET("/products/:id/alternatives", ctrl.Pdp.GetAlternatives)
 	public.GET("/products/:id/questions", ctrl.Pdp.GetQuestions)
 	public.GET("/products/:id/related", ctrl.Product.GetRelated)

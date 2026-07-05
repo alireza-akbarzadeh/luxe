@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +20,8 @@ type AiHandler struct {
 	compareQueries  appai.CompareQueries
 	reviewQueries   appai.ReviewSummaryQueries
 	returnQueries   appai.ReturnRiskQueries
+	priceHistory    appai.PriceHistoryQueries
+	deliveryStats   appai.DeliveryStatsQueries
 }
 
 func NewAiHandler(
@@ -25,6 +30,8 @@ func NewAiHandler(
 	compareQueries appai.CompareQueries,
 	reviewQueries appai.ReviewSummaryQueries,
 	returnQueries appai.ReturnRiskQueries,
+	priceHistory appai.PriceHistoryQueries,
+	deliveryStats appai.DeliveryStatsQueries,
 ) *AiHandler {
 	return &AiHandler{
 		aiService:      aiService,
@@ -32,6 +39,8 @@ func NewAiHandler(
 		compareQueries: compareQueries,
 		reviewQueries:  reviewQueries,
 		returnQueries:  returnQueries,
+		priceHistory:   priceHistory,
+		deliveryStats:  deliveryStats,
 	}
 }
 
@@ -488,4 +497,211 @@ func (ac *AiHandler) TrustScore(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "trust score", result)
+}
+
+// DurabilityScore estimates product longevity for PDP shoppers.
+// @Summary      AI durability score
+// @Description  Scores expected durability using specs, materials, and buyer review signals
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiDurabilityScoreRequest true "Durability score request"
+// @Success      200 {object} utils.Response{data=dto.AiDurabilityScoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/durability-score [post]
+func (ac *AiHandler) DurabilityScore(c *gin.Context) {
+	var req dto.AiDurabilityScoreRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.DurabilityScore(c.Request.Context(), subjectKey, ac.reviewQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai durability score failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "durability score", result)
+}
+
+// SustainabilityScore estimates environmental and ethical signals for PDP shoppers.
+// @Summary      AI sustainability score
+// @Description  Scores eco and ethics signals from listing specs, tags, and buyer reviews
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiSustainabilityScoreRequest true "Sustainability score request"
+// @Success      200 {object} utils.Response{data=dto.AiSustainabilityScoreResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/sustainability-score [post]
+func (ac *AiHandler) SustainabilityScore(c *gin.Context) {
+	var req dto.AiSustainabilityScoreRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.SustainabilityScore(c.Request.Context(), subjectKey, ac.reviewQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai sustainability score failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "sustainability score", result)
+}
+
+// pdpPriceHistoryAdapter bridges PDP queries into the AI price-prediction use case.
+type pdpPriceHistoryAdapter struct {
+	svc interface {
+		GetPriceHistoryCtx(ctx context.Context, productID uint, days int) ([]dto.PriceHistoryPoint, error)
+	}
+}
+
+func (a pdpPriceHistoryAdapter) GetPriceHistory(ctx context.Context, productID uint, days int) ([]dto.PriceHistoryPoint, error) {
+	return a.svc.GetPriceHistoryCtx(ctx, productID, days)
+}
+
+// PricePrediction forecasts short-term price direction for PDP shoppers.
+// @Summary      AI price prediction
+// @Description  Analyzes recorded price history and suggests buy-now vs wait guidance
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiPricePredictionRequest true "Price prediction request"
+// @Success      200 {object} utils.Response{data=dto.AiPricePredictionResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/price-prediction [post]
+func (ac *AiHandler) PricePrediction(c *gin.Context) {
+	var req dto.AiPricePredictionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.PricePrediction(c.Request.Context(), subjectKey, ac.priceHistory, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai price prediction failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "price prediction", result)
+}
+
+type shipmentDeliveryStatsAdapter struct {
+	repo *postgres.ShipmentRepository
+}
+
+func (a shipmentDeliveryStatsAdapter) StoreDeliveryStats(ctx context.Context, storeID uint) (int64, float64, error) {
+	return a.repo.StoreDeliveryStats(ctx, storeID)
+}
+
+func (a shipmentDeliveryStatsAdapter) ListActiveProviders(ctx context.Context) ([]models.ShippingProviders, error) {
+	return a.repo.ListActiveProviders(ctx)
+}
+
+// DeliveryPrediction estimates delivery timing for PDP shoppers.
+// @Summary      AI delivery prediction
+// @Description  Estimates delivery window and speed from store shipping info and shipment history
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiDeliveryPredictionRequest true "Delivery prediction request"
+// @Success      200 {object} utils.Response{data=dto.AiDeliveryPredictionResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/delivery-prediction [post]
+func (ac *AiHandler) DeliveryPrediction(c *gin.Context) {
+	var req dto.AiDeliveryPredictionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.DeliveryPrediction(c.Request.Context(), subjectKey, ac.deliveryStats, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai delivery prediction failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "delivery prediction", result)
 }

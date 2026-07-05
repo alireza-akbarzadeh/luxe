@@ -17,6 +17,10 @@ func SetupAiRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, ctrl *ha
 	public.POST("/ai/review-summary", ctrl.Ai.ReviewSummary)
 	public.POST("/ai/return-risk", ctrl.Ai.ReturnRisk)
 	public.POST("/ai/trust-score", ctrl.Ai.TrustScore)
+	public.POST("/ai/durability-score", ctrl.Ai.DurabilityScore)
+	public.POST("/ai/sustainability-score", ctrl.Ai.SustainabilityScore)
+	public.POST("/ai/price-prediction", ctrl.Ai.PricePrediction)
+	public.POST("/ai/delivery-prediction", ctrl.Ai.DeliveryPrediction)
 
 	admin := protected.Group("/admin")
 	admin.Use(middleware.RequireStaff())

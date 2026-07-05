@@ -604,6 +604,77 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiDeliveryPredictionRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiDeliveryPredictionResponse:
+    properties:
+      confidence:
+        type: string
+      delivery_window:
+        type: string
+      estimated_days_max:
+        type: integer
+      estimated_days_min:
+        type: integer
+      factors:
+        items:
+          type: string
+        type: array
+      highlights:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      speed:
+        type: string
+      summary:
+        type: string
+    type: object
+  dto.AiDurabilityHighlight:
+    properties:
+      label:
+        type: string
+      note:
+        type: string
+    type: object
+  dto.AiDurabilityScoreRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiDurabilityScoreResponse:
+    properties:
+      care_tips:
+        items:
+          type: string
+        type: array
+      highlights:
+        items:
+          $ref: '#/definitions/dto.AiDurabilityHighlight'
+        type: array
+      lifespan_estimate:
+        type: string
+      score:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tier:
+        type: string
+    type: object
   dto.AiGenerateRequest:
     properties:
       context:
@@ -675,6 +746,38 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  dto.AiPricePredictionRequest:
+    properties:
+      days:
+        type: integer
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiPricePredictionResponse:
+    properties:
+      confidence:
+        type: string
+      direction:
+        type: string
+      highlights:
+        items:
+          type: string
+        type: array
+      predicted_range:
+        type: string
+      recommendation:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      trend:
+        type: string
     type: object
   dto.AiProductBriefRequest:
     properties:
@@ -838,6 +941,49 @@ definitions:
         type: string
       provider:
         type: string
+    type: object
+  dto.AiSustainabilityPillar:
+    properties:
+      key:
+        type: string
+      label:
+        type: string
+      note:
+        type: string
+      score:
+        type: integer
+    type: object
+  dto.AiSustainabilityScoreRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiSustainabilityScoreResponse:
+    properties:
+      highlights:
+        items:
+          type: string
+        type: array
+      pillars:
+        items:
+          $ref: '#/definitions/dto.AiSustainabilityPillar'
+        type: array
+      rating:
+        type: string
+      score:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      watch_outs:
+        items:
+          type: string
+        type: array
     type: object
   dto.AiTrustScoreFactor:
     properties:
@@ -4020,6 +4166,38 @@ definitions:
         type: integer
       text_color:
         type: string
+    type: object
+  dto.StockHeatmapData:
+    properties:
+      current_stock:
+        type: integer
+      days:
+        type: integer
+      in_stock_days:
+        type: integer
+      is_digital:
+        type: boolean
+      low_stock_days:
+        type: integer
+      low_stock_threshold:
+        type: integer
+      out_of_stock_days:
+        type: integer
+      points:
+        items:
+          $ref: '#/definitions/dto.StockHeatmapPoint'
+        type: array
+      track_inventory:
+        type: boolean
+    type: object
+  dto.StockHeatmapPoint:
+    properties:
+      date:
+        type: string
+      level:
+        type: string
+      stock:
+        type: integer
     type: object
   dto.StockNotificationStatusResponse:
     properties:
@@ -9282,6 +9460,86 @@ paths:
       summary: AI compare insight
       tags:
       - AI
+  /ai/delivery-prediction:
+    post:
+      consumes:
+      - application/json
+      description: Estimates delivery window and speed from store shipping info and
+        shipment history
+      parameters:
+      - description: Delivery prediction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiDeliveryPredictionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiDeliveryPredictionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI delivery prediction
+      tags:
+      - AI
+  /ai/durability-score:
+    post:
+      consumes:
+      - application/json
+      description: Scores expected durability using specs, materials, and buyer review
+        signals
+      parameters:
+      - description: Durability score request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiDurabilityScoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiDurabilityScoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI durability score
+      tags:
+      - AI
   /ai/gift-finder:
     post:
       consumes:
@@ -9320,6 +9578,45 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI gift finder
+      tags:
+      - AI
+  /ai/price-prediction:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes recorded price history and suggests buy-now vs wait guidance
+      parameters:
+      - description: Price prediction request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiPricePredictionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiPricePredictionResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI price prediction
       tags:
       - AI
   /ai/product-brief:
@@ -9514,6 +9811,46 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI shopping assistant
+      tags:
+      - AI
+  /ai/sustainability-score:
+    post:
+      consumes:
+      - application/json
+      description: Scores eco and ethics signals from listing specs, tags, and buyer
+        reviews
+      parameters:
+      - description: Sustainability score request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiSustainabilityScoreRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiSustainabilityScoreResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI sustainability score
       tags:
       - AI
   /ai/trust-score:
@@ -12897,6 +13234,39 @@ paths:
       summary: Smart bundles for a product
       tags:
       - Bundles
+  /products/{id}/stock-heatmap:
+    get:
+      description: Returns daily stock availability levels for PDP heatmap charts
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 90
+        description: Number of days to include
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StockHeatmapData'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get product stock heatmap
+      tags:
+      - Products
   /products/{id}/stock-notifications:
     delete:
       parameters:

@@ -178,3 +178,27 @@ func (r *PdpRepository) GetQuestionWithProductStore(ctx context.Context, questio
 	}
 	return &question, nil
 }
+
+// ListInventoryAdjustmentsSince returns ledger rows for stock heatmap reconstruction.
+func (r *PdpRepository) ListInventoryAdjustmentsSince(ctx context.Context, productID uint, since time.Time) ([]models.InventoryAdjustment, error) {
+	var rows []models.InventoryAdjustment
+	err := r.db.WithContext(ctx).Model(&models.InventoryAdjustment{}).
+		Where("product_id = ? AND created_at >= ?", productID, since).
+		Order("created_at ASC").
+		Find(&rows).Error
+	return rows, err
+}
+
+// GetLatestInventoryAdjustmentBefore returns the newest adjustment before a timestamp.
+func (r *PdpRepository) GetLatestInventoryAdjustmentBefore(ctx context.Context, productID uint, before time.Time) (*models.InventoryAdjustment, error) {
+	var row models.InventoryAdjustment
+	err := r.db.WithContext(ctx).Model(&models.InventoryAdjustment{}).
+		Where("product_id = ? AND created_at < ?", productID, before).
+		Order("created_at DESC").
+		Limit(1).
+		First(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
+}

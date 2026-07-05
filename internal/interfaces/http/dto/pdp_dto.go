@@ -143,3 +143,23 @@ func ToUserProductQuestionResponse(question *models.ProductQuestion, viewerUserI
 type StockNotificationStatusResponse struct {
 	Subscribed bool `json:"subscribed"`
 }
+
+// StockHeatmapPoint is a single day of availability for PDP heatmap charts.
+type StockHeatmapPoint struct {
+	Date  time.Time `json:"date"`
+	Stock int       `json:"stock"`
+	Level string    `json:"level"`
+}
+
+// StockHeatmapData summarizes stock availability over a rolling window.
+type StockHeatmapData struct {
+	TrackInventory    bool                `json:"track_inventory"`
+	IsDigital         bool                `json:"is_digital"`
+	CurrentStock      int                 `json:"current_stock"`
+	LowStockThreshold int                 `json:"low_stock_threshold"`
+	Days              int                 `json:"days"`
+	Points            []StockHeatmapPoint `json:"points"`
+	InStockDays       int                 `json:"in_stock_days"`
+	OutOfStockDays    int                 `json:"out_of_stock_days"`
+	LowStockDays      int                 `json:"low_stock_days"`
+}

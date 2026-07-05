@@ -4,6 +4,7 @@ package handlers
 import (
 	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/health"
 	"gorm.io/gorm"
 )
@@ -94,7 +95,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
 		Inventory: NewInventoryHandler(apps.Inventory),
 		Push:      NewPushHandler(apps.Push),
-		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries),
+		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}),
 		GiftCard:  NewGiftCardHandler(apps.GiftCard),
 		Plus:      NewPlusHandler(apps.Membership),
 		Home:      NewHomeHandler(apps.Home),

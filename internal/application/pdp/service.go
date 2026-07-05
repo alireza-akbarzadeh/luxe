@@ -62,6 +62,23 @@ func (s *Service) GetPriceHistory(productID uint, days int) ([]dto.PriceHistoryP
 	return points, nil
 }
 
+// GetPriceHistoryCtx returns price snapshots for AI and API callers with request context.
+func (s *Service) GetPriceHistoryCtx(ctx context.Context, productID uint, days int) ([]dto.PriceHistoryPoint, error) {
+	return s.queries.GetPriceHistory(ctx, productID, days)
+}
+
+func (s *Service) GetStockHeatmap(ctx context.Context, productID uint, days int) (dto.StockHeatmapData, error) {
+	product, err := s.products.GetByID(productID)
+	if err != nil {
+		return dto.StockHeatmapData{}, err
+	}
+	data, err := s.queries.GetStockHeatmap(ctx, product, days)
+	if err != nil {
+		return dto.StockHeatmapData{}, utils.ErrInternal(err)
+	}
+	return data, nil
+}
+
 func (s *Service) GetAlternatives(ctx context.Context, productID uint, limit int) ([]dto.ProductAlternativeResponse, error) {
 	product, err := s.products.GetByID(productID)
 	if err != nil {

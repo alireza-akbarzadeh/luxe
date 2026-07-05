@@ -76,6 +76,30 @@ func (ctrl *PdpHandler) GetPriceHistory(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{"points": points})
 }
 
+// GetStockHeatmap godoc
+// @Summary      Get product stock heatmap
+// @Description  Returns daily stock availability levels for PDP heatmap charts
+// @Tags         Products
+// @Produce      json
+// @Param        id   path  string true  "Product ID or slug"
+// @Param        days query int    false "Number of days to include" default(90)
+// @Success      200 {object} utils.Response{data=dto.StockHeatmapData}
+// @Failure      404 {object} utils.Response
+// @Router       /products/{id}/stock-heatmap [get]
+func (ctrl *PdpHandler) GetStockHeatmap(c *gin.Context) {
+	productID, ok := ctrl.resolveProductID(c)
+	if !ok {
+		return
+	}
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "90"))
+	data, err := ctrl.pdpService.GetStockHeatmap(c.Request.Context(), productID, days)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to fetch stock heatmap")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, data)
+}
+
 // GetAlternatives godoc
 // @Summary      Get cross-store product alternatives
 // @Description  Lists the same product model from other stores (matched by barcode)

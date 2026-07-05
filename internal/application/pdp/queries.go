@@ -2,12 +2,14 @@ package pdp
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"gorm.io/gorm"
 )
 
 // Queries orchestrates PDP read use cases.
@@ -44,6 +46,31 @@ func (q *Queries) GetPriceHistory(ctx context.Context, productID uint, days int)
 		}
 	}
 	return points, nil
+}
+
+// GetStockHeatmap reconstructs daily availability for PDP transparency charts.
+func (q *Queries) GetStockHeatmap(ctx context.Context, product *models.Product, days int) (dto.StockHeatmapData, error) {
+	if product == nil {
+		return dto.StockHeatmapData{}, gorm.ErrRecordNotFound
+	}
+
+	days = normalizeStockHeatmapDays(days)
+	now := time.Now().UTC()
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -(days - 1))
+
+	adjustments, err := q.repo.ListInventoryAdjustmentsSince(ctx, product.ID, start)
+	if err != nil {
+		return dto.StockHeatmapData{}, err
+	}
+
+	prior, priorErr := q.repo.GetLatestInventoryAdjustmentBefore(ctx, product.ID, start)
+	if priorErr == nil && prior != nil {
+		adjustments = append([]models.InventoryAdjustment{*prior}, adjustments...)
+	} else if priorErr != nil && !errors.Is(priorErr, gorm.ErrRecordNotFound) {
+		return dto.StockHeatmapData{}, priorErr
+	}
+
+	return buildStockHeatmap(*product, adjustments, days), nil
 }
 
 // GetAlternatives loads same-barcode products from other stores.
