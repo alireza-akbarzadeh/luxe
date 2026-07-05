@@ -1038,3 +1038,119 @@ func (ac *AiHandler) MoodShopping(c *gin.Context) {
 
 	utils.SuccessResponse(c, "mood shopping", result)
 }
+
+// SmartCart analyzes cart contents and suggests checkout guidance.
+// @Summary      AI smart cart
+// @Description  Reviews cart items and returns tips, warnings, gaps, and complementary picks
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiSmartCartRequest true "Smart cart request"
+// @Success      200 {object} utils.Response{data=dto.AiSmartCartResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/smart-cart [post]
+func (ac *AiHandler) SmartCart(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiSmartCartRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.SmartCart(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.searchQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai smart cart failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "smart cart", result)
+}
+
+// PersonalizedNotifications suggests notification preferences for the authenticated shopper.
+// @Summary      AI personalized notifications
+// @Description  Recommends order, price, wishlist, and style alerts based on shopping activity
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiPersonalizedNotificationsRequest true "Personalized notifications request"
+// @Success      200 {object} utils.Response{data=dto.AiPersonalizedNotificationsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/personalized-notifications [post]
+func (ac *AiHandler) PersonalizedNotifications(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiPersonalizedNotificationsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.PersonalizedNotifications(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.shoppingMemoryQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai personalized notifications failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "personalized notifications", result)
+}

@@ -310,6 +310,44 @@ type AiMoodShoppingResponse struct {
 	Sources           []string               `json:"sources,omitempty"`
 }
 
+// AiSmartCartRequest analyzes items currently in the shopper's cart.
+type AiSmartCartRequest struct {
+	ProductIDs []uint  `json:"product_ids" binding:"required,min=1"`
+	Subtotal   float64 `json:"subtotal,omitempty"`
+	Context    string  `json:"context,omitempty"`
+}
+
+// AiSmartCartResponse returns checkout guidance and complementary picks for a cart.
+type AiSmartCartResponse struct {
+	Summary         string                 `json:"summary"`
+	Tips            []string               `json:"tips,omitempty"`
+	Warnings        []string               `json:"warnings,omitempty"`
+	Gaps            []string               `json:"gaps,omitempty"`
+	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources         []string               `json:"sources,omitempty"`
+}
+
+// AiPersonalizedNotificationsRequest suggests alert types for the authenticated shopper.
+type AiPersonalizedNotificationsRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// AiNotificationSuggestion is one recommended notification preference.
+type AiNotificationSuggestion struct {
+	Type        string `json:"type"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Priority    string `json:"priority"`
+	Suggested   bool   `json:"suggested"`
+}
+
+// AiPersonalizedNotificationsResponse summarizes which alerts matter for this shopper.
+type AiPersonalizedNotificationsResponse struct {
+	Summary     string                     `json:"summary"`
+	Suggestions []AiNotificationSuggestion `json:"suggestions,omitempty"`
+	Sources     []string                   `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

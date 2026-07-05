@@ -783,6 +783,75 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiMoodShoppingRequest:
+    properties:
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      context:
+        type: string
+      mood:
+        type: string
+    required:
+    - mood
+    type: object
+  dto.AiMoodShoppingResponse:
+    properties:
+      follow_up_questions:
+        items:
+          type: string
+        type: array
+      mood_tags:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      reply:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      style_cues:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiNotificationSuggestion:
+    properties:
+      description:
+        type: string
+      priority:
+        type: string
+      suggested:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AiPersonalizedNotificationsRequest:
+    properties:
+      limit:
+        type: integer
+    type: object
+  dto.AiPersonalizedNotificationsResponse:
+    properties:
+      sources:
+        items:
+          type: string
+        type: array
+      suggestions:
+        items:
+          $ref: '#/definitions/dto.AiNotificationSuggestion'
+        type: array
+      summary:
+        type: string
+    type: object
   dto.AiPricePredictionRequest:
     properties:
       days:
@@ -1082,6 +1151,45 @@ definitions:
         type: string
       weight_kg:
         type: integer
+    type: object
+  dto.AiSmartCartRequest:
+    properties:
+      context:
+        type: string
+      product_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+      subtotal:
+        type: number
+    required:
+    - product_ids
+    type: object
+  dto.AiSmartCartResponse:
+    properties:
+      gaps:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+      warnings:
+        items:
+          type: string
+        type: array
     type: object
   dto.AiStatusResponse:
     properties:
@@ -9841,6 +9949,87 @@ paths:
       summary: AI goal-based shopping
       tags:
       - AI
+  /ai/mood-shopping:
+    post:
+      consumes:
+      - application/json
+      description: Suggests style cues and catalog picks for a selected mood
+      parameters:
+      - description: Mood shopping request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiMoodShoppingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiMoodShoppingResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI mood shopping
+      tags:
+      - AI
+  /ai/personalized-notifications:
+    post:
+      consumes:
+      - application/json
+      description: Recommends order, price, wishlist, and style alerts based on shopping
+        activity
+      parameters:
+      - description: Personalized notifications request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiPersonalizedNotificationsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiPersonalizedNotificationsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI personalized notifications
+      tags:
+      - AI
   /ai/price-prediction:
     post:
       consumes:
@@ -10194,6 +10383,52 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI size recommendation
+      tags:
+      - AI
+  /ai/smart-cart:
+    post:
+      consumes:
+      - application/json
+      description: Reviews cart items and returns tips, warnings, gaps, and complementary
+        picks
+      parameters:
+      - description: Smart cart request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiSmartCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiSmartCartResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI smart cart
       tags:
       - AI
   /ai/sustainability-score:
