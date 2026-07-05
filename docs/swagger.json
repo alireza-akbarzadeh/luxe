@@ -5680,6 +5680,81 @@
                 }
             }
         },
+        "/ai/household-shopping": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns per-member catalog picks from household profiles and optional context",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI household shopping",
+                "parameters": [
+                    {
+                        "description": "Household shopping request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiHouseholdShoppingRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiHouseholdShoppingResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/mood-shopping": {
             "post": {
                 "description": "Suggests style cues and catalog picks for a selected mood",
@@ -5986,6 +6061,75 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/replenishment-reminders": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Analyzes past orders and returns likely reorder items with urgency",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI replenishment reminders",
+                "parameters": [
+                    {
+                        "description": "Replenishment reminders request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiReplenishmentRemindersRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiReplenishmentRemindersResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -18116,6 +18260,91 @@
                 }
             }
         },
+        "dto.AiHouseholdMemberPick": {
+            "type": "object",
+            "properties": {
+                "member_name": {
+                    "type": "string"
+                },
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiRecommendedProduct"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiHouseholdMemberProfile": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "interests": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "preferences": {
+                    "type": "string"
+                },
+                "relationship": {
+                    "type": "string"
+                },
+                "sizes": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiHouseholdShoppingRequest": {
+            "type": "object",
+            "required": [
+                "members"
+            ],
+            "properties": {
+                "budget_max": {
+                    "type": "number"
+                },
+                "budget_min": {
+                    "type": "number"
+                },
+                "context": {
+                    "type": "string"
+                },
+                "members": {
+                    "type": "array",
+                    "maxItems": 8,
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dto.AiHouseholdMemberProfile"
+                    }
+                }
+            }
+        },
+        "dto.AiHouseholdShoppingResponse": {
+            "type": "object",
+            "properties": {
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiHouseholdMemberPick"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AiMoodShoppingRequest": {
             "type": "object",
             "required": [
@@ -18379,6 +18608,66 @@
                     "$ref": "#/definitions/dto.ProductResponse"
                 },
                 "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiReplenishmentReminder": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "days_since_order": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "search_query": {
+                    "type": "string"
+                },
+                "urgency": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiReplenishmentRemindersRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiReplenishmentRemindersResponse": {
+            "type": "object",
+            "properties": {
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiRecommendedProduct"
+                    }
+                },
+                "reminders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiReplenishmentReminder"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
                     "type": "string"
                 }
             }

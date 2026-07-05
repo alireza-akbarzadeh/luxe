@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
+	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
@@ -24,6 +25,7 @@ type AiHandler struct {
 	deliveryStats          appai.DeliveryStatsQueries
 	wishlistQueries        appai.WishlistIntelligenceQueries
 	shoppingMemoryQueries  appai.ShoppingMemoryQueries
+	replenishmentQueries   appai.ReplenishmentQueries
 }
 
 func NewAiHandler(
@@ -36,6 +38,7 @@ func NewAiHandler(
 	deliveryStats appai.DeliveryStatsQueries,
 	wishlistQueries appai.WishlistIntelligenceQueries,
 	shoppingMemoryQueries appai.ShoppingMemoryQueries,
+	replenishmentQueries appai.ReplenishmentQueries,
 ) *AiHandler {
 	return &AiHandler{
 		aiService:             aiService,
@@ -47,6 +50,7 @@ func NewAiHandler(
 		deliveryStats:         deliveryStats,
 		wishlistQueries:       wishlistQueries,
 		shoppingMemoryQueries: shoppingMemoryQueries,
+		replenishmentQueries:  replenishmentQueries,
 	}
 }
 
@@ -1153,4 +1157,138 @@ func (ac *AiHandler) PersonalizedNotifications(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "personalized notifications", result)
+}
+
+type replenishmentAdapter struct {
+	orders *postgres.OrderRepository
+}
+
+func (a replenishmentAdapter) ListRecentOrders(ctx context.Context, userID uint, limit int) ([]models.Order, error) {
+	if limit <= 0 {
+		limit = 12
+	}
+	uid := userID
+	orders, _, err := a.orders.List(ctx, apporder.ListFilter{
+		UserID: &uid,
+		Limit:  limit,
+		Offset: 0,
+	})
+	return orders, err
+}
+
+// ReplenishmentReminders suggests reorder timing from purchase history.
+// @Summary      AI replenishment reminders
+// @Description  Analyzes past orders and returns likely reorder items with urgency
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiReplenishmentRemindersRequest true "Replenishment reminders request"
+// @Success      200 {object} utils.Response{data=dto.AiReplenishmentRemindersResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/replenishment-reminders [post]
+func (ac *AiHandler) ReplenishmentReminders(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiReplenishmentRemindersRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.ReplenishmentReminders(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.replenishmentQueries,
+		ac.searchQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai replenishment reminders failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "replenishment reminders", result)
+}
+
+// HouseholdShopping recommends products for each household member profile.
+// @Summary      AI household shopping
+// @Description  Returns per-member catalog picks from household profiles and optional context
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiHouseholdShoppingRequest true "Household shopping request"
+// @Success      200 {object} utils.Response{data=dto.AiHouseholdShoppingResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/household-shopping [post]
+func (ac *AiHandler) HouseholdShopping(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiHouseholdShoppingRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.HouseholdShopping(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.searchQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai household shopping failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "household shopping", result)
 }

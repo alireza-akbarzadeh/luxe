@@ -95,7 +95,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
 		Inventory: NewInventoryHandler(apps.Inventory),
 		Push:      NewPushHandler(apps.Push),
-		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}, apps.UserLike.Queries, shoppingMemoryAdapter{home: postgres.NewHomeRepository(db), wishlist: apps.UserLike.Queries}),
+		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}, apps.UserLike.Queries, shoppingMemoryAdapter{home: postgres.NewHomeRepository(db), wishlist: apps.UserLike.Queries}, replenishmentAdapter{orders: postgres.NewOrderRepository(db)}),
 		GiftCard:  NewGiftCardHandler(apps.GiftCard),
 		Plus:      NewPlusHandler(apps.Membership),
 		Home:      NewHomeHandler(apps.Home),

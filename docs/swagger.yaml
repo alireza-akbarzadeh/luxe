@@ -783,6 +783,62 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiHouseholdMemberPick:
+    properties:
+      member_name:
+        type: string
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      summary:
+        type: string
+    type: object
+  dto.AiHouseholdMemberProfile:
+    properties:
+      interests:
+        type: string
+      name:
+        type: string
+      preferences:
+        type: string
+      relationship:
+        type: string
+      sizes:
+        type: string
+    required:
+    - name
+    type: object
+  dto.AiHouseholdShoppingRequest:
+    properties:
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      context:
+        type: string
+      members:
+        items:
+          $ref: '#/definitions/dto.AiHouseholdMemberProfile'
+        maxItems: 8
+        minItems: 1
+        type: array
+    required:
+    - members
+    type: object
+  dto.AiHouseholdShoppingResponse:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/dto.AiHouseholdMemberPick'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
   dto.AiMoodShoppingRequest:
     properties:
       budget_max:
@@ -955,6 +1011,45 @@ definitions:
       product:
         $ref: '#/definitions/dto.ProductResponse'
       reason:
+        type: string
+    type: object
+  dto.AiReplenishmentReminder:
+    properties:
+      category:
+        type: string
+      days_since_order:
+        type: integer
+      message:
+        type: string
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      search_query:
+        type: string
+      urgency:
+        type: string
+    type: object
+  dto.AiReplenishmentRemindersRequest:
+    properties:
+      limit:
+        type: integer
+    type: object
+  dto.AiReplenishmentRemindersResponse:
+    properties:
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      reminders:
+        items:
+          $ref: '#/definitions/dto.AiReplenishmentReminder'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
         type: string
     type: object
   dto.AiReturnRiskRequest:
@@ -9949,6 +10044,52 @@ paths:
       summary: AI goal-based shopping
       tags:
       - AI
+  /ai/household-shopping:
+    post:
+      consumes:
+      - application/json
+      description: Returns per-member catalog picks from household profiles and optional
+        context
+      parameters:
+      - description: Household shopping request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiHouseholdShoppingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiHouseholdShoppingResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI household shopping
+      tags:
+      - AI
   /ai/mood-shopping:
     post:
       consumes:
@@ -10147,6 +10288,47 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI purchase advisor
+      tags:
+      - AI
+  /ai/replenishment-reminders:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes past orders and returns likely reorder items with urgency
+      parameters:
+      - description: Replenishment reminders request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiReplenishmentRemindersRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiReplenishmentRemindersResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI replenishment reminders
       tags:
       - AI
   /ai/return-risk:

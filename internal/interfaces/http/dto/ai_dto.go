@@ -348,6 +348,61 @@ type AiPersonalizedNotificationsResponse struct {
 	Sources     []string                   `json:"sources,omitempty"`
 }
 
+// AiReplenishmentRemindersRequest analyzes repeat-purchase signals from order history.
+type AiReplenishmentRemindersRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// AiReplenishmentReminder is one suggested reorder based on past purchases.
+type AiReplenishmentReminder struct {
+	ProductID      uint   `json:"product_id,omitempty"`
+	ProductName    string `json:"product_name"`
+	Category       string `json:"category,omitempty"`
+	DaysSinceOrder int    `json:"days_since_order"`
+	Urgency        string `json:"urgency"`
+	Message        string `json:"message"`
+	SearchQuery    string `json:"search_query,omitempty"`
+}
+
+// AiReplenishmentRemindersResponse returns reorder guidance from purchase history.
+type AiReplenishmentRemindersResponse struct {
+	Summary         string                    `json:"summary"`
+	Reminders       []AiReplenishmentReminder `json:"reminders,omitempty"`
+	Recommendations []AiRecommendedProduct    `json:"recommendations,omitempty"`
+	Sources         []string                  `json:"sources,omitempty"`
+}
+
+// AiHouseholdMemberProfile describes one person in a household shopping context.
+type AiHouseholdMemberProfile struct {
+	Name         string `json:"name" binding:"required"`
+	Relationship string `json:"relationship,omitempty"`
+	Sizes        string `json:"sizes,omitempty"`
+	Preferences  string `json:"preferences,omitempty"`
+	Interests    string `json:"interests,omitempty"`
+}
+
+// AiHouseholdShoppingRequest finds catalog picks tailored to household members.
+type AiHouseholdShoppingRequest struct {
+	Members   []AiHouseholdMemberProfile `json:"members" binding:"required,min=1,max=8,dive"`
+	Context   string                   `json:"context,omitempty"`
+	BudgetMin float64                  `json:"budget_min,omitempty"`
+	BudgetMax float64                  `json:"budget_max,omitempty"`
+}
+
+// AiHouseholdMemberPick pairs one member with personalized product suggestions.
+type AiHouseholdMemberPick struct {
+	MemberName      string                 `json:"member_name"`
+	Summary         string                 `json:"summary"`
+	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
+}
+
+// AiHouseholdShoppingResponse returns household-wide guidance and per-member picks.
+type AiHouseholdShoppingResponse struct {
+	Summary string                  `json:"summary"`
+	Members []AiHouseholdMemberPick `json:"members,omitempty"`
+	Sources []string                `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`
