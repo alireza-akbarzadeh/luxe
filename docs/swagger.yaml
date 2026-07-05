@@ -914,6 +914,51 @@ definitions:
       type:
         type: string
     type: object
+  dto.AiOutfitBuilderPiece:
+    properties:
+      is_anchor:
+        type: boolean
+      label:
+        type: string
+      product:
+        $ref: '#/definitions/dto.ProductResponse'
+      reason:
+        type: string
+      role:
+        type: string
+    type: object
+  dto.AiOutfitBuilderRequest:
+    properties:
+      budget_max:
+        type: number
+      context:
+        type: string
+      occasion:
+        type: string
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiOutfitBuilderResponse:
+    properties:
+      pieces:
+        items:
+          $ref: '#/definitions/dto.AiOutfitBuilderPiece'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      style_theme:
+        type: string
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiPersonalizedNotificationsRequest:
     properties:
       limit:
@@ -10326,6 +10371,50 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI mood shopping
+      tags:
+      - AI
+  /ai/outfit-builder:
+    post:
+      consumes:
+      - application/json
+      description: Builds a styled outfit or coordinated look with catalog matches
+        per slot
+      parameters:
+      - description: Outfit builder request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiOutfitBuilderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiOutfitBuilderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI outfit builder
       tags:
       - AI
   /ai/personalized-notifications:

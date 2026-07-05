@@ -17,6 +17,7 @@ func SetupAiRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, ctrl *ha
 	public.POST("/ai/virtual-try-on", ctrl.Ai.VirtualTryOn)
 	public.POST("/ai/interactive-viewer", ctrl.Ai.InteractiveViewer)
 	public.POST("/ai/product-configurator", ctrl.Ai.ProductConfigurator)
+	public.POST("/ai/outfit-builder", ctrl.Ai.OutfitBuilder)
 	public.POST("/ai/compare-insight", ctrl.Ai.CompareInsight)
 	public.POST("/ai/review-summary", ctrl.Ai.ReviewSummary)
 	public.POST("/ai/return-risk", ctrl.Ai.ReturnRisk)

@@ -486,6 +486,32 @@ type AiProductConfiguratorResponse struct {
 	Sources    []string                         `json:"sources,omitempty"`
 }
 
+// AiOutfitBuilderRequest builds a complete look anchored on a PDP product.
+type AiOutfitBuilderRequest struct {
+	ProductID uint    `json:"product_id" binding:"required,gt=0"`
+	Occasion  string  `json:"occasion,omitempty"`
+	Context   string  `json:"context,omitempty"`
+	BudgetMax float64 `json:"budget_max,omitempty"`
+}
+
+// AiOutfitBuilderPiece is one slot in a styled outfit or complete-the-look set.
+type AiOutfitBuilderPiece struct {
+	Role     string          `json:"role"`
+	Label    string          `json:"label"`
+	Reason   string          `json:"reason,omitempty"`
+	IsAnchor bool            `json:"is_anchor,omitempty"`
+	Product  ProductResponse `json:"product,omitempty"`
+}
+
+// AiOutfitBuilderResponse returns a styled outfit plan with catalog matches per slot.
+type AiOutfitBuilderResponse struct {
+	Summary    string                 `json:"summary"`
+	StyleTheme string                 `json:"style_theme,omitempty"`
+	Pieces     []AiOutfitBuilderPiece `json:"pieces,omitempty"`
+	Tips       []string               `json:"tips,omitempty"`
+	Sources    []string               `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

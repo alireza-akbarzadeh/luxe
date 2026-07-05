@@ -5889,6 +5889,76 @@
                 }
             }
         },
+        "/ai/outfit-builder": {
+            "post": {
+                "description": "Builds a styled outfit or coordinated look with catalog matches per slot",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI outfit builder",
+                "parameters": [
+                    {
+                        "description": "Outfit builder request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiOutfitBuilderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiOutfitBuilderResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/personalized-notifications": {
             "post": {
                 "security": [
@@ -18737,6 +18807,75 @@
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.AiOutfitBuilderPiece": {
+            "type": "object",
+            "properties": {
+                "is_anchor": {
+                    "type": "boolean"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.ProductResponse"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiOutfitBuilderRequest": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "budget_max": {
+                    "type": "number"
+                },
+                "context": {
+                    "type": "string"
+                },
+                "occasion": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiOutfitBuilderResponse": {
+            "type": "object",
+            "properties": {
+                "pieces": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiOutfitBuilderPiece"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style_theme": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "tips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

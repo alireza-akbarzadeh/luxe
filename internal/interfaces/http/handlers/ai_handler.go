@@ -1492,3 +1492,53 @@ func (ac *AiHandler) ProductConfigurator(c *gin.Context) {
 
 	utils.SuccessResponse(c, "product configurator", result)
 }
+
+// OutfitBuilder plans a complete look anchored on a catalog product.
+// @Summary      AI outfit builder
+// @Description  Builds a styled outfit or coordinated look with catalog matches per slot
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiOutfitBuilderRequest true "Outfit builder request"
+// @Success      200 {object} utils.Response{data=dto.AiOutfitBuilderResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/outfit-builder [post]
+func (ac *AiHandler) OutfitBuilder(c *gin.Context) {
+	var req dto.AiOutfitBuilderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.OutfitBuilder(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			case http.StatusNotFound:
+				utils.NotFoundResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai outfit builder failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "outfit builder", result)
+}
