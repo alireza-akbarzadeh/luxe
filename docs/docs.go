@@ -9398,6 +9398,93 @@ const docTemplate = `{
                 }
             }
         },
+        "/creators": {
+            "get": {
+                "description": "Returns active creator profiles for community discovery pages",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "creators"
+                ],
+                "summary": "List creator storefronts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items (default 12, max 24)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CreatorStorefrontListResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/creators/{slug}": {
+            "get": {
+                "description": "Returns a creator profile with curated product picks",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "creators"
+                ],
+                "summary": "Get creator storefront",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Creator slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CreatorStorefrontResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/gift-cards": {
             "post": {
                 "security": [
@@ -21714,6 +21801,101 @@ const docTemplate = `{
                 "to_state_code": {
                     "type": "string",
                     "maxLength": 64
+                }
+            }
+        },
+        "dto.CreatorPickResponse": {
+            "type": "object",
+            "properties": {
+                "headline": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.HomeProductItem"
+                }
+            }
+        },
+        "dto.CreatorStorefrontListItem": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "handle": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "pick_count": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "specialty": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreatorStorefrontListResponse": {
+            "type": "object",
+            "properties": {
+                "creators": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CreatorStorefrontListItem"
+                    }
+                }
+            }
+        },
+        "dto.CreatorStorefrontResponse": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "cover_image_url": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "handle": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "instagram_url": {
+                    "type": "string"
+                },
+                "picks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CreatorPickResponse"
+                    }
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "specialty": {
+                    "type": "string"
                 }
             }
         },

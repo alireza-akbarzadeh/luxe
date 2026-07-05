@@ -38,6 +38,7 @@ import (
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
+	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
 	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
@@ -178,7 +179,8 @@ type Applications struct {
 	GiftCard     *appgiftcard.Service
 	Membership   *appmembership.Service
 	Home         *apphome.Service
-	ShopLook     *appshoplook.Service
+	ShopLook          *appshoplook.Service
+	CreatorStorefront *appcreatorstorefront.Service
 	Bundle       *appbundle.Service
 }
 
@@ -321,7 +323,8 @@ func WireApplications(
 			postgres.NewStorefrontRepository(db),
 			postgres.NewHomeRepository(db),
 		),
-		ShopLook: appshoplook.NewService(db),
+		ShopLook:          appshoplook.NewService(db),
+		CreatorStorefront: appcreatorstorefront.NewService(db),
 		Bundle:   appbundle.NewService(db, aiSvc),
 	}
 }

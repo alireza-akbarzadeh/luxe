@@ -82,5 +82,6 @@ func (r *Router) Setup() {
 		SetupAiRoutes(public, protected, r.handlerContainer)
 		SetupHomeRoutes(public, protected, r.handlerContainer)
 		SetupShopLookRoutes(public, r.handlerContainer)
+		SetupCreatorStorefrontRoutes(public, r.handlerContainer)
 	}
 }

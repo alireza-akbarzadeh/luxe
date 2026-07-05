@@ -2860,6 +2860,68 @@ definitions:
     - name
     - to_state_code
     type: object
+  dto.CreatorPickResponse:
+    properties:
+      headline:
+        type: string
+      id:
+        type: integer
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+    type: object
+  dto.CreatorStorefrontListItem:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      cover_image_url:
+        type: string
+      display_name:
+        type: string
+      handle:
+        type: string
+      id:
+        type: integer
+      pick_count:
+        type: integer
+      slug:
+        type: string
+      specialty:
+        type: string
+    type: object
+  dto.CreatorStorefrontListResponse:
+    properties:
+      creators:
+        items:
+          $ref: '#/definitions/dto.CreatorStorefrontListItem'
+        type: array
+    type: object
+  dto.CreatorStorefrontResponse:
+    properties:
+      avatar_url:
+        type: string
+      bio:
+        type: string
+      cover_image_url:
+        type: string
+      display_name:
+        type: string
+      handle:
+        type: string
+      id:
+        type: integer
+      instagram_url:
+        type: string
+      picks:
+        items:
+          $ref: '#/definitions/dto.CreatorPickResponse'
+        type: array
+      slug:
+        type: string
+      specialty:
+        type: string
+    type: object
   dto.DashboardSummaryResponse:
     properties:
       address_count:
@@ -12579,6 +12641,57 @@ paths:
       summary: Validate coupon
       tags:
       - Coupons
+  /creators:
+    get:
+      description: Returns active creator profiles for community discovery pages
+      parameters:
+      - description: Max items (default 12, max 24)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CreatorStorefrontListResponse'
+              type: object
+      summary: List creator storefronts
+      tags:
+      - creators
+  /creators/{slug}:
+    get:
+      description: Returns a creator profile with curated product picks
+      parameters:
+      - description: Creator slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CreatorStorefrontResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get creator storefront
+      tags:
+      - creators
   /gift-cards:
     post:
       consumes:
