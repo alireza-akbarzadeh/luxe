@@ -809,6 +809,42 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiPurchaseAdvisorRequest:
+    properties:
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiPurchaseAdvisorResponse:
+    properties:
+      confidence:
+        type: string
+      cons:
+        items:
+          type: string
+        type: array
+      considerations:
+        items:
+          type: string
+        type: array
+      ideal_for:
+        items:
+          type: string
+        type: array
+      pros:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      verdict:
+        type: string
+    type: object
   dto.AiRecommendedProduct:
     properties:
       product:
@@ -933,6 +969,51 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiSizeRecommendationRequest:
+    properties:
+      product_id:
+        type: integer
+      profile:
+        $ref: '#/definitions/dto.AiSizeShopperProfile'
+    required:
+    - product_id
+    type: object
+  dto.AiSizeRecommendationResponse:
+    properties:
+      alternative_size:
+        type: string
+      available_sizes:
+        items:
+          type: string
+        type: array
+      confidence:
+        type: string
+      fit_notes:
+        type: string
+      recommended_size:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiSizeShopperProfile:
+    properties:
+      fit_preference:
+        type: string
+      height_cm:
+        type: integer
+      usual_size:
+        type: string
+      weight_kg:
+        type: integer
+    type: object
   dto.AiStatusResponse:
     properties:
       enabled:
@@ -1050,6 +1131,43 @@ definitions:
       sort:
         type: string
       total:
+        type: integer
+    type: object
+  dto.AiWishlistInsightItem:
+    properties:
+      priority:
+        type: string
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      reason:
+        type: string
+    type: object
+  dto.AiWishlistIntelligenceRequest:
+    properties:
+      limit:
+        type: integer
+    type: object
+  dto.AiWishlistIntelligenceResponse:
+    properties:
+      estimated_savings:
+        type: number
+      highlights:
+        items:
+          type: string
+        type: array
+      items:
+        items:
+          $ref: '#/definitions/dto.AiWishlistInsightItem'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      total_items:
         type: integer
     type: object
   dto.AuditLogSummaryResponse:
@@ -9694,6 +9812,46 @@ paths:
       summary: Product AI brief
       tags:
       - AI
+  /ai/purchase-advisor:
+    post:
+      consumes:
+      - application/json
+      description: Recommends whether to buy now using listing, reviews, returns,
+        and price history
+      parameters:
+      - description: Purchase advisor request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiPurchaseAdvisorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiPurchaseAdvisorResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI purchase advisor
+      tags:
+      - AI
   /ai/return-risk:
     post:
       consumes:
@@ -9848,6 +10006,46 @@ paths:
       summary: AI shopping assistant
       tags:
       - AI
+  /ai/size-recommendation:
+    post:
+      consumes:
+      - application/json
+      description: Recommends a size using available variants, reviews, returns, and
+        optional shopper profile
+      parameters:
+      - description: Size recommendation request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiSizeRecommendationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiSizeRecommendationResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI size recommendation
+      tags:
+      - AI
   /ai/sustainability-score:
     post:
       consumes:
@@ -9965,6 +10163,47 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI visual search
+      tags:
+      - AI
+  /ai/wishlist-intelligence:
+    post:
+      consumes:
+      - application/json
+      description: Summarizes saved items with buy now, watch, wait, and remove guidance
+      parameters:
+      - description: Wishlist intelligence request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiWishlistIntelligenceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiWishlistIntelligenceResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: AI wishlist intelligence
       tags:
       - AI
   /auth/change-password:

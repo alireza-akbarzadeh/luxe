@@ -188,6 +188,72 @@ type AiDeliveryPredictionResponse struct {
 	Sources          []string `json:"sources,omitempty"`
 }
 
+// AiPurchaseAdvisorRequest asks for a buy/wait/consider recommendation on a PDP.
+type AiPurchaseAdvisorRequest struct {
+	ProductID uint `json:"product_id" binding:"required"`
+}
+
+// AiPurchaseAdvisorResponse synthesizes listing, review, price, and return signals into purchase guidance.
+type AiPurchaseAdvisorResponse struct {
+	Verdict        string   `json:"verdict"`
+	Confidence     string   `json:"confidence"`
+	Summary        string   `json:"summary"`
+	Pros           []string `json:"pros,omitempty"`
+	Cons           []string `json:"cons,omitempty"`
+	IdealFor       []string `json:"ideal_for,omitempty"`
+	Considerations []string `json:"considerations,omitempty"`
+	Sources        []string `json:"sources,omitempty"`
+}
+
+// AiSizeShopperProfile optional measurements for size fitting.
+type AiSizeShopperProfile struct {
+	UsualSize     string `json:"usual_size,omitempty"`
+	HeightCm      *int   `json:"height_cm,omitempty"`
+	WeightKg      *int   `json:"weight_kg,omitempty"`
+	FitPreference string `json:"fit_preference,omitempty"`
+}
+
+// AiSizeRecommendationRequest asks for a size pick on a sized product PDP.
+type AiSizeRecommendationRequest struct {
+	ProductID uint                  `json:"product_id" binding:"required"`
+	Profile   *AiSizeShopperProfile `json:"profile,omitempty"`
+}
+
+// AiSizeRecommendationResponse recommends a size grounded in listing and review fit signals.
+type AiSizeRecommendationResponse struct {
+	RecommendedSize string   `json:"recommended_size,omitempty"`
+	AlternativeSize string   `json:"alternative_size,omitempty"`
+	FitNotes        string   `json:"fit_notes"`
+	Confidence      string   `json:"confidence"`
+	Summary         string   `json:"summary"`
+	Tips            []string `json:"tips,omitempty"`
+	AvailableSizes  []string `json:"available_sizes,omitempty"`
+	Sources         []string `json:"sources,omitempty"`
+}
+
+// AiWishlistIntelligenceRequest analyzes the authenticated user's saved items.
+type AiWishlistIntelligenceRequest struct {
+	Limit int `json:"limit,omitempty"`
+}
+
+// AiWishlistInsightItem is one prioritized note for a wishlist product.
+type AiWishlistInsightItem struct {
+	ProductID   uint   `json:"product_id"`
+	ProductName string `json:"product_name"`
+	Priority    string `json:"priority"`
+	Reason      string `json:"reason"`
+}
+
+// AiWishlistIntelligenceResponse summarizes buy/watch/wait guidance for a wishlist.
+type AiWishlistIntelligenceResponse struct {
+	Summary          string                  `json:"summary"`
+	TotalItems       int                     `json:"total_items"`
+	EstimatedSavings float64                 `json:"estimated_savings,omitempty"`
+	Highlights       []string                `json:"highlights,omitempty"`
+	Items            []AiWishlistInsightItem `json:"items,omitempty"`
+	Sources          []string                `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

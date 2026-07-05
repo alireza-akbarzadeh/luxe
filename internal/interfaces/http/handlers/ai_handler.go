@@ -22,6 +22,7 @@ type AiHandler struct {
 	returnQueries   appai.ReturnRiskQueries
 	priceHistory    appai.PriceHistoryQueries
 	deliveryStats   appai.DeliveryStatsQueries
+	wishlistQueries appai.WishlistIntelligenceQueries
 }
 
 func NewAiHandler(
@@ -32,15 +33,17 @@ func NewAiHandler(
 	returnQueries appai.ReturnRiskQueries,
 	priceHistory appai.PriceHistoryQueries,
 	deliveryStats appai.DeliveryStatsQueries,
+	wishlistQueries appai.WishlistIntelligenceQueries,
 ) *AiHandler {
 	return &AiHandler{
-		aiService:      aiService,
-		searchQueries:  searchQueries,
-		compareQueries: compareQueries,
-		reviewQueries:  reviewQueries,
-		returnQueries:  returnQueries,
-		priceHistory:   priceHistory,
-		deliveryStats:  deliveryStats,
+		aiService:       aiService,
+		searchQueries:   searchQueries,
+		compareQueries:  compareQueries,
+		reviewQueries:   reviewQueries,
+		returnQueries:   returnQueries,
+		priceHistory:    priceHistory,
+		deliveryStats:   deliveryStats,
+		wishlistQueries: wishlistQueries,
 	}
 }
 
@@ -704,4 +707,165 @@ func (ac *AiHandler) DeliveryPrediction(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "delivery prediction", result)
+}
+
+// PurchaseAdvisor synthesizes PDP signals into a buy/wait/consider recommendation.
+// @Summary      AI purchase advisor
+// @Description  Recommends whether to buy now using listing, reviews, returns, and price history
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiPurchaseAdvisorRequest true "Purchase advisor request"
+// @Success      200 {object} utils.Response{data=dto.AiPurchaseAdvisorResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/purchase-advisor [post]
+func (ac *AiHandler) PurchaseAdvisor(c *gin.Context) {
+	var req dto.AiPurchaseAdvisorRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.PurchaseAdvisor(
+		c.Request.Context(),
+		subjectKey,
+		ac.returnQueries,
+		ac.reviewQueries,
+		ac.priceHistory,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai purchase advisor failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "purchase advisor", result)
+}
+
+// SizeRecommendation suggests a size for sized products on the PDP.
+// @Summary      AI size recommendation
+// @Description  Recommends a size using available variants, reviews, returns, and optional shopper profile
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiSizeRecommendationRequest true "Size recommendation request"
+// @Success      200 {object} utils.Response{data=dto.AiSizeRecommendationResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/size-recommendation [post]
+func (ac *AiHandler) SizeRecommendation(c *gin.Context) {
+	var req dto.AiSizeRecommendationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.SizeRecommendation(
+		c.Request.Context(),
+		subjectKey,
+		ac.returnQueries,
+		ac.reviewQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai size recommendation failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "size recommendation", result)
+}
+
+// WishlistIntelligence prioritizes items on the authenticated user's wishlist.
+// @Summary      AI wishlist intelligence
+// @Description  Summarizes saved items with buy now, watch, wait, and remove guidance
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiWishlistIntelligenceRequest true "Wishlist intelligence request"
+// @Success      200 {object} utils.Response{data=dto.AiWishlistIntelligenceResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/wishlist-intelligence [post]
+func (ac *AiHandler) WishlistIntelligence(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiWishlistIntelligenceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+
+	result, err := ac.aiService.WishlistIntelligence(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.wishlistQueries,
+		req,
+	)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusUnauthorized:
+				utils.UnauthorizedResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai wishlist intelligence failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "wishlist intelligence", result)
 }

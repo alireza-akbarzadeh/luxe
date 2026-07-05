@@ -5750,6 +5750,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/purchase-advisor": {
+            "post": {
+                "description": "Recommends whether to buy now using listing, reviews, returns, and price history",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI purchase advisor",
+                "parameters": [
+                    {
+                        "description": "Purchase advisor request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiPurchaseAdvisorRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiPurchaseAdvisorResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/return-risk": {
             "post": {
                 "description": "Assesses return risk using product facts, reviews, and return history",
@@ -6000,6 +6064,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/size-recommendation": {
+            "post": {
+                "description": "Recommends a size using available variants, reviews, returns, and optional shopper profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI size recommendation",
+                "parameters": [
+                    {
+                        "description": "Size recommendation request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiSizeRecommendationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiSizeRecommendationResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/sustainability-score": {
             "post": {
                 "description": "Scores eco and ethics signals from listing specs, tags, and buyer reviews",
@@ -6173,6 +6301,75 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/wishlist-intelligence": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Summarizes saved items with buy now, watch, wait, and remove guidance",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI wishlist intelligence",
+                "parameters": [
+                    {
+                        "description": "Wishlist intelligence request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiWishlistIntelligenceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiWishlistIntelligenceResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -17624,6 +17821,61 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AiPurchaseAdvisorRequest": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiPurchaseAdvisorResponse": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "string"
+                },
+                "cons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "considerations": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ideal_for": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "pros": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "verdict": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AiRecommendedProduct": {
             "type": "object",
             "properties": {
@@ -17814,6 +18066,75 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AiSizeRecommendationRequest": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "product_id": {
+                    "type": "integer"
+                },
+                "profile": {
+                    "$ref": "#/definitions/dto.AiSizeShopperProfile"
+                }
+            }
+        },
+        "dto.AiSizeRecommendationResponse": {
+            "type": "object",
+            "properties": {
+                "alternative_size": {
+                    "type": "string"
+                },
+                "available_sizes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "confidence": {
+                    "type": "string"
+                },
+                "fit_notes": {
+                    "type": "string"
+                },
+                "recommended_size": {
+                    "type": "string"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "tips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.AiSizeShopperProfile": {
+            "type": "object",
+            "properties": {
+                "fit_preference": {
+                    "type": "string"
+                },
+                "height_cm": {
+                    "type": "integer"
+                },
+                "usual_size": {
+                    "type": "string"
+                },
+                "weight_kg": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.AiStatusResponse": {
             "type": "object",
             "properties": {
@@ -17993,6 +18314,63 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiWishlistInsightItem": {
+            "type": "object",
+            "properties": {
+                "priority": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiWishlistIntelligenceRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiWishlistIntelligenceResponse": {
+            "type": "object",
+            "properties": {
+                "estimated_savings": {
+                    "type": "number"
+                },
+                "highlights": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiWishlistInsightItem"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "total_items": {
                     "type": "integer"
                 }
             }
