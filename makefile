@@ -24,6 +24,10 @@ BINARY_NAME ?= luxe-api
 GOBASE      := $(shell pwd)
 GOBIN       := $(GOBASE)/bin
 MIGRATIONS_DIR := ./internal/migrations
+APP_VERSION ?= 0.0.1
+GIT_COMMIT  ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
+LDFLAGS     := -X github.com/alireza-akbarzadeh/luxe/internal/version.Version=$(APP_VERSION) \
+               -X github.com/alireza-akbarzadeh/luxe/internal/version.BuildID=$(GIT_COMMIT)
 
 # ─── Postgres (existing container / local DB) ─────────────────────────────────
 # If DATABASE_URL is set in .env, it wins. Otherwise we build from the fields below.
@@ -147,10 +151,10 @@ db-create: ## Create POSTGRES_DB on the running container (for luxe-backend; do 
 	@echo "${GREEN}Done. Set DB_NAME=$(POSTGRES_DB) in .env then: make migrate-up${RESET}"
 
 ## Development
-build: ## Build the application
+build: ## Build the application (APP_VERSION=0.0.1 GIT_COMMIT from git)
 	@echo "${GREEN}Building application...${RESET}"
-	go build -o $(GOBIN)/$(BINARY_NAME) ./cmd/api
-	@echo "${GREEN}Build complete: $(GOBIN)/$(BINARY_NAME)${RESET}"
+	go build -ldflags "$(LDFLAGS)" -o $(GOBIN)/$(BINARY_NAME) ./cmd/api
+	@echo "${GREEN}Build complete: $(GOBIN)/$(BINARY_NAME) ($(APP_VERSION)@$(GIT_COMMIT))${RESET}"
 
 run: ## Run the application (uses .env or environment variables)
 	@echo "${GREEN}Running application...${RESET}"

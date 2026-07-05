@@ -5,6 +5,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/health"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/version"
 	"github.com/gin-gonic/gin"
 )
 
@@ -40,6 +41,7 @@ func (hc *HealthHandler) Live(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "ok",
 		"message": "alive",
+		"app":     version.Get(),
 		"checks":  status.Checks,
 	})
 }
@@ -62,6 +64,7 @@ func (hc *HealthHandler) respondReady(c *gin.Context) {
 	response := gin.H{
 		"status":  "ok",
 		"message": "ready",
+		"app":     version.Get(),
 		"checks":  status.Checks,
 	}
 	if !status.OK {
