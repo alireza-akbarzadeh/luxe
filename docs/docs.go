@@ -5761,6 +5761,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/interactive-viewer": {
+            "post": {
+                "description": "Analyzes a product photo and returns clickable feature hotspots",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI interactive product viewer",
+                "parameters": [
+                    {
+                        "description": "Interactive viewer request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiInteractiveViewerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiInteractiveViewerResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/mood-shopping": {
             "post": {
                 "description": "Suggests style cues and catalog picks for a selected mood",
@@ -6283,6 +6353,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/ai/room-preview": {
+            "post": {
+                "description": "Analyzes a room photo and returns placement and styling guidance for a product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI room preview",
+                "parameters": [
+                    {
+                        "description": "Room preview request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiRoomPreviewRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiRoomPreviewResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/ai/search-intent": {
             "post": {
                 "description": "Extracts keywords, budget, and filters from a natural-language search phrase",
@@ -6722,6 +6862,76 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/ai/virtual-try-on": {
+            "post": {
+                "description": "Analyzes a shopper photo and returns fit and style guidance for a product",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AI"
+                ],
+                "summary": "AI virtual try-on",
+                "parameters": [
+                    {
+                        "description": "Virtual try-on request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AiVirtualTryOnRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AiVirtualTryOnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -18351,6 +18561,43 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AiInteractiveViewerRequest": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "image_index": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AiInteractiveViewerResponse": {
+            "type": "object",
+            "properties": {
+                "hotspots": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiProductViewerHotspot"
+                    }
+                },
+                "image_index": {
+                    "type": "integer"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.AiMoodShoppingRequest": {
             "type": "object",
             "required": [
@@ -18549,6 +18796,26 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "dto.AiProductViewerHotspot": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "x_percent": {
+                    "type": "number"
+                },
+                "y_percent": {
+                    "type": "number"
                 }
             }
         },
@@ -18760,6 +19027,65 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "watch_outs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.AiRoomPreviewRequest": {
+            "type": "object",
+            "required": [
+                "product_id",
+                "room_image_base64"
+            ],
+            "properties": {
+                "context": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "room_image_base64": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiRoomPreviewResponse": {
+            "type": "object",
+            "properties": {
+                "harmony_notes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "placement_tips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiRecommendedProduct"
+                    }
+                },
+                "scale_advice": {
+                    "type": "string"
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "warnings": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -19173,6 +19499,62 @@ const docTemplate = `{
                 },
                 "summary": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.AiVirtualTryOnRequest": {
+            "type": "object",
+            "required": [
+                "photo_base64",
+                "product_id"
+            ],
+            "properties": {
+                "context": {
+                    "type": "string"
+                },
+                "photo_base64": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "size_profile": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AiVirtualTryOnResponse": {
+            "type": "object",
+            "properties": {
+                "confidence": {
+                    "type": "string"
+                },
+                "fit_notes": {
+                    "type": "string"
+                },
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AiRecommendedProduct"
+                    }
+                },
+                "sources": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style_match": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "tips": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

@@ -839,6 +839,30 @@ definitions:
       summary:
         type: string
     type: object
+  dto.AiInteractiveViewerRequest:
+    properties:
+      image_index:
+        type: integer
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
+  dto.AiInteractiveViewerResponse:
+    properties:
+      hotspots:
+        items:
+          $ref: '#/definitions/dto.AiProductViewerHotspot'
+        type: array
+      image_index:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
   dto.AiMoodShoppingRequest:
     properties:
       budget_max:
@@ -969,6 +993,19 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  dto.AiProductViewerHotspot:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      label:
+        type: string
+      x_percent:
+        type: number
+      y_percent:
+        type: number
     type: object
   dto.AiPurchaseAdvisorRequest:
     properties:
@@ -1106,6 +1143,45 @@ definitions:
       summary:
         type: string
       watch_outs:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiRoomPreviewRequest:
+    properties:
+      context:
+        type: string
+      product_id:
+        type: integer
+      room_image_base64:
+        type: string
+    required:
+    - product_id
+    - room_image_base64
+    type: object
+  dto.AiRoomPreviewResponse:
+    properties:
+      harmony_notes:
+        items:
+          type: string
+        type: array
+      placement_tips:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      scale_advice:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      warnings:
         items:
           type: string
         type: array
@@ -1376,6 +1452,43 @@ definitions:
         type: array
       summary:
         type: string
+    type: object
+  dto.AiVirtualTryOnRequest:
+    properties:
+      context:
+        type: string
+      photo_base64:
+        type: string
+      product_id:
+        type: integer
+      size_profile:
+        type: string
+    required:
+    - photo_base64
+    - product_id
+    type: object
+  dto.AiVirtualTryOnResponse:
+    properties:
+      confidence:
+        type: string
+      fit_notes:
+        type: string
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      style_match:
+        type: string
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
     type: object
   dto.AiVisualSearchRequest:
     properties:
@@ -10090,6 +10203,49 @@ paths:
       summary: AI household shopping
       tags:
       - AI
+  /ai/interactive-viewer:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes a product photo and returns clickable feature hotspots
+      parameters:
+      - description: Interactive viewer request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiInteractiveViewerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiInteractiveViewerResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI interactive product viewer
+      tags:
+      - AI
   /ai/mood-shopping:
     post:
       consumes:
@@ -10409,6 +10565,50 @@ paths:
       summary: AI review summary
       tags:
       - AI
+  /ai/room-preview:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes a room photo and returns placement and styling guidance
+        for a product
+      parameters:
+      - description: Room preview request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiRoomPreviewRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiRoomPreviewResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI room preview
+      tags:
+      - AI
   /ai/search-intent:
     post:
       consumes:
@@ -10691,6 +10891,50 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI product trust score
+      tags:
+      - AI
+  /ai/virtual-try-on:
+    post:
+      consumes:
+      - application/json
+      description: Analyzes a shopper photo and returns fit and style guidance for
+        a product
+      parameters:
+      - description: Virtual try-on request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiVirtualTryOnRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVirtualTryOnResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI virtual try-on
       tags:
       - AI
   /ai/visual-search:

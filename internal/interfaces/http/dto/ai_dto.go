@@ -403,6 +403,66 @@ type AiHouseholdShoppingResponse struct {
 	Sources []string                `json:"sources,omitempty"`
 }
 
+// AiRoomPreviewRequest analyzes how a product fits a shopper's room photo.
+type AiRoomPreviewRequest struct {
+	ProductID       uint   `json:"product_id" binding:"required,gt=0"`
+	RoomImageBase64 string `json:"room_image_base64" binding:"required"`
+	Context         string `json:"context,omitempty"`
+}
+
+// AiRoomPreviewResponse returns placement guidance for a product in a room.
+type AiRoomPreviewResponse struct {
+	Summary         string                 `json:"summary"`
+	PlacementTips   []string               `json:"placement_tips,omitempty"`
+	ScaleAdvice     string                 `json:"scale_advice,omitempty"`
+	HarmonyNotes    []string               `json:"harmony_notes,omitempty"`
+	Warnings        []string               `json:"warnings,omitempty"`
+	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources         []string               `json:"sources,omitempty"`
+}
+
+// AiVirtualTryOnRequest analyzes how a wearable product suits a shopper photo.
+type AiVirtualTryOnRequest struct {
+	ProductID    uint   `json:"product_id" binding:"required,gt=0"`
+	PhotoBase64  string `json:"photo_base64" binding:"required"`
+	SizeProfile  string `json:"size_profile,omitempty"`
+	Context      string `json:"context,omitempty"`
+}
+
+// AiVirtualTryOnResponse returns style and fit guidance from a try-on photo.
+type AiVirtualTryOnResponse struct {
+	Summary         string                 `json:"summary"`
+	FitNotes        string                 `json:"fit_notes,omitempty"`
+	StyleMatch      string                 `json:"style_match"`
+	Confidence      string                 `json:"confidence"`
+	Tips            []string               `json:"tips,omitempty"`
+	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources         []string               `json:"sources,omitempty"`
+}
+
+// AiInteractiveViewerRequest returns clickable hotspots for a product image.
+type AiInteractiveViewerRequest struct {
+	ProductID  uint `json:"product_id" binding:"required,gt=0"`
+	ImageIndex *int `json:"image_index,omitempty"`
+}
+
+// AiProductViewerHotspot is a feature callout on a product photo.
+type AiProductViewerHotspot struct {
+	ID          string  `json:"id"`
+	Label       string  `json:"label"`
+	Description string  `json:"description"`
+	XPercent    float64 `json:"x_percent"`
+	YPercent    float64 `json:"y_percent"`
+}
+
+// AiInteractiveViewerResponse returns an interactive hotspot map for a product image.
+type AiInteractiveViewerResponse struct {
+	Summary    string                   `json:"summary"`
+	ImageIndex int                      `json:"image_index"`
+	Hotspots   []AiProductViewerHotspot `json:"hotspots,omitempty"`
+	Sources    []string                 `json:"sources,omitempty"`
+}
+
 // AiShoppingAssistantRequest is a store-wide conversational shopping session turn.
 type AiShoppingAssistantRequest struct {
 	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`

@@ -1292,3 +1292,153 @@ func (ac *AiHandler) HouseholdShopping(c *gin.Context) {
 
 	utils.SuccessResponse(c, "household shopping", result)
 }
+
+// RoomPreview analyzes how a product fits a shopper's room photo.
+// @Summary      AI room preview
+// @Description  Analyzes a room photo and returns placement and styling guidance for a product
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiRoomPreviewRequest true "Room preview request"
+// @Success      200 {object} utils.Response{data=dto.AiRoomPreviewResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/room-preview [post]
+func (ac *AiHandler) RoomPreview(c *gin.Context) {
+	var req dto.AiRoomPreviewRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.RoomPreview(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			case http.StatusNotFound:
+				utils.NotFoundResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai room preview failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "room preview", result)
+}
+
+// VirtualTryOn analyzes how a wearable product suits a shopper photo.
+// @Summary      AI virtual try-on
+// @Description  Analyzes a shopper photo and returns fit and style guidance for a product
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiVirtualTryOnRequest true "Virtual try-on request"
+// @Success      200 {object} utils.Response{data=dto.AiVirtualTryOnResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/virtual-try-on [post]
+func (ac *AiHandler) VirtualTryOn(c *gin.Context) {
+	var req dto.AiVirtualTryOnRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.VirtualTryOn(c.Request.Context(), subjectKey, ac.searchQueries, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			case http.StatusNotFound:
+				utils.NotFoundResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai virtual try-on failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "virtual try-on", result)
+}
+
+// InteractiveViewer returns feature hotspots for a product image.
+// @Summary      AI interactive product viewer
+// @Description  Analyzes a product photo and returns clickable feature hotspots
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiInteractiveViewerRequest true "Interactive viewer request"
+// @Success      200 {object} utils.Response{data=dto.AiInteractiveViewerResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/interactive-viewer [post]
+func (ac *AiHandler) InteractiveViewer(c *gin.Context) {
+	var req dto.AiInteractiveViewerRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.InteractiveViewer(c.Request.Context(), subjectKey, req)
+	if err != nil {
+		if appErr, ok := err.(*utils.AppError); ok {
+			switch appErr.Code {
+			case http.StatusServiceUnavailable:
+				utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+				return
+			case http.StatusTooManyRequests:
+				utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+				return
+			case http.StatusBadRequest:
+				utils.BadRequestResponse(c, appErr.Message)
+				return
+			case http.StatusNotFound:
+				utils.NotFoundResponse(c, appErr.Message)
+				return
+			}
+		}
+		utils.HandleServiceError(c, err, "ai interactive viewer failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "interactive viewer", result)
+}
