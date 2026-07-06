@@ -85,8 +85,8 @@ Facts:
 		Tips:       parsed.Tips,
 		Sources:    uniqueStrings(sources),
 	}
-	if parsed.CounterPrice > 0 {
-		cp := math.Round(parsed.CounterPrice*100) / 100
+	if parsed.CounterPrice != nil && *parsed.CounterPrice > 0 {
+		cp := math.Round(*parsed.CounterPrice*100) / 100
 		result.CounterPrice = &cp
 	}
 
@@ -156,7 +156,7 @@ func parseNegotiationJSON(content string) (*dto.AiNegotiationResponse, error) {
 
 	var raw struct {
 		Verdict      string   `json:"verdict"`
-		CounterPrice float64  `json:"counter_price"`
+		CounterPrice *float64 `json:"counter_price"`
 		Confidence   string   `json:"confidence"`
 		Summary      string   `json:"summary"`
 		Tips         []string `json:"tips"`

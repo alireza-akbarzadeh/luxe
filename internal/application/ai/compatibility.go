@@ -139,8 +139,8 @@ func compatibilityLabel(score int) string {
 }
 
 func pairCompatibilityFacts(a, b *models.Product, score int) string {
-	catA := categoryName(a)
-	catB := categoryName(b)
+	catA := productCategoryLabel(a)
+	catB := productCategoryLabel(b)
 	return fmt.Sprintf(
 		"Product A: %s | category: %s | brand: %s | price: %.2f | store_id: %d\nProduct B: %s | category: %s | brand: %s | price: %.2f | store_id: %d\nHeuristic score: %d/100\n",
 		a.Name, catA, brandName(a), a.Price, a.StoreID,
@@ -152,13 +152,6 @@ func pairCompatibilityFacts(a, b *models.Product, score int) string {
 func brandName(product *models.Product) string {
 	if product.Brand != nil {
 		return strings.TrimSpace(product.Brand.Name)
-	}
-	return ""
-}
-
-func categoryName(product *models.Product) string {
-	if product.Category != nil {
-		return product.Category.Name
 	}
 	return ""
 }

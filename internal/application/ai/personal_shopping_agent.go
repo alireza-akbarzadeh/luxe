@@ -32,7 +32,7 @@ func (s *Service) PersonalShoppingAgent(
 	sources := []string{"Catalog search"}
 
 	if memory != nil {
-		memResp, memErr := s.ShoppingMemory(ctx, userID, subjectKey, memory, dto.AiShoppingMemoryRequest{Limit: 12})
+		memResp, memErr := s.ShoppingMemory(ctx, userID, subjectKey, memory, search, dto.AiShoppingMemoryRequest{Limit: 12})
 		if memErr == nil && memResp != nil {
 			memorySummary = strings.TrimSpace(memResp.Summary)
 			for _, signal := range memResp.Signals {
