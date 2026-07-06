@@ -748,3 +748,53 @@ type AiVendorCustomerSegmentsResponse struct {
 	Customers       []VendorCustomerSegmentMember  `json:"customers"`
 	Sources         []string                       `json:"sources,omitempty"`
 }
+
+// AiNegotiationRequest asks AI to evaluate a shopper offer on a listing.
+type AiNegotiationRequest struct {
+	ProductID    uint    `json:"product_id" binding:"required"`
+	OfferedPrice float64 `json:"offered_price" binding:"required,gt=0"`
+	Message      string  `json:"message,omitempty"`
+}
+
+// AiNegotiationResponse returns a mediated negotiation outcome for shoppers.
+type AiNegotiationResponse struct {
+	Verdict      string   `json:"verdict"`
+	CounterPrice *float64 `json:"counter_price,omitempty"`
+	Summary      string   `json:"summary"`
+	Confidence   string   `json:"confidence"`
+	Tips         []string `json:"tips,omitempty"`
+	Sources      []string `json:"sources,omitempty"`
+}
+
+// AiCompatibilityCheckRequest compares two catalog products for fit.
+type AiCompatibilityCheckRequest struct {
+	ProductIDA uint `json:"product_id_a" binding:"required"`
+	ProductIDB uint `json:"product_id_b" binding:"required"`
+}
+
+// AiCompatibilityCheckResponse explains how well two products work together.
+type AiCompatibilityCheckResponse struct {
+	Score         int      `json:"score"`
+	Summary       string   `json:"summary"`
+	WorksWell     []string `json:"works_well,omitempty"`
+	Concerns      []string `json:"concerns,omitempty"`
+	Category      string   `json:"category,omitempty"`
+	Compatibility string   `json:"compatibility"`
+	Sources       []string `json:"sources,omitempty"`
+}
+
+// AiPersonalShoppingAgentRequest is an authenticated agent turn with long-term taste context.
+type AiPersonalShoppingAgentRequest struct {
+	Messages []AiChatMessage `json:"messages" binding:"required,min=1,dive"`
+	Goal     string          `json:"goal,omitempty"`
+}
+
+// AiPersonalShoppingAgentResponse extends the assistant with remembered taste signals.
+type AiPersonalShoppingAgentResponse struct {
+	Reply             string                 `json:"reply"`
+	MemorySummary     string                 `json:"memory_summary,omitempty"`
+	TasteSignals      []string               `json:"taste_signals,omitempty"`
+	FollowUpQuestions []string               `json:"follow_up_questions,omitempty"`
+	Recommendations   []AiRecommendedProduct `json:"recommendations,omitempty"`
+	Sources           []string               `json:"sources,omitempty"`
+}

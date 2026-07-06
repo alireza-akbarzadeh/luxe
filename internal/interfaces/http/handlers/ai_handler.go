@@ -1542,3 +1542,136 @@ func (ac *AiHandler) OutfitBuilder(c *gin.Context) {
 
 	utils.SuccessResponse(c, "outfit builder", result)
 }
+
+// Negotiation evaluates a shopper offer on a listing.
+// @Summary      AI negotiation assistant
+// @Description  Mediates a shopper price offer with accept, counter, or decline guidance
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiNegotiationRequest true "Negotiation request"
+// @Success      200 {object} utils.Response{data=dto.AiNegotiationResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/negotiation [post]
+func (ac *AiHandler) Negotiation(c *gin.Context) {
+	var req dto.AiNegotiationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.Negotiation(c.Request.Context(), subjectKey, req)
+	if err != nil {
+		handleAiServiceError(c, err, "ai negotiation failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "negotiation", result)
+}
+
+// CompatibilityCheck compares two products for pairing fit.
+// @Summary      Universal compatibility check
+// @Description  Scores and explains how well two catalog products work together
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Param        body body dto.AiCompatibilityCheckRequest true "Compatibility request"
+// @Success      200 {object} utils.Response{data=dto.AiCompatibilityCheckResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/compatibility-check [post]
+func (ac *AiHandler) CompatibilityCheck(c *gin.Context) {
+	var req dto.AiCompatibilityCheckRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := c.ClientIP()
+	if userID, ok := middleware.GetUserID(c); ok && userID > 0 {
+		subjectKey = fmt.Sprintf("user:%d", userID)
+	}
+
+	result, err := ac.aiService.CompatibilityCheck(c.Request.Context(), subjectKey, req)
+	if err != nil {
+		handleAiServiceError(c, err, "ai compatibility check failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "compatibility check", result)
+}
+
+// PersonalShoppingAgent runs a memory-aware shopping conversation.
+// @Summary      Personal shopping agent
+// @Description  Authenticated agent that blends shopping memory with catalog recommendations
+// @Tags         AI
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        body body dto.AiPersonalShoppingAgentRequest true "Agent request"
+// @Success      200 {object} utils.Response{data=dto.AiPersonalShoppingAgentResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Failure      503 {object} utils.Response
+// @Router       /ai/personal-shopping-agent [post]
+func (ac *AiHandler) PersonalShoppingAgent(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, "unauthorized")
+		return
+	}
+
+	var req dto.AiPersonalShoppingAgentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
+		return
+	}
+
+	subjectKey := fmt.Sprintf("user:%d", userID)
+	result, err := ac.aiService.PersonalShoppingAgent(
+		c.Request.Context(),
+		userID,
+		subjectKey,
+		ac.shoppingMemoryQueries,
+		ac.searchQueries,
+		req,
+	)
+	if err != nil {
+		handleAiServiceError(c, err, "personal shopping agent failed")
+		return
+	}
+
+	utils.SuccessResponse(c, "personal shopping agent", result)
+}
+
+func handleAiServiceError(c *gin.Context, err error, fallback string) {
+	if appErr, ok := err.(*utils.AppError); ok {
+		switch appErr.Code {
+		case http.StatusServiceUnavailable:
+			utils.ErrorResponse(c, http.StatusServiceUnavailable, appErr.Message)
+			return
+		case http.StatusTooManyRequests:
+			utils.ErrorResponse(c, http.StatusTooManyRequests, appErr.Message)
+			return
+		case http.StatusBadRequest:
+			utils.BadRequestResponse(c, appErr.Message)
+			return
+		case http.StatusNotFound:
+			utils.NotFoundResponse(c, appErr.Message)
+			return
+		case http.StatusUnauthorized:
+			utils.UnauthorizedResponse(c, appErr.Message)
+			return
+		}
+	}
+	utils.HandleServiceError(c, err, fallback)
+}
