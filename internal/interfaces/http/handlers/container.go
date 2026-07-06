@@ -54,6 +54,7 @@ type Container struct {
 	ShopLook          *ShopLookHandler
 	CreatorStorefront       *CreatorStorefrontHandler
 	CommunityShoppingList   *CommunityShoppingListHandler
+	PublicCollection        *PublicCollectionHandler
 	Bundle                  *BundleHandler
 }
 
@@ -104,6 +105,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		ShopLook:          NewShopLookHandler(apps.ShopLook),
 		CreatorStorefront:     NewCreatorStorefrontHandler(apps.CreatorStorefront),
 		CommunityShoppingList: NewCommunityShoppingListHandler(apps.CommunityShoppingList),
+		PublicCollection:      NewPublicCollectionHandler(apps.PublicCollection),
 		Bundle:                NewBundleHandler(apps.Bundle),
 	}
 }

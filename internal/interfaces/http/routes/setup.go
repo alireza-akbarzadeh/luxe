@@ -84,5 +84,6 @@ func (r *Router) Setup() {
 		SetupShopLookRoutes(public, r.handlerContainer)
 		SetupCreatorStorefrontRoutes(public, r.handlerContainer)
 		SetupCommunityShoppingListRoutes(public, r.handlerContainer)
+		SetupPublicCollectionRoutes(public, r.handlerContainer)
 	}
 }

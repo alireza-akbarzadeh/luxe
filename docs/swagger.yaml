@@ -4533,6 +4533,66 @@ definitions:
       workflow_state:
         $ref: '#/definitions/dto.StateView'
     type: object
+  dto.PublicCollectionItemResponse:
+    properties:
+      id:
+        type: integer
+      note:
+        type: string
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+    type: object
+  dto.PublicCollectionListItem:
+    properties:
+      author_handle:
+        type: string
+      author_name:
+        type: string
+      cover_image_url:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      item_count:
+        type: integer
+      slug:
+        type: string
+      theme:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.PublicCollectionListResponse:
+    properties:
+      collections:
+        items:
+          $ref: '#/definitions/dto.PublicCollectionListItem'
+        type: array
+    type: object
+  dto.PublicCollectionResponse:
+    properties:
+      author_handle:
+        type: string
+      author_name:
+        type: string
+      cover_image_url:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      items:
+        items:
+          $ref: '#/definitions/dto.PublicCollectionItemResponse'
+        type: array
+      slug:
+        type: string
+      theme:
+        type: string
+      title:
+        type: string
+    type: object
   dto.PushSubscriptionKeys:
     properties:
       auth:
@@ -15161,6 +15221,58 @@ paths:
       summary: Update user profile
       tags:
       - User
+  /public-collections:
+    get:
+      description: Returns active community-published product collections for discovery
+        pages
+      parameters:
+      - description: Max items (default 12, max 24)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PublicCollectionListResponse'
+              type: object
+      summary: List public collections
+      tags:
+      - public-collections
+  /public-collections/{slug}:
+    get:
+      description: Returns a community public collection with shoppable product items
+      parameters:
+      - description: Collection slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PublicCollectionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get public collection
+      tags:
+      - public-collections
   /push/vapid-public-key:
     get:
       description: Returns the public VAPID key used by the browser PushManager.subscribe()

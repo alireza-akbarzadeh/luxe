@@ -38,6 +38,7 @@ import (
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
+	apppubliccollection "github.com/alireza-akbarzadeh/luxe/internal/application/publiccollection"
 	appcommunityshoppinglist "github.com/alireza-akbarzadeh/luxe/internal/application/communityshoppinglist"
 	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
 	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
@@ -183,6 +184,7 @@ type Applications struct {
 	ShopLook          *appshoplook.Service
 	CreatorStorefront       *appcreatorstorefront.Service
 	CommunityShoppingList   *appcommunityshoppinglist.Service
+	PublicCollection        *apppubliccollection.Service
 	Bundle                  *appbundle.Service
 }
 
@@ -328,6 +330,7 @@ func WireApplications(
 		ShopLook:          appshoplook.NewService(db),
 		CreatorStorefront:     appcreatorstorefront.NewService(db),
 		CommunityShoppingList: appcommunityshoppinglist.NewService(db),
+		PublicCollection:      apppubliccollection.NewService(db),
 		Bundle:                appbundle.NewService(db, aiSvc),
 	}
 }
