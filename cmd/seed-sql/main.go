@@ -21,6 +21,7 @@ var defaultSeedFiles = []string{
 	"scripts/seed-creators.sql",
 	"scripts/seed-community-lists.sql",
 	"scripts/seed-public-collections.sql",
+	"scripts/seed-product-discussions.sql",
 	"scripts/seed-lifestyle-collections.sql",
 	"scripts/seed-invoices.sql",
 	"scripts/seed-coupons.sql",

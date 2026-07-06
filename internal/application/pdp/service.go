@@ -222,3 +222,36 @@ func (s *Service) CreateAnswer(userID, questionID uint, body string) (*models.Pr
 	}
 	return answer, nil
 }
+
+func (s *Service) ListDiscussions(productID uint, limit, offset int) ([]models.ProductDiscussion, int64, error) {
+	return s.queries.ListDiscussions(context.Background(), productID, limit, offset)
+}
+
+func (s *Service) CreateDiscussion(userID, productID uint, title, body string) (*models.ProductDiscussion, error) {
+	if _, err := s.products.GetByID(productID); err != nil {
+		return nil, err
+	}
+	discussion, err := s.commands.CreateDiscussion(context.Background(), userID, productID, title, body)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return discussion, nil
+}
+
+func (s *Service) CreateDiscussionReply(userID, productID, discussionID uint, body string) (*models.ProductDiscussionReply, error) {
+	discussion, err := s.queries.GetDiscussionWithProduct(context.Background(), discussionID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("discussion not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	if discussion.ProductID != productID {
+		return nil, utils.ErrNotFound("discussion not found")
+	}
+	reply, err := s.commands.CreateDiscussionReply(context.Background(), userID, discussionID, body)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return reply, nil
+}
