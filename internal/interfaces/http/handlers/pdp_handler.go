@@ -9,6 +9,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -171,9 +172,10 @@ func (ctrl *PdpHandler) GetQuestions(c *gin.Context) {
 		return
 	}
 	viewerID, _ := middleware.GetUserID(c)
-	response := make([]dto.ProductQuestionResponse, len(questions))
-	for i := range questions {
-		response[i] = dto.ToProductQuestionResponse(&questions[i], viewerID)
+	response, err := ctrl.pdpService.BuildQuestionResponses(c.Request.Context(), productID, questions, viewerID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to build question responses")
+		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
 		"questions": response,
@@ -217,11 +219,37 @@ func (ctrl *PdpHandler) CreateQuestion(c *gin.Context) {
 	questions, _, _ := ctrl.pdpService.ListQuestions(productID, 20, 0)
 	for i := range questions {
 		if questions[i].ID == question.ID {
-			utils.CreatedResponse(c, "question posted", dto.ToProductQuestionResponse(&questions[i], userID))
-			return
+			response, buildErr := ctrl.pdpService.BuildQuestionResponses(
+				c.Request.Context(),
+				productID,
+				[]models.ProductQuestion{questions[i]},
+				userID,
+			)
+			if buildErr != nil {
+				utils.HandleServiceError(c, buildErr, "failed to build question response")
+				return
+			}
+			if len(response) > 0 {
+				utils.CreatedResponse(c, "question posted", response[0])
+				return
+			}
 		}
 	}
-	utils.CreatedResponse(c, "question posted", dto.ToProductQuestionResponse(question, userID))
+	fallback, buildErr := ctrl.pdpService.BuildQuestionResponses(
+		c.Request.Context(),
+		productID,
+		[]models.ProductQuestion{*question},
+		userID,
+	)
+	if buildErr != nil {
+		utils.HandleServiceError(c, buildErr, "failed to build question response")
+		return
+	}
+	if len(fallback) > 0 {
+		utils.CreatedResponse(c, "question posted", fallback[0])
+		return
+	}
+	utils.CreatedResponse(c, "question posted", dto.ProductQuestionResponse{})
 }
 
 // CreateAnswer godoc
@@ -257,7 +285,16 @@ func (ctrl *PdpHandler) CreateAnswer(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to create answer")
 		return
 	}
-	utils.CreatedResponse(c, "answer posted", dto.ToProductAnswerResponse(answer))
+	productID, ok := ctrl.resolveProductID(c)
+	if !ok {
+		return
+	}
+	answerResponse, err := ctrl.pdpService.BuildAnswerResponse(c.Request.Context(), productID, answer)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to build answer response")
+		return
+	}
+	utils.CreatedResponse(c, "answer posted", answerResponse)
 }
 
 // GetDiscussions godoc
@@ -477,9 +514,10 @@ func (ctrl *PdpHandler) GetMyQuestions(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to list questions")
 		return
 	}
-	items := make([]dto.ProductQuestionResponse, len(questions))
-	for i := range questions {
-		items[i] = dto.ToUserProductQuestionResponse(&questions[i], userID)
+	items, err := ctrl.pdpService.BuildUserQuestionResponses(c.Request.Context(), questions, userID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to build question responses")
+		return
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
 		"questions": items,

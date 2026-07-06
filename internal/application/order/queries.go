@@ -3,6 +3,7 @@ package order
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -80,6 +81,42 @@ func (q *Queries) GetVendorStoreStats(ctx context.Context, storeID uint) (Vendor
 		return VendorOrderStats{}, utils.ErrInternal(err)
 	}
 	return stats, nil
+}
+
+// GetVendorStoreSalesSummary returns revenue metrics for a store in a date range.
+func (q *Queries) GetVendorStoreSalesSummary(ctx context.Context, storeID uint, from, to time.Time) (VendorSalesSummary, error) {
+	summary, err := q.reader.GetVendorStoreSalesSummary(ctx, storeID, from, to)
+	if err != nil {
+		return VendorSalesSummary{}, utils.ErrInternal(err)
+	}
+	return summary, nil
+}
+
+// ListVendorTopProducts returns top-selling products for a store in a date range.
+func (q *Queries) ListVendorTopProducts(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]VendorTopProduct, error) {
+	products, err := q.reader.ListVendorTopProducts(ctx, storeID, from, to, limit)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return products, nil
+}
+
+// ListVendorDailySales returns per-day revenue for charting.
+func (q *Queries) ListVendorDailySales(ctx context.Context, storeID uint, from, to time.Time) ([]VendorDailySales, error) {
+	series, err := q.reader.ListVendorDailySales(ctx, storeID, from, to)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return series, nil
+}
+
+// ListVendorStoreCustomers returns buyer aggregates for a store in a date range.
+func (q *Queries) ListVendorStoreCustomers(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]VendorStoreCustomer, error) {
+	customers, err := q.reader.ListVendorStoreCustomers(ctx, storeID, from, to, limit)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return customers, nil
 }
 
 // GetVendorStoreOrder loads an order if it belongs to the store.

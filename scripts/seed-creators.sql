@@ -3,7 +3,7 @@
 
 DO $$
 DECLARE
-    creator_id BIGINT;
+    v_creator_id BIGINT;
     prod_luxe BIGINT;
     prod_gold BIGINT;
     prod_urban BIGINT;
@@ -44,21 +44,21 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO creator_id;
+    RETURNING id INTO v_creator_id;
 
-    DELETE FROM creator_picks WHERE creator_id = creator_id;
+    DELETE FROM creator_picks cp WHERE cp.creator_id = v_creator_id;
 
     INSERT INTO creator_picks (creator_id, product_id, headline, sort_order)
-    VALUES (creator_id, prod_luxe, 'My everyday heritage pick', 0);
+    VALUES (v_creator_id, prod_luxe, 'My everyday heritage pick', 0);
 
     IF prod_gold IS NOT NULL THEN
         INSERT INTO creator_picks (creator_id, product_id, headline, sort_order)
-        VALUES (creator_id, prod_gold, 'Statement piece for events', 1);
+        VALUES (v_creator_id, prod_gold, 'Statement piece for events', 1);
     END IF;
 
     IF prod_urban IS NOT NULL THEN
         INSERT INTO creator_picks (creator_id, product_id, headline, sort_order)
-        VALUES (creator_id, prod_urban, 'Weekend casual rotation', 2);
+        VALUES (v_creator_id, prod_urban, 'Weekend casual rotation', 2);
     END IF;
 
     INSERT INTO creators (
@@ -88,18 +88,18 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO creator_id;
+    RETURNING id INTO v_creator_id;
 
-    DELETE FROM creator_picks WHERE creator_id = creator_id;
+    DELETE FROM creator_picks cp WHERE cp.creator_id = v_creator_id;
 
     IF prod_urban IS NOT NULL THEN
         INSERT INTO creator_picks (creator_id, product_id, headline, sort_order)
-        VALUES (creator_id, prod_urban, 'Desk-to-dinner essential', 0);
+        VALUES (v_creator_id, prod_urban, 'Desk-to-dinner essential', 0);
     END IF;
 
     IF prod_luxe IS NOT NULL THEN
         INSERT INTO creator_picks (creator_id, product_id, headline, sort_order)
-        VALUES (creator_id, prod_luxe, 'The one I recommend most', 1);
+        VALUES (v_creator_id, prod_luxe, 'The one I recommend most', 1);
     END IF;
 
     RAISE NOTICE 'seed-creators: demo creator storefronts ready';

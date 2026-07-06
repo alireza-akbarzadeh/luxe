@@ -55,6 +55,7 @@ type Container struct {
 	CreatorStorefront       *CreatorStorefrontHandler
 	CommunityShoppingList   *CommunityShoppingListHandler
 	PublicCollection        *PublicCollectionHandler
+	ReverseMarketplace      *ReverseMarketplaceHandler
 	Bundle                  *BundleHandler
 }
 
@@ -73,7 +74,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Order:    NewOrderHandler(apps.Order, apps.Checkout, apps.Store.Queries),
 		Shipment: NewShipmentHandler(apps.Shipment),
 		Page:     NewPageHandler(),
-		Store:    NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product),
+		Store:    NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product, apps.AI, vendorDashboardAdapter{stores: apps.Store.Queries, catalog: apps.Product, orders: apps.Order, productRepo: postgres.NewProductRepository(db)}),
 		Account:  NewAccountHandler(apps.Address.Commands, apps.Address.Queries, apps.UserLike.Commands, apps.UserLike.Queries, apps.Order, apps.User.Queries),
 		Coupon:   NewCouponHandler(apps.Coupon),
 		Address:  NewAddressHandler(apps.Address.Commands, apps.Address.Queries),
@@ -106,6 +107,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		CreatorStorefront:     NewCreatorStorefrontHandler(apps.CreatorStorefront),
 		CommunityShoppingList: NewCommunityShoppingListHandler(apps.CommunityShoppingList),
 		PublicCollection:      NewPublicCollectionHandler(apps.PublicCollection),
+		ReverseMarketplace:    NewReverseMarketplaceHandler(apps.ReverseMarketplace, apps.Store.Queries),
 		Bundle:                NewBundleHandler(apps.Bundle),
 	}
 }

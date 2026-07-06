@@ -3,7 +3,7 @@
 
 DO $$
 DECLARE
-    collection_id BIGINT;
+    v_collection_id BIGINT;
     prod_luxe BIGINT;
     prod_gold BIGINT;
     prod_urban BIGINT;
@@ -42,16 +42,16 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO collection_id;
+    RETURNING id INTO v_collection_id;
 
-    DELETE FROM public_collection_items WHERE collection_id = collection_id;
+    DELETE FROM public_collection_items pci WHERE pci.collection_id = v_collection_id;
 
     INSERT INTO public_collection_items (collection_id, product_id, note, sort_order)
-    VALUES (collection_id, prod_luxe, 'Understated luxury for client calls and dinners', 0);
+    VALUES (v_collection_id, prod_luxe, 'Understated luxury for client calls and dinners', 0);
 
     IF prod_gold IS NOT NULL THEN
         INSERT INTO public_collection_items (collection_id, product_id, note, sort_order)
-        VALUES (collection_id, prod_gold, 'Adds warmth to neutral tailoring', 1);
+        VALUES (v_collection_id, prod_gold, 'Adds warmth to neutral tailoring', 1);
     END IF;
 
     INSERT INTO public_collections (
@@ -79,15 +79,15 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO collection_id;
+    RETURNING id INTO v_collection_id;
 
-    DELETE FROM public_collection_items WHERE collection_id = collection_id;
+    DELETE FROM public_collection_items pci WHERE pci.collection_id = v_collection_id;
 
     INSERT INTO public_collection_items (collection_id, product_id, note, sort_order)
-    VALUES (collection_id, prod_luxe, 'A classic that never misses', 0);
+    VALUES (v_collection_id, prod_luxe, 'A classic that never misses', 0);
 
     IF prod_urban IS NOT NULL THEN
         INSERT INTO public_collection_items (collection_id, product_id, note, sort_order)
-        VALUES (collection_id, prod_urban, 'Great for younger recipients starting their collection', 1);
+        VALUES (v_collection_id, prod_urban, 'Great for younger recipients starting their collection', 1);
     END IF;
 END $$;

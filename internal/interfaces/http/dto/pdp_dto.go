@@ -62,28 +62,30 @@ type CreateProductAnswerRequest struct {
 }
 
 type ProductAnswerResponse struct {
-	ID           uint      `json:"id"`
-	QuestionID   uint      `json:"question_id"`
-	Author       string    `json:"author"`
-	Body         string    `json:"body"`
-	IsStoreReply bool      `json:"is_store_reply"`
-	IsAIReply    bool      `json:"is_ai_reply"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID              uint      `json:"id"`
+	QuestionID      uint      `json:"question_id"`
+	Author          string    `json:"author"`
+	Body            string    `json:"body"`
+	IsStoreReply    bool      `json:"is_store_reply"`
+	IsAIReply       bool      `json:"is_ai_reply"`
+	IsVerifiedBuyer bool      `json:"is_verified_buyer"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type ProductQuestionResponse struct {
-	ID          uint                    `json:"id"`
-	ProductID   uint                    `json:"product_id"`
-	ProductName string                  `json:"product_name,omitempty"`
-	ProductSlug string                  `json:"product_slug,omitempty"`
-	Author      string                  `json:"author"`
-	Body        string                  `json:"body"`
-	CreatedAt   time.Time               `json:"created_at"`
-	IsOwner     bool                    `json:"is_owner,omitempty"`
-	Answers     []ProductAnswerResponse `json:"answers"`
+	ID              uint                    `json:"id"`
+	ProductID       uint                    `json:"product_id"`
+	ProductName     string                  `json:"product_name,omitempty"`
+	ProductSlug     string                  `json:"product_slug,omitempty"`
+	Author          string                  `json:"author"`
+	Body            string                  `json:"body"`
+	CreatedAt       time.Time               `json:"created_at"`
+	IsOwner         bool                    `json:"is_owner,omitempty"`
+	IsVerifiedBuyer bool                    `json:"is_verified_buyer"`
+	Answers         []ProductAnswerResponse `json:"answers"`
 }
 
-func ToProductAnswerResponse(answer *models.ProductAnswer) ProductAnswerResponse {
+func ToProductAnswerResponse(answer *models.ProductAnswer, verifiedBuyers map[uint]bool) ProductAnswerResponse {
 	author := "Anonymous"
 	if answer.User.ID != 0 {
 		name := answer.User.FirstName + " " + answer.User.LastName
@@ -97,18 +99,27 @@ func ToProductAnswerResponse(answer *models.ProductAnswer) ProductAnswerResponse
 			author = "Store assistant"
 		}
 	}
+	isVerifiedBuyer := false
+	if !answer.IsStoreReply && !answer.IsAIReply && verifiedBuyers != nil {
+		isVerifiedBuyer = verifiedBuyers[answer.UserID]
+	}
 	return ProductAnswerResponse{
-		ID:           answer.ID,
-		QuestionID:   answer.QuestionID,
-		Author:       author,
-		Body:         answer.Body,
-		IsStoreReply: answer.IsStoreReply,
-		IsAIReply:    answer.IsAIReply,
-		CreatedAt:    answer.CreatedAt,
+		ID:              answer.ID,
+		QuestionID:      answer.QuestionID,
+		Author:          author,
+		Body:            answer.Body,
+		IsStoreReply:    answer.IsStoreReply,
+		IsAIReply:       answer.IsAIReply,
+		IsVerifiedBuyer: isVerifiedBuyer,
+		CreatedAt:       answer.CreatedAt,
 	}
 }
 
-func ToProductQuestionResponse(question *models.ProductQuestion, viewerUserID uint) ProductQuestionResponse {
+func ToProductQuestionResponse(
+	question *models.ProductQuestion,
+	viewerUserID uint,
+	verifiedBuyers map[uint]bool,
+) ProductQuestionResponse {
 	author := "Anonymous"
 	if question.User.ID != 0 {
 		name := question.User.FirstName + " " + question.User.LastName
@@ -118,21 +129,27 @@ func ToProductQuestionResponse(question *models.ProductQuestion, viewerUserID ui
 	}
 	answers := make([]ProductAnswerResponse, len(question.Answers))
 	for i := range question.Answers {
-		answers[i] = ToProductAnswerResponse(&question.Answers[i])
+		answers[i] = ToProductAnswerResponse(&question.Answers[i], verifiedBuyers)
 	}
+	isVerifiedBuyer := verifiedBuyers != nil && verifiedBuyers[question.UserID]
 	return ProductQuestionResponse{
-		ID:        question.ID,
-		ProductID: question.ProductID,
-		Author:    author,
-		Body:      question.Body,
-		CreatedAt: question.CreatedAt,
-		IsOwner:   viewerUserID != 0 && question.UserID == viewerUserID,
-		Answers:   answers,
+		ID:              question.ID,
+		ProductID:       question.ProductID,
+		Author:          author,
+		Body:            question.Body,
+		CreatedAt:       question.CreatedAt,
+		IsOwner:         viewerUserID != 0 && question.UserID == viewerUserID,
+		IsVerifiedBuyer: isVerifiedBuyer,
+		Answers:         answers,
 	}
 }
 
-func ToUserProductQuestionResponse(question *models.ProductQuestion, viewerUserID uint) ProductQuestionResponse {
-	resp := ToProductQuestionResponse(question, viewerUserID)
+func ToUserProductQuestionResponse(
+	question *models.ProductQuestion,
+	viewerUserID uint,
+	verifiedBuyers map[uint]bool,
+) ProductQuestionResponse {
+	resp := ToProductQuestionResponse(question, viewerUserID, verifiedBuyers)
 	if question.Product.ID != 0 {
 		resp.ProductName = question.Product.Name
 		resp.ProductSlug = question.Product.Slug

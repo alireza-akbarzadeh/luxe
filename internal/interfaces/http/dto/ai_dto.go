@@ -613,3 +613,138 @@ type AiCompareInsightResponse struct {
 	BestFor        []AiCompareBestFor `json:"best_for,omitempty"`
 	Tradeoffs      []string           `json:"tradeoffs,omitempty"`
 }
+
+// AiVendorDashboardResponse powers the vendor home AI briefing.
+type AiVendorDashboardResponse struct {
+	AiEnabled     bool     `json:"ai_enabled"`
+	Summary       string   `json:"summary"`
+	HealthScore   int      `json:"health_score"`
+	Priorities    []string `json:"priorities"`
+	Opportunities []string `json:"opportunities"`
+	Alerts        []string `json:"alerts"`
+	Sources       []string `json:"sources,omitempty"`
+}
+
+// VendorSalesMetrics summarizes store revenue for a period.
+type VendorSalesMetrics struct {
+	Revenue          float64 `json:"revenue"`
+	OrderCount       int64   `json:"order_count"`
+	UnitsSold        int64   `json:"units_sold"`
+	AvgOrderValue    float64 `json:"avg_order_value"`
+	RevenueChangePct float64 `json:"revenue_change_pct"`
+	OrdersChangePct  float64 `json:"orders_change_pct"`
+}
+
+// VendorDailySalesPoint is one day in the sales chart series.
+type VendorDailySalesPoint struct {
+	Date    string  `json:"date"`
+	Revenue float64 `json:"revenue"`
+	Orders  int64   `json:"orders"`
+}
+
+// VendorTopProductSales ranks products by store-scoped revenue.
+type VendorTopProductSales struct {
+	ProductID uint    `json:"product_id"`
+	Name      string  `json:"name"`
+	Revenue   float64 `json:"revenue"`
+	Units     int64   `json:"units"`
+}
+
+// AiVendorSalesInsightsResponse powers the vendor analytics AI briefing.
+type AiVendorSalesInsightsResponse struct {
+	AiEnabled       bool                    `json:"ai_enabled"`
+	PeriodDays      int                     `json:"period_days"`
+	Summary         string                  `json:"summary"`
+	Highlights      []string                `json:"highlights"`
+	Recommendations []string                `json:"recommendations"`
+	Warnings        []string                `json:"warnings,omitempty"`
+	Metrics         VendorSalesMetrics      `json:"metrics"`
+	DailySeries     []VendorDailySalesPoint `json:"daily_series"`
+	TopProducts     []VendorTopProductSales `json:"top_products"`
+	Sources         []string                `json:"sources,omitempty"`
+}
+
+// VendorInventoryForecastItem is a per-SKU stock forecast.
+type VendorInventoryForecastItem struct {
+	ProductID           uint     `json:"product_id"`
+	Name                string   `json:"name"`
+	Stock               int      `json:"stock"`
+	UnitsSold           int64    `json:"units_sold"`
+	DailyVelocity       float64  `json:"daily_velocity"`
+	DaysUntilStockout   *float64 `json:"days_until_stockout,omitempty"`
+	SuggestedReorderQty int      `json:"suggested_reorder_qty"`
+	Urgency             string   `json:"urgency"`
+}
+
+// AiVendorInventoryForecastResponse powers vendor inventory forecasting.
+type AiVendorInventoryForecastResponse struct {
+	AiEnabled       bool                          `json:"ai_enabled"`
+	PeriodDays      int                           `json:"period_days"`
+	Summary         string                        `json:"summary"`
+	Priorities      []string                      `json:"priorities"`
+	Recommendations []string                      `json:"recommendations"`
+	Alerts          []string                      `json:"alerts,omitempty"`
+	LowStockCount   int64                         `json:"low_stock_count"`
+	CriticalCount   int                           `json:"critical_count"`
+	WarningCount    int                           `json:"warning_count"`
+	Forecasts       []VendorInventoryForecastItem `json:"forecasts"`
+	Sources         []string                      `json:"sources,omitempty"`
+}
+
+// VendorPricingSuggestion is a per-SKU price recommendation.
+type VendorPricingSuggestion struct {
+	ProductID      uint     `json:"product_id"`
+	Name           string   `json:"name"`
+	CurrentPrice   float64  `json:"current_price"`
+	SuggestedPrice *float64 `json:"suggested_price,omitempty"`
+	Action         string   `json:"action"`
+	MarginPct      *float64 `json:"margin_pct,omitempty"`
+	UnitsSold      int64    `json:"units_sold"`
+	Revenue        float64  `json:"revenue"`
+	Rationale      string   `json:"rationale"`
+}
+
+// AiVendorPricingAssistantResponse powers vendor dynamic pricing recommendations.
+type AiVendorPricingAssistantResponse struct {
+	AiEnabled       bool                    `json:"ai_enabled"`
+	PeriodDays      int                     `json:"period_days"`
+	Summary         string                  `json:"summary"`
+	Highlights      []string                `json:"highlights"`
+	Recommendations []string                `json:"recommendations"`
+	Warnings        []string                `json:"warnings,omitempty"`
+	Suggestions     []VendorPricingSuggestion `json:"suggestions"`
+	Sources         []string                `json:"sources,omitempty"`
+}
+
+// VendorCustomerSegmentSummary groups customers by behavioral segment.
+type VendorCustomerSegmentSummary struct {
+	Segment    string  `json:"segment"`
+	Label      string  `json:"label"`
+	Count      int     `json:"count"`
+	TotalSpend float64 `json:"total_spend"`
+}
+
+// VendorCustomerSegmentMember is a segmented buyer row.
+type VendorCustomerSegmentMember struct {
+	UserID        uint    `json:"user_id"`
+	Name          string  `json:"name"`
+	Email         string  `json:"email"`
+	OrderCount    int64   `json:"order_count"`
+	TotalSpend    float64 `json:"total_spend"`
+	AvgOrderValue float64 `json:"avg_order_value"`
+	LastOrderAt   string  `json:"last_order_at"`
+	Segment       string  `json:"segment"`
+}
+
+// AiVendorCustomerSegmentsResponse powers vendor customer segmentation.
+type AiVendorCustomerSegmentsResponse struct {
+	AiEnabled       bool                           `json:"ai_enabled"`
+	PeriodDays      int                            `json:"period_days"`
+	Summary         string                         `json:"summary"`
+	Highlights      []string                       `json:"highlights"`
+	Recommendations []string                       `json:"recommendations"`
+	CampaignIdeas   []string                       `json:"campaign_ideas,omitempty"`
+	Segments        []VendorCustomerSegmentSummary `json:"segments"`
+	Customers       []VendorCustomerSegmentMember  `json:"customers"`
+	Sources         []string                       `json:"sources,omitempty"`
+}

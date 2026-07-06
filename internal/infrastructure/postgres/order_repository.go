@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )
@@ -115,4 +116,39 @@ func (r *OrderRepository) applyListFilters(query *gorm.DB, q OrderListQuery) *go
 			)
 	}
 	return query
+}
+
+// UserIDsWithProductPurchase returns user IDs from the given set who bought the product
+// in a paid, shipped, or delivered order.
+func (r *OrderRepository) UserIDsWithProductPurchase(
+	ctx context.Context,
+	productID uint,
+	userIDs []uint,
+) (map[uint]bool, error) {
+	result := make(map[uint]bool)
+	if productID == 0 || len(userIDs) == 0 {
+		return result, nil
+	}
+
+	var purchased []uint
+	err := r.db.WithContext(ctx).
+		Model(&models.Order{}).
+		Distinct("orders.user_id").
+		Joins("JOIN order_items ON order_items.order_id = orders.id AND order_items.deleted_at IS NULL").
+		Where("order_items.product_id = ?", productID).
+		Where("orders.user_id IN ?", userIDs).
+		Where("orders.status IN ?", []string{
+			constants.OrderStatusPaid,
+			constants.OrderStatusShipped,
+			constants.OrderStatusDelivered,
+		}).
+		Pluck("orders.user_id", &purchased).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, id := range purchased {
+		result[id] = true
+	}
+	return result, nil
 }

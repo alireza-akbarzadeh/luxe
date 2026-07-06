@@ -51,5 +51,10 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 		vendorStores.POST("/:id/orders/:orderId/transition", ctrl.Order.PerformVendorStoreOrderTransition)
 		vendorStores.GET("/:id/products/stats", ctrl.Store.GetVendorStoreProductStats)
 		vendorStores.GET("/:id/products", ctrl.Store.ListVendorStoreProducts)
+		vendorStores.GET("/:id/ai/dashboard", ctrl.Store.GetVendorStoreAiDashboard)
+		vendorStores.GET("/:id/ai/sales-insights", ctrl.Store.GetVendorStoreAiSalesInsights)
+		vendorStores.GET("/:id/ai/inventory-forecast", ctrl.Store.GetVendorStoreAiInventoryForecast)
+		vendorStores.GET("/:id/ai/pricing-assistant", ctrl.Store.GetVendorStoreAiPricingAssistant)
+		vendorStores.GET("/:id/ai/customer-segments", ctrl.Store.GetVendorStoreAiCustomerSegments)
 	}
 }

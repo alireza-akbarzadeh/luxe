@@ -1,32 +1,44 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
+	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
-	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type StoreHandler struct {
-	commands *appstore.Commands
-	queries  *appstore.Queries
-	productService *appcatalog.Service
-	validate       *validator.Validate
+	commands              *appstore.Commands
+	queries               *appstore.Queries
+	productService        *appcatalog.Service
+	aiService             *appai.Service
+	vendorInsights        vendorDashboardAdapter
+	validate              *validator.Validate
 }
 
-func NewStoreHandler(commands *appstore.Commands, queries *appstore.Queries, ps *appcatalog.Service) *StoreHandler {
+func NewStoreHandler(
+	commands *appstore.Commands,
+	queries *appstore.Queries,
+	ps *appcatalog.Service,
+	aiService *appai.Service,
+	vendorInsights vendorDashboardAdapter,
+) *StoreHandler {
 	return &StoreHandler{
-		commands: commands,
-		queries:  queries,
+		commands:       commands,
+		queries:        queries,
 		productService: ps,
+		aiService:      aiService,
+		vendorInsights: vendorInsights,
 		validate:       validator.New(),
 	}
 }
@@ -875,4 +887,226 @@ func (ctrl *StoreHandler) GetVendorStoreProductStats(c *gin.Context) {
 		ByStatus: stats.ByStatus,
 		LowStock: stats.LowStock,
 	})
+}
+
+// GetVendorStoreAiDashboard returns AI-powered operational insights for a vendor store.
+// @Summary      Vendor AI dashboard briefing
+// @Description  Generates prioritized actions, alerts, and opportunities from store orders, catalog, and inventory facts
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Success      200 {object} utils.Response{data=dto.AiVendorDashboardResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /vendor/stores/{id}/ai/dashboard [get]
+func (ctrl *StoreHandler) GetVendorStoreAiDashboard(c *gin.Context) {
+	storeID, userID, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	subjectKey := fmt.Sprintf("%d:%d", userID, storeID)
+	result, err := ctrl.aiService.VendorDashboard(
+		c.Request.Context(),
+		storeID,
+		subjectKey,
+		ctrl.vendorInsights,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to generate vendor dashboard insights")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
+}
+
+// GetVendorStoreAiSalesInsights returns AI-powered sales analytics for a vendor store.
+// @Summary      Vendor AI sales insights
+// @Description  Revenue metrics, daily series, top products, and AI narrative for the selected period
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Param        days query int false "Analysis window in days (default 30, max 90)" default(30)
+// @Success      200 {object} utils.Response{data=dto.AiVendorSalesInsightsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /vendor/stores/{id}/ai/sales-insights [get]
+func (ctrl *StoreHandler) GetVendorStoreAiSalesInsights(c *gin.Context) {
+	storeID, userID, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	days := parseVendorAnalysisDays(c)
+	if days == 0 {
+		return
+	}
+
+	subjectKey := fmt.Sprintf("%d:%d", userID, storeID)
+	result, err := ctrl.aiService.VendorSalesInsights(
+		c.Request.Context(),
+		storeID,
+		days,
+		subjectKey,
+		ctrl.vendorInsights,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to generate vendor sales insights")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
+}
+
+// GetVendorStoreAiInventoryForecast returns AI-powered inventory forecasts for a vendor store.
+// @Summary      Vendor AI inventory forecast
+// @Description  Stock velocity, days-until-stockout, and replenishment suggestions from catalog and sales
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Param        days query int false "Analysis window in days (default 30, max 90)" default(30)
+// @Success      200 {object} utils.Response{data=dto.AiVendorInventoryForecastResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /vendor/stores/{id}/ai/inventory-forecast [get]
+func (ctrl *StoreHandler) GetVendorStoreAiInventoryForecast(c *gin.Context) {
+	storeID, userID, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	days := parseVendorAnalysisDays(c)
+	if days == 0 {
+		return
+	}
+
+	subjectKey := fmt.Sprintf("%d:%d", userID, storeID)
+	result, err := ctrl.aiService.VendorInventoryForecast(
+		c.Request.Context(),
+		storeID,
+		days,
+		subjectKey,
+		ctrl.vendorInsights,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to generate vendor inventory forecast")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
+}
+
+// GetVendorStoreAiPricingAssistant returns AI-powered pricing recommendations for a vendor store.
+// @Summary      Vendor AI pricing assistant
+// @Description  Per-SKU price actions based on demand, margin, and inventory signals
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Param        days query int false "Analysis window in days (default 30, max 90)" default(30)
+// @Success      200 {object} utils.Response{data=dto.AiVendorPricingAssistantResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /vendor/stores/{id}/ai/pricing-assistant [get]
+func (ctrl *StoreHandler) GetVendorStoreAiPricingAssistant(c *gin.Context) {
+	storeID, userID, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	days := parseVendorAnalysisDays(c)
+	if days == 0 {
+		return
+	}
+
+	subjectKey := fmt.Sprintf("%d:%d", userID, storeID)
+	result, err := ctrl.aiService.VendorPricingAssistant(
+		c.Request.Context(),
+		storeID,
+		days,
+		subjectKey,
+		ctrl.vendorInsights,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to generate vendor pricing assistant")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
+}
+
+// GetVendorStoreAiCustomerSegments returns AI-powered customer segmentation for a vendor store.
+// @Summary      Vendor AI customer segments
+// @Description  Buyer segments, spend tiers, and retention campaign ideas from order history
+// @Tags         Vendor
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Store ID"
+// @Param        days query int false "Analysis window in days (default 365, max 730)" default(365)
+// @Success      200 {object} utils.Response{data=dto.AiVendorCustomerSegmentsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      429 {object} utils.Response
+// @Router       /vendor/stores/{id}/ai/customer-segments [get]
+func (ctrl *StoreHandler) GetVendorStoreAiCustomerSegments(c *gin.Context) {
+	storeID, userID, _, ok := authorizeVendorStore(c, ctrl.queries)
+	if !ok {
+		return
+	}
+
+	days := parseVendorCustomerDays(c)
+	if days == 0 {
+		return
+	}
+
+	subjectKey := fmt.Sprintf("%d:%d", userID, storeID)
+	result, err := ctrl.aiService.VendorCustomerSegments(
+		c.Request.Context(),
+		storeID,
+		days,
+		subjectKey,
+		ctrl.vendorInsights,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to generate vendor customer segments")
+		return
+	}
+
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, result)
+}
+
+func parseVendorAnalysisDays(c *gin.Context) int {
+	days := 30
+	if raw := c.Query("days"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed <= 0 {
+			utils.BadRequestResponse(c, "days must be a positive integer")
+			return 0
+		}
+		days = parsed
+	}
+	return days
+}
+
+func parseVendorCustomerDays(c *gin.Context) int {
+	days := 365
+	if raw := c.Query("days"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed <= 0 {
+			utils.BadRequestResponse(c, "days must be a positive integer")
+			return 0
+		}
+		days = parsed
+	}
+	if days > 730 {
+		days = 730
+	}
+	return days
 }

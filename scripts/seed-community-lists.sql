@@ -3,7 +3,7 @@
 
 DO $$
 DECLARE
-    list_id BIGINT;
+    v_list_id BIGINT;
     prod_luxe BIGINT;
     prod_gold BIGINT;
     prod_urban BIGINT;
@@ -42,21 +42,21 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO list_id;
+    RETURNING id INTO v_list_id;
 
-    DELETE FROM community_shopping_list_items WHERE list_id = list_id;
+    DELETE FROM community_shopping_list_items csi WHERE csi.list_id = v_list_id;
 
     INSERT INTO community_shopping_list_items (list_id, product_id, note, sort_order)
-    VALUES (list_id, prod_luxe, 'The statement piece for your entryway console', 0);
+    VALUES (v_list_id, prod_luxe, 'The statement piece for your entryway console', 0);
 
     IF prod_gold IS NOT NULL THEN
         INSERT INTO community_shopping_list_items (list_id, product_id, note, sort_order)
-        VALUES (list_id, prod_gold, 'Warm gold tones for evening hosting', 1);
+        VALUES (v_list_id, prod_gold, 'Warm gold tones for evening hosting', 1);
     END IF;
 
     IF prod_urban IS NOT NULL THEN
         INSERT INTO community_shopping_list_items (list_id, product_id, note, sort_order)
-        VALUES (list_id, prod_urban, 'Everyday wear for WFH days', 2);
+        VALUES (v_list_id, prod_urban, 'Everyday wear for WFH days', 2);
     END IF;
 
     INSERT INTO community_shopping_lists (
@@ -84,15 +84,15 @@ BEGIN
         is_active = EXCLUDED.is_active,
         sort_order = EXCLUDED.sort_order,
         updated_at = NOW()
-    RETURNING id INTO list_id;
+    RETURNING id INTO v_list_id;
 
-    DELETE FROM community_shopping_list_items WHERE list_id = list_id;
+    DELETE FROM community_shopping_list_items csi WHERE csi.list_id = v_list_id;
 
     INSERT INTO community_shopping_list_items (list_id, product_id, note, sort_order)
-    VALUES (list_id, prod_luxe, 'Versatile day-to-dinner timepiece', 0);
+    VALUES (v_list_id, prod_luxe, 'Versatile day-to-dinner timepiece', 0);
 
     IF prod_urban IS NOT NULL THEN
         INSERT INTO community_shopping_list_items (list_id, product_id, note, sort_order)
-        VALUES (list_id, prod_urban, 'Casual brunches and city walks', 1);
+        VALUES (v_list_id, prod_urban, 'Casual brunches and city walks', 1);
     END IF;
 END $$;

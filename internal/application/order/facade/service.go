@@ -520,3 +520,19 @@ func (s *Service) GetVendorStoreOrderStats(ctx context.Context, storeID uint) (a
 func (s *Service) GetVendorStoreOrder(ctx context.Context, storeID, orderID uint) (*models.Order, error) {
 	return s.queries.GetVendorStoreOrder(ctx, storeID, orderID)
 }
+
+func (s *Service) GetVendorStoreSalesSummary(ctx context.Context, storeID uint, from, to time.Time) (apporder.VendorSalesSummary, error) {
+	return s.queries.GetVendorStoreSalesSummary(ctx, storeID, from, to)
+}
+
+func (s *Service) ListVendorTopProducts(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]apporder.VendorTopProduct, error) {
+	return s.queries.ListVendorTopProducts(ctx, storeID, from, to, limit)
+}
+
+func (s *Service) ListVendorDailySales(ctx context.Context, storeID uint, from, to time.Time) ([]apporder.VendorDailySales, error) {
+	return s.queries.ListVendorDailySales(ctx, storeID, from, to)
+}
+
+func (s *Service) ListVendorStoreCustomers(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]apporder.VendorStoreCustomer, error) {
+	return s.queries.ListVendorStoreCustomers(ctx, storeID, from, to, limit)
+}

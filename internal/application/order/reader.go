@@ -37,6 +37,10 @@ type Reader interface {
 	FindAdminByID(ctx context.Context, orderID uint) (*models.Order, error)
 	CountByStoreStatus(ctx context.Context, storeID uint) (VendorOrderStats, error)
 	OrderBelongsToStore(ctx context.Context, orderID, storeID uint) (bool, error)
+	GetVendorStoreSalesSummary(ctx context.Context, storeID uint, from, to time.Time) (VendorSalesSummary, error)
+	ListVendorTopProducts(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]VendorTopProduct, error)
+	ListVendorDailySales(ctx context.Context, storeID uint, from, to time.Time) ([]VendorDailySales, error)
+	ListVendorStoreCustomers(ctx context.Context, storeID uint, from, to time.Time, limit int) ([]VendorStoreCustomer, error)
 }
 
 // Writer persists order status changes.

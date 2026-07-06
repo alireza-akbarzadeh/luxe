@@ -215,6 +215,17 @@ const (
 	GiftCardStatusExpired   = "expired"
 	GiftCardStatusCancelled = "cancelled"
 
+	// Reverse marketplace request statuses
+	ReverseMarketplaceRequestStatusOpen      = "open"
+	ReverseMarketplaceRequestStatusClosed    = "closed"
+	ReverseMarketplaceRequestStatusFulfilled = "fulfilled"
+
+	// Reverse marketplace offer statuses
+	ReverseMarketplaceOfferStatusPending   = "pending"
+	ReverseMarketplaceOfferStatusAccepted  = "accepted"
+	ReverseMarketplaceOfferStatusDeclined  = "declined"
+	ReverseMarketplaceOfferStatusWithdrawn = "withdrawn"
+
 	// Shipment statuses
 	ShipmentStatusPending   = "pending"
 	ShipmentStatusShipped   = "shipped"
