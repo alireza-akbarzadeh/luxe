@@ -53,3 +53,33 @@ type ProductAnswer struct {
 }
 
 func (ProductAnswer) TableName() string { return "product_answers" }
+
+type ProductDiscussion struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	ProductID uint      `gorm:"not null;index" json:"product_id"`
+	UserID    uint      `gorm:"not null;index" json:"user_id"`
+	Title     string    `gorm:"size:200;not null" json:"title"`
+	Body      string    `gorm:"type:text;not null" json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	User    User                      `gorm:"foreignKey:UserID" json:"-"`
+	Replies []ProductDiscussionReply  `gorm:"foreignKey:DiscussionID" json:"-"`
+	Product Product                   `gorm:"foreignKey:ProductID" json:"-"`
+}
+
+func (ProductDiscussion) TableName() string { return "product_discussions" }
+
+type ProductDiscussionReply struct {
+	ID           uint      `gorm:"primaryKey" json:"id"`
+	DiscussionID uint      `gorm:"not null;index" json:"discussion_id"`
+	UserID       uint      `gorm:"not null;index" json:"user_id"`
+	Body         string    `gorm:"type:text;not null" json:"body"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+
+	User       User              `gorm:"foreignKey:UserID" json:"-"`
+	Discussion ProductDiscussion `gorm:"foreignKey:DiscussionID" json:"-"`
+}
+
+func (ProductDiscussionReply) TableName() string { return "product_discussion_replies" }

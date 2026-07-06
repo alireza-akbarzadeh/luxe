@@ -161,6 +161,24 @@ func (q *Queries) GetQuestionWithProductStore(ctx context.Context, questionID ui
 	return q.repo.GetQuestionWithProductStore(ctx, questionID)
 }
 
+// ListDiscussions returns paginated community discussions for a product.
+func (q *Queries) ListDiscussions(ctx context.Context, productID uint, limit, offset int) ([]models.ProductDiscussion, int64, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	total, err := q.repo.CountDiscussions(ctx, productID)
+	if err != nil {
+		return nil, 0, err
+	}
+	discussions, err := q.repo.ListDiscussions(ctx, productID, limit, offset)
+	return discussions, total, err
+}
+
+// GetDiscussionWithProduct loads a discussion with product for reply validation.
+func (q *Queries) GetDiscussionWithProduct(ctx context.Context, discussionID uint) (*models.ProductDiscussion, error) {
+	return q.repo.GetDiscussionWithProduct(ctx, discussionID)
+}
+
 // ToAlternativeResponses maps products to alternative DTOs.
 func ToAlternativeResponses(ctx context.Context, alternatives []*models.Product) []dto.ProductAlternativeResponse {
 	result := make([]dto.ProductAlternativeResponse, 0, len(alternatives))

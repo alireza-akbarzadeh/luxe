@@ -140,6 +140,77 @@ func ToUserProductQuestionResponse(question *models.ProductQuestion, viewerUserI
 	return resp
 }
 
+type CreateProductDiscussionRequest struct {
+	Title string `json:"title" validate:"required,min=5,max=200"`
+	Body  string `json:"body" validate:"required,min=10,max=2000"`
+}
+
+type CreateProductDiscussionReplyRequest struct {
+	Body string `json:"body" validate:"required,min=2,max=2000"`
+}
+
+type ProductDiscussionReplyResponse struct {
+	ID           uint      `json:"id"`
+	DiscussionID uint      `json:"discussion_id"`
+	Author       string    `json:"author"`
+	Body         string    `json:"body"`
+	CreatedAt    time.Time `json:"created_at"`
+	IsOwner      bool      `json:"is_owner,omitempty"`
+}
+
+type ProductDiscussionResponse struct {
+	ID        uint                           `json:"id"`
+	ProductID uint                           `json:"product_id"`
+	Author    string                         `json:"author"`
+	Title     string                         `json:"title"`
+	Body      string                         `json:"body"`
+	CreatedAt time.Time                      `json:"created_at"`
+	IsOwner   bool                           `json:"is_owner,omitempty"`
+	Replies   []ProductDiscussionReplyResponse `json:"replies"`
+}
+
+func ToProductDiscussionReplyResponse(reply *models.ProductDiscussionReply, viewerUserID uint) ProductDiscussionReplyResponse {
+	author := "Anonymous"
+	if reply.User.ID != 0 {
+		name := reply.User.FirstName + " " + reply.User.LastName
+		if name != " " {
+			author = name
+		}
+	}
+	return ProductDiscussionReplyResponse{
+		ID:           reply.ID,
+		DiscussionID: reply.DiscussionID,
+		Author:       author,
+		Body:         reply.Body,
+		CreatedAt:    reply.CreatedAt,
+		IsOwner:      viewerUserID != 0 && reply.UserID == viewerUserID,
+	}
+}
+
+func ToProductDiscussionResponse(discussion *models.ProductDiscussion, viewerUserID uint) ProductDiscussionResponse {
+	author := "Anonymous"
+	if discussion.User.ID != 0 {
+		name := discussion.User.FirstName + " " + discussion.User.LastName
+		if name != " " {
+			author = name
+		}
+	}
+	replies := make([]ProductDiscussionReplyResponse, len(discussion.Replies))
+	for i := range discussion.Replies {
+		replies[i] = ToProductDiscussionReplyResponse(&discussion.Replies[i], viewerUserID)
+	}
+	return ProductDiscussionResponse{
+		ID:        discussion.ID,
+		ProductID: discussion.ProductID,
+		Author:    author,
+		Title:     discussion.Title,
+		Body:      discussion.Body,
+		CreatedAt: discussion.CreatedAt,
+		IsOwner:   viewerUserID != 0 && discussion.UserID == viewerUserID,
+		Replies:   replies,
+	}
+}
+
 type StockNotificationStatusResponse struct {
 	Subscribed bool `json:"subscribed"`
 }

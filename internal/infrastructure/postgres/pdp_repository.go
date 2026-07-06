@@ -235,3 +235,59 @@ func (r *PdpRepository) ListProductWorkflowLogsSince(ctx context.Context, produc
 		Find(&rows).Error
 	return rows, err
 }
+
+// CountDiscussions counts community discussions for a product.
+func (r *PdpRepository) CountDiscussions(ctx context.Context, productID uint) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.ProductDiscussion{}).Where("product_id = ?", productID).Count(&total).Error
+	return total, err
+}
+
+// ListDiscussions returns paginated discussions with replies.
+func (r *PdpRepository) ListDiscussions(ctx context.Context, productID uint, limit, offset int) ([]models.ProductDiscussion, error) {
+	var discussions []models.ProductDiscussion
+	err := r.db.WithContext(ctx).Preload("User").Preload("Replies", func(db *gorm.DB) *gorm.DB {
+		return db.Preload("User").Order("created_at ASC")
+	}).Where("product_id = ?", productID).
+		Order("created_at DESC").
+		Limit(limit).Offset(offset).
+		Find(&discussions).Error
+	return discussions, err
+}
+
+// CreateDiscussion inserts a product discussion thread.
+func (r *PdpRepository) CreateDiscussion(ctx context.Context, discussion *models.ProductDiscussion) error {
+	return r.db.WithContext(ctx).Create(discussion).Error
+}
+
+// GetDiscussionByID loads a discussion with user preload.
+func (r *PdpRepository) GetDiscussionByID(ctx context.Context, id uint) (*models.ProductDiscussion, error) {
+	var discussion models.ProductDiscussion
+	if err := r.db.WithContext(ctx).Preload("User").First(&discussion, id).Error; err != nil {
+		return nil, err
+	}
+	return &discussion, nil
+}
+
+// GetDiscussionWithProduct loads a discussion with product for validation.
+func (r *PdpRepository) GetDiscussionWithProduct(ctx context.Context, discussionID uint) (*models.ProductDiscussion, error) {
+	var discussion models.ProductDiscussion
+	if err := r.db.WithContext(ctx).Preload("Product").First(&discussion, discussionID).Error; err != nil {
+		return nil, err
+	}
+	return &discussion, nil
+}
+
+// CreateDiscussionReply inserts a reply on a discussion thread.
+func (r *PdpRepository) CreateDiscussionReply(ctx context.Context, reply *models.ProductDiscussionReply) error {
+	return r.db.WithContext(ctx).Create(reply).Error
+}
+
+// GetDiscussionReplyByID loads a reply with user preload.
+func (r *PdpRepository) GetDiscussionReplyByID(ctx context.Context, id uint) (*models.ProductDiscussionReply, error) {
+	var reply models.ProductDiscussionReply
+	if err := r.db.WithContext(ctx).Preload("User").First(&reply, id).Error; err != nil {
+		return nil, err
+	}
+	return &reply, nil
+}

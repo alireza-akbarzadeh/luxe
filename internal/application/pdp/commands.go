@@ -124,6 +124,33 @@ func (c *Commands) CreateAnswer(ctx context.Context, userID, questionID uint, bo
 	return c.repo.GetAnswerByID(ctx, answer.ID)
 }
 
+// CreateDiscussion inserts a community discussion thread on a product.
+func (c *Commands) CreateDiscussion(ctx context.Context, userID, productID uint, title, body string) (*models.ProductDiscussion, error) {
+	discussion := &models.ProductDiscussion{
+		ProductID: productID,
+		UserID:    userID,
+		Title:     strings.TrimSpace(title),
+		Body:      strings.TrimSpace(body),
+	}
+	if err := c.repo.CreateDiscussion(ctx, discussion); err != nil {
+		return nil, err
+	}
+	return c.repo.GetDiscussionByID(ctx, discussion.ID)
+}
+
+// CreateDiscussionReply inserts a reply on a discussion thread.
+func (c *Commands) CreateDiscussionReply(ctx context.Context, userID, discussionID uint, body string) (*models.ProductDiscussionReply, error) {
+	reply := &models.ProductDiscussionReply{
+		DiscussionID: discussionID,
+		UserID:       userID,
+		Body:         strings.TrimSpace(body),
+	}
+	if err := c.repo.CreateDiscussionReply(ctx, reply); err != nil {
+		return nil, err
+	}
+	return c.repo.GetDiscussionReplyByID(ctx, reply.ID)
+}
+
 var (
 	ErrProductInStock    = errors.New("product is currently in stock")
 	ErrAlreadySubscribed = errors.New("already subscribed")
