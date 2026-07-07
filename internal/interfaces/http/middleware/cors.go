@@ -14,6 +14,7 @@ func parseAllowOrigins() []string {
 	if raw == "" {
 		return []string{
 			"http://localhost:3000",
+			"https://luxe-3pvz.onrender.com",
 			"http://127.0.0.1:3000",
 			"http://localhost:4000",
 			"http://127.0.0.1:4000",
