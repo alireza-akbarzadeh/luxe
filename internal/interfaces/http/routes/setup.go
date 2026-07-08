@@ -10,6 +10,7 @@ import (
 )
 
 func (r *Router) Setup() {
+	configureSwaggerInfo(r.cfg)
 	r.RegisterMiddlewares()
 	middleware.SetRolePermissionChecker(r.apps)
 

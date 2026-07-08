@@ -139,6 +139,7 @@ Set `STRIPE_WEBHOOK_SECRET` on Render. Required when Stripe keys are set in prod
 |---------|-----|
 | Service won't start | Check logs — `JWT_SECRET` and `DATABASE_URL` required |
 | `sslmode=disable` error | Neon URL must include `sslmode=require` |
-| CORS errors in browser | Set `CORS_ALLOW_ORIGINS` to exact frontend origin (no trailing slash) |
+| CORS errors in browser | Set `CORS_ALLOW_ORIGINS` to exact frontend origin (no trailing slash). `FRONTEND_URL` is merged automatically. |
+| Swagger "Try it out" fails on Render | Spec host was `localhost:8080` — redeploy after `configureSwaggerInfo` (uses `RENDER_EXTERNAL_URL`). Or set `SWAGGER_HOST=luxe-3pvz.onrender.com`. |
 | 502 on cold start | Free/starter tier spins down; first request may take ~30s |
 | Migrations failed | Run `make migrate-up` locally with same `DATABASE_URL` |

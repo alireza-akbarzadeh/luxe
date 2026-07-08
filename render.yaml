@@ -25,11 +25,15 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      # Your storefront URL (Vercel, Render, or custom domain)
+# Your storefront URL (Vercel, Render, or custom domain) — also used for CORS when CORS_ALLOW_ORIGINS is unset
       - key: FRONTEND_URL
         sync: false
+      # Comma-separated browser origins (must match exactly, no trailing slash)
       - key: CORS_ALLOW_ORIGINS
         sync: false
+      # Optional override for Swagger UI host (defaults to RENDER_EXTERNAL_URL on Render)
+      # - key: SWAGGER_HOST
+      #   value: luxe-3pvz.onrender.com
       # Optional — durable background jobs (order processing, emails)
       # - key: REDIS_URL
       #   fromService:

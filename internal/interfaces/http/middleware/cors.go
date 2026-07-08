@@ -10,32 +10,49 @@ import (
 )
 
 func parseAllowOrigins() []string {
-	raw := strings.TrimSpace(os.Getenv("CORS_ALLOW_ORIGINS"))
-	if raw == "" {
-		return []string{
-			"http://localhost:3000",
-			"https://luxe-3pvz.onrender.com",
-			"http://127.0.0.1:3000",
-			"http://localhost:4000",
-			"http://127.0.0.1:4000",
-			// Expo dev (Metro web + legacy web port)
-			"http://localhost:8081",
-			"http://127.0.0.1:8081",
-			"http://localhost:19006",
-			"http://127.0.0.1:19006",
+	seen := make(map[string]struct{})
+	add := func(origin string) {
+		origin = strings.TrimSpace(strings.TrimRight(origin, "/"))
+		if origin != "" {
+			seen[origin] = struct{}{}
 		}
 	}
 
-	parts := strings.Split(raw, ",")
-	origins := make([]string, 0, len(parts))
-	for _, part := range parts {
-		origin := strings.TrimSpace(part)
-		if origin != "" {
-			origins = append(origins, origin)
+	raw := strings.TrimSpace(os.Getenv("CORS_ALLOW_ORIGINS"))
+	if raw == "" {
+		for _, origin := range defaultAllowOrigins() {
+			add(origin)
 		}
+	} else {
+		for _, part := range strings.Split(raw, ",") {
+			add(part)
+		}
+	}
+
+	// Always allow configured storefront origin when set separately.
+	add(os.Getenv("FRONTEND_URL"))
+
+	origins := make([]string, 0, len(seen))
+	for origin := range seen {
+		origins = append(origins, origin)
 	}
 
 	return origins
+}
+
+func defaultAllowOrigins() []string {
+	return []string{
+		"http://localhost:3000",
+		"https://luxe-3pvz.onrender.com",
+		"http://127.0.0.1:3000",
+		"http://localhost:4000",
+		"http://127.0.0.1:4000",
+		// Expo dev (Metro web + legacy web port)
+		"http://localhost:8081",
+		"http://127.0.0.1:8081",
+		"http://localhost:19006",
+		"http://127.0.0.1:19006",
+	}
 }
 
 // AllowedOrigins returns CORS-allowed origins (shared with WebSocket origin checks).
