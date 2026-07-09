@@ -181,11 +181,30 @@ type topBrandRow struct {
 	MinPrice     float64 `gorm:"column:min_price"`
 }
 
-// ListTopBrandsBySales ranks brands by order revenue and units sold.
-func (r *StorefrontRepository) ListTopBrandsBySales(ctx context.Context, limit int) ([]topBrandRow, error) {
-	since := time.Now().AddDate(0, -6, 0)
+// ListFeaturedBrands returns admin-curated featured brands for homepage merchandising.
+func (r *StorefrontRepository) ListFeaturedBrands(ctx context.Context, limit int) ([]topBrandRow, error) {
 	var rows []topBrandRow
 	err := r.db.WithContext(ctx).Table("brands").
+		Select(`
+			brands.*,
+			COUNT(DISTINCT products.id) AS product_count,
+			0 AS units_sold,
+			0 AS revenue,
+			COALESCE(MIN(products.price), 0) AS min_price`).
+		Joins("LEFT JOIN products ON products.brand_id = brands.id AND products.deleted_at IS NULL AND products.status = ?", constants.ProductStatusActive).
+		Where("brands.is_featured = ? AND brands.status IN ?", true, []string{"active", "published"}).
+		Group("brands.id").
+		Order("brands.featured_sort_order ASC, brands.name ASC").
+		Limit(limit).
+		Scan(&rows).Error
+	return rows, err
+}
+
+// ListTopBrandsBySales ranks brands by order revenue and units sold.
+func (r *StorefrontRepository) ListTopBrandsBySales(ctx context.Context, limit int, excludeIDs []uint) ([]topBrandRow, error) {
+	since := time.Now().AddDate(0, -6, 0)
+	var rows []topBrandRow
+	query := r.db.WithContext(ctx).Table("brands").
 		Select(`
 			brands.*,
 			COUNT(DISTINCT products.id) AS product_count,
@@ -195,8 +214,11 @@ func (r *StorefrontRepository) ListTopBrandsBySales(ctx context.Context, limit i
 		Joins("INNER JOIN products ON products.brand_id = brands.id AND products.deleted_at IS NULL AND products.status = ?", constants.ProductStatusActive).
 		Joins("LEFT JOIN order_items ON order_items.product_id = products.id").
 		Joins("LEFT JOIN orders o ON o.id = order_items.order_id AND o.deleted_at IS NULL AND o.created_at >= ? AND o.status IN ?", since, revenueOrderStatuses).
-		Where("brands.status IN ?", []string{"active", "published"}).
-		Group("brands.id").
+		Where("brands.status IN ?", []string{"active", "published"})
+	if len(excludeIDs) > 0 {
+		query = query.Where("brands.id NOT IN ?", excludeIDs)
+	}
+	err := query.Group("brands.id").
 		Order("revenue DESC, units_sold DESC, product_count DESC").
 		Limit(limit).
 		Scan(&rows).Error

@@ -67,13 +67,13 @@ func (s *Service) GetByID(ctx context.Context, id uint) (*dto.BrandResponse, err
 
 // List returns paginated brand API responses.
 func (s *Service) List(ctx context.Context, req *dto.ListBrandsRequest) ([]dto.BrandResponse, int64, error) {
-	brands, total, err := s.queries.List(ctx, req)
+	items, total, err := s.queries.List(ctx, req)
 	if err != nil {
 		return nil, 0, err
 	}
-	resp := make([]dto.BrandResponse, 0, len(brands))
-	for i := range brands {
-		resp = append(resp, *ToResponse(&brands[i]))
+	resp := make([]dto.BrandResponse, 0, len(items))
+	for i := range items {
+		resp = append(resp, *ToResponse(&items[i].Brand, items[i].ProductCount))
 	}
 	return resp, total, nil
 }

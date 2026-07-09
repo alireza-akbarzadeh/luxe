@@ -8,6 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// BrandListItem is a brand row with aggregated product count for admin lists.
+type BrandListItem struct {
+	Brand        models.Brand
+	ProductCount int64
+}
+
 // BrandRepository persists brands with GORM.
 type BrandRepository struct {
 	db *gorm.DB
@@ -43,16 +49,19 @@ func (r *BrandRepository) DeleteByID(ctx context.Context, id uint) (int64, error
 	return result.RowsAffected, result.Error
 }
 
-// List returns paginated brands matching filters.
-func (r *BrandRepository) List(ctx context.Context, req *dto.ListBrandsRequest) ([]models.Brand, int64, error) {
+// List returns paginated brands matching filters with product counts.
+func (r *BrandRepository) List(ctx context.Context, req *dto.ListBrandsRequest) ([]BrandListItem, int64, error) {
 	query := r.db.WithContext(ctx).Model(&models.Brand{})
 
 	if req.Search != "" {
 		search := "%" + req.Search + "%"
-		query = query.Where("name ILIKE ? OR slug ILIKE ?", search, search)
+		query = query.Where("brands.name ILIKE ? OR brands.slug ILIKE ?", search, search)
 	}
 	if req.Status != "" {
-		query = query.Where("status = ?", req.Status)
+		query = query.Where("brands.status = ?", req.Status)
+	}
+	if req.Featured != nil {
+		query = query.Where("brands.is_featured = ?", *req.Featured)
 	}
 
 	var total int64
@@ -61,12 +70,29 @@ func (r *BrandRepository) List(ctx context.Context, req *dto.ListBrandsRequest) 
 	}
 
 	offset := (req.Page - 1) * req.Limit
-	var brands []models.Brand
-	if err := query.Offset(offset).Limit(req.Limit).
-		Order("created_at DESC").
+	type listRow struct {
+		models.Brand
+		ProductCount int64 `gorm:"column:product_count"`
+	}
+
+	var rows []listRow
+	if err := query.
+		Select(`brands.*, COUNT(products.id) AS product_count`).
+		Joins("LEFT JOIN products ON products.brand_id = brands.id AND products.deleted_at IS NULL").
+		Group("brands.id").
+		Offset(offset).Limit(req.Limit).
+		Order("brands.created_at DESC").
 		Preload("WorkflowState").
-		Find(&brands).Error; err != nil {
+		Find(&rows).Error; err != nil {
 		return nil, 0, err
 	}
-	return brands, total, nil
+
+	items := make([]BrandListItem, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, BrandListItem{
+			Brand:        row.Brand,
+			ProductCount: row.ProductCount,
+		})
+	}
+	return items, total, nil
 }

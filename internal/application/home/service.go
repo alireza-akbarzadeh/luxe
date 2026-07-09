@@ -168,7 +168,7 @@ func (s *Service) buildPersonalizedRails(ctx context.Context, categories []model
 	return rails
 }
 
-// GetTopBrands returns sales-ranked brands.
+// GetTopBrands returns featured brands first, then sales-ranked brands.
 func (s *Service) GetTopBrands(ctx context.Context, limit int) ([]dto.HomeBrandItem, error) {
 	limit = clampLimit(limit)
 	cacheKey := fmt.Sprintf("home:top-brands:%d", limit)
@@ -176,10 +176,26 @@ func (s *Service) GetTopBrands(ctx context.Context, limit int) ([]dto.HomeBrandI
 		return cached.([]dto.HomeBrandItem), nil
 	}
 
-	rows, err := s.storefront.ListTopBrandsBySales(ctx, limit)
+	featuredRows, err := s.storefront.ListFeaturedBrands(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
+
+	excludeIDs := make([]uint, 0, len(featuredRows))
+	for _, row := range featuredRows {
+		excludeIDs = append(excludeIDs, row.ID)
+	}
+
+	remaining := limit - len(featuredRows)
+	rows := featuredRows
+	if remaining > 0 {
+		salesRows, salesErr := s.storefront.ListTopBrandsBySales(ctx, remaining, excludeIDs)
+		if salesErr != nil {
+			return nil, salesErr
+		}
+		rows = append(rows, salesRows...)
+	}
+
 	ids := make([]uint, 0, len(rows))
 	for _, row := range rows {
 		ids = append(ids, row.ID)
@@ -192,7 +208,9 @@ func (s *Service) GetTopBrands(ctx context.Context, limit int) ([]dto.HomeBrandI
 		item := dto.HomeBrandItem{
 			BrandResponse: dto.BrandResponse{
 				ID: row.ID, Name: row.Name, Slug: row.Slug, Description: row.Description,
-				LogoURL: logo, Status: row.Status, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+				LogoURL: logo, Status: row.Status, IsFeatured: row.IsFeatured,
+				FeaturedSortOrder: row.FeaturedSortOrder, MetaTitle: row.MetaTitle,
+				MetaDescription: row.MetaDescription, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 			},
 			BannerURL:    banners[row.ID],
 			ProductCount: row.ProductCount,

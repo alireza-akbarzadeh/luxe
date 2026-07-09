@@ -8273,6 +8273,12 @@ const docTemplate = `{
                         "description": "Filter by status",
                         "name": "status",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by featured flag",
+                        "name": "featured",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -22277,14 +22283,29 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "featured_sort_order": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "is_featured": {
+                    "type": "boolean"
                 },
                 "logo_url": {
                     "type": "string"
                 },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
+                },
+                "product_count": {
+                    "type": "integer"
                 },
                 "slug": {
                     "type": "string"
@@ -23351,8 +23372,23 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "featured_sort_order": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
                 "logo_url": {
                     "type": "string"
+                },
+                "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
                 },
                 "name": {
                     "type": "string"
@@ -24555,10 +24591,22 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "featured_sort_order": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
+                "is_featured": {
+                    "type": "boolean"
+                },
                 "logo_url": {
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
                     "type": "string"
                 },
                 "min_price": {
@@ -27969,8 +28017,23 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "featured_sort_order": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
                 "logo_url": {
                     "type": "string"
+                },
+                "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
                 },
                 "name": {
                     "type": "string"
@@ -29514,10 +29577,22 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "featured_sort_order": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "integer"
                 },
+                "is_featured": {
+                    "type": "boolean"
+                },
                 "logo_url": {
+                    "type": "string"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
                     "type": "string"
                 },
                 "name": {

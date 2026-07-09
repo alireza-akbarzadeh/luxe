@@ -24,6 +24,6 @@ func (q *Queries) GetByID(ctx context.Context, id uint) (*models.Brand, error) {
 }
 
 // List returns paginated brands.
-func (q *Queries) List(ctx context.Context, req *dto.ListBrandsRequest) ([]models.Brand, int64, error) {
+func (q *Queries) List(ctx context.Context, req *dto.ListBrandsRequest) ([]postgres.BrandListItem, int64, error) {
 	return q.repo.List(ctx, req)
 }

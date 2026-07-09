@@ -2036,12 +2036,22 @@ definitions:
         type: string
       description:
         type: string
+      featured_sort_order:
+        type: integer
       id:
         type: integer
+      is_featured:
+        type: boolean
       logo_url:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
         type: string
       name:
         type: string
+      product_count:
+        type: integer
       slug:
         type: string
       status:
@@ -2751,7 +2761,18 @@ definitions:
     properties:
       description:
         type: string
+      featured_sort_order:
+        minimum: 0
+        type: integer
+      is_featured:
+        type: boolean
       logo_url:
+        type: string
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_title:
+        maxLength: 70
         type: string
       name:
         type: string
@@ -3583,9 +3604,17 @@ definitions:
         type: string
       description:
         type: string
+      featured_sort_order:
+        type: integer
       id:
         type: integer
+      is_featured:
+        type: boolean
       logo_url:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
         type: string
       min_price:
         type: number
@@ -5842,7 +5871,18 @@ definitions:
     properties:
       description:
         type: string
+      featured_sort_order:
+        minimum: 0
+        type: integer
+      is_featured:
+        type: boolean
       logo_url:
+        type: string
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_title:
+        maxLength: 70
         type: string
       name:
         type: string
@@ -6886,9 +6926,17 @@ definitions:
         type: string
       description:
         type: string
+      featured_sort_order:
+        type: integer
       id:
         type: integer
+      is_featured:
+        type: boolean
       logo_url:
+        type: string
+      meta_description:
+        type: string
+      meta_title:
         type: string
       name:
         type: string
@@ -12736,6 +12784,10 @@ paths:
         in: query
         name: status
         type: string
+      - description: Filter by featured flag
+        in: query
+        name: featured
+        type: boolean
       produces:
       - application/json
       responses:

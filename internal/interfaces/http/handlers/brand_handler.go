@@ -86,7 +86,8 @@ func (ctrl *BrandHandler) GetBrand(c *gin.Context) {
 // @Param        page    query     int     false  "Page number"           default(1)
 // @Param        limit   query     int     false  "Items per page"        default(20)
 // @Param        search  query     string  false  "Search by name or slug"
-// @Param        status  query     string  false  "Filter by status"
+// @Param        status    query     string  false  "Filter by status"
+// @Param        featured  query     bool    false  "Filter by featured flag"
 // @Success      200     {object}  dto.BrandListResponse  "Brand list"
 // @Failure      500     {object}  utils.Response  "Internal server error"
 // @Router       /brands [get]
