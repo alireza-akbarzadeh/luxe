@@ -53,6 +53,7 @@ func conditionsFromRequest(req *dto.CouponConditionsRequest) models.CouponCondit
 		FirstOrderOnly:  req.FirstOrderOnly,
 		CategoryIDs:     req.CategoryIDs,
 		ProductIDs:      req.ProductIDs,
+		UserIDs:         req.UserIDs,
 		CustomerSegment: req.CustomerSegment,
 		MinItemQuantity: req.MinItemQuantity,
 	}

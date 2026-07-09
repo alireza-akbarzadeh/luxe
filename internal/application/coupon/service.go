@@ -106,6 +106,11 @@ func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, 
 		return nil, 0, utils.ErrInternal(err)
 	}
 
+	conditions := models.ParseCouponConditions(couponModel.Conditions)
+	if !models.CouponConditionsAllowsUser(conditions, userID) {
+		return nil, 0, utils.ErrBadRequest("this promotion is not available for your account")
+	}
+
 	domainCoupon := couponFromModel(*couponModel)
 	if err := domaincoupon.ValidateEligibility(domainCoupon, orderTotal, int(usageCount), itemCount, time.Now()); err != nil {
 		switch {
@@ -312,7 +317,21 @@ func (s *Service) GetAvailableCouponsForUser(ctx context.Context, userID uint, o
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
-	return coupons, nil
+	return filterCouponsForUser(coupons, userID), nil
+}
+
+func filterCouponsForUser(coupons []models.Coupon, userID uint) []models.Coupon {
+	if len(coupons) == 0 {
+		return coupons
+	}
+	filtered := make([]models.Coupon, 0, len(coupons))
+	for _, coupon := range coupons {
+		conditions := models.ParseCouponConditions(coupon.Conditions)
+		if models.CouponConditionsAllowsUser(conditions, userID) {
+			filtered = append(filtered, coupon)
+		}
+	}
+	return filtered
 }
 
 func normalizeCouponStart(t time.Time) time.Time {

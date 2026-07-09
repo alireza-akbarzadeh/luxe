@@ -282,6 +282,63 @@ type AdminRevenueReportResponse struct {
 	Daily       []AdminRevenueDailyRow    `json:"daily"`
 }
 
+// AdminSalesAnalyticsFilters are query params for GET /admin/analytics/sales.
+type AdminSalesAnalyticsFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+}
+
+// AdminSalesAnalyticsKPIs groups headline metrics for the sales analytics dashboard.
+type AdminSalesAnalyticsKPIs struct {
+	Revenue       AdminDashboardKPI `json:"revenue"`
+	Profit        AdminDashboardKPI `json:"profit"`
+	Orders        AdminDashboardKPI `json:"orders"`
+	Customers     AdminDashboardKPI `json:"customers"`
+	AvgOrderValue AdminDashboardKPI `json:"avg_order_value"`
+}
+
+// AdminSalesProfitPoint is one day in the profit time series.
+type AdminSalesProfitPoint struct {
+	Date    string  `json:"date"`
+	Revenue float64 `json:"revenue"`
+	Cost    float64 `json:"cost"`
+	Profit  float64 `json:"profit"`
+}
+
+// AdminSalesSegmentCount is customers grouped by CRM segment.
+type AdminSalesSegmentCount struct {
+	Segment string `json:"segment"`
+	Count   int64  `json:"count"`
+}
+
+// AdminSalesFunnelStep is one stage in the order lifecycle funnel.
+type AdminSalesFunnelStep struct {
+	Step  string  `json:"step"`
+	Count int64   `json:"count"`
+	Rate  float64 `json:"rate"`
+}
+
+// AdminSalesCohortRow is monthly cohort retention and revenue.
+type AdminSalesCohortRow struct {
+	Cohort      string  `json:"cohort"`
+	Customers   int64   `json:"customers"`
+	RepeatRate  float64 `json:"repeat_rate"`
+	Revenue     float64 `json:"revenue"`
+}
+
+// AdminSalesAnalyticsResponse powers the interactive sales analytics dashboard.
+type AdminSalesAnalyticsResponse struct {
+	Period           string                      `json:"period"`
+	GeneratedAt      time.Time                   `json:"generated_at"`
+	KPIs             AdminSalesAnalyticsKPIs     `json:"kpis"`
+	RevenueSeries    []AdminDashboardSeriesPoint `json:"revenue_series"`
+	ProfitSeries     []AdminSalesProfitPoint     `json:"profit_series"`
+	OrdersByStatus   []AdminDashboardStatusCount `json:"orders_by_status"`
+	TopProducts      []AdminDashboardTopProduct  `json:"top_products"`
+	CustomerSegments []AdminSalesSegmentCount    `json:"customer_segments"`
+	OrderFunnel      []AdminSalesFunnelStep      `json:"order_funnel"`
+	Cohorts          []AdminSalesCohortRow       `json:"cohorts"`
+}
+
 // ToAdminUserResponse maps a user model to the admin list/detail projection.
 func ToAdminUserResponse(user *models.User, stats UserOrderStats) AdminUserResponse {
 	if user == nil {

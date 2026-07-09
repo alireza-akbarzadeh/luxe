@@ -45,6 +45,10 @@ func (s *Service) GetRevenueReport(ctx context.Context, filters dto.AdminRevenue
 	return s.queries.GetRevenueReport(ctx, filters)
 }
 
+func (s *Service) GetSalesAnalytics(ctx context.Context, filters dto.AdminSalesAnalyticsFilters) (*dto.AdminSalesAnalyticsResponse, error) {
+	return s.queries.GetSalesAnalytics(ctx, filters)
+}
+
 func (s *Service) GetSalesFeedSnapshot(ctx context.Context) (*dto.AdminSalesFeedSnapshotResponse, error) {
 	return s.queries.GetSalesFeedSnapshot(ctx)
 }

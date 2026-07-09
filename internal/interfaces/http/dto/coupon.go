@@ -11,6 +11,7 @@ type CouponConditionsRequest struct {
 	FirstOrderOnly  bool   `json:"first_order_only,omitempty"`
 	CategoryIDs     []uint `json:"category_ids,omitempty"`
 	ProductIDs      []uint `json:"product_ids,omitempty"`
+	UserIDs         []uint `json:"user_ids,omitempty"`
 	CustomerSegment string `json:"customer_segment,omitempty" validate:"omitempty,oneof=vip plus new"`
 	MinItemQuantity int    `json:"min_item_quantity,omitempty" validate:"omitempty,gte=1"`
 }

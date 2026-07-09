@@ -217,6 +217,35 @@ func (ctrl *AdminHandler) GetRevenueReport(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
 }
 
+// GetSalesAnalytics returns interactive sales analytics for the admin dashboard.
+// @Summary      Sales analytics (admin)
+// @Description  Returns revenue, profit, orders, customers, products, funnel, and cohort metrics for the selected period.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "Period: 7d, 30d, or 90d (default 30d)"
+// @Success      200 {object} utils.Response{data=dto.AdminSalesAnalyticsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/analytics/sales [get]
+func (ctrl *AdminHandler) GetSalesAnalytics(c *gin.Context) {
+	var filters dto.AdminSalesAnalyticsFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Period == "" {
+		filters.Period = "30d"
+	}
+
+	report, err := ctrl.adminService.GetSalesAnalytics(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get sales analytics")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
+}
+
 // GetSalesFeedSnapshot returns today's sales metrics and recent activity for the live feed page.
 // @Summary      Live sales feed snapshot
 // @Description  Returns today's order totals, status breakdown, revenue series, and recent feed events.

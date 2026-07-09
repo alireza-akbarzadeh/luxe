@@ -2896,6 +2896,10 @@ definitions:
         items:
           type: integer
         type: array
+      user_ids:
+        items:
+          type: integer
+        type: array
     type: object
   dto.CouponData:
     properties:

@@ -26247,6 +26247,12 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                },
+                "user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },

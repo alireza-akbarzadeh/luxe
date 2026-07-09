@@ -623,3 +623,188 @@ func (r *AdminRepository) CountCustomersBySegment(ctx context.Context, segment s
 	return count, err
 }
 
+// ProfitTotals holds revenue, cost, and profit aggregates.
+type ProfitTotals struct {
+	Revenue float64
+	Cost    float64
+	Profit  float64
+}
+
+func (r *AdminRepository) profitTotalsBetween(ctx context.Context, start, end *time.Time) (ProfitTotals, error) {
+	q := r.db.WithContext(ctx).Model(&models.OrderItem{}).
+		Select(`
+			COALESCE(SUM(order_items.quantity * order_items.price), 0) AS revenue,
+			COALESCE(SUM(order_items.quantity * COALESCE(products.cost, 0)), 0) AS cost`).
+		Joins("INNER JOIN orders o ON o.id = order_items.order_id AND o.deleted_at IS NULL").
+		Joins("INNER JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where("o.status IN ?", revenueOrderStatuses)
+	if start != nil {
+		q = q.Where("o.created_at >= ?", *start)
+	}
+	if end != nil {
+		q = q.Where("o.created_at < ?", *end)
+	}
+	var row struct {
+		Revenue float64
+		Cost    float64
+	}
+	if err := q.Scan(&row).Error; err != nil {
+		return ProfitTotals{}, err
+	}
+	return ProfitTotals{
+		Revenue: row.Revenue,
+		Cost:    row.Cost,
+		Profit:  row.Revenue - row.Cost,
+	}, nil
+}
+
+// SumProfitSince returns profit (revenue minus product cost) since start.
+func (r *AdminRepository) SumProfitSince(ctx context.Context, since time.Time) (ProfitTotals, error) {
+	return r.profitTotalsBetween(ctx, &since, nil)
+}
+
+// SumProfitBetween returns profit between start (inclusive) and end (exclusive).
+func (r *AdminRepository) SumProfitBetween(ctx context.Context, start, end time.Time) (ProfitTotals, error) {
+	return r.profitTotalsBetween(ctx, &start, &end)
+}
+
+// ProfitDailyRow holds per-day profit aggregates.
+type ProfitDailyRow struct {
+	Date    time.Time
+	Revenue float64
+	Cost    float64
+	Profit  float64
+}
+
+// DailyProfitSeries returns daily revenue, cost, and profit since start.
+func (r *AdminRepository) DailyProfitSeries(ctx context.Context, start time.Time) ([]ProfitDailyRow, error) {
+	var rows []struct {
+		Date    time.Time
+		Revenue float64
+		Cost    float64
+	}
+	err := r.db.WithContext(ctx).Model(&models.OrderItem{}).
+		Select(`
+			date_trunc('day', o.created_at) AS date,
+			COALESCE(SUM(order_items.quantity * order_items.price), 0) AS revenue,
+			COALESCE(SUM(order_items.quantity * COALESCE(products.cost, 0)), 0) AS cost`).
+		Joins("INNER JOIN orders o ON o.id = order_items.order_id AND o.deleted_at IS NULL").
+		Joins("INNER JOIN products ON products.id = order_items.product_id AND products.deleted_at IS NULL").
+		Where("o.created_at >= ? AND o.status IN ?", start, revenueOrderStatuses).
+		Group("date_trunc('day', o.created_at)").
+		Order("date ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ProfitDailyRow, len(rows))
+	for i, row := range rows {
+		out[i] = ProfitDailyRow{
+			Date:    row.Date,
+			Revenue: row.Revenue,
+			Cost:    row.Cost,
+			Profit:  row.Revenue - row.Cost,
+		}
+	}
+	return out, nil
+}
+
+// CustomerSegmentRow holds segment counts for analytics.
+type CustomerSegmentRow struct {
+	Segment string
+	Count   int64
+}
+
+// CustomerSegmentCounts returns customer counts grouped by CRM segment.
+func (r *AdminRepository) CustomerSegmentCounts(ctx context.Context) ([]CustomerSegmentRow, error) {
+	var rows []CustomerSegmentRow
+	err := r.db.WithContext(ctx).Model(&models.User{}).
+		Select(`COALESCE(NULLIF(customer_segment, ''), 'unassigned') AS segment, COUNT(*) AS count`).
+		Where("role = ?", constants.RoleUser).
+		Group("COALESCE(NULLIF(customer_segment, ''), 'unassigned')").
+		Order("count DESC").
+		Scan(&rows).Error
+	return rows, err
+}
+
+// OrderFunnelRow holds funnel stage counts.
+type OrderFunnelRow struct {
+	Status string
+	Count  int64
+}
+
+// OrderFunnelCounts returns order counts by status since start.
+func (r *AdminRepository) OrderFunnelCounts(ctx context.Context, since time.Time) ([]OrderFunnelRow, error) {
+	var rows []OrderFunnelRow
+	err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select("status, COUNT(*) AS count").
+		Where("created_at >= ?", since).
+		Group("status").
+		Scan(&rows).Error
+	return rows, err
+}
+
+// CohortRow holds monthly cohort metrics.
+type CohortRow struct {
+	Cohort         string
+	Customers      int64
+	RepeatCustomers int64
+	Revenue        float64
+}
+
+// MonthlyCohorts returns cohort metrics for customers whose first order was since start.
+func (r *AdminRepository) MonthlyCohorts(ctx context.Context, since time.Time, limit int) ([]CohortRow, error) {
+	var rows []CohortRow
+	err := r.db.WithContext(ctx).Raw(`
+		WITH first_orders AS (
+			SELECT user_id, MIN(created_at) AS first_order_at
+			FROM orders
+			WHERE deleted_at IS NULL AND user_id IS NOT NULL
+			GROUP BY user_id
+		),
+		cohort_base AS (
+			SELECT
+				fo.user_id,
+				to_char(date_trunc('month', fo.first_order_at), 'YYYY-MM') AS cohort
+			FROM first_orders fo
+			WHERE fo.first_order_at >= ?
+		),
+		repeat_flags AS (
+			SELECT
+				cb.cohort,
+				cb.user_id,
+				EXISTS (
+					SELECT 1 FROM orders o2
+					WHERE o2.user_id = cb.user_id
+						AND o2.deleted_at IS NULL
+						AND o2.id != (
+							SELECT o3.id FROM orders o3
+							WHERE o3.user_id = cb.user_id AND o3.deleted_at IS NULL
+							ORDER BY o3.created_at ASC LIMIT 1
+						)
+				) AS is_repeat
+			FROM cohort_base cb
+		),
+		cohort_revenue AS (
+			SELECT
+				cb.cohort,
+				COALESCE(SUM(o.total_amount), 0) AS revenue
+			FROM cohort_base cb
+			INNER JOIN orders o ON o.user_id = cb.user_id AND o.deleted_at IS NULL
+			WHERE o.status IN ?
+			GROUP BY cb.cohort
+		)
+		SELECT
+			rf.cohort,
+			COUNT(DISTINCT rf.user_id) AS customers,
+			COUNT(DISTINCT CASE WHEN rf.is_repeat THEN rf.user_id END) AS repeat_customers,
+			COALESCE(cr.revenue, 0) AS revenue
+		FROM repeat_flags rf
+		LEFT JOIN cohort_revenue cr ON cr.cohort = rf.cohort
+		GROUP BY rf.cohort, cr.revenue
+		ORDER BY rf.cohort DESC
+		LIMIT ?
+	`, since, revenueOrderStatuses, limit).Scan(&rows).Error
+	return rows, err
+}
+
