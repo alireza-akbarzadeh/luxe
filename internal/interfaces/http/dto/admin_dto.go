@@ -61,6 +61,19 @@ type AdminOrderExportFilters struct {
 	ToDate   string `form:"to_date"`
 }
 
+// AdminProductExportFilters are query params for GET /admin/products/export.
+type AdminProductExportFilters struct {
+	Status     string  `form:"status"`
+	Name       string  `form:"name"`
+	SKU        string  `form:"sku"`
+	CategoryID uint    `form:"category_id"`
+	BrandID    uint    `form:"brand_id"`
+	MinPrice   float64 `form:"min_price"`
+	MaxPrice   float64 `form:"max_price"`
+	IsDigital  *bool   `form:"is_digital"`
+	Format     string  `form:"format" validate:"omitempty,oneof=csv"`
+}
+
 // AdminDashboardFilters are query params for GET /admin/dashboard/overview.
 type AdminDashboardFilters struct {
 	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`

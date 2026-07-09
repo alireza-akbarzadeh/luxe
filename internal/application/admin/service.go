@@ -87,6 +87,10 @@ func (s *Service) ExportOrdersCSV(ctx context.Context, filters dto.AdminOrderExp
 	return s.commands.ExportOrdersCSV(ctx, filters)
 }
 
+func (s *Service) ExportProductsCSV(ctx context.Context, filters dto.AdminProductExportFilters) ([]byte, error) {
+	return s.commands.ExportProductsCSV(ctx, filters)
+}
+
 func (s *Service) ToggleUserActive(ctx context.Context, userID uint, active bool) error {
 	if err := s.commands.ToggleUserActive(ctx, userID, active); err != nil {
 		return err

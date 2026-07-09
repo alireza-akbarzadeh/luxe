@@ -38,6 +38,12 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 		orders.GET("/orders/export", ctrl.Admin.ExportOrdersCSV)
 	}
 
+	products := admin.Group("")
+	products.Use(middleware.ModuleGuard("products"))
+	{
+		products.GET("/products/export", ctrl.Admin.ExportProductsCSV)
+	}
+
 	settings := admin.Group("")
 	settings.Use(middleware.ModuleGuard("settings"))
 	{

@@ -78,3 +78,48 @@ func (c *Commands) ExportOrdersCSV(ctx context.Context, filters dto.AdminOrderEx
 	}
 	return buf.Bytes(), nil
 }
+
+// ExportProductsCSV builds a CSV export for the product catalog.
+func (c *Commands) ExportProductsCSV(ctx context.Context, filters dto.AdminProductExportFilters) ([]byte, error) {
+	products, err := c.repo.ListProductsForExport(ctx, filters)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	var buf bytes.Buffer
+	w := csv.NewWriter(&buf)
+	_ = w.Write([]string{
+		"id", "name", "sku", "status", "price", "stock", "category", "brand", "is_digital", "created_at",
+	})
+	for _, p := range products {
+		category := ""
+		if p.Category != nil {
+			category = p.Category.Name
+		}
+		brand := ""
+		if p.Brand != nil {
+			brand = p.Brand.Name
+		}
+		digital := "false"
+		if p.IsDigital {
+			digital = "true"
+		}
+		_ = w.Write([]string{
+			fmt.Sprintf("%d", p.ID),
+			p.Name,
+			p.SKU,
+			p.Status,
+			fmt.Sprintf("%.2f", p.Price),
+			fmt.Sprintf("%d", p.Stock),
+			category,
+			brand,
+			digital,
+			p.CreatedAt.UTC().Format(time.RFC3339),
+		})
+	}
+	w.Flush()
+	if err := w.Error(); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	return buf.Bytes(), nil
+}

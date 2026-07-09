@@ -145,6 +145,49 @@ func (r *AdminRepository) UpdateUserActive(ctx context.Context, userID uint, act
 	return result.RowsAffected, result.Error
 }
 
+func (r *AdminRepository) applyProductExportFilters(db *gorm.DB, filters dto.AdminProductExportFilters) *gorm.DB {
+	if filters.Status != "" {
+		db = db.Where("status = ?", filters.Status)
+	}
+	if filters.Name != "" {
+		db = db.Where("LOWER(name) LIKE LOWER(?)", "%"+filters.Name+"%")
+	}
+	if filters.SKU != "" {
+		db = db.Where("sku LIKE ?", "%"+filters.SKU+"%")
+	}
+	if filters.CategoryID != 0 {
+		db = db.Where("category_id = ?", filters.CategoryID)
+	}
+	if filters.BrandID != 0 {
+		db = db.Where("brand_id = ?", filters.BrandID)
+	}
+	if filters.MinPrice != 0 {
+		db = db.Where("price >= ?", filters.MinPrice)
+	}
+	if filters.MaxPrice != 0 {
+		db = db.Where("price <= ?", filters.MaxPrice)
+	}
+	if filters.IsDigital != nil {
+		db = db.Where("is_digital = ?", *filters.IsDigital)
+	}
+	return db
+}
+
+// ListProductsForExport returns products for CSV export (max 10 000 rows).
+func (r *AdminRepository) ListProductsForExport(ctx context.Context, filters dto.AdminProductExportFilters) ([]models.Product, error) {
+	db := r.applyProductExportFilters(
+		r.db.WithContext(ctx).Model(&models.Product{}).
+			Preload("Category").
+			Preload("Brand").
+			Order("id DESC"),
+		filters,
+	)
+
+	var products []models.Product
+	err := db.Limit(10000).Find(&products).Error
+	return products, err
+}
+
 // ListOrdersForExport returns orders for CSV export.
 func (r *AdminRepository) ListOrdersForExport(ctx context.Context, filters dto.AdminOrderExportFilters) ([]models.Order, error) {
 	db := r.db.WithContext(ctx).Model(&models.Order{}).

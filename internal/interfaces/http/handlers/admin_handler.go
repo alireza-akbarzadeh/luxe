@@ -402,6 +402,44 @@ func (ctrl *AdminHandler) ExportOrdersCSV(c *gin.Context) {
 	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
 }
 
+// ExportProductsCSV streams a CSV file of filtered products (admin only).
+// @Summary      Export products CSV (admin)
+// @Description  Returns a CSV file of products filtered by status, name, SKU, category, brand, price, and type (max 10 000 rows).
+// @Tags         Admin
+// @Produce      text/csv
+// @Security     BearerAuth
+// @Param        status      query  string   false  "Product status (active|draft|archived)"
+// @Param        name        query  string   false  "Filter by product name"
+// @Param        sku         query  string   false  "Filter by SKU"
+// @Param        category_id query  int      false  "Filter by category ID"
+// @Param        brand_id    query  int      false  "Filter by brand ID"
+// @Param        min_price   query  number   false  "Minimum price"
+// @Param        max_price   query  number   false  "Maximum price"
+// @Param        is_digital  query  bool     false  "Digital products only"
+// @Param        format      query  string   false  "Format: csv (default csv)"
+// @Success      200  {file}   binary
+// @Failure      401  {object} utils.Response
+// @Failure      403  {object} utils.Response
+// @Failure      500  {object} utils.Response
+// @Router       /admin/products/export [get]
+func (ctrl *AdminHandler) ExportProductsCSV(c *gin.Context) {
+	var filters dto.AdminProductExportFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Format == "" {
+		filters.Format = "csv"
+	}
+	data, err := ctrl.adminService.ExportProductsCSV(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to export products")
+		return
+	}
+	filename := fmt.Sprintf("products_%s.csv", time.Now().UTC().Format("20060102_150405"))
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
+}
+
 // ListWebhookEvents returns paginated webhook delivery history (admin only).
 // @Summary      List webhook events (admin)
 // @Description  Returns paginated Stripe webhook events with optional filters by source, type, and status.

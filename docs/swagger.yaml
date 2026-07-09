@@ -9622,6 +9622,71 @@ paths:
       summary: List permissions
       tags:
       - Admin Roles
+  /admin/products/export:
+    get:
+      description: Returns a CSV file of products filtered by status, name, SKU, category,
+        brand, price, and type (max 10 000 rows).
+      parameters:
+      - description: Product status (active|draft|archived)
+        in: query
+        name: status
+        type: string
+      - description: Filter by product name
+        in: query
+        name: name
+        type: string
+      - description: Filter by SKU
+        in: query
+        name: sku
+        type: string
+      - description: Filter by category ID
+        in: query
+        name: category_id
+        type: integer
+      - description: Filter by brand ID
+        in: query
+        name: brand_id
+        type: integer
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Digital products only
+        in: query
+        name: is_digital
+        type: boolean
+      - description: 'Format: csv (default csv)'
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Export products CSV (admin)
+      tags:
+      - Admin
   /admin/reports/revenue:
     get:
       description: Returns period summary KPIs and a day-by-day revenue, orders, and
