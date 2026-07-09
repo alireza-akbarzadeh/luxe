@@ -203,7 +203,7 @@ func Load() (*Config, error) {
 	}
 
 	viper.SetDefault("JWT_ACCESS_TOKEN_EXPIRY", "15m")
-	viper.SetDefault("JWT_REFRESH_TOKEN_EXPIRY", "168h")
+	viper.SetDefault("JWT_REFRESH_TOKEN_EXPIRY", "360h") // 15 days
 
 	viper.SetDefault("LOG_LEVEL", "info")
 	viper.SetDefault("SERVICE_NAME", "luxe-api")
