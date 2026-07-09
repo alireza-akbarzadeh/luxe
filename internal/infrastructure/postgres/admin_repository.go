@@ -385,7 +385,41 @@ func RevenueOrderStatuses() []string {
 	return revenueOrderStatuses
 }
 
-// RevenueOrderStatuses returns statuses counted as revenue.
-func (r *AdminRepository) RevenueOrderStatuses() []string {
-	return revenueOrderStatuses
+// RecentAuditLogs returns recent audit log entries with user preload.
+func (r *AdminRepository) RecentAuditLogs(ctx context.Context, limit int) ([]models.AuditLog, error) {
+	var logs []models.AuditLog
+	err := r.db.WithContext(ctx).Preload("User").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&logs).Error
+	return logs, err
+}
+
+// PingDB measures database round-trip latency in milliseconds.
+func (r *AdminRepository) PingDB(ctx context.Context) (int64, error) {
+	start := time.Now()
+	var one int
+	err := r.db.WithContext(ctx).Raw("SELECT 1").Scan(&one).Error
+	if err != nil {
+		return 0, err
+	}
+	return time.Since(start).Milliseconds(), nil
+}
+
+// CountFailedWebhooksSince counts failed webhook events since start.
+func (r *AdminRepository) CountFailedWebhooksSince(ctx context.Context, since time.Time) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.WebhookEvent{}).
+		Where("created_at >= ? AND status = ?", since, "failed").
+		Count(&count).Error
+	return count, err
+}
+
+// CountWebhooksSince counts webhook events since start.
+func (r *AdminRepository) CountWebhooksSince(ctx context.Context, since time.Time) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.WebhookEvent{}).
+		Where("created_at >= ?", since).
+		Count(&count).Error
+	return count, err
 }

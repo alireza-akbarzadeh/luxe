@@ -58,6 +58,8 @@ type MenuItemResponse struct {
 	Icon         string             `json:"icon"`
 	Permission   *string            `json:"permission,omitempty"`
 	DisplayOrder int                `json:"display_order"`
+	BadgeCount   *int64             `json:"badge_count,omitempty"`
+	BadgeVariant *string            `json:"badge_variant,omitempty"`
 	CreatedAt    time.Time          `json:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at"`
 	Children     []MenuItemResponse `json:"children,omitempty"`

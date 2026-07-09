@@ -10,12 +10,13 @@ import (
 
 // Queries orchestrates admin read use cases.
 type Queries struct {
-	repo *postgres.AdminRepository
+	repo    *postgres.AdminRepository
+	navRepo *postgres.AdminNavRepository
 }
 
 // NewQueries creates admin query use cases.
-func NewQueries(repo *postgres.AdminRepository) *Queries {
-	return &Queries{repo: repo}
+func NewQueries(repo *postgres.AdminRepository, navRepo *postgres.AdminNavRepository) *Queries {
+	return &Queries{repo: repo, navRepo: navRepo}
 }
 
 // GetStats returns platform-wide admin statistics.

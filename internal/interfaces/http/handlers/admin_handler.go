@@ -76,6 +76,118 @@ func (ctrl *AdminHandler) GetDashboardOverview(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, overview)
 }
 
+// GetDashboardHealth returns platform health metrics for the admin dashboard.
+// @Summary      Admin dashboard health
+// @Description  Returns database latency, webhook error rate, and queue depth indicators.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminDashboardHealth}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/dashboard/health [get]
+func (ctrl *AdminHandler) GetDashboardHealth(c *gin.Context) {
+	health, err := ctrl.adminService.GetDashboardHealth(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get dashboard health")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, health)
+}
+
+// ExportDashboardCSV streams a CSV export of dashboard revenue series.
+// @Summary      Export dashboard report (admin)
+// @Description  Returns a CSV file of daily revenue, orders, and AOV for the selected period.
+// @Tags         Admin
+// @Produce      text/csv
+// @Security     BearerAuth
+// @Param        period  query  string  false  "Period: 7d, 30d, or 90d (default 30d)"
+// @Param        format  query  string  false  "Format: csv (default csv)"
+// @Success      200  {file}   binary
+// @Failure      401  {object} utils.Response
+// @Failure      403  {object} utils.Response
+// @Failure      500  {object} utils.Response
+// @Router       /admin/dashboard/export [get]
+func (ctrl *AdminHandler) ExportDashboardCSV(c *gin.Context) {
+	var filters dto.AdminDashboardExportFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Period == "" {
+		filters.Period = "30d"
+	}
+	if filters.Format == "" {
+		filters.Format = "csv"
+	}
+
+	data, err := ctrl.adminService.ExportDashboardCSV(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to export dashboard report")
+		return
+	}
+	filename := fmt.Sprintf("dashboard_%s_%s.csv", filters.Period, time.Now().UTC().Format("20060102_150405"))
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Data(http.StatusOK, "text/csv; charset=utf-8", data)
+}
+
+// GetNavPreferences returns favorites and recent pages for the current admin user.
+// @Summary      Admin nav preferences
+// @Description  Returns persisted favorites and recently visited admin pages for the authenticated user.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminNavPreferencesResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/nav/preferences [get]
+func (ctrl *AdminHandler) GetNavPreferences(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	prefs, err := ctrl.adminService.GetNavPreferences(c.Request.Context(), userID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get nav preferences")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, prefs)
+}
+
+// UpdateNavPreferences saves favorites and recent pages for the current admin user.
+// @Summary      Update admin nav preferences
+// @Description  Upserts favorites and recently visited admin pages for the authenticated user.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.UpdateAdminNavPreferencesRequest true "Nav preferences"
+// @Success      200 {object} utils.Response{data=dto.AdminNavPreferencesResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/nav/preferences [put]
+func (ctrl *AdminHandler) UpdateNavPreferences(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	var req dto.UpdateAdminNavPreferencesRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	prefs, err := ctrl.adminService.UpdateNavPreferences(c.Request.Context(), userID, req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to update nav preferences")
+		return
+	}
+	utils.SuccessResponse(c, "nav preferences updated", prefs)
+}
+
 // GetRevenueReport returns a daily revenue breakdown for the admin reports page.
 // @Summary      Daily revenue report (admin)
 // @Description  Returns period summary KPIs and a day-by-day revenue, orders, and AOV breakdown.

@@ -13,12 +13,13 @@ import (
 
 // Queries orchestrates menu read use cases.
 type Queries struct {
-	repo *postgres.MenuRepository
+	repo      *postgres.MenuRepository
+	adminRepo *postgres.AdminRepository
 }
 
 // NewQueries creates menu query use cases.
-func NewQueries(repo *postgres.MenuRepository) *Queries {
-	return &Queries{repo: repo}
+func NewQueries(repo *postgres.MenuRepository, adminRepo *postgres.AdminRepository) *Queries {
+	return &Queries{repo: repo, adminRepo: adminRepo}
 }
 
 // ListGroups returns all menu groups.
@@ -224,5 +225,52 @@ func (q *Queries) GetUserMenuStructure(ctx context.Context, userRole string, sea
 			})
 		}
 	}
+
+	if q.adminRepo != nil {
+		q.applyMenuBadges(ctx, response)
+	}
+
 	return response, nil
+}
+
+func (q *Queries) applyMenuBadges(ctx context.Context, groups []dto.MenuGroupResponse) {
+	pendingOrders, err := q.adminRepo.CountPendingOrders(ctx)
+	if err != nil {
+		return
+	}
+	lowStock, err := q.adminRepo.CountLowStockProducts(ctx)
+	if err != nil {
+		return
+	}
+
+	var walk func(items []dto.MenuItemResponse)
+	walk = func(items []dto.MenuItemResponse) {
+		for i := range items {
+			if items[i].Href != nil {
+				switch *items[i].Href {
+				case "/dashboard/orders":
+					if pendingOrders > 0 {
+						count := pendingOrders
+						variant := "warning"
+						items[i].BadgeCount = &count
+						items[i].BadgeVariant = &variant
+					}
+				case "/dashboard/inventory":
+					if lowStock > 0 {
+						count := lowStock
+						variant := "destructive"
+						items[i].BadgeCount = &count
+						items[i].BadgeVariant = &variant
+					}
+				}
+			}
+			if len(items[i].Children) > 0 {
+				walk(items[i].Children)
+			}
+		}
+	}
+
+	for gi := range groups {
+		walk(groups[gi].Items)
+	}
 }

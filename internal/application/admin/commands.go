@@ -14,12 +14,13 @@ import (
 
 // Commands orchestrates admin write use cases.
 type Commands struct {
-	repo *postgres.AdminRepository
+	repo    *postgres.AdminRepository
+	navRepo *postgres.AdminNavRepository
 }
 
 // NewCommands creates admin command use cases.
-func NewCommands(repo *postgres.AdminRepository) *Commands {
-	return &Commands{repo: repo}
+func NewCommands(repo *postgres.AdminRepository, navRepo *postgres.AdminNavRepository) *Commands {
+	return &Commands{repo: repo, navRepo: navRepo}
 }
 
 // UpdateUserRole sets a user's role after validation by caller.

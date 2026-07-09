@@ -281,7 +281,7 @@ func WireApplications(
 		},
 		Menu: menuApp{
 			Commands: appmenu.NewCommands(menuRepo),
-			Queries:  appmenu.NewQueries(menuRepo),
+			Queries:  appmenu.NewQueries(menuRepo, postgres.NewAdminRepository(db)),
 		},
 		Review: reviewApp{
 			Commands: appreview.NewCommands(reviewRepo, engine),

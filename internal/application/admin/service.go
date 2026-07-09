@@ -23,9 +23,10 @@ type Service struct {
 // NewService wires admin queries and commands.
 func NewService(db *gorm.DB, engine *workflow.Engine, roles *approle.Queries) *Service {
 	repo := postgres.NewAdminRepository(db)
+	navRepo := postgres.NewAdminNavRepository(db)
 	return &Service{
-		queries:  NewQueries(repo),
-		commands: NewCommands(repo),
+		queries:  NewQueries(repo, navRepo),
+		commands: NewCommands(repo, navRepo),
 		engine:   engine,
 		roles:    roles,
 	}
@@ -45,6 +46,26 @@ func (s *Service) GetRevenueReport(ctx context.Context, filters dto.AdminRevenue
 
 func (s *Service) GetSalesFeedSnapshot(ctx context.Context) (*dto.AdminSalesFeedSnapshotResponse, error) {
 	return s.queries.GetSalesFeedSnapshot(ctx)
+}
+
+func (s *Service) GetDashboardHealth(ctx context.Context) (*dto.AdminDashboardHealth, error) {
+	return s.queries.GetDashboardHealth(ctx)
+}
+
+func (s *Service) ExportDashboardCSV(ctx context.Context, filters dto.AdminDashboardExportFilters) ([]byte, error) {
+	return s.queries.ExportDashboardCSV(ctx, filters)
+}
+
+func (s *Service) GetNavPreferences(ctx context.Context, userID uint) (*dto.AdminNavPreferencesResponse, error) {
+	return s.queries.NavPreferences(ctx, userID)
+}
+
+func (s *Service) UpdateNavPreferences(ctx context.Context, userID uint, req dto.UpdateAdminNavPreferencesRequest) (*dto.AdminNavPreferencesResponse, error) {
+	return s.commands.SaveNavPreferences(ctx, userID, req)
+}
+
+func (s *Service) TrackRecentPage(ctx context.Context, userID uint, page dto.AdminNavRecentPage) (*dto.AdminNavPreferencesResponse, error) {
+	return s.commands.AppendRecentPage(ctx, userID, page)
 }
 
 func (s *Service) ListUsers(ctx context.Context, filters dto.AdminUserFilters) ([]dto.AdminUserResponse, int64, error) {

@@ -148,21 +148,55 @@ func (q *Queries) GetDashboardOverview(ctx context.Context, filters dto.AdminDas
 		}
 	}
 
+	currentPaid, err := q.repo.CountPaidOrdersSince(ctx, currentStart)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	previousPaid, err := q.repo.CountPaidOrdersBetween(ctx, previousStart, currentStart)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	conversionCurrent := conversionRate(currentPaid, currentOrders)
+	conversionPrevious := conversionRate(previousPaid, previousOrders)
+
+	kpis := dto.AdminDashboardKPIs{
+		Revenue:       toDashboardKPI(currentRevenue, previousRevenue),
+		Orders:        toDashboardKPI(float64(currentOrders), float64(previousOrders)),
+		AvgOrderValue: toDashboardKPI(currentAOV, previousAOV),
+		NewCustomers:  toDashboardKPI(float64(currentCustomers), float64(previousCustomers)),
+	}
+
+	auditLogs, err := q.repo.RecentAuditLogs(ctx, 8)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	activityOrders, err := q.repo.OrdersSince(ctx, currentStart, 8)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	platformHealth, err := buildPlatformHealth(ctx, q, *platform)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dto.AdminDashboardOverviewResponse{
-		Period:      periodLabel,
-		GeneratedAt: now,
-		KPIs: dto.AdminDashboardKPIs{
-			Revenue:       toDashboardKPI(currentRevenue, previousRevenue),
-			Orders:        toDashboardKPI(float64(currentOrders), float64(previousOrders)),
-			AvgOrderValue: toDashboardKPI(currentAOV, previousAOV),
-			NewCustomers:  toDashboardKPI(float64(currentCustomers), float64(previousCustomers)),
-		},
-		RevenueSeries:    revenueSeries,
-		OrdersByStatus:   statusRows,
-		RecentOrders:     recent,
-		TopProducts:      topProducts,
+		Period:         periodLabel,
+		GeneratedAt:    now,
+		KPIs:           kpis,
+		Conversion:     toDashboardKPI(conversionCurrent, conversionPrevious),
+		KpiSparklines:  buildKpiSparklines(revenueSeries),
+		RevenueSeries:  revenueSeries,
+		OrdersByStatus: statusRows,
+		RecentActivity: buildRecentActivity(activityOrders, auditLogs),
+		AiInsights:     buildAiInsights(kpis, toDashboardKPI(conversionCurrent, conversionPrevious), *platform),
+		PlatformHealth: platformHealth,
+		RecentOrders:   recent,
+		TopProducts:    topProducts,
 		LowStockProducts: lowStockProducts,
-		Platform:         *platform,
+		Platform:       *platform,
 	}, nil
 }
 

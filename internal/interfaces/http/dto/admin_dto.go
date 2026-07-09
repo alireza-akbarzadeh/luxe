@@ -145,17 +145,58 @@ type AdminSalesFeedSnapshotResponse struct {
 	GeneratedAt       time.Time                   `json:"generated_at"`
 }
 
+// AdminDashboardActivity is one row in the dashboard recent-activity feed.
+type AdminDashboardActivity struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Actor       string    `json:"actor,omitempty"`
+	Href        string    `json:"href,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// AdminDashboardInsight is a rule-based business insight for the admin home dashboard.
+type AdminDashboardInsight struct {
+	ID          string `json:"id"`
+	Severity    string `json:"severity"`
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	ActionLabel string `json:"action_label,omitempty"`
+	ActionHref  string `json:"action_href,omitempty"`
+}
+
+// AdminDashboardHealth summarizes platform operational health.
+type AdminDashboardHealth struct {
+	Status       string  `json:"status"`
+	APILatencyMs int64   `json:"api_latency_ms"`
+	ErrorRate    float64 `json:"error_rate"`
+	QueueDepth   int64   `json:"queue_depth"`
+	Message      string  `json:"message,omitempty"`
+}
+
 // AdminDashboardOverviewResponse powers the admin commerce dashboard.
 type AdminDashboardOverviewResponse struct {
 	Period           string                          `json:"period"`
 	GeneratedAt      time.Time                       `json:"generated_at"`
 	KPIs             AdminDashboardKPIs              `json:"kpis"`
+	Conversion       AdminDashboardKPI               `json:"conversion"`
+	KpiSparklines    map[string][]float64            `json:"kpi_sparklines"`
 	RevenueSeries    []AdminDashboardSeriesPoint     `json:"revenue_series"`
 	OrdersByStatus   []AdminDashboardStatusCount     `json:"orders_by_status"`
+	RecentActivity   []AdminDashboardActivity        `json:"recent_activity"`
+	AiInsights       []AdminDashboardInsight         `json:"ai_insights"`
+	PlatformHealth   AdminDashboardHealth            `json:"platform_health"`
 	RecentOrders     []AdminDashboardRecentOrder     `json:"recent_orders"`
 	TopProducts      []AdminDashboardTopProduct      `json:"top_products"`
 	LowStockProducts []AdminDashboardLowStockProduct `json:"low_stock_products"`
 	Platform         AdminStatsResponse              `json:"platform"`
+}
+
+// AdminDashboardExportFilters are query params for GET /admin/dashboard/export.
+type AdminDashboardExportFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+	Format string `form:"format" validate:"omitempty,oneof=csv"`
 }
 
 // AdminRevenueReportFilters are query params for GET /admin/reports/revenue.

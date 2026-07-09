@@ -81,6 +81,51 @@ definitions:
     - description
     - user_id
     type: object
+  dto.AdminDashboardActivity:
+    properties:
+      actor:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      href:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.AdminDashboardHealth:
+    properties:
+      api_latency_ms:
+        type: integer
+      error_rate:
+        type: number
+      message:
+        type: string
+      queue_depth:
+        type: integer
+      status:
+        type: string
+    type: object
+  dto.AdminDashboardInsight:
+    properties:
+      action_href:
+        type: string
+      action_label:
+        type: string
+      body:
+        type: string
+      id:
+        type: string
+      severity:
+        type: string
+      title:
+        type: string
+    type: object
   dto.AdminDashboardKPI:
     properties:
       change_percent:
@@ -116,8 +161,21 @@ definitions:
     type: object
   dto.AdminDashboardOverviewResponse:
     properties:
+      ai_insights:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardInsight'
+        type: array
+      conversion:
+        $ref: '#/definitions/dto.AdminDashboardKPI'
       generated_at:
         type: string
+      kpi_sparklines:
+        additionalProperties:
+          items:
+            format: float64
+            type: number
+          type: array
+        type: object
       kpis:
         $ref: '#/definitions/dto.AdminDashboardKPIs'
       low_stock_products:
@@ -132,6 +190,12 @@ definitions:
         type: string
       platform:
         $ref: '#/definitions/dto.AdminStatsResponse'
+      platform_health:
+        $ref: '#/definitions/dto.AdminDashboardHealth'
+      recent_activity:
+        items:
+          $ref: '#/definitions/dto.AdminDashboardActivity'
+        type: array
       recent_orders:
         items:
           $ref: '#/definitions/dto.AdminDashboardRecentOrder'
@@ -236,6 +300,29 @@ definitions:
         type: number
       user_id:
         type: integer
+    type: object
+  dto.AdminNavPreferencesResponse:
+    properties:
+      favorites:
+        items:
+          type: string
+        type: array
+      recent:
+        items:
+          $ref: '#/definitions/dto.AdminNavRecentPage'
+        type: array
+    type: object
+  dto.AdminNavRecentPage:
+    properties:
+      href:
+        type: string
+      label:
+        type: string
+      visited_at:
+        type: string
+    required:
+    - href
+    - label
     type: object
   dto.AdminOrderDetailResponse:
     properties:
@@ -604,6 +691,39 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiCompatibilityCheckRequest:
+    properties:
+      product_id_a:
+        type: integer
+      product_id_b:
+        type: integer
+    required:
+    - product_id_a
+    - product_id_b
+    type: object
+  dto.AiCompatibilityCheckResponse:
+    properties:
+      category:
+        type: string
+      compatibility:
+        type: string
+      concerns:
+        items:
+          type: string
+        type: array
+      score:
+        type: integer
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      works_well:
+        items:
+          type: string
+        type: array
+    type: object
   dto.AiDeliveryPredictionRequest:
     properties:
       product_id:
@@ -901,6 +1021,37 @@ definitions:
           type: string
         type: array
     type: object
+  dto.AiNegotiationRequest:
+    properties:
+      message:
+        type: string
+      offered_price:
+        type: number
+      product_id:
+        type: integer
+    required:
+    - offered_price
+    - product_id
+    type: object
+  dto.AiNegotiationResponse:
+    properties:
+      confidence:
+        type: string
+      counter_price:
+        type: number
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      tips:
+        items:
+          type: string
+        type: array
+      verdict:
+        type: string
+    type: object
   dto.AiNotificationSuggestion:
     properties:
       description:
@@ -955,6 +1106,41 @@ definitions:
       summary:
         type: string
       tips:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiPersonalShoppingAgentRequest:
+    properties:
+      goal:
+        type: string
+      messages:
+        items:
+          $ref: '#/definitions/dto.AiChatMessage'
+        minItems: 1
+        type: array
+    required:
+    - messages
+    type: object
+  dto.AiPersonalShoppingAgentResponse:
+    properties:
+      follow_up_questions:
+        items:
+          type: string
+        type: array
+      memory_summary:
+        type: string
+      recommendations:
+        items:
+          $ref: '#/definitions/dto.AiRecommendedProduct'
+        type: array
+      reply:
+        type: string
+      sources:
+        items:
+          type: string
+        type: array
+      taste_signals:
         items:
           type: string
         type: array
@@ -1540,6 +1726,163 @@ definitions:
         type: array
       summary:
         type: string
+    type: object
+  dto.AiVendorCustomerSegmentsResponse:
+    properties:
+      ai_enabled:
+        type: boolean
+      campaign_ideas:
+        items:
+          type: string
+        type: array
+      customers:
+        items:
+          $ref: '#/definitions/dto.VendorCustomerSegmentMember'
+        type: array
+      highlights:
+        items:
+          type: string
+        type: array
+      period_days:
+        type: integer
+      recommendations:
+        items:
+          type: string
+        type: array
+      segments:
+        items:
+          $ref: '#/definitions/dto.VendorCustomerSegmentSummary'
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
+  dto.AiVendorDashboardResponse:
+    properties:
+      ai_enabled:
+        type: boolean
+      alerts:
+        items:
+          type: string
+        type: array
+      health_score:
+        type: integer
+      opportunities:
+        items:
+          type: string
+        type: array
+      priorities:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
+  dto.AiVendorInventoryForecastResponse:
+    properties:
+      ai_enabled:
+        type: boolean
+      alerts:
+        items:
+          type: string
+        type: array
+      critical_count:
+        type: integer
+      forecasts:
+        items:
+          $ref: '#/definitions/dto.VendorInventoryForecastItem'
+        type: array
+      low_stock_count:
+        type: integer
+      period_days:
+        type: integer
+      priorities:
+        items:
+          type: string
+        type: array
+      recommendations:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      warning_count:
+        type: integer
+    type: object
+  dto.AiVendorPricingAssistantResponse:
+    properties:
+      ai_enabled:
+        type: boolean
+      highlights:
+        items:
+          type: string
+        type: array
+      period_days:
+        type: integer
+      recommendations:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      suggestions:
+        items:
+          $ref: '#/definitions/dto.VendorPricingSuggestion'
+        type: array
+      summary:
+        type: string
+      warnings:
+        items:
+          type: string
+        type: array
+    type: object
+  dto.AiVendorSalesInsightsResponse:
+    properties:
+      ai_enabled:
+        type: boolean
+      daily_series:
+        items:
+          $ref: '#/definitions/dto.VendorDailySalesPoint'
+        type: array
+      highlights:
+        items:
+          type: string
+        type: array
+      metrics:
+        $ref: '#/definitions/dto.VendorSalesMetrics'
+      period_days:
+        type: integer
+      recommendations:
+        items:
+          type: string
+        type: array
+      sources:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+      top_products:
+        items:
+          $ref: '#/definitions/dto.VendorTopProductSales'
+        type: array
+      warnings:
+        items:
+          type: string
+        type: array
     type: object
   dto.AiVirtualTryOnRequest:
     properties:
@@ -2622,6 +2965,29 @@ definitions:
     required:
     - body
     type: object
+  dto.CreateProductDiscussionReplyRequest:
+    properties:
+      body:
+        maxLength: 2000
+        minLength: 2
+        type: string
+    required:
+    - body
+    type: object
+  dto.CreateProductDiscussionRequest:
+    properties:
+      body:
+        maxLength: 2000
+        minLength: 10
+        type: string
+      title:
+        maxLength: 200
+        minLength: 5
+        type: string
+    required:
+    - body
+    - title
+    type: object
   dto.CreateProductQuestionRequest:
     properties:
       body:
@@ -2741,6 +3107,38 @@ definitions:
     required:
     - order_id
     - reason
+    type: object
+  dto.CreateReverseMarketplaceOfferRequest:
+    properties:
+      message:
+        maxLength: 2000
+        type: string
+      offered_price:
+        minimum: 0
+        type: number
+    required:
+    - offered_price
+    type: object
+  dto.CreateReverseMarketplaceRequest:
+    properties:
+      budget_max:
+        minimum: 0
+        type: number
+      budget_min:
+        minimum: 0
+        type: number
+      category:
+        maxLength: 100
+        type: string
+      description:
+        maxLength: 2000
+        type: string
+      title:
+        maxLength: 200
+        minLength: 3
+        type: string
+    required:
+    - title
     type: object
   dto.CreateReviewRequest:
     properties:
@@ -3753,6 +4151,10 @@ definitions:
     type: object
   dto.MenuItemResponse:
     properties:
+      badge_count:
+        type: integer
+      badge_variant:
+        type: string
       children:
         items:
           $ref: '#/definitions/dto.MenuItemResponse'
@@ -4220,6 +4622,8 @@ definitions:
         type: boolean
       is_store_reply:
         type: boolean
+      is_verified_buyer:
+        type: boolean
       question_id:
         type: integer
     type: object
@@ -4245,6 +4649,42 @@ definitions:
           type: string
         type: array
     type: object
+  dto.ProductDiscussionReplyResponse:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      discussion_id:
+        type: integer
+      id:
+        type: integer
+      is_owner:
+        type: boolean
+    type: object
+  dto.ProductDiscussionResponse:
+    properties:
+      author:
+        type: string
+      body:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_owner:
+        type: boolean
+      product_id:
+        type: integer
+      replies:
+        items:
+          $ref: '#/definitions/dto.ProductDiscussionReplyResponse'
+        type: array
+      title:
+        type: string
+    type: object
   dto.ProductQuestionResponse:
     properties:
       answers:
@@ -4260,6 +4700,8 @@ definitions:
       id:
         type: integer
       is_owner:
+        type: boolean
+      is_verified_buyer:
         type: boolean
       product_id:
         type: integer
@@ -4731,6 +5173,80 @@ definitions:
         type: integer
       workflow_state_id:
         type: integer
+    type: object
+  dto.ReverseMarketplaceOfferResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      message:
+        type: string
+      offered_price:
+        type: number
+      status:
+        type: string
+      store_id:
+        type: integer
+      store_name:
+        type: string
+    type: object
+  dto.ReverseMarketplaceRequestListItem:
+    properties:
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      offer_count:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.ReverseMarketplaceRequestListResponse:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      requests:
+        items:
+          $ref: '#/definitions/dto.ReverseMarketplaceRequestListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.ReverseMarketplaceRequestResponse:
+    properties:
+      budget_max:
+        type: number
+      budget_min:
+        type: number
+      category:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      offers:
+        items:
+          $ref: '#/definitions/dto.ReverseMarketplaceOfferResponse'
+        type: array
+      status:
+        type: string
+      title:
+        type: string
     type: object
   dto.ReviewResponse:
     properties:
@@ -5272,6 +5788,17 @@ definitions:
     - postal_code
     - recipient_name
     type: object
+  dto.UpdateAdminNavPreferencesRequest:
+    properties:
+      favorites:
+        items:
+          type: string
+        type: array
+      recent:
+        items:
+          $ref: '#/definitions/dto.AdminNavRecentPage'
+        type: array
+    type: object
   dto.UpdateBrandRequest:
     properties:
       description:
@@ -5775,6 +6302,64 @@ definitions:
     - return_policy
     - shipping_info
     type: object
+  dto.VendorCustomerSegmentMember:
+    properties:
+      avg_order_value:
+        type: number
+      email:
+        type: string
+      last_order_at:
+        type: string
+      name:
+        type: string
+      order_count:
+        type: integer
+      segment:
+        type: string
+      total_spend:
+        type: number
+      user_id:
+        type: integer
+    type: object
+  dto.VendorCustomerSegmentSummary:
+    properties:
+      count:
+        type: integer
+      label:
+        type: string
+      segment:
+        type: string
+      total_spend:
+        type: number
+    type: object
+  dto.VendorDailySalesPoint:
+    properties:
+      date:
+        type: string
+      orders:
+        type: integer
+      revenue:
+        type: number
+    type: object
+  dto.VendorInventoryForecastItem:
+    properties:
+      daily_velocity:
+        type: number
+      days_until_stockout:
+        type: number
+      name:
+        type: string
+      product_id:
+        type: integer
+      stock:
+        type: integer
+      suggested_reorder_qty:
+        type: integer
+      units_sold:
+        type: integer
+      urgency:
+        type: string
+    type: object
   dto.VendorOrderDetailResponse:
     properties:
       carrier:
@@ -5872,6 +6457,27 @@ definitions:
       total:
         type: integer
     type: object
+  dto.VendorPricingSuggestion:
+    properties:
+      action:
+        type: string
+      current_price:
+        type: number
+      margin_pct:
+        type: number
+      name:
+        type: string
+      product_id:
+        type: integer
+      rationale:
+        type: string
+      revenue:
+        type: number
+      suggested_price:
+        type: number
+      units_sold:
+        type: integer
+    type: object
   dto.VendorProductListData:
     properties:
       limit:
@@ -5920,6 +6526,21 @@ definitions:
       total:
         type: integer
     type: object
+  dto.VendorSalesMetrics:
+    properties:
+      avg_order_value:
+        type: number
+      order_count:
+        type: integer
+      orders_change_pct:
+        type: number
+      revenue:
+        type: number
+      revenue_change_pct:
+        type: number
+      units_sold:
+        type: integer
+    type: object
   dto.VendorStoreResponse:
     properties:
       banner_url:
@@ -5962,6 +6583,17 @@ definitions:
         type: string
       status:
         type: string
+    type: object
+  dto.VendorTopProductSales:
+    properties:
+      name:
+        type: string
+      product_id:
+        type: integer
+      revenue:
+        type: number
+      units:
+        type: integer
     type: object
   dto.VendorUpdateStoreRequest:
     properties:
@@ -7798,6 +8430,75 @@ paths:
       summary: List coupons (admin)
       tags:
       - Coupons
+  /admin/dashboard/export:
+    get:
+      description: Returns a CSV file of daily revenue, orders, and AOV for the selected
+        period.
+      parameters:
+      - description: 'Period: 7d, 30d, or 90d (default 30d)'
+        in: query
+        name: period
+        type: string
+      - description: 'Format: csv (default csv)'
+        in: query
+        name: format
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Export dashboard report (admin)
+      tags:
+      - Admin
+  /admin/dashboard/health:
+    get:
+      description: Returns database latency, webhook error rate, and queue depth indicators.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminDashboardHealth'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin dashboard health
+      tags:
+      - Admin
   /admin/dashboard/overview:
     get:
       description: Returns period KPIs, revenue series, order status breakdown, recent
@@ -8732,6 +9433,84 @@ paths:
       summary: Update an existing menu item
       tags:
       - Admin Menu Items
+  /admin/nav/preferences:
+    get:
+      description: Returns persisted favorites and recently visited admin pages for
+        the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminNavPreferencesResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin nav preferences
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Upserts favorites and recently visited admin pages for the authenticated
+        user.
+      parameters:
+      - description: Nav preferences
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateAdminNavPreferencesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminNavPreferencesResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update admin nav preferences
+      tags:
+      - Admin
   /admin/orders/bulk-status:
     post:
       consumes:
@@ -10268,6 +11047,49 @@ paths:
       summary: AI compare insight
       tags:
       - AI
+  /ai/compatibility-check:
+    post:
+      consumes:
+      - application/json
+      description: Scores and explains how well two catalog products work together
+      parameters:
+      - description: Compatibility request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiCompatibilityCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiCompatibilityCheckResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Universal compatibility check
+      tags:
+      - AI
   /ai/delivery-prediction:
     post:
       consumes:
@@ -10555,6 +11377,46 @@ paths:
       summary: AI mood shopping
       tags:
       - AI
+  /ai/negotiation:
+    post:
+      consumes:
+      - application/json
+      description: Mediates a shopper price offer with accept, counter, or decline
+        guidance
+      parameters:
+      - description: Negotiation request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiNegotiationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiNegotiationResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: AI negotiation assistant
+      tags:
+      - AI
   /ai/outfit-builder:
     post:
       consumes:
@@ -10597,6 +11459,47 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: AI outfit builder
+      tags:
+      - AI
+  /ai/personal-shopping-agent:
+    post:
+      consumes:
+      - application/json
+      description: Authenticated agent that blends shopping memory with catalog recommendations
+      parameters:
+      - description: Agent request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AiPersonalShoppingAgentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiPersonalShoppingAgentResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Personal shopping agent
       tags:
       - AI
   /ai/personalized-notifications:
@@ -14440,6 +15343,135 @@ paths:
       summary: List product workflow transitions (admin)
       tags:
       - Products
+  /products/{id}/discussions:
+    get:
+      description: Paginated shopper discussion threads and replies for a product
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    discussions:
+                      items:
+                        $ref: '#/definitions/dto.ProductDiscussionResponse'
+                      type: array
+                    limit:
+                      type: integer
+                    offset:
+                      type: integer
+                    total:
+                      type: integer
+                  type: object
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List product community discussions
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Post a community discussion thread on the product detail page
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Discussion title and body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductDiscussionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductDiscussionResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Start a product discussion
+      tags:
+      - Products
+  /products/{id}/discussions/{discussionId}/replies:
+    post:
+      consumes:
+      - application/json
+      description: Post a reply on a community discussion thread
+      parameters:
+      - description: Product ID or slug
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Discussion ID
+        in: path
+        name: discussionId
+        required: true
+        type: integer
+      - description: Reply body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductDiscussionReplyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductDiscussionReplyResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Reply to a product discussion
+      tags:
+      - Products
   /products/{id}/like:
     post:
       consumes:
@@ -15367,6 +16399,118 @@ paths:
       summary: List my returns
       tags:
       - Returns
+  /reverse-marketplace/my-requests:
+    get:
+      description: Returns wanted listings created by the authenticated buyer
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceRequestListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List my reverse marketplace requests
+      tags:
+      - reverse-marketplace
+  /reverse-marketplace/requests:
+    get:
+      description: Returns open buyer wanted listings for storefront discovery
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceRequestListResponse'
+              type: object
+      summary: List reverse marketplace requests
+      tags:
+      - reverse-marketplace
+    post:
+      consumes:
+      - application/json
+      description: Buyer posts a wanted listing for vendors to respond
+      parameters:
+      - description: Wanted listing
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReverseMarketplaceRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceRequestResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create reverse marketplace request
+      tags:
+      - reverse-marketplace
+  /reverse-marketplace/requests/{id}:
+    get:
+      description: Returns a buyer wanted listing with vendor offers
+      parameters:
+      - description: Request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceRequestResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get reverse marketplace request
+      tags:
+      - reverse-marketplace
   /reviews:
     get:
       description: Returns paginated reviews and rating summary for a specific product
@@ -17086,6 +18230,220 @@ paths:
       summary: Update vendor store
       tags:
       - Vendor
+  /vendor/stores/{id}/ai/customer-segments:
+    get:
+      description: Buyer segments, spend tiers, and retention campaign ideas from
+        order history
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 365
+        description: Analysis window in days (default 365, max 730)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVendorCustomerSegmentsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor AI customer segments
+      tags:
+      - Vendor
+  /vendor/stores/{id}/ai/dashboard:
+    get:
+      description: Generates prioritized actions, alerts, and opportunities from store
+        orders, catalog, and inventory facts
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVendorDashboardResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor AI dashboard briefing
+      tags:
+      - Vendor
+  /vendor/stores/{id}/ai/inventory-forecast:
+    get:
+      description: Stock velocity, days-until-stockout, and replenishment suggestions
+        from catalog and sales
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 30
+        description: Analysis window in days (default 30, max 90)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVendorInventoryForecastResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor AI inventory forecast
+      tags:
+      - Vendor
+  /vendor/stores/{id}/ai/pricing-assistant:
+    get:
+      description: Per-SKU price actions based on demand, margin, and inventory signals
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 30
+        description: Analysis window in days (default 30, max 90)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVendorPricingAssistantResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor AI pricing assistant
+      tags:
+      - Vendor
+  /vendor/stores/{id}/ai/sales-insights:
+    get:
+      description: Revenue metrics, daily series, top products, and AI narrative for
+        the selected period
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - default: 30
+        description: Analysis window in days (default 30, max 90)
+        in: query
+        name: days
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AiVendorSalesInsightsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Vendor AI sales insights
+      tags:
+      - Vendor
   /vendor/stores/{id}/orders:
     get:
       consumes:
@@ -17406,6 +18764,80 @@ paths:
       security:
       - BearerAuth: []
       summary: Vendor store product stats
+      tags:
+      - Vendor
+  /vendor/stores/{id}/reverse-marketplace/requests:
+    get:
+      description: Returns open buyer wanted listings for vendor offer submission
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceRequestListResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Vendor browse reverse marketplace requests
+      tags:
+      - Vendor
+  /vendor/stores/{id}/reverse-marketplace/requests/{requestId}/offers:
+    post:
+      consumes:
+      - application/json
+      description: Vendor store responds to a buyer wanted listing with price and
+        message
+      parameters:
+      - description: Store ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Request ID
+        in: path
+        name: requestId
+        required: true
+        type: integer
+      - description: Offer details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateReverseMarketplaceOfferRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReverseMarketplaceOfferResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Submit reverse marketplace offer
       tags:
       - Vendor
   /wallet:
