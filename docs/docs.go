@@ -1097,6 +1097,75 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/categories/reorder": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates sort order and optional parent for multiple categories. Cannot move a category under itself or its descendants.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
+                ],
+                "summary": "Reorder categories",
+                "parameters": [
+                    {
+                        "description": "Ordered category items",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ReorderCategoriesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmptyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/categories/{id}": {
             "get": {
                 "security": [
@@ -23308,8 +23377,24 @@ const docTemplate = `{
                 "descriptionI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
                 },
+                "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "image_url": {
+                    "type": "string",
+                    "maxLength": 512
+                },
                 "is_active": {
                     "type": "boolean"
+                },
+                "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
                 },
                 "name": {
                     "type": "string",
@@ -23324,6 +23409,10 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -26806,6 +26895,39 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ReorderCategoriesRequest": {
+            "type": "object",
+            "required": [
+                "items"
+            ],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dto.ReorderCategoryItem"
+                    }
+                }
+            }
+        },
+        "dto.ReorderCategoryItem": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "sort_order": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
         "dto.ReorderNavMenuItem": {
             "type": "object",
             "required": [
@@ -27870,8 +27992,24 @@ const docTemplate = `{
                 "descriptionI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
                 },
+                "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "image_url": {
+                    "type": "string",
+                    "maxLength": 512
+                },
                 "is_active": {
                     "type": "boolean"
+                },
+                "meta_description": {
+                    "type": "string",
+                    "maxLength": 160
+                },
+                "meta_title": {
+                    "type": "string",
+                    "maxLength": 70
                 },
                 "name": {
                     "type": "string",
@@ -27886,6 +28024,10 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -29426,14 +29568,26 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "icon": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
                 },
                 "is_active": {
                     "type": "boolean"
                 },
                 "level": {
                     "type": "integer"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string",
@@ -29468,6 +29622,9 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"

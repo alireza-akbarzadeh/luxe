@@ -180,3 +180,21 @@ func (s *Service) BulkDelete(ids []uint) error {
 	}
 	return nil
 }
+
+// Reorder updates category sort order and optional parent assignments.
+func (s *Service) Reorder(req dto.ReorderCategoriesRequest) error {
+	if len(req.Items) == 0 {
+		return utils.ErrBadRequest("no categories provided")
+	}
+	err := s.commands.Reorder(context.Background(), req)
+	if err != nil {
+		if errors.Is(err, ErrInvalidParentMove) {
+			return utils.ErrBadRequest("cannot move a category under itself or its descendants")
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return utils.ErrNotFound("one or more categories were not found")
+		}
+		return utils.ErrInternal(err)
+	}
+	return nil
+}

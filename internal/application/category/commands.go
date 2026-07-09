@@ -155,13 +155,6 @@ func (c *Commands) BulkDelete(ctx context.Context, ids []uint) (int64, error) {
 	return c.repo.BulkDeleteByIDs(ctx, ids)
 }
 
-func descendantPathPrefix(cat *models.Category) string {
-	if cat.Path == "" {
-		return fmt.Sprintf("%d", cat.ID)
-	}
-	return fmt.Sprintf("%s.%d", cat.Path, cat.ID)
-}
-
 func (c *Commands) isInvalidParentMove(ctx context.Context, category *models.Category, parentID *uint) (bool, error) {
 	if parentID == nil || *parentID == 0 {
 		return false, nil

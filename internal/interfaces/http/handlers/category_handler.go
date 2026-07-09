@@ -341,3 +341,37 @@ func (ctrl *CategoryHandler) GetCategoryByID(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, resp)
 }
+
+// Reorder updates category sort order and parent assignments (admin only).
+// @Summary      Reorder categories
+// @Description  Updates sort order and optional parent for multiple categories. Cannot move a category under itself or its descendants.
+// @Tags         Categories
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        request body dto.ReorderCategoriesRequest true "Ordered category items"
+// @Success      200 {object} dto.EmptyResponse
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/categories/reorder [put]
+func (ctrl *CategoryHandler) Reorder(c *gin.Context) {
+	var req dto.ReorderCategoriesRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	if err := ctrl.categoryService.Reorder(req); err != nil {
+		utils.HandleServiceError(c, err, "failed to reorder categories")
+		return
+	}
+	resp := dto.EmptyResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "categories reordered",
+			Code:    http.StatusOK,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
+}

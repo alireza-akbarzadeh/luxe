@@ -20,6 +20,7 @@ func SetupCategoryRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Cont
 	{
 		admin.POST("/", ctrl.Category.Create)
 		admin.POST("/bulk", ctrl.Category.BulkCreate)
+		admin.PUT("/reorder", ctrl.Category.Reorder)
 		admin.PUT("/:id", ctrl.Category.Update)
 		admin.GET("/:id", ctrl.Category.GetCategoryByID)
 		admin.DELETE("/:id", ctrl.Category.Delete)

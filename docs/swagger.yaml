@@ -2769,8 +2769,20 @@ definitions:
         type: string
       descriptionI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
+      icon:
+        maxLength: 64
+        type: string
+      image_url:
+        maxLength: 512
+        type: string
       is_active:
         type: boolean
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_title:
+        maxLength: 70
+        type: string
       name:
         maxLength: 100
         minLength: 2
@@ -2781,6 +2793,9 @@ definitions:
         type: integer
       slug:
         type: string
+      sort_order:
+        minimum: 0
+        type: integer
     required:
     - name
     type: object
@@ -5120,6 +5135,28 @@ definitions:
       user:
         $ref: '#/definitions/dto.UserResponse'
     type: object
+  dto.ReorderCategoriesRequest:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.ReorderCategoryItem'
+        minItems: 1
+        type: array
+    required:
+    - items
+    type: object
+  dto.ReorderCategoryItem:
+    properties:
+      id:
+        type: integer
+      parent_id:
+        type: integer
+      sort_order:
+        minimum: 0
+        type: integer
+    required:
+    - id
+    type: object
   dto.ReorderNavMenuItem:
     properties:
       id:
@@ -5820,8 +5857,20 @@ definitions:
         type: string
       descriptionI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
+      icon:
+        maxLength: 64
+        type: string
+      image_url:
+        maxLength: 512
+        type: string
       is_active:
         type: boolean
+      meta_description:
+        maxLength: 160
+        type: string
+      meta_title:
+        maxLength: 70
+        type: string
       name:
         maxLength: 100
         minLength: 2
@@ -5832,6 +5881,9 @@ definitions:
         type: integer
       slug:
         type: string
+      sort_order:
+        minimum: 0
+        type: integer
     type: object
   dto.UpdateCollectionRequest:
     properties:
@@ -6867,12 +6919,20 @@ definitions:
         items:
           type: integer
         type: array
+      icon:
+        type: string
       id:
         type: integer
+      image_url:
+        type: string
       is_active:
         type: boolean
       level:
         type: integer
+      meta_description:
+        type: string
+      meta_title:
+        type: string
       name:
         maxLength: 100
         minLength: 2
@@ -6895,6 +6955,8 @@ definitions:
         type: array
       slug:
         type: string
+      sort_order:
+        type: integer
       updated_at:
         type: string
       workflow_state:
@@ -8374,6 +8436,51 @@ paths:
       security:
       - BearerAuth: []
       summary: Bulk create categories
+      tags:
+      - Categories
+  /admin/categories/reorder:
+    put:
+      consumes:
+      - application/json
+      description: Updates sort order and optional parent for multiple categories.
+        Cannot move a category under itself or its descendants.
+      parameters:
+      - description: Ordered category items
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ReorderCategoriesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Reorder categories
       tags:
       - Categories
   /admin/coupons:
