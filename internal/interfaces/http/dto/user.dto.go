@@ -13,8 +13,8 @@ type UserResponse struct {
 	FirstName      string `json:"first_name"`
 	LastName       string `json:"last_name"`
 	Role           string `json:"role"`
-	Phone     string `json:"phone"`
-	AvatarURL string `json:"avatar_url,omitempty"`
+	Phone          string `json:"phone"`
+	AvatarURL      string `json:"avatar_url,omitempty"`
 	MembershipTier string `json:"membership_tier"`
 	IsPlusActive   bool   `json:"is_plus_active"`
 }
