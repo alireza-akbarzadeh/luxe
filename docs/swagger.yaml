@@ -715,6 +715,21 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.AdminSupportStats:
+    properties:
+      chat_tickets:
+        type: integer
+      email_tickets:
+        type: integer
+      open_tickets:
+        type: integer
+      pending_tickets:
+        type: integer
+      resolved_today:
+        type: integer
+      unassigned_tickets:
+        type: integer
+    type: object
   dto.AdminUserResponse:
     properties:
       avatar_url:
@@ -3429,6 +3444,59 @@ definitions:
     - comment
     - rating
     type: object
+  dto.CreateSupportTicketMessageRequest:
+    properties:
+      body:
+        maxLength: 4096
+        minLength: 1
+        type: string
+      channel:
+        enum:
+        - email
+        - chat
+        - web
+        - internal
+        type: string
+      is_internal:
+        type: boolean
+    required:
+    - body
+    type: object
+  dto.CreateSupportTicketRequest:
+    properties:
+      channel:
+        enum:
+        - email
+        - chat
+        - web
+        type: string
+      customer_email:
+        maxLength: 255
+        type: string
+      customer_name:
+        maxLength: 200
+        type: string
+      message:
+        maxLength: 4096
+        minLength: 1
+        type: string
+      order_id:
+        type: integer
+      priority:
+        enum:
+        - low
+        - normal
+        - high
+        - urgent
+        type: string
+      subject:
+        maxLength: 255
+        minLength: 1
+        type: string
+    required:
+    - message
+    - subject
+    type: object
   dto.CreateWorkflowRequest:
     properties:
       description:
@@ -5894,6 +5962,75 @@ definitions:
           $ref: '#/definitions/dto.SuggestionItem'
         type: array
     type: object
+  dto.SupportSuggestReplyResponse:
+    properties:
+      suggestion:
+        type: string
+    type: object
+  dto.SupportTicketMessageResponse:
+    properties:
+      author_id:
+        type: integer
+      author_name:
+        type: string
+      author_role:
+        type: string
+      body:
+        type: string
+      channel:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_ai_suggestion:
+        type: boolean
+      is_internal:
+        type: boolean
+      ticket_id:
+        type: integer
+    type: object
+  dto.SupportTicketResponse:
+    properties:
+      admin_notes:
+        type: string
+      assignee_id:
+        type: integer
+      assignee_name:
+        type: string
+      channel:
+        type: string
+      created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      last_message_at:
+        type: string
+      message_count:
+        type: integer
+      messages:
+        items:
+          $ref: '#/definitions/dto.SupportTicketMessageResponse'
+        type: array
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      priority:
+        type: string
+      status:
+        type: string
+      subject:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
   dto.SyncCompareRequest:
     properties:
       product_ids:
@@ -6424,6 +6561,30 @@ definitions:
         maximum: 5
         minimum: 1
         type: integer
+    type: object
+  dto.UpdateSupportTicketAssigneeRequest:
+    properties:
+      assignee_id:
+        type: integer
+    type: object
+  dto.UpdateSupportTicketNotesRequest:
+    properties:
+      admin_notes:
+        maxLength: 4096
+        type: string
+    type: object
+  dto.UpdateSupportTicketStatusRequest:
+    properties:
+      status:
+        enum:
+        - open
+        - pending
+        - waiting_customer
+        - resolved
+        - closed
+        type: string
+    required:
+    - status
     type: object
   dto.UpdateUserRoleRequest:
     properties:
@@ -11031,6 +11192,250 @@ paths:
       summary: Update store
       tags:
       - Stores
+  /admin/support/stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminSupportStats'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Support desk stats (admin)
+      tags:
+      - Support
+  /admin/support/tickets:
+    get:
+      parameters:
+      - description: Search subject, email, or customer
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by channel
+        in: query
+        name: channel
+        type: string
+      - description: Filter by priority
+        in: query
+        name: priority
+        type: string
+      - description: Filter by assignee user ID
+        in: query
+        name: assignee
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List support tickets (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}:
+    get:
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get support ticket by ID (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}/assign:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignee
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSupportTicketAssigneeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Assign support ticket (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSupportTicketMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketMessageResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Add staff message (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}/notes:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Notes
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSupportTicketNotesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update support ticket notes (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSupportTicketStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update support ticket status (admin)
+      tags:
+      - Support
+  /admin/support/tickets/{id}/suggest-reply:
+    post:
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportSuggestReplyResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Suggest AI reply (admin)
+      tags:
+      - Support
   /admin/users:
     get:
       description: Returns paginated users with optional filters by search term, email,
@@ -18605,6 +19010,113 @@ paths:
       summary: Get my store review
       tags:
       - Stores
+  /support/tickets:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSupportTicketRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      summary: Create support ticket
+      tags:
+      - Support
+  /support/tickets/{id}:
+    get:
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get support ticket by ID
+      tags:
+      - Support
+  /support/tickets/{id}/messages:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Ticket ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Message
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateSupportTicketMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SupportTicketMessageResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Reply to support ticket
+      tags:
+      - Support
+  /support/tickets/my:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List my support tickets
+      tags:
+      - Support
   /uploads/config:
     get:
       description: Returns direct-upload settings for the storefront (R2 presigned

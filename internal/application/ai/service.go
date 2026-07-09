@@ -25,6 +25,7 @@ const (
 	TaskProductChat        = "product_chat"
 	TaskProductBrief       = "product_brief"
 	TaskQaReply            = "qa_reply"
+	TaskSupportReply       = "support_reply"
 )
 
 var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
@@ -333,6 +334,21 @@ Respond with one friendly sentence suitable for a banner or email. Plain text on
 			contextString(ctx, "discount_type"),
 			contextString(ctx, "value"),
 			contextString(ctx, "min_order"),
+		)
+		return system, user, nil
+
+	case TaskSupportReply:
+		system := `You draft customer support replies for a luxury e-commerce help desk.
+Write a professional, empathetic reply in plain text (2-5 sentences).
+Do not invent order details, refunds, or policies not mentioned in the transcript.
+If information is missing, ask a clarifying question politely.`
+		user := fmt.Sprintf(
+			"Subject: %s\nChannel: %s\nStatus: %s\nCustomer: %s\n\nConversation:\n%s",
+			contextString(ctx, "subject"),
+			contextString(ctx, "channel"),
+			contextString(ctx, "status"),
+			contextString(ctx, "customer"),
+			contextString(ctx, "transcript"),
 		)
 		return system, user, nil
 

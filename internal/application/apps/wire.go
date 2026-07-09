@@ -34,6 +34,7 @@ import (
 	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
+	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
 	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
@@ -110,6 +111,11 @@ type returnApp struct {
 	Queries  *appreturn.Queries
 }
 
+type supportApp struct {
+	Commands *appsupport.Commands
+	Queries  *appsupport.Queries
+}
+
 type roleApp struct {
 	Commands *approle.Commands
 	Queries  *approle.Queries
@@ -159,6 +165,7 @@ type Applications struct {
 	Webhook  webhookApp
 	Workflow *appworkflow.Module
 	Return   returnApp
+	Support  supportApp
 	Role     roleApp
 	Invoice  invoiceApp
 	Settings settingsApp
@@ -233,6 +240,7 @@ func WireApplications(
 	storeQueries := appstore.NewQueries(storeRepo)
 	webhookRepo := postgres.NewWebhookEventRepository(db)
 	returnRepo := postgres.NewReturnRepository(db)
+	supportRepo := postgres.NewSupportTicketRepository(db)
 	roleRepo := postgres.NewRoleRepository(db)
 	roleQueries := approle.NewQueries(roleRepo)
 	invoiceRepo := postgres.NewInvoiceRepository(db)
@@ -304,6 +312,10 @@ func WireApplications(
 		Return: returnApp{
 			Commands: appreturn.NewCommands(returnRepo, engine, membershipSvc),
 			Queries:  appreturn.NewQueries(returnRepo),
+		},
+		Support: supportApp{
+			Commands: appsupport.NewCommands(supportRepo, aiSvc),
+			Queries:  appsupport.NewQueries(supportRepo),
 		},
 		Role: roleApp{
 			Commands: approle.NewCommands(roleRepo, roleQueries),

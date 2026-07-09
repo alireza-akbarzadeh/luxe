@@ -43,6 +43,7 @@ type Container struct {
 	Import    *ImportHandler
 	Workflow  *WorkflowHandler
 	Return    *ReturnHandler
+	Support   *SupportHandler
 	Invoice   *InvoiceHandler
 	Role      *RoleHandler
 	Inventory *InventoryHandler
@@ -95,6 +96,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Import:    NewImportHandler(apps.Import),
 		Workflow:  NewWorkflowHandler(apps.Workflow),
 		Return:    NewReturnHandler(apps.Return.Commands, apps.Return.Queries),
+		Support:   NewSupportHandler(apps.Support.Commands, apps.Support.Queries),
 		Invoice:   NewInvoiceHandler(apps.Invoice.Commands, apps.Invoice.Queries),
 		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
 		Inventory: NewInventoryHandler(apps.Inventory),

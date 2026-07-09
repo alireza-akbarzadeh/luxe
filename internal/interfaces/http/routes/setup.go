@@ -75,6 +75,7 @@ func (r *Router) Setup() {
 		SetupImportRoutes(protected, r.handlerContainer)
 		SetupWorkflowRoutes(protected, r.handlerContainer)
 		SetupReturnRoutes(protected, r.handlerContainer)
+		SetupSupportRoutes(public, protected, r.handlerContainer)
 		SetupInvoiceRoutes(protected, r.handlerContainer)
 		SetupGiftCardRoutes(protected, r.handlerContainer)
 		SetupPlusRoutes(public, protected, r.handlerContainer)

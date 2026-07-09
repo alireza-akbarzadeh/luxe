@@ -253,6 +253,29 @@ const (
 	CustomerSegmentNew    = "new"
 	CustomerSegmentAtRisk = "at_risk"
 
+	// Support ticket statuses
+	SupportTicketStatusOpen            = "open"
+	SupportTicketStatusPending         = "pending"
+	SupportTicketStatusWaitingCustomer = "waiting_customer"
+	SupportTicketStatusResolved        = "resolved"
+	SupportTicketStatusClosed          = "closed"
+
+	// Support channels
+	SupportChannelEmail = "email"
+	SupportChannelChat  = "chat"
+	SupportChannelWeb   = "web"
+
+	// Support priorities
+	SupportPriorityLow    = "low"
+	SupportPriorityNormal = "normal"
+	SupportPriorityHigh   = "high"
+	SupportPriorityUrgent = "urgent"
+
+	// Support message author roles
+	SupportAuthorCustomer = "customer"
+	SupportAuthorStaff    = "staff"
+	SupportAuthorSystem   = "system"
+
 	// Luxe Plus benefit values (enforced in checkout, returns, shipping)
 	PlusAnnualPriceUSD        = 49.99
 	PlusCheckoutDiscountPct   = 10
