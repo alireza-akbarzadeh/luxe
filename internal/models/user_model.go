@@ -43,6 +43,10 @@ type User struct {
 	MembershipTier    string     `gorm:"not null;default:'free';index" json:"membership_tier"`
 	PlusSubscribedAt  *time.Time `json:"plus_subscribed_at,omitempty"`
 	PlusExpiresAt     *time.Time `json:"plus_expires_at,omitempty"`
+
+	// Admin CRM
+	AdminNotes      string `json:"admin_notes,omitempty"`
+	CustomerSegment string `gorm:"not null;default:'';index" json:"customer_segment,omitempty"`
 }
 
 type PasswordResetToken struct {

@@ -113,6 +113,12 @@ func (r *AdminRepository) applyUserFilters(db *gorm.DB, filters dto.AdminUserFil
 	if filters.IsActive != nil {
 		db = db.Where("is_active = ?", *filters.IsActive)
 	}
+	if filters.MembershipTier != "" {
+		db = db.Where("membership_tier = ?", filters.MembershipTier)
+	}
+	if filters.CustomerSegment != "" {
+		db = db.Where("customer_segment = ?", filters.CustomerSegment)
+	}
 	return db
 }
 
@@ -466,3 +472,154 @@ func (r *AdminRepository) CountWebhooksSince(ctx context.Context, since time.Tim
 		Count(&count).Error
 	return count, err
 }
+
+// UserOrderStats holds purchase metrics for a customer.
+type UserOrderStats struct {
+	OrderCount int64
+	TotalSpent float64
+}
+
+// FindUserByID loads a user by primary key.
+func (r *AdminRepository) FindUserByID(ctx context.Context, userID uint) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).First(&user, userID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// GetUserOrderStats returns order count and revenue for a user.
+func (r *AdminRepository) GetUserOrderStats(ctx context.Context, userID uint) (UserOrderStats, error) {
+	var stats UserOrderStats
+	err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Where("user_id = ?", userID).
+		Count(&stats.OrderCount).Error
+	if err != nil {
+		return stats, err
+	}
+	err = r.db.WithContext(ctx).Model(&models.Order{}).
+		Where("user_id = ? AND status IN ?", userID, revenueOrderStatuses).
+		Select("COALESCE(SUM(total_amount), 0)").
+		Scan(&stats.TotalSpent).Error
+	return stats, err
+}
+
+// GetUserOrderStatsBatch returns purchase metrics keyed by user ID.
+func (r *AdminRepository) GetUserOrderStatsBatch(ctx context.Context, userIDs []uint) (map[uint]UserOrderStats, error) {
+	result := make(map[uint]UserOrderStats, len(userIDs))
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	type countRow struct {
+		UserID uint
+		Count  int64
+	}
+	var counts []countRow
+	if err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select("user_id, COUNT(*) AS count").
+		Where("user_id IN ?", userIDs).
+		Group("user_id").
+		Scan(&counts).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range counts {
+		entry := result[row.UserID]
+		entry.OrderCount = row.Count
+		result[row.UserID] = entry
+	}
+
+	type spendRow struct {
+		UserID uint
+		Total  float64
+	}
+	var spends []spendRow
+	if err := r.db.WithContext(ctx).Model(&models.Order{}).
+		Select("user_id, COALESCE(SUM(total_amount), 0) AS total").
+		Where("user_id IN ? AND status IN ?", userIDs, revenueOrderStatuses).
+		Group("user_id").
+		Scan(&spends).Error; err != nil {
+		return nil, err
+	}
+	for _, row := range spends {
+		entry := result[row.UserID]
+		entry.TotalSpent = row.Total
+		result[row.UserID] = entry
+	}
+
+	return result, nil
+}
+
+// CountUserAddresses returns saved address count for a user.
+func (r *AdminRepository) CountUserAddresses(ctx context.Context, userID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Address{}).
+		Where("user_id = ?", userID).
+		Count(&count).Error
+	return count, err
+}
+
+// ListUserAddresses returns all addresses for a user.
+func (r *AdminRepository) ListUserAddresses(ctx context.Context, userID uint) ([]models.Address, error) {
+	var addresses []models.Address
+	err := r.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("is_default DESC, created_at DESC").
+		Find(&addresses).Error
+	return addresses, err
+}
+
+// UpdateUserAdminNotes sets admin CRM notes on a user.
+func (r *AdminRepository) UpdateUserAdminNotes(ctx context.Context, userID uint, notes string) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("admin_notes", notes)
+	return result.RowsAffected, result.Error
+}
+
+// UpdateUserCustomerSegment assigns a CRM segment to a user.
+func (r *AdminRepository) UpdateUserCustomerSegment(ctx context.Context, userID uint, segment string) (int64, error) {
+	result := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("customer_segment", segment)
+	return result.RowsAffected, result.Error
+}
+
+// CountCustomers returns users with the default customer role.
+func (r *AdminRepository) CountCustomers(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("role = ?", constants.RoleUser).
+		Count(&count).Error
+	return count, err
+}
+
+// CountPlusMembers returns active Luxe Plus members.
+func (r *AdminRepository) CountPlusMembers(ctx context.Context) (int64, error) {
+	var count int64
+	now := time.Now()
+	err := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("membership_tier = ? AND (plus_expires_at IS NULL OR plus_expires_at > ?)", constants.MembershipTierPlus, now).
+		Count(&count).Error
+	return count, err
+}
+
+// CountNewCustomersSince returns customers created on or after the given time.
+func (r *AdminRepository) CountNewCustomersSince(ctx context.Context, since time.Time) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("role = ? AND created_at >= ?", constants.RoleUser, since).
+		Count(&count).Error
+	return count, err
+}
+
+// CountCustomersBySegment returns customers with the given CRM segment.
+func (r *AdminRepository) CountCustomersBySegment(ctx context.Context, segment string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.User{}).
+		Where("role = ? AND customer_segment = ?", constants.RoleUser, segment).
+		Count(&count).Error
+	return count, err
+}
+

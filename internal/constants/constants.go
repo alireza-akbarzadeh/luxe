@@ -247,6 +247,12 @@ const (
 	MembershipTierFree = "free"
 	MembershipTierPlus = "plus"
 
+	// Customer CRM segments (admin-assigned)
+	CustomerSegmentVIP    = "vip"
+	CustomerSegmentLoyal  = "loyal"
+	CustomerSegmentNew    = "new"
+	CustomerSegmentAtRisk = "at_risk"
+
 	// Luxe Plus benefit values (enforced in checkout, returns, shipping)
 	PlusAnnualPriceUSD        = 49.99
 	PlusCheckoutDiscountPct   = 10

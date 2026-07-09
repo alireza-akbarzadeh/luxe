@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
@@ -70,6 +71,32 @@ func (s *Service) TrackRecentPage(ctx context.Context, userID uint, page dto.Adm
 
 func (s *Service) ListUsers(ctx context.Context, filters dto.AdminUserFilters) ([]dto.AdminUserResponse, int64, error) {
 	return s.queries.ListUsers(ctx, filters)
+}
+
+func (s *Service) GetCustomerDetail(ctx context.Context, userID uint) (*dto.AdminCustomerDetailResponse, error) {
+	return s.queries.GetCustomerDetail(ctx, userID)
+}
+
+func (s *Service) ListCustomerAddresses(ctx context.Context, userID uint) ([]models.Address, error) {
+	return s.queries.ListCustomerAddresses(ctx, userID)
+}
+
+func (s *Service) GetCustomerStats(ctx context.Context) (*dto.AdminCustomerStats, error) {
+	return s.queries.GetCustomerStats(ctx)
+}
+
+func (s *Service) UpdateCustomerNotes(ctx context.Context, userID uint, notes string) (*dto.AdminCustomerDetailResponse, error) {
+	if err := s.commands.UpdateCustomerNotes(ctx, userID, notes); err != nil {
+		return nil, err
+	}
+	return s.queries.GetCustomerDetail(ctx, userID)
+}
+
+func (s *Service) UpdateCustomerSegment(ctx context.Context, userID uint, segment string) (*dto.AdminCustomerDetailResponse, error) {
+	if err := s.commands.UpdateCustomerSegment(ctx, userID, segment); err != nil {
+		return nil, err
+	}
+	return s.queries.GetCustomerDetail(ctx, userID)
 }
 
 func (s *Service) UpdateUserRole(ctx context.Context, userID uint, role string) error {

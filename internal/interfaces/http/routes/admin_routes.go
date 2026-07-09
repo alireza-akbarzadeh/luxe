@@ -27,8 +27,13 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	users.Use(middleware.ModuleGuard("users"))
 	{
 		users.GET("/users", ctrl.Admin.ListUsers)
+		users.GET("/users/:id", ctrl.Admin.GetCustomerDetail)
+		users.GET("/users/:id/addresses", ctrl.Admin.ListCustomerAddresses)
 		users.PATCH("/users/:id/role", ctrl.Admin.UpdateUserRole)
 		users.PATCH("/users/:id/active", ctrl.Admin.ToggleUserActive)
+		users.PATCH("/users/:id/notes", ctrl.Admin.UpdateCustomerNotes)
+		users.PATCH("/users/:id/segment", ctrl.Admin.UpdateCustomerSegment)
+		users.GET("/customers/stats", ctrl.Admin.GetCustomerStats)
 	}
 
 	orders := admin.Group("")

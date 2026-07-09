@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strings"
+
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
@@ -118,7 +120,10 @@ func (ctrl *ReturnHandler) GetReturn(c *gin.Context) {
 // @Tags         Returns
 // @Produce      json
 // @Security     BearerAuth
-// @Param        status  query string false "Filter by status"
+// @Param        status          query string false "Filter by status"
+// @Param        return_type     query string false "Filter by return type (refund|exchange)"
+// @Param        workflow_state  query string false "Filter by workflow state code"
+// @Param        search          query string false "Search reason, order #, or customer"
 // @Param        user_id query int    false "Filter by user ID"
 // @Param        limit   query int    false "Items per page"
 // @Param        offset  query int    false "Offset"
@@ -215,6 +220,51 @@ func (ctrl *ReturnHandler) PerformReturnTransition(c *gin.Context) {
 	utils.SuccessResponse(c, "transition applied", toTransitionResultView(result))
 }
 
+// GetReturnStatsAdmin returns aggregate return analytics (admin only).
+// @Summary      Return analytics (admin)
+// @Tags         Returns
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminReturnStats}
+// @Router       /admin/returns/stats [get]
+func (ctrl *ReturnHandler) GetReturnStatsAdmin(c *gin.Context) {
+	stats, err := ctrl.queries.GetAdminStats(c.Request.Context())
+	if err != nil {
+		RespondServiceError(c, err, "failed to load return stats")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, stats)
+}
+
+// UpdateReturnNotesAdmin updates admin-only notes on a return.
+// @Summary      Update return admin notes (admin)
+// @Tags         Returns
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path int true "Return ID"
+// @Param        request body dto.UpdateReturnNotesRequest true "Admin notes"
+// @Success      200 {object} utils.Response{data=dto.ReturnResponse}
+// @Router       /admin/returns/{id}/notes [patch]
+func (ctrl *ReturnHandler) UpdateReturnNotesAdmin(c *gin.Context) {
+	returnID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateReturnNotesRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	ret, err := ctrl.commands.UpdateNotes(c.Request.Context(), returnID, req.AdminNotes)
+	if err != nil {
+		RespondServiceError(c, err, "failed to update return notes")
+		return
+	}
+	utils.SuccessResponse(c, "notes updated", toReturnResponse(ret))
+}
+
 func toReturnResponse(r *models.Return) dto.ReturnResponse {
 	resp := dto.ReturnResponse{
 		ID:              r.ID,
@@ -222,13 +272,23 @@ func toReturnResponse(r *models.Return) dto.ReturnResponse {
 		UserID:          r.UserID,
 		Reason:          r.Reason,
 		Status:          r.Status,
+		ReturnType:      r.ReturnType,
 		RefundAmount:    r.RefundAmount,
+		AdminNotes:      r.AdminNotes,
+		ExchangeNotes:   r.ExchangeNotes,
 		WorkflowStateID: r.WorkflowStateID,
 		CreatedAt:       r.CreatedAt,
 		UpdatedAt:       r.UpdatedAt,
 	}
+	if resp.ReturnType == "" {
+		resp.ReturnType = dto.ReturnTypeRefund
+	}
 	if r.Order != nil {
 		resp.OrderNumber = r.Order.OrderNumber
+	}
+	if r.User != nil {
+		resp.CustomerName = strings.TrimSpace(r.User.FirstName + " " + r.User.LastName)
+		resp.CustomerEmail = r.User.Email
 	}
 	if r.WorkflowState != nil {
 		resp.State = toStateView(r.WorkflowState)

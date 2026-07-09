@@ -47,6 +47,30 @@ func (c *Commands) ToggleUserActive(ctx context.Context, userID uint, active boo
 	return nil
 }
 
+// UpdateCustomerNotes sets admin CRM notes on a customer.
+func (c *Commands) UpdateCustomerNotes(ctx context.Context, userID uint, notes string) error {
+	rows, err := c.repo.UpdateUserAdminNotes(ctx, userID, notes)
+	if err != nil {
+		return utils.ErrInternal(err)
+	}
+	if rows == 0 {
+		return utils.ErrNotFound("user not found")
+	}
+	return nil
+}
+
+// UpdateCustomerSegment assigns a CRM segment to a customer.
+func (c *Commands) UpdateCustomerSegment(ctx context.Context, userID uint, segment string) error {
+	rows, err := c.repo.UpdateUserCustomerSegment(ctx, userID, segment)
+	if err != nil {
+		return utils.ErrInternal(err)
+	}
+	if rows == 0 {
+		return utils.ErrNotFound("user not found")
+	}
+	return nil
+}
+
 // ExportOrdersCSV builds a CSV export for orders.
 func (c *Commands) ExportOrdersCSV(ctx context.Context, filters dto.AdminOrderExportFilters) ([]byte, error) {
 	orders, err := c.repo.ListOrdersForExport(ctx, filters)

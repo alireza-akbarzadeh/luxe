@@ -68,12 +68,27 @@ func (c *Commands) Create(ctx context.Context, userID uint, req dto.CreateReturn
 		return nil, utils.ErrInternal(err)
 	}
 
+	returnType := req.ReturnType
+	if returnType == "" {
+		returnType = dto.ReturnTypeRefund
+	}
+	if err := domainreturn.ValidateReturnType(returnType); err != nil {
+		return nil, utils.ErrBadRequest(err.Error())
+	}
+
+	refundAmount := order.TotalAmount
+	if returnType == dto.ReturnTypeExchange {
+		refundAmount = 0
+	}
+
 	ret := &models.Return{
-		OrderID:      req.OrderID,
-		UserID:       userID,
-		Reason:       req.Reason,
-		Status:       "requested",
-		RefundAmount: order.TotalAmount,
+		OrderID:       req.OrderID,
+		UserID:        userID,
+		Reason:        req.Reason,
+		Status:        "requested",
+		ReturnType:    returnType,
+		RefundAmount:  refundAmount,
+		ExchangeNotes: req.ExchangeNotes,
 	}
 
 	if err := c.repo.Create(ctx, ret); err != nil {
@@ -110,4 +125,22 @@ func (c *Commands) PerformTransition(
 		ActorRole:   actorRole,
 		Note:        note,
 	})
+}
+
+// UpdateNotes saves admin-only notes on a return request.
+func (c *Commands) UpdateNotes(ctx context.Context, returnID uint, notes string) (*models.Return, error) {
+	ret, err := c.repo.FindByID(ctx, returnID, 0, true)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("return not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+
+	ret.AdminNotes = notes
+	if err := c.repo.Update(ctx, ret); err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	return c.repo.FindByID(ctx, returnID, 0, true)
 }

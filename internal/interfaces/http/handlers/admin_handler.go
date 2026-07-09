@@ -247,8 +247,10 @@ func (ctrl *AdminHandler) GetSalesFeedSnapshot(c *gin.Context) {
 // @Param        offset    query  int     false  "Offset"
 // @Param        search    query  string  false  "Search name or email (partial)"
 // @Param        email     query  string  false  "Email search (partial)"
-// @Param        role      query  string  false  "Filter by role (admin|user)"
-// @Param        is_active query  bool    false  "Filter by active status"
+// @Param        role              query  string  false  "Filter by role (admin|user)"
+// @Param        is_active         query  bool    false  "Filter by active status"
+// @Param        membership_tier   query  string  false  "Filter by membership tier (free|plus)"
+// @Param        customer_segment  query  string  false  "Filter by CRM segment (vip|loyal|new|at_risk)"
 // @Success      200 {object} utils.Response{data=object{users=[]dto.AdminUserResponse,total=int,limit=int,offset=int}}
 // @Failure      401 {object} utils.Response
 // @Failure      403 {object} utils.Response
@@ -339,6 +341,140 @@ func (ctrl *AdminHandler) ToggleUserActive(c *gin.Context) {
 		return
 	}
 	utils.SuccessResponse(c, "user status updated", nil)
+}
+
+// GetCustomerDetail returns a full customer profile (admin only).
+// @Summary      Get customer detail (admin)
+// @Description  Returns customer profile with purchase stats, loyalty tier, and CRM fields.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  int  true  "User ID"
+// @Success      200 {object} utils.Response{data=dto.AdminCustomerDetailResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id} [get]
+func (ctrl *AdminHandler) GetCustomerDetail(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	detail, err := ctrl.adminService.GetCustomerDetail(c.Request.Context(), userID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get customer detail")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, detail)
+}
+
+// ListCustomerAddresses returns saved addresses for a customer (admin only).
+// @Summary      List customer addresses (admin)
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id  path  int  true  "User ID"
+// @Success      200 {object} utils.Response{data=object{addresses=[]models.Address}}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id}/addresses [get]
+func (ctrl *AdminHandler) ListCustomerAddresses(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	addresses, err := ctrl.adminService.ListCustomerAddresses(c.Request.Context(), userID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list customer addresses")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{"addresses": addresses})
+}
+
+// UpdateCustomerNotes updates admin CRM notes on a customer (admin only).
+// @Summary      Update customer admin notes (admin)
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path  int                              true  "User ID"
+// @Param        request body  dto.UpdateCustomerNotesRequest   true  "Admin notes"
+// @Success      200 {object} utils.Response{data=dto.AdminCustomerDetailResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id}/notes [patch]
+func (ctrl *AdminHandler) UpdateCustomerNotes(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.UpdateCustomerNotesRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	detail, err := ctrl.adminService.UpdateCustomerNotes(c.Request.Context(), userID, req.AdminNotes)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to update customer notes")
+		return
+	}
+	utils.SuccessResponse(c, "notes updated", detail)
+}
+
+// UpdateCustomerSegment assigns a CRM segment to a customer (admin only).
+// @Summary      Update customer segment (admin)
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path  int                                true  "User ID"
+// @Param        request body  dto.UpdateCustomerSegmentRequest   true  "CRM segment"
+// @Success      200 {object} utils.Response{data=dto.AdminCustomerDetailResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/users/{id}/segment [patch]
+func (ctrl *AdminHandler) UpdateCustomerSegment(c *gin.Context) {
+	userID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.UpdateCustomerSegmentRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	detail, err := ctrl.adminService.UpdateCustomerSegment(c.Request.Context(), userID, req.CustomerSegment)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to update customer segment")
+		return
+	}
+	utils.SuccessResponse(c, "segment updated", detail)
+}
+
+// GetCustomerStats returns aggregate CRM metrics (admin only).
+// @Summary      Customer analytics (admin)
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminCustomerStats}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/customers/stats [get]
+func (ctrl *AdminHandler) GetCustomerStats(c *gin.Context) {
+	stats, err := ctrl.adminService.GetCustomerStats(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get customer stats")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, stats)
 }
 
 // BulkUpdateOrderStatus updates the status of multiple orders atomically (admin only).

@@ -81,6 +81,60 @@ definitions:
     - description
     - user_id
     type: object
+  dto.AdminCustomerDetailResponse:
+    properties:
+      address_count:
+        type: integer
+      admin_notes:
+        type: string
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      customer_segment:
+        type: string
+      email:
+        type: string
+      email_verified_at:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_plus_active:
+        type: boolean
+      last_login_at:
+        type: string
+      last_name:
+        type: string
+      membership_tier:
+        type: string
+      order_count:
+        type: integer
+      phone:
+        type: string
+      plus_expires_at:
+        type: string
+      plus_subscribed_at:
+        type: string
+      role:
+        type: string
+      total_spent:
+        type: number
+    type: object
+  dto.AdminCustomerStats:
+    properties:
+      new_this_month:
+        type: integer
+      plus_members:
+        type: integer
+      total_customers:
+        type: integer
+      vip_customers:
+        type: integer
+    type: object
   dto.AdminDashboardActivity:
     properties:
       actor:
@@ -453,6 +507,29 @@ definitions:
       state:
         type: string
     type: object
+  dto.AdminReturnStats:
+    properties:
+      by_status:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      by_type:
+        additionalProperties:
+          format: int64
+          type: integer
+        type: object
+      last_7_days:
+        items:
+          $ref: '#/definitions/dto.ReturnDailyCount'
+        type: array
+      open:
+        type: integer
+      refund_total:
+        type: number
+      total:
+        type: integer
+    type: object
   dto.AdminRevenueDailyRow:
     properties:
       avg_order_value:
@@ -640,7 +717,11 @@ definitions:
     type: object
   dto.AdminUserResponse:
     properties:
+      avatar_url:
+        type: string
       created_at:
+        type: string
+      customer_segment:
         type: string
       email:
         type: string
@@ -652,12 +733,22 @@ definitions:
         type: integer
       is_active:
         type: boolean
+      is_plus_active:
+        type: boolean
       last_login_at:
         type: string
       last_name:
         type: string
+      membership_tier:
+        type: string
+      order_count:
+        type: integer
+      phone:
+        type: string
       role:
         type: string
+      total_spent:
+        type: number
     type: object
   dto.AiChatMessage:
     properties:
@@ -3192,11 +3283,19 @@ definitions:
     type: object
   dto.CreateReturnRequest:
     properties:
+      exchange_notes:
+        maxLength: 512
+        type: string
       order_id:
         type: integer
       reason:
         maxLength: 512
         minLength: 3
+        type: string
+      return_type:
+        enum:
+        - refund
+        - exchange
         type: string
     required:
     - order_id
@@ -5275,9 +5374,24 @@ definitions:
     - new_password
     - token
     type: object
+  dto.ReturnDailyCount:
+    properties:
+      count:
+        type: integer
+      date:
+        type: string
+    type: object
   dto.ReturnResponse:
     properties:
+      admin_notes:
+        type: string
       created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      exchange_notes:
         type: string
       id:
         type: integer
@@ -5289,6 +5403,8 @@ definitions:
         type: string
       refund_amount:
         type: number
+      return_type:
+        type: string
       state:
         $ref: '#/definitions/dto.StateView'
       status:
@@ -6064,6 +6180,22 @@ definitions:
       usage_limit:
         type: integer
     type: object
+  dto.UpdateCustomerNotesRequest:
+    properties:
+      admin_notes:
+        maxLength: 2048
+        type: string
+    type: object
+  dto.UpdateCustomerSegmentRequest:
+    properties:
+      customer_segment:
+        enum:
+        - vip
+        - loyal
+        - new
+        - at_risk
+        type: string
+    type: object
   dto.UpdateInvoiceStatusRequest:
     properties:
       status:
@@ -6215,6 +6347,12 @@ definitions:
       weight:
         minimum: 0
         type: number
+    type: object
+  dto.UpdateReturnNotesRequest:
+    properties:
+      admin_notes:
+        maxLength: 2048
+        type: string
     type: object
   dto.UpdateReviewRequest:
     properties:
@@ -7620,9 +7758,14 @@ definitions:
     type: object
   models.User:
     properties:
+      admin_notes:
+        description: Admin CRM
+        type: string
       avatar_url:
         type: string
       created_at:
+        type: string
+      customer_segment:
         type: string
       deleted_at:
         $ref: '#/definitions/gorm.DeletedAt'
@@ -8707,6 +8850,37 @@ paths:
       summary: List coupons (admin)
       tags:
       - Coupons
+  /admin/customers/stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminCustomerStats'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Customer analytics (admin)
+      tags:
+      - Admin
   /admin/dashboard/export:
     get:
       description: Returns a CSV file of daily revenue, orders, and AOV for the selected
@@ -10009,6 +10183,18 @@ paths:
         in: query
         name: status
         type: string
+      - description: Filter by return type (refund|exchange)
+        in: query
+        name: return_type
+        type: string
+      - description: Filter by workflow state code
+        in: query
+        name: workflow_state
+        type: string
+      - description: 'Search reason, order #, or customer'
+        in: query
+        name: search
+        type: string
       - description: Filter by user ID
         in: query
         name: user_id
@@ -10058,6 +10244,39 @@ paths:
       summary: Get return by ID (admin)
       tags:
       - Returns
+  /admin/returns/{id}/notes:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Return ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Admin notes
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateReturnNotesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ReturnResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update return admin notes (admin)
+      tags:
+      - Returns
   /admin/returns/{id}/transition:
     post:
       consumes:
@@ -10089,6 +10308,25 @@ paths:
       security:
       - BearerAuth: []
       summary: Transition return state (admin)
+      tags:
+      - Returns
+  /admin/returns/stats:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminReturnStats'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Return analytics (admin)
       tags:
       - Returns
   /admin/reviews:
@@ -10822,6 +11060,14 @@ paths:
         in: query
         name: is_active
         type: boolean
+      - description: Filter by membership tier (free|plus)
+        in: query
+        name: membership_tier
+        type: string
+      - description: Filter by CRM segment (vip|loyal|new|at_risk)
+        in: query
+        name: customer_segment
+        type: string
       produces:
       - application/json
       responses:
@@ -10860,6 +11106,49 @@ paths:
       security:
       - BearerAuth: []
       summary: List users (admin)
+      tags:
+      - Admin
+  /admin/users/{id}:
+    get:
+      description: Returns customer profile with purchase stats, loyalty tier, and
+        CRM fields.
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminCustomerDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get customer detail (admin)
       tags:
       - Admin
   /admin/users/{id}/active:
@@ -10911,6 +11200,105 @@ paths:
       summary: Toggle user active status (admin)
       tags:
       - Admin
+  /admin/users/{id}/addresses:
+    get:
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  properties:
+                    addresses:
+                      items:
+                        $ref: '#/definitions/models.Address'
+                      type: array
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List customer addresses (admin)
+      tags:
+      - Admin
+  /admin/users/{id}/notes:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Admin notes
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCustomerNotesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminCustomerDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update customer admin notes (admin)
+      tags:
+      - Admin
   /admin/users/{id}/role:
     patch:
       consumes:
@@ -10959,6 +11347,59 @@ paths:
       security:
       - BearerAuth: []
       summary: Update user role (admin)
+      tags:
+      - Admin
+  /admin/users/{id}/segment:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: CRM segment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCustomerSegmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminCustomerDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update customer segment (admin)
       tags:
       - Admin
   /admin/wallet/adjust:

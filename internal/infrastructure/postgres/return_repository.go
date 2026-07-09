@@ -44,7 +44,11 @@ func (r *ReturnRepository) Create(ctx context.Context, ret *models.Return) error
 
 // FindByID loads a return with optional user scope.
 func (r *ReturnRepository) FindByID(ctx context.Context, returnID uint, userID uint, isAdmin bool) (*models.Return, error) {
-	q := r.db.WithContext(ctx).Preload("Order").Preload("WorkflowState").Where("id = ?", returnID)
+	q := r.db.WithContext(ctx).
+		Preload("Order").
+		Preload("User").
+		Preload("WorkflowState").
+		Where("id = ?", returnID)
 	if !isAdmin {
 		q = q.Where("user_id = ?", userID)
 	}
@@ -66,7 +70,7 @@ func (r *ReturnRepository) CountForUser(ctx context.Context, userID uint) (int64
 func (r *ReturnRepository) ListForUser(ctx context.Context, userID uint, limit, offset int) ([]models.Return, error) {
 	var returns []models.Return
 	err := r.db.WithContext(ctx).Model(&models.Return{}).Where("user_id = ?", userID).
-		Preload("Order").Preload("WorkflowState").
+		Preload("Order").Preload("User").Preload("WorkflowState").
 		Order("created_at DESC").Limit(limit).Offset(offset).
 		Find(&returns).Error
 	return returns, err
@@ -74,10 +78,26 @@ func (r *ReturnRepository) ListForUser(ctx context.Context, userID uint, limit, 
 
 func (r *ReturnRepository) applyAdminFilters(q *gorm.DB, filters dto.AdminReturnListFilters) *gorm.DB {
 	if filters.Status != "" {
-		q = q.Where("status = ?", filters.Status)
+		q = q.Where("returns.status = ?", filters.Status)
+	}
+	if filters.ReturnType != "" {
+		q = q.Where("returns.return_type = ?", filters.ReturnType)
+	}
+	if filters.WorkflowState != "" {
+		q = q.Joins("JOIN workflow_states ws ON ws.id = returns.workflow_state_id").
+			Where("ws.code = ?", filters.WorkflowState)
 	}
 	if filters.UserID != nil {
-		q = q.Where("user_id = ?", *filters.UserID)
+		q = q.Where("returns.user_id = ?", *filters.UserID)
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		q = q.Joins("LEFT JOIN orders ON orders.id = returns.order_id AND orders.deleted_at IS NULL").
+			Joins("LEFT JOIN users ON users.id = returns.user_id AND users.deleted_at IS NULL").
+			Where(
+				"returns.reason ILIKE ? OR orders.order_number ILIKE ? OR users.email ILIKE ? OR users.first_name ILIKE ? OR users.last_name ILIKE ?",
+				term, term, term, term, term,
+			)
 	}
 	return q
 }
@@ -94,10 +114,96 @@ func (r *ReturnRepository) CountAdmin(ctx context.Context, filters dto.AdminRetu
 func (r *ReturnRepository) ListAdmin(ctx context.Context, filters dto.AdminReturnListFilters, limit, offset int) ([]models.Return, error) {
 	q := r.applyAdminFilters(r.db.WithContext(ctx).Model(&models.Return{}), filters)
 	var returns []models.Return
-	err := q.Preload("Order").Preload("WorkflowState").
-		Order("created_at DESC").Limit(limit).Offset(offset).
+	err := q.Preload("Order").Preload("User").Preload("WorkflowState").
+		Order("returns.created_at DESC").Limit(limit).Offset(offset).
 		Find(&returns).Error
 	return returns, err
+}
+
+// Update persists return changes.
+func (r *ReturnRepository) Update(ctx context.Context, ret *models.Return) error {
+	return r.db.WithContext(ctx).Save(ret).Error
+}
+
+var adminReturnOpenStatuses = []string{"requested", "approved", "item_received", "refund_processing", "exchange_processing"}
+
+// AdminStats aggregates return metrics for the admin dashboard.
+func (r *ReturnRepository) AdminStats(ctx context.Context) (dto.AdminReturnStats, error) {
+	stats := dto.AdminReturnStats{
+		ByStatus: make(map[string]int64),
+		ByType:   make(map[string]int64),
+	}
+
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).Count(&stats.Total).Error; err != nil {
+		return stats, err
+	}
+
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).
+		Where("status IN ?", adminReturnOpenStatuses).
+		Count(&stats.Open).Error; err != nil {
+		return stats, err
+	}
+
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).
+		Where("status = ?", "refunded").
+		Select("COALESCE(SUM(refund_amount), 0)").
+		Scan(&stats.RefundTotal).Error; err != nil {
+		return stats, err
+	}
+
+	type statusRow struct {
+		Status string
+		Count  int64
+	}
+	var statusRows []statusRow
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).
+		Select("status, COUNT(*) AS count").
+		Group("status").
+		Scan(&statusRows).Error; err != nil {
+		return stats, err
+	}
+	for _, row := range statusRows {
+		stats.ByStatus[row.Status] = row.Count
+	}
+
+	type typeRow struct {
+		ReturnType string
+		Count      int64
+	}
+	var typeRows []typeRow
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).
+		Select("return_type, COUNT(*) AS count").
+		Group("return_type").
+		Scan(&typeRows).Error; err != nil {
+		return stats, err
+	}
+	for _, row := range typeRows {
+		stats.ByType[row.ReturnType] = row.Count
+	}
+
+	type dayRow struct {
+		Day   string
+		Count int64
+	}
+	var dayRows []dayRow
+	if err := r.db.WithContext(ctx).Model(&models.Return{}).
+		Select("TO_CHAR(created_at, 'YYYY-MM-DD') AS day, COUNT(*) AS count").
+		Where("created_at >= NOW() - INTERVAL '7 days'").
+		Group("day").
+		Order("day ASC").
+		Scan(&dayRows).Error; err != nil {
+		return stats, err
+	}
+
+	stats.Last7Days = make([]dto.ReturnDailyCount, 0, len(dayRows))
+	for _, row := range dayRows {
+		stats.Last7Days = append(stats.Last7Days, dto.ReturnDailyCount{
+			Date:  row.Day,
+			Count: row.Count,
+		})
+	}
+
+	return stats, nil
 }
 
 // ProductReturnStats aggregates order and return signals for a catalog product.

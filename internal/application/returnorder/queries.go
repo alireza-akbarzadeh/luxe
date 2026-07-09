@@ -76,6 +76,15 @@ func (q *Queries) ListAdmin(ctx context.Context, filters dto.AdminReturnListFilt
 	return returns, total, nil
 }
 
+// GetAdminStats loads aggregate return analytics.
+func (q *Queries) GetAdminStats(ctx context.Context) (dto.AdminReturnStats, error) {
+	stats, err := q.repo.AdminStats(ctx)
+	if err != nil {
+		return dto.AdminReturnStats{}, utils.ErrInternal(err)
+	}
+	return stats, nil
+}
+
 // ProductReturnStats loads aggregate return signals for AI return-risk insights.
 func (q *Queries) ProductReturnStats(ctx context.Context, productID uint) (orderCount int64, returnCount int64, reasons []string, err error) {
 	orderCount, returnCount, reasons, err = q.repo.ProductReturnStats(ctx, productID)

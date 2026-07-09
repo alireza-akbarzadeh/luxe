@@ -9,16 +9,30 @@ var (
 	ErrOrderNotEligible    = errors.New("returns are only allowed for delivered or completed orders")
 	ErrOpenReturnExists    = errors.New("an open return already exists for this order")
 	ErrReturnWindowExpired = errors.New("the return window for this order has expired")
+	ErrInvalidReturnType   = errors.New("return type must be refund or exchange")
 )
 
 const (
 	StatusDelivered = "delivered"
 	StatusCompleted = "completed"
+	ReturnTypeRefund   = "refund"
+	ReturnTypeExchange = "exchange"
 )
 
 // IsOrderEligibleForReturn reports whether an order status allows a return request.
 func IsOrderEligibleForReturn(orderStatus string) bool {
 	return orderStatus == StatusDelivered || orderStatus == StatusCompleted
+}
+
+// ValidateReturnType ensures the requested resolution type is supported.
+func ValidateReturnType(returnType string) error {
+	if returnType == "" {
+		return nil
+	}
+	if returnType == ReturnTypeRefund || returnType == ReturnTypeExchange {
+		return nil
+	}
+	return ErrInvalidReturnType
 }
 
 // ValidateCreateRequest checks whether a new return may be created.

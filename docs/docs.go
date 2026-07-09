@@ -1461,6 +1461,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/customers/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Customer analytics (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminCustomerStats"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/dashboard/export": {
             "get": {
                 "security": [
@@ -3598,6 +3652,24 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Filter by return type (refund|exchange)",
+                        "name": "return_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by workflow state code",
+                        "name": "workflow_state",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search reason, order #, or customer",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Filter by user ID",
                         "name": "user_id",
@@ -3626,6 +3698,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/returns/stats": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Returns"
+                ],
+                "summary": "Return analytics (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminReturnStats"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/admin/returns/{id}": {
             "get": {
                 "security": [
@@ -3647,6 +3755,63 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ReturnResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/returns/{id}/notes": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Returns"
+                ],
+                "summary": "Update return admin notes (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Return ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Admin notes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateReturnNotesRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -4940,6 +5105,18 @@ const docTemplate = `{
                         "description": "Filter by active status",
                         "name": "is_active",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by membership tier (free|plus)",
+                        "name": "membership_tier",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by CRM segment (vip|loyal|new|at_risk)",
+                        "name": "customer_segment",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -4986,6 +5163,76 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns customer profile with purchase stats, loyalty tier, and CRM fields.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get customer detail (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminCustomerDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -5075,6 +5322,170 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users/{id}/addresses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "List customer addresses (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "addresses": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/definitions/models.Address"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}/notes": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update customer admin notes (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Admin notes",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCustomerNotesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminCustomerDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/users/{id}/role": {
             "patch": {
                 "security": [
@@ -5116,6 +5527,93 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{id}/segment": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update customer segment (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "CRM segment",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCustomerSegmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminCustomerDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -19521,6 +20019,88 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AdminCustomerDetailResponse": {
+            "type": "object",
+            "properties": {
+                "address_count": {
+                    "type": "integer"
+                },
+                "admin_notes": {
+                    "type": "string"
+                },
+                "avatar_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "customer_segment": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "email_verified_at": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "is_plus_active": {
+                    "type": "boolean"
+                },
+                "last_login_at": {
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "membership_tier": {
+                    "type": "string"
+                },
+                "order_count": {
+                    "type": "integer"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "plus_expires_at": {
+                    "type": "string"
+                },
+                "plus_subscribed_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "total_spent": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.AdminCustomerStats": {
+            "type": "object",
+            "properties": {
+                "new_this_month": {
+                    "type": "integer"
+                },
+                "plus_members": {
+                    "type": "integer"
+                },
+                "total_customers": {
+                    "type": "integer"
+                },
+                "vip_customers": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.AdminDashboardActivity": {
             "type": "object",
             "properties": {
@@ -20088,6 +20668,40 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.AdminReturnStats": {
+            "type": "object",
+            "properties": {
+                "by_status": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "by_type": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "last_7_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ReturnDailyCount"
+                    }
+                },
+                "open": {
+                    "type": "integer"
+                },
+                "refund_total": {
+                    "type": "number"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.AdminRevenueDailyRow": {
             "type": "object",
             "properties": {
@@ -20373,7 +20987,13 @@ const docTemplate = `{
         "dto.AdminUserResponse": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "customer_segment": {
                     "type": "string"
                 },
                 "email": {
@@ -20391,14 +21011,29 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
+                "is_plus_active": {
+                    "type": "boolean"
+                },
                 "last_login_at": {
                     "type": "string"
                 },
                 "last_name": {
                     "type": "string"
                 },
+                "membership_tier": {
+                    "type": "string"
+                },
+                "order_count": {
+                    "type": "integer"
+                },
+                "phone": {
+                    "type": "string"
+                },
                 "role": {
                     "type": "string"
+                },
+                "total_spent": {
+                    "type": "number"
                 }
             }
         },
@@ -24214,6 +24849,10 @@ const docTemplate = `{
                 "reason"
             ],
             "properties": {
+                "exchange_notes": {
+                    "type": "string",
+                    "maxLength": 512
+                },
                 "order_id": {
                     "type": "integer"
                 },
@@ -24221,6 +24860,13 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 512,
                     "minLength": 3
+                },
+                "return_type": {
+                    "type": "string",
+                    "enum": [
+                        "refund",
+                        "exchange"
+                    ]
                 }
             }
         },
@@ -27331,10 +27977,33 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ReturnDailyCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.ReturnResponse": {
             "type": "object",
             "properties": {
+                "admin_notes": {
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "customer_email": {
+                    "type": "string"
+                },
+                "customer_name": {
+                    "type": "string"
+                },
+                "exchange_notes": {
                     "type": "string"
                 },
                 "id": {
@@ -27351,6 +28020,9 @@ const docTemplate = `{
                 },
                 "refund_amount": {
                     "type": "number"
+                },
+                "return_type": {
+                    "type": "string"
                 },
                 "state": {
                     "$ref": "#/definitions/dto.StateView"
@@ -28518,6 +29190,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateCustomerNotesRequest": {
+            "type": "object",
+            "properties": {
+                "admin_notes": {
+                    "type": "string",
+                    "maxLength": 2048
+                }
+            }
+        },
+        "dto.UpdateCustomerSegmentRequest": {
+            "type": "object",
+            "properties": {
+                "customer_segment": {
+                    "type": "string",
+                    "enum": [
+                        "vip",
+                        "loyal",
+                        "new",
+                        "at_risk"
+                    ]
+                }
+            }
+        },
         "dto.UpdateInvoiceStatusRequest": {
             "type": "object",
             "required": [
@@ -28736,6 +29431,15 @@ const docTemplate = `{
                 "weight": {
                     "type": "number",
                     "minimum": 0
+                }
+            }
+        },
+        "dto.UpdateReturnNotesRequest": {
+            "type": "object",
+            "properties": {
+                "admin_notes": {
+                    "type": "string",
+                    "maxLength": 2048
                 }
             }
         },
@@ -30845,10 +31549,17 @@ const docTemplate = `{
                 "last_name"
             ],
             "properties": {
+                "admin_notes": {
+                    "description": "Admin CRM",
+                    "type": "string"
+                },
                 "avatar_url": {
                     "type": "string"
                 },
                 "created_at": {
+                    "type": "string"
+                },
+                "customer_segment": {
                     "type": "string"
                 },
                 "deleted_at": {

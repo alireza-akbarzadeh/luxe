@@ -1,6 +1,10 @@
 package dto
 
-import "time"
+import (
+	"time"
+
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
+)
 
 // AdminStatsResponse holds platform-wide aggregated metrics for admin dashboards.
 type AdminStatsResponse struct {
@@ -17,12 +21,14 @@ type AdminStatsResponse struct {
 
 // AdminUserFilters are query params for the admin user listing endpoint.
 type AdminUserFilters struct {
-	Search   string `form:"search"`
-	Email    string `form:"email"`
-	Role     string `form:"role"`
-	IsActive *bool  `form:"is_active"`
-	Limit    int    `form:"limit"`
-	Offset   int    `form:"offset"`
+	Search          string `form:"search"`
+	Email           string `form:"email"`
+	Role            string `form:"role"`
+	IsActive        *bool  `form:"is_active"`
+	MembershipTier  string `form:"membership_tier"`
+	CustomerSegment string `form:"customer_segment"`
+	Limit           int    `form:"limit"`
+	Offset          int    `form:"offset"`
 }
 
 // AdminUserResponse is the safe public projection of a User for admin views.
@@ -33,9 +39,43 @@ type AdminUserResponse struct {
 	LastName        string     `json:"last_name"`
 	Role            string     `json:"role"`
 	IsActive        bool       `json:"is_active"`
+	Phone           string     `json:"phone,omitempty"`
+	AvatarURL       string     `json:"avatar_url,omitempty"`
+	MembershipTier  string     `json:"membership_tier,omitempty"`
+	IsPlusActive    bool       `json:"is_plus_active"`
+	CustomerSegment string     `json:"customer_segment,omitempty"`
+	OrderCount      int64      `json:"order_count"`
+	TotalSpent      float64    `json:"total_spent"`
 	EmailVerifiedAt *time.Time `json:"email_verified_at,omitempty"`
 	LastLoginAt     *time.Time `json:"last_login_at,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
+}
+
+// AdminCustomerDetailResponse is the full customer profile for admin detail views.
+type AdminCustomerDetailResponse struct {
+	AdminUserResponse
+	PlusSubscribedAt *time.Time `json:"plus_subscribed_at,omitempty"`
+	PlusExpiresAt    *time.Time `json:"plus_expires_at,omitempty"`
+	AdminNotes       string     `json:"admin_notes,omitempty"`
+	AddressCount     int64      `json:"address_count"`
+}
+
+// AdminCustomerStats holds aggregate CRM metrics for the customers dashboard.
+type AdminCustomerStats struct {
+	TotalCustomers int64 `json:"total_customers"`
+	PlusMembers    int64 `json:"plus_members"`
+	NewThisMonth   int64 `json:"new_this_month"`
+	VipCustomers   int64 `json:"vip_customers"`
+}
+
+// UpdateCustomerNotesRequest updates admin-only notes on a customer profile.
+type UpdateCustomerNotesRequest struct {
+	AdminNotes string `json:"admin_notes" validate:"max=2048"`
+}
+
+// UpdateCustomerSegmentRequest assigns a CRM segment to a customer.
+type UpdateCustomerSegmentRequest struct {
+	CustomerSegment string `json:"customer_segment" validate:"omitempty,oneof=vip loyal new at_risk"`
 }
 
 // UpdateUserRoleRequest is the body for PATCH /admin/users/:id/role.
@@ -241,3 +281,36 @@ type AdminRevenueReportResponse struct {
 	Summary     AdminRevenueReportSummary `json:"summary"`
 	Daily       []AdminRevenueDailyRow    `json:"daily"`
 }
+
+// ToAdminUserResponse maps a user model to the admin list/detail projection.
+func ToAdminUserResponse(user *models.User, stats UserOrderStats) AdminUserResponse {
+	if user == nil {
+		return AdminUserResponse{}
+	}
+	public := ToUserResponse(user)
+	return AdminUserResponse{
+		ID:              user.ID,
+		Email:           user.Email,
+		FirstName:       user.FirstName,
+		LastName:        user.LastName,
+		Role:            user.Role,
+		IsActive:        user.IsActive,
+		Phone:           user.Phone,
+		AvatarURL:       user.AvatarURL,
+		MembershipTier:  public.MembershipTier,
+		IsPlusActive:    public.IsPlusActive,
+		CustomerSegment: user.CustomerSegment,
+		OrderCount:      stats.OrderCount,
+		TotalSpent:      stats.TotalSpent,
+		EmailVerifiedAt: user.EmailVerifiedAt,
+		LastLoginAt:     user.LastLoginAt,
+		CreatedAt:       user.CreatedAt,
+	}
+}
+
+// UserOrderStats holds purchase metrics attached to admin user responses.
+type UserOrderStats struct {
+	OrderCount int64
+	TotalSpent float64
+}
+
