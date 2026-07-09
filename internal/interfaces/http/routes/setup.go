@@ -61,6 +61,8 @@ func (r *Router) Setup() {
 		SetupSettingRoutes(public, protected, r.handlerContainer)
 		SetupStoreRoutes(public, protected, r.handlerContainer)
 		SetupCouponRoutes(public, protected, r.handlerContainer)
+		SetupPromotionRoutes(protected, r.handlerContainer)
+		SetupEmailMarketingRoutes(public, protected, r.handlerContainer)
 		SetupReviewRoutes(public, protected, r.handlerContainer)
 		SetupUserRoutes(protected, r.handlerContainer)
 		SetupCartRoutes(public, protected, r.handlerContainer)

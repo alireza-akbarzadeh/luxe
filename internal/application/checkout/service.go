@@ -47,6 +47,11 @@ type VendorStoreNotifier interface {
 	)
 }
 
+// NewsletterRecorder persists checkout newsletter opt-ins.
+type NewsletterRecorder interface {
+	RecordCheckoutOptIn(ctx context.Context, email string, userID uint)
+}
+
 // Service orchestrates cart-to-order checkout, payment, and fulfillment.
 type Service struct {
 	checkoutRepo     *postgres.CheckoutRepository
@@ -68,6 +73,7 @@ type Service struct {
 	cartDomain       *cart.Service
 	checkoutDomain   *checkout.Service
 	orderDomain      *order.Service
+	newsletterRecorder NewsletterRecorder
 }
 
 // NewService wires checkout orchestration dependencies.
@@ -109,6 +115,18 @@ func NewService(
 		checkoutDomain:   checkout.NewService(),
 		orderDomain:      order.NewService(),
 	}
+}
+
+// SetNewsletterRecorder wires optional marketing opt-in persistence after checkout.
+func (s *Service) SetNewsletterRecorder(rec NewsletterRecorder) {
+	s.newsletterRecorder = rec
+}
+
+func (s *Service) recordNewsletterOptIn(email string, userID uint) {
+	if s.newsletterRecorder == nil || !strings.Contains(email, "@") {
+		return
+	}
+	go s.newsletterRecorder.RecordCheckoutOptIn(context.Background(), email, userID)
 }
 
 // setOrderState moves an order to a workflow state via the engine (best-effort:
@@ -240,6 +258,9 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 		uid := userID
 		changes := append([]appinventory.DeltaResult(nil), stockChanges...)
 		go s.deferPostCheckoutSideEffects(uid, orderID, changes)
+		if req.Newsletter {
+			s.recordNewsletterOptIn(req.Email, userID)
+		}
 
 		return result, nil
 	}
@@ -257,6 +278,9 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 	s.setOrderState(ctx, order.ID, "pending_payment", "order_created")
 
 	s.enqueueFulfillmentJob(ctx, order.ID, req)
+	if req.Newsletter {
+		s.recordNewsletterOptIn(req.Email, userID)
+	}
 	return result, nil
 }
 

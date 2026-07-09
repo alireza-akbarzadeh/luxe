@@ -901,6 +901,196 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/campaigns": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "List campaigns",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name or slug",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Create campaign",
+                "parameters": [
+                    {
+                        "description": "Campaign payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/campaigns/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Get campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignSingleResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Update campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campaign update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignSingleResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Delete campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmptyResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/categories": {
             "post": {
                 "security": [
@@ -1691,6 +1881,875 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-campaigns": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "List email campaigns",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Create email campaign",
+                "parameters": [
+                    {
+                        "description": "Campaign payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateEmailCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-campaigns/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Get email campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignSingleResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Update email campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campaign payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateEmailCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignSingleResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Delete email campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-campaigns/{id}/schedule": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Schedule email campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Schedule payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ScheduleEmailCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-campaigns/{id}/send": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Send email campaign",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailCampaignSendResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-marketing/kpis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns subscriber, template, and campaign analytics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Email marketing KPIs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailMarketingKPIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-templates": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "List email templates",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailTemplateListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Create email template",
+                "parameters": [
+                    {
+                        "description": "Template payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateEmailTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailTemplateSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/email-templates/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Get email template",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailTemplateSingleResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Update email template",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Template payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateEmailTemplateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmailTemplateSingleResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Delete email template",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Template ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/flash-deals": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "List flash deals",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search title or product id",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FlashDealListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Create flash deal",
+                "parameters": [
+                    {
+                        "description": "Flash deal payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateFlashDealRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FlashDealSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/flash-deals/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Get flash deal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Flash deal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FlashDealSingleResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Update flash deal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Flash deal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Flash deal update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateFlashDealRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.FlashDealSingleResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Delete flash deal",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Flash deal ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmptyResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/homepage-sections": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "List homepage sections",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search title or key",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HomepageSectionListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Create homepage section",
+                "parameters": [
+                    {
+                        "description": "Section payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateHomepageSectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HomepageSectionSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/homepage-sections/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Get homepage section",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Section ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HomepageSectionSingleResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Update homepage section",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Section ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Section update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateHomepageSectionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.HomepageSectionSingleResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Delete homepage section",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Section ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.EmptyResponse"
                         }
                     }
                 }
@@ -3292,6 +4351,139 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/newsletter-subscribers": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "List newsletter subscribers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search email",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscriberListResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/newsletter-subscribers/export": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Export newsletter subscribers",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by source",
+                        "name": "source",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search email",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CSV file",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/newsletter-subscribers/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Email Marketing"
+                ],
+                "summary": "Delete newsletter subscriber",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Subscriber ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/orders/bulk-status": {
             "post": {
                 "security": [
@@ -3568,6 +4760,31 @@ const docTemplate = `{
                         "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/promotions/kpis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns active flash deals, published banners, and campaign counts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Promotions"
+                ],
+                "summary": "Promotion KPIs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PromotionsKPIResponse"
                         }
                     }
                 }
@@ -12428,6 +13645,72 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/newsletters/subscribe": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Newsletters"
+                ],
+                "summary": "Subscribe to newsletter",
+                "parameters": [
+                    {
+                        "description": "Subscribe payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscribeNewsletterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SubscriberSingleResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/newsletters/unsubscribe": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Newsletters"
+                ],
+                "summary": "Unsubscribe from newsletter",
+                "parameters": [
+                    {
+                        "description": "Unsubscribe token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UnsubscribeNewsletterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BaseResponse"
                         }
                     }
                 }
@@ -23841,6 +25124,20 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.BaseResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.BrandListData": {
             "type": "object",
             "properties": {
@@ -24077,6 +25374,91 @@ const docTemplate = `{
                         "delivered",
                         "cancelled"
                     ]
+                }
+            }
+        },
+        "dto.CampaignData": {
+            "type": "object",
+            "properties": {
+                "campaign": {
+                    "$ref": "#/definitions/models.Campaign"
+                }
+            }
+        },
+        "dto.CampaignListData": {
+            "type": "object",
+            "properties": {
+                "campaigns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Campaign"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CampaignListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.CampaignListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.CampaignPlacementsRequest": {
+            "type": "object",
+            "properties": {
+                "collection_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "flash_deal_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "section_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.CampaignSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.CampaignData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -25052,6 +26434,46 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateCampaignRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "placements": {
+                    "$ref": "#/definitions/dto.CampaignPlacementsRequest"
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "active",
+                        "ended",
+                        "archived"
+                    ]
+                }
+            }
+        },
         "dto.CreateCategoryRequest": {
             "type": "object",
             "required": [
@@ -25256,6 +26678,127 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateEmailCampaignRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "subject"
+            ],
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "segment": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "checkout",
+                        "footer",
+                        "home",
+                        "register",
+                        "vip",
+                        "loyal",
+                        "new",
+                        "at_risk"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled"
+                    ]
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                },
+                "template_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CreateEmailTemplateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "slug",
+                "subject"
+            ],
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "archived"
+                    ]
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                }
+            }
+        },
+        "dto.CreateFlashDealRequest": {
+            "type": "object",
+            "required": [
+                "ends_at",
+                "product_id"
+            ],
+            "properties": {
+                "ends_at": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity_limit": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "draft",
+                        "ended"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.CreateGiftCardRequest": {
             "type": "object",
             "required": [
@@ -25343,6 +26886,48 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.CreateHomepageSectionRequest": {
+            "type": "object",
+            "required": [
+                "href",
+                "section_key",
+                "title"
+            ],
+            "properties": {
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "href": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "section_key": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 2
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
                 }
             }
         },
@@ -26220,6 +27805,207 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.EmailCampaignData": {
+            "type": "object",
+            "properties": {
+                "campaign": {
+                    "$ref": "#/definitions/models.EmailCampaign"
+                }
+            }
+        },
+        "dto.EmailCampaignListData": {
+            "type": "object",
+            "properties": {
+                "campaigns": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.EmailCampaign"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EmailCampaignListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailCampaignListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.EmailCampaignSendData": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "integer"
+                },
+                "enqueued_count": {
+                    "type": "integer"
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "recipient_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EmailCampaignSendResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailCampaignSendData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.EmailCampaignSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailCampaignData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.EmailMarketingKPIData": {
+            "type": "object",
+            "properties": {
+                "active_subscribers": {
+                    "type": "integer"
+                },
+                "campaigns_scheduled": {
+                    "type": "integer"
+                },
+                "campaigns_sent": {
+                    "type": "integer"
+                },
+                "template_count": {
+                    "type": "integer"
+                },
+                "total_emails_delivered": {
+                    "type": "integer"
+                },
+                "total_subscribers": {
+                    "type": "integer"
+                },
+                "unsubscribed_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EmailMarketingKPIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailMarketingKPIData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.EmailTemplateData": {
+            "type": "object",
+            "properties": {
+                "template": {
+                    "$ref": "#/definitions/models.EmailTemplate"
+                }
+            }
+        },
+        "dto.EmailTemplateListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "templates": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.EmailTemplate"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EmailTemplateListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailTemplateListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.EmailTemplateSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.EmailTemplateData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.EmptyResponse": {
             "type": "object",
             "properties": {
@@ -26271,6 +28057,68 @@ const docTemplate = `{
                 },
                 "titleI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
+                }
+            }
+        },
+        "dto.FlashDealData": {
+            "type": "object",
+            "properties": {
+                "deal": {
+                    "$ref": "#/definitions/models.FlashDeal"
+                }
+            }
+        },
+        "dto.FlashDealListData": {
+            "type": "object",
+            "properties": {
+                "deals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.FlashDeal"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.FlashDealListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.FlashDealListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.FlashDealSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.FlashDealData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -26864,6 +28712,68 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.HomeStoreItem"
                     }
+                }
+            }
+        },
+        "dto.HomepageSectionData": {
+            "type": "object",
+            "properties": {
+                "section": {
+                    "$ref": "#/definitions/models.HomepageSection"
+                }
+            }
+        },
+        "dto.HomepageSectionListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "sections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.HomepageSection"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.HomepageSectionListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.HomepageSectionListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.HomepageSectionSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.HomepageSectionData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -28505,6 +30415,40 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.PromotionsKPIData": {
+            "type": "object",
+            "properties": {
+                "active_campaigns": {
+                    "type": "integer"
+                },
+                "active_flash_deals": {
+                    "type": "integer"
+                },
+                "published_banners": {
+                    "type": "integer"
+                },
+                "scheduled_campaigns": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PromotionsKPIResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.PromotionsKPIData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.PublicCollectionItemResponse": {
             "type": "object",
             "properties": {
@@ -29066,6 +31010,17 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ScheduleEmailCampaignRequest": {
+            "type": "object",
+            "required": [
+                "scheduled_at"
+            ],
+            "properties": {
+                "scheduled_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.SearchResponse": {
             "type": "object",
             "properties": {
@@ -29472,6 +31427,27 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SubscribeNewsletterRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "source": {
+                    "type": "string",
+                    "enum": [
+                        "footer",
+                        "home",
+                        "checkout",
+                        "register"
+                    ]
+                }
+            }
+        },
         "dto.SubscribePlusRequest": {
             "type": "object",
             "required": [
@@ -29508,6 +31484,68 @@ const docTemplate = `{
                 },
                 "stripe_session_id": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.SubscriberData": {
+            "type": "object",
+            "properties": {
+                "subscriber": {
+                    "$ref": "#/definitions/models.NewsletterSubscriber"
+                }
+            }
+        },
+        "dto.SubscriberListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "subscribers": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.NewsletterSubscriber"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.SubscriberListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.SubscriberListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.SubscriberSingleResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.SubscriberData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -29851,6 +31889,19 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UnsubscribeNewsletterRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 8
+                }
+            }
+        },
         "dto.UpdateAddressRequest": {
             "type": "object",
             "required": [
@@ -29950,6 +32001,43 @@ const docTemplate = `{
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.UpdateCampaignRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "placements": {
+                    "$ref": "#/definitions/dto.CampaignPlacementsRequest"
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "active",
+                        "ended",
+                        "archived"
+                    ]
                 }
             }
         },
@@ -30160,6 +32248,152 @@ const docTemplate = `{
                         "new",
                         "at_risk"
                     ]
+                }
+            }
+        },
+        "dto.UpdateEmailCampaignRequest": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "segment": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "checkout",
+                        "footer",
+                        "home",
+                        "register",
+                        "vip",
+                        "loyal",
+                        "new",
+                        "at_risk"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "scheduled",
+                        "cancelled"
+                    ]
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                },
+                "template_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateEmailTemplateRequest": {
+            "type": "object",
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "archived"
+                    ]
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                }
+            }
+        },
+        "dto.UpdateFlashDealRequest": {
+            "type": "object",
+            "properties": {
+                "ends_at": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity_limit": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "active",
+                        "draft",
+                        "ended"
+                    ]
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateHomepageSectionRequest": {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "href": {
+                    "type": "string",
+                    "maxLength": 512
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "section_key": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "minLength": 2
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published",
+                        "archived"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
                 }
             }
         },
@@ -31675,6 +33909,52 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Campaign": {
+            "type": "object",
+            "required": [
+                "name",
+                "slug"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "placements": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "models.Category": {
             "type": "object",
             "required": [
@@ -31860,6 +34140,180 @@ const docTemplate = `{
                 }
             }
         },
+        "models.EmailCampaign": {
+            "type": "object",
+            "required": [
+                "name",
+                "subject"
+            ],
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "failed_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "recipient_count": {
+                    "type": "integer"
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "segment": {
+                    "type": "string"
+                },
+                "sent_at": {
+                    "type": "string"
+                },
+                "sent_count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                },
+                "template": {
+                    "$ref": "#/definitions/models.EmailTemplate"
+                },
+                "template_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.EmailTemplate": {
+            "type": "object",
+            "required": [
+                "name",
+                "slug",
+                "subject"
+            ],
+            "properties": {
+                "body_html": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "slug": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "minLength": 2
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subject": {
+                    "type": "string",
+                    "maxLength": 512,
+                    "minLength": 2
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.FlashDeal": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product": {
+                    "$ref": "#/definitions/models.Product"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity_limit": {
+                    "type": "integer"
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.HomepageSection": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "filters": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "href": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "section_key": {
+                    "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "models.MenuGroup": {
             "type": "object",
             "properties": {
@@ -31924,6 +34378,45 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "models.NewsletterSubscriber": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "subscribed_at": {
+                    "type": "string"
+                },
+                "unsubscribed_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },

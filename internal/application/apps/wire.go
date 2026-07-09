@@ -44,6 +44,8 @@ import (
 	appcommunityshoppinglist "github.com/alireza-akbarzadeh/luxe/internal/application/communityshoppinglist"
 	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
 	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
+	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
+	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -195,6 +197,8 @@ type Applications struct {
 	PublicCollection        *apppubliccollection.Service
 	ReverseMarketplace      *appreversemarketplace.Service
 	Bundle                  *appbundle.Service
+	Promotion               *apppromotion.Service
+	EmailMarketing          *appemailmarketing.Service
 }
 
 type legalSettingReader struct {
@@ -347,6 +351,12 @@ func WireApplications(
 		PublicCollection:      apppubliccollection.NewService(db),
 		ReverseMarketplace:    appreversemarketplace.NewService(db),
 		Bundle:                appbundle.NewService(db, aiSvc),
+		Promotion:             apppromotion.NewService(postgres.NewPromotionRepository(db)),
+		EmailMarketing: appemailmarketing.NewService(
+			postgres.NewEmailMarketingRepository(db),
+			jobQueue,
+			frontendURL,
+		),
 	}
 }
 

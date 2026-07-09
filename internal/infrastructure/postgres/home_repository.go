@@ -89,7 +89,7 @@ func (r *HomeRepository) ListActiveFlashDeals(ctx context.Context, limit int) ([
 		Preload("Product").
 		Preload("Product.Category").
 		Preload("Product.Brand").
-		Where("status = ? AND ends_at > ?", "active", now).
+		Where("status = ? AND ends_at > ? AND (starts_at IS NULL OR starts_at <= ?)", "active", now, now).
 		Order("sort_order ASC, ends_at ASC").
 		Limit(limit).
 		Find(&deals).Error
@@ -112,7 +112,7 @@ func (r *HomeRepository) ListPublishedCollections(ctx context.Context, limit int
 	var rows []models.Collection
 	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("status = ?", "active").
+		Where("status IN ?", []string{"active", "published"}).
 		Where("(starts_at IS NULL OR starts_at <= ?)", now).
 		Where("(ends_at IS NULL OR ends_at >= ?)", now).
 		Order("sort_order ASC").

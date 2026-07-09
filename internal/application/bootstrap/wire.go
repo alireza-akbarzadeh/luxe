@@ -84,6 +84,7 @@ func NewRuntime(db *gorm.DB, cfg *config.Config, jobQueue asynq.JobQueue) *Runti
 		inventorySvc,
 		appcheckout.StripeEnabled(cfg),
 	)
+	apps.Checkout.SetNewsletterRecorder(apps.EmailMarketing)
 	apps.Order = orderfacade.NewService(db, notificationSvc, notificationSvc, wsHub, salesFeedSvc, jobQueue, workflowEngine)
 	apps.Admin = appadmin.NewService(db, workflowEngine, apps.Role.Queries)
 	apps.Import = importdata.NewService(productSvc, apps.Category)

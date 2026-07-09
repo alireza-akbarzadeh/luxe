@@ -58,6 +58,8 @@ type Container struct {
 	PublicCollection        *PublicCollectionHandler
 	ReverseMarketplace      *ReverseMarketplaceHandler
 	Bundle                  *BundleHandler
+	Promotion               *PromotionHandler
+	EmailMarketing          *EmailMarketingHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
@@ -111,5 +113,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		PublicCollection:      NewPublicCollectionHandler(apps.PublicCollection),
 		ReverseMarketplace:    NewReverseMarketplaceHandler(apps.ReverseMarketplace, apps.Store.Queries),
 		Bundle:                NewBundleHandler(apps.Bundle),
+		Promotion:             NewPromotionHandler(apps.Promotion),
+		EmailMarketing:        NewEmailMarketingHandler(apps.EmailMarketing),
 	}
 }

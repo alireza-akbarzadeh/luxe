@@ -2147,6 +2147,15 @@ definitions:
           $ref: '#/definitions/dto.TransitionView'
         type: array
     type: object
+  dto.BaseResponse:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.BrandListData:
     properties:
       brands:
@@ -2308,6 +2317,61 @@ definitions:
     required:
     - order_ids
     - status
+    type: object
+  dto.CampaignData:
+    properties:
+      campaign:
+        $ref: '#/definitions/models.Campaign'
+    type: object
+  dto.CampaignListData:
+    properties:
+      campaigns:
+        items:
+          $ref: '#/definitions/models.Campaign'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.CampaignListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.CampaignListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.CampaignPlacementsRequest:
+    properties:
+      collection_ids:
+        items:
+          type: integer
+        type: array
+      flash_deal_ids:
+        items:
+          type: integer
+        type: array
+      section_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  dto.CampaignSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.CampaignData'
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.CartItemData:
     properties:
@@ -2957,6 +3021,35 @@ definitions:
     - name
     - slug
     type: object
+  dto.CreateCampaignRequest:
+    properties:
+      description:
+        type: string
+      ends_at:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      placements:
+        $ref: '#/definitions/dto.CampaignPlacementsRequest'
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      starts_at:
+        type: string
+      status:
+        enum:
+        - draft
+        - scheduled
+        - active
+        - ended
+        - archived
+        type: string
+    required:
+    - name
+    type: object
   dto.CreateCategoryRequest:
     properties:
       description:
@@ -3103,6 +3196,95 @@ definitions:
     - discount_type
     - discount_value
     type: object
+  dto.CreateEmailCampaignRequest:
+    properties:
+      body_html:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      scheduled_at:
+        type: string
+      segment:
+        enum:
+        - all
+        - checkout
+        - footer
+        - home
+        - register
+        - vip
+        - loyal
+        - new
+        - at_risk
+        type: string
+      status:
+        enum:
+        - draft
+        - scheduled
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+      template_id:
+        type: integer
+    required:
+    - name
+    - subject
+    type: object
+  dto.CreateEmailTemplateRequest:
+    properties:
+      body_html:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      status:
+        enum:
+        - draft
+        - active
+        - archived
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+    required:
+    - name
+    - slug
+    - subject
+    type: object
+  dto.CreateFlashDealRequest:
+    properties:
+      ends_at:
+        type: string
+      product_id:
+        type: integer
+      quantity_limit:
+        minimum: 1
+        type: integer
+      sort_order:
+        type: integer
+      starts_at:
+        type: string
+      status:
+        enum:
+        - active
+        - draft
+        - ended
+        type: string
+      title:
+        type: string
+    required:
+    - ends_at
+    - product_id
+    type: object
   dto.CreateGiftCardRequest:
     properties:
       amount:
@@ -3164,6 +3346,37 @@ definitions:
         type: integer
       status:
         type: string
+    type: object
+  dto.CreateHomepageSectionRequest:
+    properties:
+      filters:
+        additionalProperties: true
+        type: object
+      href:
+        maxLength: 512
+        type: string
+      image_url:
+        type: string
+      section_key:
+        maxLength: 64
+        minLength: 2
+        type: string
+      sort_order:
+        type: integer
+      status:
+        enum:
+        - draft
+        - published
+        - archived
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+    required:
+    - href
+    - section_key
+    - title
     type: object
   dto.CreateMenuGroupRequest:
     properties:
@@ -3772,6 +3985,136 @@ definitions:
       transaction_id:
         type: integer
     type: object
+  dto.EmailCampaignData:
+    properties:
+      campaign:
+        $ref: '#/definitions/models.EmailCampaign'
+    type: object
+  dto.EmailCampaignListData:
+    properties:
+      campaigns:
+        items:
+          $ref: '#/definitions/models.EmailCampaign'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.EmailCampaignListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailCampaignListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.EmailCampaignSendData:
+    properties:
+      campaign_id:
+        type: integer
+      enqueued_count:
+        type: integer
+      failed_count:
+        type: integer
+      recipient_count:
+        type: integer
+    type: object
+  dto.EmailCampaignSendResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailCampaignSendData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.EmailCampaignSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailCampaignData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.EmailMarketingKPIData:
+    properties:
+      active_subscribers:
+        type: integer
+      campaigns_scheduled:
+        type: integer
+      campaigns_sent:
+        type: integer
+      template_count:
+        type: integer
+      total_emails_delivered:
+        type: integer
+      total_subscribers:
+        type: integer
+      unsubscribed_count:
+        type: integer
+    type: object
+  dto.EmailMarketingKPIResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailMarketingKPIData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.EmailTemplateData:
+    properties:
+      template:
+        $ref: '#/definitions/models.EmailTemplate'
+    type: object
+  dto.EmailTemplateListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      templates:
+        items:
+          $ref: '#/definitions/models.EmailTemplate'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.EmailTemplateListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailTemplateListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.EmailTemplateSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.EmailTemplateData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.EmptyResponse:
     properties:
       code:
@@ -3806,6 +4149,46 @@ definitions:
         type: string
       titleI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
+    type: object
+  dto.FlashDealData:
+    properties:
+      deal:
+        $ref: '#/definitions/models.FlashDeal'
+    type: object
+  dto.FlashDealListData:
+    properties:
+      deals:
+        items:
+          $ref: '#/definitions/models.FlashDeal'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.FlashDealListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.FlashDealListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.FlashDealSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.FlashDealData'
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.ForgotPasswordRequest:
     properties:
@@ -4195,6 +4578,46 @@ definitions:
         items:
           $ref: '#/definitions/dto.HomeStoreItem'
         type: array
+    type: object
+  dto.HomepageSectionData:
+    properties:
+      section:
+        $ref: '#/definitions/models.HomepageSection'
+    type: object
+  dto.HomepageSectionListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      sections:
+        items:
+          $ref: '#/definitions/models.HomepageSection'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.HomepageSectionListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.HomepageSectionListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.HomepageSectionSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.HomepageSectionData'
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.ImportRowResult:
     properties:
@@ -5285,6 +5708,28 @@ definitions:
       workflow_state:
         $ref: '#/definitions/dto.StateView'
     type: object
+  dto.PromotionsKPIData:
+    properties:
+      active_campaigns:
+        type: integer
+      active_flash_deals:
+        type: integer
+      published_banners:
+        type: integer
+      scheduled_campaigns:
+        type: integer
+    type: object
+  dto.PromotionsKPIResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.PromotionsKPIData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
   dto.PublicCollectionItemResponse:
     properties:
       id:
@@ -5657,6 +6102,13 @@ definitions:
       user_count:
         type: integer
     type: object
+  dto.ScheduleEmailCampaignRequest:
+    properties:
+      scheduled_at:
+        type: string
+    required:
+    - scheduled_at
+    type: object
   dto.SearchResponse:
     properties:
       categories:
@@ -5921,6 +6373,21 @@ definitions:
       publishable_key:
         type: string
     type: object
+  dto.SubscribeNewsletterRequest:
+    properties:
+      email:
+        maxLength: 255
+        type: string
+      source:
+        enum:
+        - footer
+        - home
+        - checkout
+        - register
+        type: string
+    required:
+    - email
+    type: object
   dto.SubscribePlusRequest:
     properties:
       gift_card_code:
@@ -5946,6 +6413,46 @@ definitions:
         type: string
       stripe_session_id:
         type: string
+    type: object
+  dto.SubscriberData:
+    properties:
+      subscriber:
+        $ref: '#/definitions/models.NewsletterSubscriber'
+    type: object
+  dto.SubscriberListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      subscribers:
+        items:
+          $ref: '#/definitions/models.NewsletterSubscriber'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.SubscriberListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.SubscriberListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.SubscriberSingleResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.SubscriberData'
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.SuggestSmartBundlesRequest:
     properties:
@@ -6171,6 +6678,15 @@ definitions:
       query:
         type: string
     type: object
+  dto.UnsubscribeNewsletterRequest:
+    properties:
+      token:
+        maxLength: 64
+        minLength: 8
+        type: string
+    required:
+    - token
+    type: object
   dto.UpdateAddressRequest:
     properties:
       address_line1:
@@ -6239,6 +6755,33 @@ definitions:
       slug:
         type: string
       status:
+        type: string
+    type: object
+  dto.UpdateCampaignRequest:
+    properties:
+      description:
+        type: string
+      ends_at:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      placements:
+        $ref: '#/definitions/dto.CampaignPlacementsRequest'
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      starts_at:
+        type: string
+      status:
+        enum:
+        - draft
+        - scheduled
+        - active
+        - ended
+        - archived
         type: string
     type: object
   dto.UpdateCategoryRequest:
@@ -6388,6 +6931,113 @@ definitions:
         - loyal
         - new
         - at_risk
+        type: string
+    type: object
+  dto.UpdateEmailCampaignRequest:
+    properties:
+      body_html:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      scheduled_at:
+        type: string
+      segment:
+        enum:
+        - all
+        - checkout
+        - footer
+        - home
+        - register
+        - vip
+        - loyal
+        - new
+        - at_risk
+        type: string
+      status:
+        enum:
+        - draft
+        - scheduled
+        - cancelled
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+      template_id:
+        type: integer
+    type: object
+  dto.UpdateEmailTemplateRequest:
+    properties:
+      body_html:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      status:
+        enum:
+        - draft
+        - active
+        - archived
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+    type: object
+  dto.UpdateFlashDealRequest:
+    properties:
+      ends_at:
+        type: string
+      product_id:
+        type: integer
+      quantity_limit:
+        minimum: 1
+        type: integer
+      sort_order:
+        type: integer
+      starts_at:
+        type: string
+      status:
+        enum:
+        - active
+        - draft
+        - ended
+        type: string
+      title:
+        type: string
+    type: object
+  dto.UpdateHomepageSectionRequest:
+    properties:
+      filters:
+        additionalProperties: true
+        type: object
+      href:
+        maxLength: 512
+        type: string
+      image_url:
+        type: string
+      section_key:
+        maxLength: 64
+        minLength: 2
+        type: string
+      sort_order:
+        type: integer
+      status:
+        enum:
+        - draft
+        - published
+        - archived
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
         type: string
     type: object
   dto.UpdateInvoiceStatusRequest:
@@ -7407,6 +8057,38 @@ definitions:
       workflow_state_id:
         type: integer
     type: object
+  models.Campaign:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      ends_at:
+        type: string
+      id:
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      placements:
+        items:
+          type: integer
+        type: array
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      starts_at:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   models.Category:
     properties:
       children:
@@ -7531,6 +8213,125 @@ definitions:
     required:
     - code
     type: object
+  models.EmailCampaign:
+    properties:
+      body_html:
+        type: string
+      created_at:
+        type: string
+      failed_count:
+        type: integer
+      id:
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      recipient_count:
+        type: integer
+      scheduled_at:
+        type: string
+      segment:
+        type: string
+      sent_at:
+        type: string
+      sent_count:
+        type: integer
+      status:
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+      template:
+        $ref: '#/definitions/models.EmailTemplate'
+      template_id:
+        type: integer
+      updated_at:
+        type: string
+    required:
+    - name
+    - subject
+    type: object
+  models.EmailTemplate:
+    properties:
+      body_html:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      slug:
+        maxLength: 128
+        minLength: 2
+        type: string
+      status:
+        type: string
+      subject:
+        maxLength: 512
+        minLength: 2
+        type: string
+      updated_at:
+        type: string
+    required:
+    - name
+    - slug
+    - subject
+    type: object
+  models.FlashDeal:
+    properties:
+      created_at:
+        type: string
+      ends_at:
+        type: string
+      id:
+        type: integer
+      product:
+        $ref: '#/definitions/models.Product'
+      product_id:
+        type: integer
+      quantity_limit:
+        type: integer
+      sort_order:
+        type: integer
+      starts_at:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.HomepageSection:
+    properties:
+      created_at:
+        type: string
+      filters:
+        items:
+          type: integer
+        type: array
+      href:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      section_key:
+        type: string
+      sort_order:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.MenuGroup:
     properties:
       created_at:
@@ -7574,6 +8375,32 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.NewsletterSubscriber:
+    properties:
+      created_at:
+        type: string
+      email:
+        maxLength: 255
+        type: string
+      id:
+        type: integer
+      source:
+        type: string
+      status:
+        type: string
+      subscribed_at:
+        type: string
+      unsubscribed_at:
+        type: string
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
+    required:
+    - email
     type: object
   models.Order:
     properties:
@@ -8716,6 +9543,123 @@ paths:
       summary: Audit log summary
       tags:
       - Admin Audit
+  /admin/campaigns:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search name or slug
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CampaignListResponse'
+      security:
+      - BearerAuth: []
+      summary: List campaigns
+      tags:
+      - Promotions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Campaign payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.CampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Create campaign
+      tags:
+      - Promotions
+  /admin/campaigns/{id}:
+    delete:
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete campaign
+      tags:
+      - Promotions
+    get:
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Get campaign
+      tags:
+      - Promotions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Campaign update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Update campaign
+      tags:
+      - Promotions
   /admin/categories:
     post:
       consumes:
@@ -9229,6 +10173,541 @@ paths:
       summary: Admin dashboard overview
       tags:
       - Admin
+  /admin/email-campaigns:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignListResponse'
+      security:
+      - BearerAuth: []
+      summary: List email campaigns
+      tags:
+      - Email Marketing
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Campaign payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateEmailCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Create email campaign
+      tags:
+      - Email Marketing
+  /admin/email-campaigns/{id}:
+    delete:
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete email campaign
+      tags:
+      - Email Marketing
+    get:
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Get email campaign
+      tags:
+      - Email Marketing
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Campaign payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEmailCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Update email campaign
+      tags:
+      - Email Marketing
+  /admin/email-campaigns/{id}/schedule:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Schedule payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ScheduleEmailCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Schedule email campaign
+      tags:
+      - Email Marketing
+  /admin/email-campaigns/{id}/send:
+    post:
+      parameters:
+      - description: Campaign ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailCampaignSendResponse'
+      security:
+      - BearerAuth: []
+      summary: Send email campaign
+      tags:
+      - Email Marketing
+  /admin/email-marketing/kpis:
+    get:
+      description: Returns subscriber, template, and campaign analytics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailMarketingKPIResponse'
+      security:
+      - BearerAuth: []
+      summary: Email marketing KPIs
+      tags:
+      - Email Marketing
+  /admin/email-templates:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailTemplateListResponse'
+      security:
+      - BearerAuth: []
+      summary: List email templates
+      tags:
+      - Email Marketing
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Template payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateEmailTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.EmailTemplateSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Create email template
+      tags:
+      - Email Marketing
+  /admin/email-templates/{id}:
+    delete:
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete email template
+      tags:
+      - Email Marketing
+    get:
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailTemplateSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Get email template
+      tags:
+      - Email Marketing
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Template ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Template payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateEmailTemplateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmailTemplateSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Update email template
+      tags:
+      - Email Marketing
+  /admin/flash-deals:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search title or product id
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FlashDealListResponse'
+      security:
+      - BearerAuth: []
+      summary: List flash deals
+      tags:
+      - Promotions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Flash deal payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateFlashDealRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.FlashDealSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Create flash deal
+      tags:
+      - Promotions
+  /admin/flash-deals/{id}:
+    delete:
+      parameters:
+      - description: Flash deal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete flash deal
+      tags:
+      - Promotions
+    get:
+      parameters:
+      - description: Flash deal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FlashDealSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Get flash deal
+      tags:
+      - Promotions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Flash deal ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Flash deal update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateFlashDealRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.FlashDealSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Update flash deal
+      tags:
+      - Promotions
+  /admin/homepage-sections:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Search title or key
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HomepageSectionListResponse'
+      security:
+      - BearerAuth: []
+      summary: List homepage sections
+      tags:
+      - Promotions
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Section payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateHomepageSectionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.HomepageSectionSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Create homepage section
+      tags:
+      - Promotions
+  /admin/homepage-sections/{id}:
+    delete:
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EmptyResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete homepage section
+      tags:
+      - Promotions
+    get:
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HomepageSectionSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Get homepage section
+      tags:
+      - Promotions
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Section ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Section update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateHomepageSectionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.HomepageSectionSingleResponse'
+      security:
+      - BearerAuth: []
+      summary: Update homepage section
+      tags:
+      - Promotions
   /admin/import/categories:
     post:
       consumes:
@@ -10203,6 +11682,88 @@ paths:
       summary: Update admin nav preferences
       tags:
       - Admin
+  /admin/newsletter-subscribers:
+    get:
+      parameters:
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by source
+        in: query
+        name: source
+        type: string
+      - description: Search email
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.SubscriberListResponse'
+      security:
+      - BearerAuth: []
+      summary: List newsletter subscribers
+      tags:
+      - Email Marketing
+  /admin/newsletter-subscribers/{id}:
+    delete:
+      parameters:
+      - description: Subscriber ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete newsletter subscriber
+      tags:
+      - Email Marketing
+  /admin/newsletter-subscribers/export:
+    get:
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by source
+        in: query
+        name: source
+        type: string
+      - description: Search email
+        in: query
+        name: search
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV file
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Export newsletter subscribers
+      tags:
+      - Email Marketing
   /admin/orders/bulk-status:
     post:
       consumes:
@@ -10379,6 +11940,21 @@ paths:
       summary: Export products CSV (admin)
       tags:
       - Admin
+  /admin/promotions/kpis:
+    get:
+      description: Returns active flash deals, published banners, and campaign counts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PromotionsKPIResponse'
+      security:
+      - BearerAuth: []
+      summary: Promotion KPIs
+      tags:
+      - Promotions
   /admin/reports/revenue:
     get:
       description: Returns period summary KPIs and a day-by-day revenue, orders, and
@@ -15808,6 +17384,48 @@ paths:
       summary: Reorder navigation menus
       tags:
       - Navigation
+  /newsletters/subscribe:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Subscribe payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubscribeNewsletterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.SubscriberSingleResponse'
+      summary: Subscribe to newsletter
+      tags:
+      - Newsletters
+  /newsletters/unsubscribe:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Unsubscribe token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UnsubscribeNewsletterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BaseResponse'
+      summary: Unsubscribe from newsletter
+      tags:
+      - Newsletters
   /orders:
     get:
       consumes:
