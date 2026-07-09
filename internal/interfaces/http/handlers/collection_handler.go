@@ -82,8 +82,10 @@ func (ctrl *CollectionHandler) GetCollection(c *gin.Context) {
 // @Param        page    query     int     false  "Page number"
 // @Param        limit   query     int     false  "Items per page"
 // @Param        search  query     string  false  "Search by title, slug, or eyebrow"
-// @Param        status  query     string  false  "Filter by status"
-// @Param        theme   query     string  false  "Filter by theme (e.g. lifestyle)"
+// @Param        status          query     string  false  "Filter by status"
+// @Param        theme           query     string  false  "Filter by theme (e.g. lifestyle)"
+// @Param        collection_type query     string  false  "Filter by type (manual or smart)"
+// @Param        live_only       query     bool    false  "Only collections within schedule window"
 // @Success      200     {object}  dto.CollectionListResponse
 // @Failure      500     {object}  utils.Response
 // @Router       /collections [get]

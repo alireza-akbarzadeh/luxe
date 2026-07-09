@@ -111,6 +111,9 @@ func (r *ProductRepository) ListDetailed(ctx context.Context, limit, offset int,
 	if filters.IsNew != nil {
 		query = query.Where("is_new = ?", *filters.IsNew)
 	}
+	if len(filters.IDs) > 0 {
+		query = query.Where("id IN ?", filters.IDs)
+	}
 
 	var total int64
 	if err := query.Count(&total).Error; err != nil {

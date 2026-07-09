@@ -9142,6 +9142,18 @@
                         "description": "Filter by theme (e.g. lifestyle)",
                         "name": "theme",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by type (manual or smart)",
+                        "name": "collection_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Only collections within schedule window",
+                        "name": "live_only",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -22788,6 +22800,9 @@
         "dto.CollectionResponse": {
             "type": "object",
             "properties": {
+                "collection_type": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -22795,6 +22810,9 @@
                     "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "ends_at": {
                     "type": "string"
                 },
                 "eyebrow": {
@@ -22818,11 +22836,20 @@
                 "preview_sort": {
                     "type": "string"
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string"
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string"
@@ -23453,6 +23480,13 @@
                 "title"
             ],
             "properties": {
+                "collection_type": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "smart"
+                    ]
+                },
                 "cta_label": {
                     "type": "string",
                     "maxLength": 128
@@ -23460,6 +23494,9 @@
                 "description": {
                     "type": "string",
                     "maxLength": 2000
+                },
+                "ends_at": {
+                    "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
@@ -23483,6 +23520,12 @@
                     "type": "string",
                     "maxLength": 64
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
@@ -23490,6 +23533,9 @@
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string",
@@ -28091,6 +28137,13 @@
         "dto.UpdateCollectionRequest": {
             "type": "object",
             "properties": {
+                "collection_type": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "smart"
+                    ]
+                },
                 "cta_label": {
                     "type": "string",
                     "maxLength": 128
@@ -28098,6 +28151,9 @@
                 "description": {
                     "type": "string",
                     "maxLength": 2000
+                },
+                "ends_at": {
+                    "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
@@ -28121,6 +28177,12 @@
                     "type": "string",
                     "maxLength": 64
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
@@ -28128,6 +28190,9 @@
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string",

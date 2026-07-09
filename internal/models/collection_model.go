@@ -30,6 +30,13 @@ type Collection struct {
 	PreviewIsNew      *bool  `json:"preview_is_new,omitempty"`
 	PreviewCategoryID *uint  `gorm:"index" json:"preview_category_id,omitempty"`
 	Theme             string `gorm:"not null;default:'';index" json:"theme"`
+
+	// CollectionType is "smart" (dynamic rules) or "manual" (explicit product list).
+	CollectionType string `gorm:"not null;default:'smart';index" json:"collection_type"`
+	StartsAt       *time.Time `json:"starts_at,omitempty"`
+	EndsAt         *time.Time `json:"ends_at,omitempty"`
+
+	Products []CollectionProduct `gorm:"foreignKey:CollectionID" json:"products,omitempty"`
 }
 
 func (Collection) TableName() string {

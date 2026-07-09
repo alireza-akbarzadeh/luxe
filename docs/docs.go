@@ -9148,6 +9148,18 @@ const docTemplate = `{
                         "description": "Filter by theme (e.g. lifestyle)",
                         "name": "theme",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by type (manual or smart)",
+                        "name": "collection_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Only collections within schedule window",
+                        "name": "live_only",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -22794,6 +22806,9 @@ const docTemplate = `{
         "dto.CollectionResponse": {
             "type": "object",
             "properties": {
+                "collection_type": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -22801,6 +22816,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "description": {
+                    "type": "string"
+                },
+                "ends_at": {
                     "type": "string"
                 },
                 "eyebrow": {
@@ -22824,11 +22842,20 @@ const docTemplate = `{
                 "preview_sort": {
                     "type": "string"
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string"
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string"
@@ -23459,6 +23486,13 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "collection_type": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "smart"
+                    ]
+                },
                 "cta_label": {
                     "type": "string",
                     "maxLength": 128
@@ -23466,6 +23500,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string",
                     "maxLength": 2000
+                },
+                "ends_at": {
+                    "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
@@ -23489,6 +23526,12 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
@@ -23496,6 +23539,9 @@ const docTemplate = `{
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string",
@@ -28097,6 +28143,13 @@ const docTemplate = `{
         "dto.UpdateCollectionRequest": {
             "type": "object",
             "properties": {
+                "collection_type": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "smart"
+                    ]
+                },
                 "cta_label": {
                     "type": "string",
                     "maxLength": 128
@@ -28104,6 +28157,9 @@ const docTemplate = `{
                 "description": {
                     "type": "string",
                     "maxLength": 2000
+                },
+                "ends_at": {
+                    "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
@@ -28127,6 +28183,12 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 64
                 },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
@@ -28134,6 +28196,9 @@ const docTemplate = `{
                 },
                 "sort_order": {
                     "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
                 },
                 "status": {
                     "type": "string",

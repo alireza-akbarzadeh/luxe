@@ -112,6 +112,7 @@ type ProductListFilters struct {
 	IsNew      *bool   `form:"is_new"`
 	Sort       string  `form:"sort"`
 	Search     string  `form:"search"`
+	IDs        []uint  `form:"ids"`
 	StoreID    *uint   `json:"store_id,omitempty"`
 	BrandID    *uint   `json:"brand_id,omitempty"`
 }

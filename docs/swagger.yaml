@@ -2382,11 +2382,15 @@ definitions:
     type: object
   dto.CollectionResponse:
     properties:
+      collection_type:
+        type: string
       created_at:
         type: string
       cta_label:
         type: string
       description:
+        type: string
+      ends_at:
         type: string
       eyebrow:
         type: string
@@ -2402,10 +2406,16 @@ definitions:
         type: boolean
       preview_sort:
         type: string
+      product_ids:
+        items:
+          type: integer
+        type: array
       slug:
         type: string
       sort_order:
         type: integer
+      starts_at:
+        type: string
       status:
         type: string
       theme:
@@ -2822,11 +2832,18 @@ definitions:
     type: object
   dto.CreateCollectionRequest:
     properties:
+      collection_type:
+        enum:
+        - manual
+        - smart
+        type: string
       cta_label:
         maxLength: 128
         type: string
       description:
         maxLength: 2000
+        type: string
+      ends_at:
         type: string
       eyebrow:
         maxLength: 128
@@ -2844,12 +2861,18 @@ definitions:
       preview_sort:
         maxLength: 64
         type: string
+      product_ids:
+        items:
+          type: integer
+        type: array
       slug:
         maxLength: 128
         minLength: 2
         type: string
       sort_order:
         type: integer
+      starts_at:
+        type: string
       status:
         enum:
         - draft
@@ -5927,11 +5950,18 @@ definitions:
     type: object
   dto.UpdateCollectionRequest:
     properties:
+      collection_type:
+        enum:
+        - manual
+        - smart
+        type: string
       cta_label:
         maxLength: 128
         type: string
       description:
         maxLength: 2000
+        type: string
+      ends_at:
         type: string
       eyebrow:
         maxLength: 128
@@ -5949,12 +5979,18 @@ definitions:
       preview_sort:
         maxLength: 64
         type: string
+      product_ids:
+        items:
+          type: integer
+        type: array
       slug:
         maxLength: 128
         minLength: 2
         type: string
       sort_order:
         type: integer
+      starts_at:
+        type: string
       status:
         enum:
         - draft
@@ -13340,6 +13376,14 @@ paths:
         in: query
         name: theme
         type: string
+      - description: Filter by type (manual or smart)
+        in: query
+        name: collection_type
+        type: string
+      - description: Only collections within schedule window
+        in: query
+        name: live_only
+        type: boolean
       produces:
       - application/json
       responses:

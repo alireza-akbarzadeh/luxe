@@ -107,9 +107,11 @@ func (s *Service) Update(ctx context.Context, id uint, req *dto.UpdateCollection
 		newSlug = unique
 	}
 
-	ApplyUpdateDTO(collection, req, newSlug)
+	if err := ApplyUpdateDTO(collection, req, newSlug); err != nil {
+		return nil, err
+	}
 
-	if err := s.commands.Update(ctx, collection); err != nil {
+	if err := s.commands.Update(ctx, collection, req); err != nil {
 		return nil, err
 	}
 

@@ -107,11 +107,14 @@ func (r *HomeRepository) ListPublishedHomepageSections(ctx context.Context, limi
 	return rows, err
 }
 
-// ListPublishedCollections returns published collections for homepage.
+// ListPublishedCollections returns active collections within their schedule window for homepage.
 func (r *HomeRepository) ListPublishedCollections(ctx context.Context, limit int) ([]models.Collection, error) {
 	var rows []models.Collection
+	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("status = ?", "published").
+		Where("status = ?", "active").
+		Where("(starts_at IS NULL OR starts_at <= ?)", now).
+		Where("(ends_at IS NULL OR ends_at >= ?)", now).
 		Order("sort_order ASC").
 		Limit(limit).
 		Find(&rows).Error
