@@ -19,6 +19,7 @@ func (r *OrderRepository) List(ctx context.Context, filter apporder.ListFilter) 
 		Status:         filter.Status,
 		PaymentStatus:  filter.PaymentStatus,
 		ShipmentStatus: filter.ShipmentStatus,
+		WorkflowState:  filter.WorkflowState,
 		Tag:            filter.Tag,
 		Search:         filter.Search,
 		FromDate:       filter.FromDate,

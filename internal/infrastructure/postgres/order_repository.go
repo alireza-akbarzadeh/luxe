@@ -16,6 +16,7 @@ type OrderListQuery struct {
 	Status         string
 	PaymentStatus  string
 	ShipmentStatus string
+	WorkflowState  string
 	Tag            string
 	Search         string
 	FromDate       *time.Time
@@ -109,6 +110,10 @@ func (r *OrderRepository) applyListFilters(query *gorm.DB, q OrderListQuery) *go
 	if q.ShipmentStatus != "" {
 		query = query.Joins("LEFT JOIN shipments ON shipments.order_id = orders.id AND shipments.deleted_at IS NULL").
 			Where("shipments.status = ?", q.ShipmentStatus)
+	}
+	if q.WorkflowState != "" {
+		query = query.Joins("JOIN workflow_states ws ON ws.id = orders.workflow_state_id").
+			Where("ws.code = ?", q.WorkflowState)
 	}
 	if q.Tag != "" {
 		query = query.Joins("JOIN order_tags ON order_tags.order_id = orders.id").

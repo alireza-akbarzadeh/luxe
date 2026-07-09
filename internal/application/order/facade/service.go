@@ -223,6 +223,7 @@ func (s *Service) GetAllOrders(ctx context.Context, filters apporder.AdminOrderF
 		Status:         filters.Status,
 		PaymentStatus:  filters.PaymentStatus,
 		ShipmentStatus: filters.ShipmentStatus,
+		WorkflowState:  filters.WorkflowState,
 		Tag:            filters.Tag,
 		Search:         filters.Search,
 		FromDate:       filters.FromDate,

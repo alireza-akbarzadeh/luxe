@@ -14873,6 +14873,10 @@ paths:
         in: query
         name: shipment_status
         type: string
+      - description: Order workflow state code (e.g. paid, processing, packed)
+        in: query
+        name: workflow_state
+        type: string
       - description: Filter by order tag
         in: query
         name: tag

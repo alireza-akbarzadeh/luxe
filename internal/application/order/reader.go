@@ -15,6 +15,7 @@ type ListFilter struct {
 	Status         string
 	PaymentStatus  string
 	ShipmentStatus string
+	WorkflowState  string
 	Tag            string
 	Search         string
 	FromDate       *time.Time

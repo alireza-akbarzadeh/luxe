@@ -11502,6 +11502,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Order workflow state code (e.g. paid, processing, packed)",
+                        "name": "workflow_state",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Filter by order tag",
                         "name": "tag",
                         "in": "query"

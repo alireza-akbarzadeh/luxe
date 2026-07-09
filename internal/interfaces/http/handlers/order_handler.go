@@ -163,6 +163,7 @@ func (ctrl *OrderHandler) GetUserOrders(c *gin.Context) {
 // @Param        status          query   string  false  "Order status"
 // @Param        payment_status  query   string  false  "Payment status"
 // @Param        shipment_status query   string  false  "Shipment status"
+// @Param        workflow_state  query   string  false  "Order workflow state code (e.g. paid, processing, packed)"
 // @Param        tag             query   string  false  "Filter by order tag"
 // @Param        from_date       query   string  false  "Start date (RFC3339)"
 // @Param        to_date     query   string  false  "End date (RFC3339)"
@@ -216,6 +217,9 @@ func (ctrl *OrderHandler) ListAllOrders(c *gin.Context) {
 	}
 	if shipmentStatus := c.Query("shipment_status"); shipmentStatus != "" {
 		filters.ShipmentStatus = shipmentStatus
+	}
+	if workflowState := c.Query("workflow_state"); workflowState != "" {
+		filters.WorkflowState = workflowState
 	}
 	if tag := c.Query("tag"); tag != "" {
 		filters.Tag = tag

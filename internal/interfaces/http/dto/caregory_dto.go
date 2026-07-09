@@ -10,6 +10,7 @@ type OrderFilters struct {
 	Status         string
 	PaymentStatus  string
 	ShipmentStatus string
+	WorkflowState  string
 	Tag            string
 	FromDate       *time.Time
 	ToDate         *time.Time
