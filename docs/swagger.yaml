@@ -3384,6 +3384,8 @@ definitions:
     properties:
       address_count:
         type: integer
+      avatar_url:
+        type: string
       created_at:
         type: string
       default_billing_address:
@@ -6213,6 +6215,8 @@ definitions:
     type: object
   dto.UserResponse:
     properties:
+      avatar_url:
+        type: string
       email:
         type: string
       first_name:
@@ -7390,6 +7394,8 @@ definitions:
     type: object
   models.User:
     properties:
+      avatar_url:
+        type: string
       created_at:
         type: string
       deleted_at:

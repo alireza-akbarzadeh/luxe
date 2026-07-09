@@ -27,6 +27,7 @@ type UpdateProfileRequest struct {
 	FirstName string `json:"first_name" validate:"required,min=1,max=100"`
 	LastName  string `json:"last_name" validate:"required,min=1,max=100"`
 	Phone     string `json:"phone" validate:"omitempty,e164"`
+	AvatarURL *string `json:"avatar_url,omitempty" validate:"omitempty,max=2048,url"`
 	Role      string `form:"role" binding:"omitempty,oneof=user admin moderator"`
 }
 
@@ -35,6 +36,7 @@ type UpdateProfileInput struct {
 	FirstName string
 	LastName  string
 	Phone     string
+	AvatarURL *string
 	Role      string
 }
 
@@ -108,6 +110,9 @@ func (c *Commands) UpdateProfile(_ context.Context, userID uint, in UpdateProfil
 	user.FirstName = in.FirstName
 	user.LastName = in.LastName
 	user.Phone = in.Phone
+	if in.AvatarURL != nil {
+		user.AvatarURL = *in.AvatarURL
+	}
 	user.Role = in.Role
 
 	if err := c.repo.SaveUser(context.Background(), user); err != nil {

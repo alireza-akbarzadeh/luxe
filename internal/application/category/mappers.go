@@ -10,6 +10,7 @@ import (
 )
 
 var ErrHasChildren = errors.New("category has children")
+var ErrInvalidParentMove = errors.New("invalid parent move")
 
 var slugSanitizer = regexp.MustCompile(`[^a-z0-9]+`)
 
@@ -26,12 +27,21 @@ func GenerateSlug(name string) string {
 
 // BuildCreateModel maps a create DTO to a category model.
 func BuildCreateModel(req dto.CreateCategoryRequest, slug string) *models.Category {
+	sortOrder := 0
+	if req.SortOrder != nil {
+		sortOrder = *req.SortOrder
+	}
 	category := &models.Category{
-		Name:        req.Name,
-		Slug:        slug,
-		Description: req.Description,
-		ParentID:    req.ParentID,
-		IsActive:    req.IsActive,
+		Name:            req.Name,
+		Slug:            slug,
+		Description:     req.Description,
+		ParentID:        req.ParentID,
+		IsActive:        req.IsActive,
+		Icon:            req.Icon,
+		ImageURL:        req.ImageURL,
+		MetaTitle:       req.MetaTitle,
+		MetaDescription: req.MetaDescription,
+		SortOrder:       sortOrder,
 	}
 	category.NameI18n = dto.EncodeCatalogI18n(category.NameI18n, req.NameI18n, category.Name)
 	category.DescriptionI18n = dto.EncodeCatalogI18n(category.DescriptionI18n, req.DescriptionI18n, category.Description)
@@ -57,6 +67,21 @@ func ApplyUpdateDTO(category *models.Category, req dto.UpdateCategoryRequest, ne
 	}
 	if req.IsActive != nil {
 		category.IsActive = *req.IsActive
+	}
+	if req.Icon != nil {
+		category.Icon = *req.Icon
+	}
+	if req.ImageURL != nil {
+		category.ImageURL = *req.ImageURL
+	}
+	if req.MetaTitle != nil {
+		category.MetaTitle = *req.MetaTitle
+	}
+	if req.MetaDescription != nil {
+		category.MetaDescription = *req.MetaDescription
+	}
+	if req.SortOrder != nil {
+		category.SortOrder = *req.SortOrder
 	}
 	if req.Name != nil || len(req.NameI18n) > 0 {
 		category.NameI18n = dto.EncodeCatalogI18n(category.NameI18n, req.NameI18n, category.Name)

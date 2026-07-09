@@ -24,6 +24,11 @@ type Category struct {
 	Level       int    `gorm:"default:0" json:"level"`
 	Path        string `json:"path,omitempty"`
 	IsActive    bool   `gorm:"default:true" json:"is_active"`
+	Icon        string `gorm:"not null;default:''" json:"icon,omitempty"`
+	ImageURL    string `gorm:"column:image_url;not null;default:''" json:"image_url,omitempty"`
+	MetaTitle       string `gorm:"column:meta_title;not null;default:''" json:"meta_title,omitempty"`
+	MetaDescription string `gorm:"column:meta_description;not null;default:''" json:"meta_description,omitempty"`
+	SortOrder   int    `gorm:"column:sort_order;not null;default:0" json:"sort_order"`
 
 	WorkflowStateID *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
 	WorkflowState   *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`

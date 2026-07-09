@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	domain "github.com/alireza-akbarzadeh/luxe/internal/domain/category"
+	"gorm.io/gorm"
 )
 
 // Commands orchestrates category write use cases.
@@ -152,4 +153,132 @@ func (c *Commands) BulkDelete(ctx context.Context, ids []uint) (int64, error) {
 		return 0, ErrHasChildren
 	}
 	return c.repo.BulkDeleteByIDs(ctx, ids)
+}
+
+func descendantPathPrefix(cat *models.Category) string {
+	if cat.Path == "" {
+		return fmt.Sprintf("%d", cat.ID)
+	}
+	return fmt.Sprintf("%s.%d", cat.Path, cat.ID)
+}
+
+func (c *Commands) isInvalidParentMove(ctx context.Context, category *models.Category, parentID *uint) (bool, error) {
+	if parentID == nil || *parentID == 0 {
+		return false, nil
+	}
+	if *parentID == category.ID {
+		return true, nil
+	}
+	descendantIDs, err := c.repo.FindDescendantIDs(ctx, category)
+	if err != nil {
+		return false, err
+	}
+	for _, id := range descendantIDs {
+		if id == *parentID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (c *Commands) refreshSubtreePaths(ctx context.Context, parentID uint) error {
+	children, err := c.repo.ListChildren(ctx, &parentID)
+	if err != nil {
+		return err
+	}
+	for i := range children {
+		child := children[i]
+		if err := c.UpdateLevelAndPath(ctx, &child); err != nil {
+			return err
+		}
+		if err := c.repo.Save(ctx, &child); err != nil {
+			return err
+		}
+		if err := c.refreshSubtreePaths(ctx, child.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Reorder updates sibling order and optional parent moves for categories.
+func (c *Commands) Reorder(ctx context.Context, req dto.ReorderCategoriesRequest) error {
+	ids := make([]uint, len(req.Items))
+	for i, item := range req.Items {
+		ids[i] = item.ID
+	}
+
+	loaded, err := c.repo.FindByIDs(ctx, ids)
+	if err != nil {
+		return err
+	}
+	if len(loaded) != len(req.Items) {
+		return gorm.ErrRecordNotFound
+	}
+
+	byID := make(map[uint]*models.Category, len(loaded))
+	for i := range loaded {
+		byID[loaded[i].ID] = &loaded[i]
+	}
+
+	updates := make([]*models.Category, 0, len(req.Items))
+	parentChanged := make(map[uint]bool)
+
+	for _, item := range req.Items {
+		category := byID[item.ID]
+		if category == nil {
+			return gorm.ErrRecordNotFound
+		}
+
+		invalid, err := c.isInvalidParentMove(ctx, category, item.ParentID)
+		if err != nil {
+			return err
+		}
+		if invalid {
+			return ErrInvalidParentMove
+		}
+
+		if item.ParentID != nil && *item.ParentID > 0 {
+			if _, err := c.repo.FindParent(ctx, *item.ParentID); err != nil {
+				return err
+			}
+		}
+
+		if !sameParentID(category.ParentID, item.ParentID) {
+			parentChanged[category.ID] = true
+			category.ParentID = item.ParentID
+		}
+		category.SortOrder = item.SortOrder
+		updates = append(updates, category)
+	}
+
+	for _, category := range updates {
+		if parentChanged[category.ID] {
+			if err := c.UpdateLevelAndPath(ctx, category); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := c.repo.Reorder(ctx, updates); err != nil {
+		return err
+	}
+
+	for id := range parentChanged {
+		if err := c.refreshSubtreePaths(ctx, id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func sameParentID(a, b *uint) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
 }

@@ -21,6 +21,7 @@ type DashboardSummaryResponse struct {
 	FirstName              string             `json:"first_name"`
 	LastName               string             `json:"last_name"`
 	Phone                  string             `json:"phone"`
+	AvatarURL              string             `json:"avatar_url,omitempty"`
 	Role                   string             `json:"role"`
 	IsActive               bool               `json:"is_active"`
 	EmailVerifiedAt        *time.Time         `json:"email_verified_at,omitempty"`

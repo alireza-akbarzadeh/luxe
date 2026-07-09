@@ -94,6 +94,7 @@ func (ac *AccountHandler) GetAccountSummary(c *gin.Context) {
 		FirstName:              user.FirstName,
 		LastName:               user.LastName,
 		Phone:                  user.Phone,
+		AvatarURL:              user.AvatarURL,
 		Role:                   user.Role,
 		IsActive:               user.IsActive,
 		EmailVerifiedAt:        user.EmailVerifiedAt,

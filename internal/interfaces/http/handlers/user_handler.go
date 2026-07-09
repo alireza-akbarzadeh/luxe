@@ -93,6 +93,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 		"first_name":               user.FirstName,
 		"last_name":                user.LastName,
 		"phone":                    user.Phone,
+		"avatar_url":               user.AvatarURL,
 		"role":                     user.Role,
 		"is_active":                user.IsActive,
 		"created_at":               user.CreatedAt,
@@ -109,7 +110,7 @@ func (pc *UserHandler) GetProfile(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        request body object true "Profile update data" SchemaExample({"first_name":"John","last_name":"Doe","phone":"+1234567890"})
+// @Param        request body object true "Profile update data" SchemaExample({"first_name":"John","last_name":"Doe","phone":"+1234567890","avatar_url":"https://cdn.example.com/avatar.jpg"})
 // @Success      200 {object} utils.Response{data=object{id=uint,email=string,first_name=string,last_name=string,phone=string}}
 // @Failure      400 {object} utils.Response
 // @Failure      401 {object} utils.Response
@@ -128,7 +129,13 @@ func (pc *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := pc.userCommands.UpdateProfile(c.Request.Context(), userID, appuser.UpdateProfileInput{FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone, Role: req.Role})
+	user, err := pc.userCommands.UpdateProfile(c.Request.Context(), userID, appuser.UpdateProfileInput{
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Phone:     req.Phone,
+		AvatarURL: req.AvatarURL,
+		Role:      req.Role,
+	})
 	if err != nil {
 		utils.HandleServiceError(c, err, constants.ErrInternalServer.Error())
 		return
@@ -140,6 +147,7 @@ func (pc *UserHandler) UpdateProfile(c *gin.Context) {
 		"first_name": user.FirstName,
 		"last_name":  user.LastName,
 		"phone":      user.Phone,
+		"avatar_url": user.AvatarURL,
 		"role":       user.Role,
 	}
 	utils.SuccessResponse(c, constants.MsgUpdateSuccess, data)

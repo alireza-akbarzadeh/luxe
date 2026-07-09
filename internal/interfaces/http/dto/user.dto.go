@@ -13,7 +13,8 @@ type UserResponse struct {
 	FirstName      string `json:"first_name"`
 	LastName       string `json:"last_name"`
 	Role           string `json:"role"`
-	Phone          string `json:"phone"`
+	Phone     string `json:"phone"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 	MembershipTier string `json:"membership_tier"`
 	IsPlusActive   bool   `json:"is_plus_active"`
 }
@@ -35,6 +36,7 @@ func ToUserResponse(user *models.User) UserResponse {
 		LastName:       user.LastName,
 		Role:           user.Role,
 		Phone:          user.Phone,
+		AvatarURL:      user.AvatarURL,
 		MembershipTier: tier,
 		IsPlusActive:   active,
 	}

@@ -24179,6 +24179,9 @@
                 "address_count": {
                     "type": "integer"
                 },
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -28433,6 +28436,9 @@
         "dto.UserResponse": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -30205,6 +30211,9 @@
                 "last_name"
             ],
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

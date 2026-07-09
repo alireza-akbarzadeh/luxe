@@ -24185,6 +24185,9 @@ const docTemplate = `{
                 "address_count": {
                     "type": "integer"
                 },
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -28439,6 +28442,9 @@ const docTemplate = `{
         "dto.UserResponse": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -30211,6 +30217,9 @@ const docTemplate = `{
                 "last_name"
             ],
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },

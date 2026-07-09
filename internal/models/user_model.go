@@ -22,6 +22,7 @@ type User struct {
 	Phone     string `gorm:"index" json:"phone,omitempty" validate:"omitempty,e164"`
 	FirstName string `gorm:"not null" json:"first_name" validate:"required,min=1,max=100"`
 	LastName  string `gorm:"not null" json:"last_name" validate:"required,min=1,max=100"`
+	AvatarURL string `gorm:"column:avatar_url;not null;default:''" json:"avatar_url,omitempty"`
 
 	// Security & status
 	PasswordHash    string `gorm:"not null" json:"-"`

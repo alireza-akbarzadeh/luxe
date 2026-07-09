@@ -21,6 +21,11 @@ type CreateCategoryRequest struct {
 	DescriptionI18n i18n.LocalizedMap `json:"descriptionI18n,omitempty"`
 	ParentID        *uint             `json:"parent_id,omitempty"`
 	IsActive        bool              `json:"is_active"`
+	Icon            string            `json:"icon,omitempty" validate:"omitempty,max=64"`
+	ImageURL        string            `json:"image_url,omitempty" validate:"omitempty,max=512"`
+	MetaTitle       string            `json:"meta_title,omitempty" validate:"omitempty,max=70"`
+	MetaDescription string            `json:"meta_description,omitempty" validate:"omitempty,max=160"`
+	SortOrder       *int              `json:"sort_order,omitempty" validate:"omitempty,min=0"`
 }
 
 type UpdateCategoryRequest struct {
@@ -31,4 +36,19 @@ type UpdateCategoryRequest struct {
 	DescriptionI18n i18n.LocalizedMap `json:"descriptionI18n,omitempty"`
 	ParentID        *uint             `json:"parent_id,omitempty"`
 	IsActive        *bool             `json:"is_active,omitempty"`
+	Icon            *string           `json:"icon,omitempty" validate:"omitempty,max=64"`
+	ImageURL        *string           `json:"image_url,omitempty" validate:"omitempty,max=512"`
+	MetaTitle       *string           `json:"meta_title,omitempty" validate:"omitempty,max=70"`
+	MetaDescription *string           `json:"meta_description,omitempty" validate:"omitempty,max=160"`
+	SortOrder       *int              `json:"sort_order,omitempty" validate:"omitempty,min=0"`
+}
+
+type ReorderCategoryItem struct {
+	ID        uint  `json:"id" validate:"required,gt=0"`
+	ParentID  *uint `json:"parent_id"`
+	SortOrder int   `json:"sort_order" validate:"min=0"`
+}
+
+type ReorderCategoriesRequest struct {
+	Items []ReorderCategoryItem `json:"items" validate:"required,min=1,dive"`
 }
