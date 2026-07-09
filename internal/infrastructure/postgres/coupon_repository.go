@@ -69,9 +69,10 @@ func (r *CouponRepository) ExistsByCode(ctx context.Context, code string, exclud
 // CreateCoupon inserts a coupon with selected fields.
 func (r *CouponRepository) CreateCoupon(ctx context.Context, coupon *models.Coupon) error {
 	return r.db.WithContext(ctx).Select(
-		"Code", "Description", "DiscountType", "DiscountValue",
+		"Code", "Description", "ApplicationType", "DiscountType", "DiscountValue",
 		"MinimumOrderAmount", "MaxDiscountAmount", "UsageLimit",
-		"StartDate", "EndDate", "IsActive",
+		"StartDate", "EndDate", "IsActive", "Conditions",
+		"BogoBuyQuantity", "BogoGetQuantity", "BogoGetDiscountPercent",
 	).Create(coupon).Error
 }
 
@@ -210,6 +211,9 @@ func (r *CouponRepository) ListAdmin(ctx context.Context, filters dto.AdminCoupo
 	}
 	if filters.DiscountType != "" {
 		query = query.Where("discount_type = ?", filters.DiscountType)
+	}
+	if filters.ApplicationType != "" {
+		query = query.Where("application_type = ?", filters.ApplicationType)
 	}
 
 	var total int64

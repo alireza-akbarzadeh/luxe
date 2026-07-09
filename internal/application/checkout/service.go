@@ -158,7 +158,8 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 	var stockChanges []appinventory.DeltaResult
 	err = s.checkoutRepo.Transaction(ctx, func(tx *gorm.DB) error {
 		subtotal := CartSubtotal(cart.Items)
-		discount, couponID, err := s.applyCoupon(ctx, tx, userID, req.CouponCode, subtotal)
+		itemCount := CartItemCount(cart.Items)
+		discount, couponID, appliedCode, err := s.applyCoupon(ctx, userID, req.CouponCode, subtotal, itemCount)
 		if err != nil {
 			return err
 		}
@@ -198,8 +199,8 @@ func (s *Service) Checkout(ctx context.Context, userID uint, req dto.CheckoutReq
 			return err
 		}
 
-		if couponID != nil {
-			if err := s.couponService.ApplyCoupon(tx, userID, order.ID, req.CouponCode, subtotal); err != nil {
+		if couponID != nil && appliedCode != "" {
+			if err := s.couponService.ApplyCoupon(tx, userID, order.ID, appliedCode, subtotal, itemCount); err != nil {
 				return err
 			}
 		}
@@ -560,20 +561,25 @@ func (s *Service) reserveCartStock(ctx context.Context, tx *gorm.DB, orderID uin
 	})
 }
 
-// applyCoupon validates a coupon code (if provided) and returns the discount amount and coupon ID.
-func (s *Service) applyCoupon(ctx context.Context, tx *gorm.DB, userID uint, code string, subtotal float64) (float64, *uint, error) {
-	// No coupon code → no discount
-	if code == "" {
-		return 0, nil, nil
+// applyCoupon resolves a manual code or the best automatic promotion for the cart.
+func (s *Service) applyCoupon(ctx context.Context, userID uint, code string, subtotal float64, itemCount int) (float64, *uint, string, error) {
+	if code != "" {
+		coupon, discount, err := s.couponService.ValidateCoupon(ctx, code, userID, subtotal, itemCount)
+		if err != nil {
+			return 0, nil, "", err
+		}
+		return discount, &coupon.ID, coupon.Code, nil
 	}
 
-	// Validate the coupon (ideally pass tx for atomicity)
-	coupon, discount, err := s.couponService.ValidateCoupon(ctx, code, userID, subtotal)
+	coupon, discount, err := s.couponService.BestAutomaticCoupon(ctx, userID, subtotal, itemCount)
 	if err != nil {
-		return 0, nil, err
+		if appErr, ok := err.(*utils.AppError); ok && appErr.Code == 404 {
+			return 0, nil, "", nil
+		}
+		return 0, nil, "", err
 	}
 
-	return discount, &coupon.ID, nil
+	return discount, &coupon.ID, coupon.Code, nil
 }
 
 // createPayment uses the PaymentService to insert a pending payment record (within tx).

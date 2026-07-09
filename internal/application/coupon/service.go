@@ -3,6 +3,7 @@ package coupon
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
@@ -35,7 +36,10 @@ func (s *Service) syncCouponWorkflow(ctx context.Context, couponID uint, isActiv
 
 // Create stores a new coupon.
 func (s *Service) Create(ctx context.Context, req dto.CreateCouponRequest) (*models.Coupon, error) {
-	exists, err := s.repo.ExistsByCode(ctx, req.Code, 0)
+	appType := normalizeApplicationType(req.ApplicationType)
+	code := resolveCouponCode(req.Code, appType)
+
+	exists, err := s.repo.ExistsByCode(ctx, code, 0)
 	if err != nil {
 		return nil, utils.ErrInternal(err)
 	}
@@ -43,17 +47,35 @@ func (s *Service) Create(ctx context.Context, req dto.CreateCouponRequest) (*mod
 		return nil, utils.ErrConflict("coupon code already exists")
 	}
 
+	bogoBuy := req.BogoBuyQuantity
+	if bogoBuy <= 0 {
+		bogoBuy = 1
+	}
+	bogoGet := req.BogoGetQuantity
+	if bogoGet <= 0 {
+		bogoGet = 1
+	}
+	bogoPercent := req.BogoGetDiscountPercent
+	if bogoPercent <= 0 {
+		bogoPercent = 100
+	}
+
 	coupon := &models.Coupon{
-		Code:               req.Code,
-		Description:        req.Description,
-		DiscountType:       req.DiscountType,
-		DiscountValue:      req.DiscountValue,
-		MinimumOrderAmount: req.MinimumOrderAmount,
-		MaxDiscountAmount:  req.MaxDiscountAmount,
-		UsageLimit:         req.UsageLimit,
-		StartDate:          normalizeCouponStart(req.StartDate),
-		EndDate:            normalizeCouponEnd(req.StartDate, req.EndDate),
-		IsActive:           couponIsActiveDefault(req.IsActive),
+		Code:                   code,
+		Description:            req.Description,
+		ApplicationType:        appType,
+		DiscountType:           req.DiscountType,
+		DiscountValue:          req.DiscountValue,
+		MinimumOrderAmount:     req.MinimumOrderAmount,
+		MaxDiscountAmount:      req.MaxDiscountAmount,
+		UsageLimit:             req.UsageLimit,
+		StartDate:              normalizeCouponStart(req.StartDate),
+		EndDate:                normalizeCouponEnd(req.StartDate, req.EndDate),
+		IsActive:               couponIsActiveDefault(req.IsActive),
+		Conditions:             models.MarshalCouponConditions(conditionsFromRequest(req.Conditions)),
+		BogoBuyQuantity:        bogoBuy,
+		BogoGetQuantity:        bogoGet,
+		BogoGetDiscountPercent: bogoPercent,
 	}
 	if err := s.repo.CreateCoupon(ctx, coupon); err != nil {
 		return nil, utils.ErrInternal(err)
@@ -73,7 +95,7 @@ func (s *Service) Create(ctx context.Context, req dto.CreateCouponRequest) (*mod
 	return s.repo.FindByID(ctx, coupon.ID)
 }
 
-func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, orderTotal float64) (*models.Coupon, float64, error) {
+func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, orderTotal float64, itemCount int) (*models.Coupon, float64, error) {
 	couponModel, err := s.repo.FindActiveByCode(ctx, code, time.Now())
 	if err != nil {
 		return nil, 0, utils.ErrBadRequest("invalid or expired coupon")
@@ -85,7 +107,7 @@ func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, 
 	}
 
 	domainCoupon := couponFromModel(*couponModel)
-	if err := domaincoupon.ValidateEligibility(domainCoupon, orderTotal, int(usageCount), time.Now()); err != nil {
+	if err := domaincoupon.ValidateEligibility(domainCoupon, orderTotal, int(usageCount), itemCount, time.Now()); err != nil {
 		switch {
 		case errors.Is(err, domaincoupon.ErrInactiveOrExpired):
 			return nil, 0, utils.ErrBadRequest("invalid or expired coupon")
@@ -95,17 +117,19 @@ func (s *Service) ValidateCoupon(ctx context.Context, code string, userID uint, 
 			return nil, 0, utils.ErrBadRequest("order total below minimum amount")
 		case errors.Is(err, domaincoupon.ErrAlreadyUsedByUser):
 			return nil, 0, utils.ErrBadRequest("coupon already used by this user")
+		case errors.Is(err, domaincoupon.ErrInsufficientItems):
+			return nil, 0, utils.ErrBadRequest("cart does not meet promotion item requirements")
 		default:
 			return nil, 0, utils.ErrInternal(err)
 		}
 	}
 
-	discount := domaincoupon.CalculateDiscount(domainCoupon, orderTotal)
+	discount := domaincoupon.CalculateDiscount(domainCoupon, orderTotal, itemCount)
 	return couponModel, discount, nil
 }
 
-func (s *Service) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64) error {
-	coupon, discount, err := s.ValidateCoupon(context.Background(), couponCode, userID, orderTotal)
+func (s *Service) ApplyCoupon(tx *gorm.DB, userID uint, orderID uint, couponCode string, orderTotal float64, itemCount int) error {
+	coupon, discount, err := s.ValidateCoupon(context.Background(), couponCode, userID, orderTotal, itemCount)
 	if err != nil {
 		return err
 	}
@@ -170,10 +194,13 @@ func (s *Service) Update(ctx context.Context, id uint, req dto.UpdateCouponReque
 		if exists {
 			return nil, utils.ErrConflict("coupon code already exists")
 		}
-		coupon.Code = *req.Code
+		coupon.Code = strings.TrimSpace(strings.ToUpper(*req.Code))
 	}
 	if req.Description != nil {
 		coupon.Description = *req.Description
+	}
+	if req.ApplicationType != nil {
+		coupon.ApplicationType = normalizeApplicationType(*req.ApplicationType)
 	}
 	if req.DiscountType != nil {
 		coupon.DiscountType = *req.DiscountType
@@ -199,6 +226,18 @@ func (s *Service) Update(ctx context.Context, id uint, req dto.UpdateCouponReque
 	wasActive := coupon.IsActive
 	if req.IsActive != nil {
 		coupon.IsActive = *req.IsActive
+	}
+	if req.Conditions != nil {
+		applyConditionsRequest(coupon, req.Conditions)
+	}
+	if req.BogoBuyQuantity != nil && *req.BogoBuyQuantity > 0 {
+		coupon.BogoBuyQuantity = *req.BogoBuyQuantity
+	}
+	if req.BogoGetQuantity != nil && *req.BogoGetQuantity > 0 {
+		coupon.BogoGetQuantity = *req.BogoGetQuantity
+	}
+	if req.BogoGetDiscountPercent != nil {
+		coupon.BogoGetDiscountPercent = *req.BogoGetDiscountPercent
 	}
 
 	if err := s.repo.SaveCoupon(ctx, coupon); err != nil {
@@ -301,16 +340,33 @@ func couponIsActiveDefault(isActive *bool) bool {
 	return *isActive
 }
 
-func couponFromModel(c models.Coupon) domaincoupon.Coupon {
-	return domaincoupon.Coupon{
-		DiscountType:       c.DiscountType,
-		DiscountValue:      c.DiscountValue,
-		MinimumOrderAmount: c.MinimumOrderAmount,
-		MaxDiscountAmount:  c.MaxDiscountAmount,
-		UsageLimit:         c.UsageLimit,
-		UsedCount:          c.UsedCount,
-		IsActive:           c.IsActive,
-		StartDate:          c.StartDate,
-		EndDate:            c.EndDate,
+// BestAutomaticCoupon returns the highest-value automatic promotion for a cart.
+func (s *Service) BestAutomaticCoupon(ctx context.Context, userID uint, orderTotal float64, itemCount int) (*models.Coupon, float64, error) {
+	coupons, err := s.repo.ListAvailableForUser(ctx, userID, orderTotal, time.Now())
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
 	}
+
+	var best *models.Coupon
+	var bestDiscount float64
+
+	for i := range coupons {
+		if normalizeApplicationType(coupons[i].ApplicationType) != constants.CouponApplicationAutomatic {
+			continue
+		}
+		_, discount, err := s.ValidateCoupon(ctx, coupons[i].Code, userID, orderTotal, itemCount)
+		if err != nil {
+			continue
+		}
+		if discount > bestDiscount {
+			copy := coupons[i]
+			best = &copy
+			bestDiscount = discount
+		}
+	}
+
+	if best == nil {
+		return nil, 0, utils.ErrNotFound("no automatic promotion available")
+	}
+	return best, bestDiscount, nil
 }

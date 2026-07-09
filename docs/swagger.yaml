@@ -2811,6 +2811,28 @@ definitions:
       receipt:
         $ref: '#/definitions/dto.WalletDepositReceipt'
     type: object
+  dto.CouponConditionsRequest:
+    properties:
+      category_ids:
+        items:
+          type: integer
+        type: array
+      customer_segment:
+        enum:
+        - vip
+        - plus
+        - new
+        type: string
+      first_order_only:
+        type: boolean
+      min_item_quantity:
+        minimum: 1
+        type: integer
+      product_ids:
+        items:
+          type: integer
+        type: array
+    type: object
   dto.CouponData:
     properties:
       coupon:
@@ -3034,10 +3056,28 @@ definitions:
     type: object
   dto.CreateCouponRequest:
     properties:
+      application_type:
+        enum:
+        - code
+        - automatic
+        - bogo
+        type: string
+      bogo_buy_quantity:
+        minimum: 1
+        type: integer
+      bogo_get_discount_percent:
+        maximum: 100
+        minimum: 0
+        type: number
+      bogo_get_quantity:
+        minimum: 1
+        type: integer
       code:
         maxLength: 50
         minLength: 3
         type: string
+      conditions:
+        $ref: '#/definitions/dto.CouponConditionsRequest'
       description:
         type: string
       discount_type:
@@ -3060,7 +3100,6 @@ definitions:
       usage_limit:
         type: integer
     required:
-    - code
     - discount_type
     - discount_value
     type: object
@@ -6296,8 +6335,26 @@ definitions:
     type: object
   dto.UpdateCouponRequest:
     properties:
+      application_type:
+        enum:
+        - code
+        - automatic
+        - bogo
+        type: string
+      bogo_buy_quantity:
+        minimum: 1
+        type: integer
+      bogo_get_discount_percent:
+        maximum: 100
+        minimum: 0
+        type: number
+      bogo_get_quantity:
+        minimum: 1
+        type: integer
       code:
         type: string
+      conditions:
+        $ref: '#/definitions/dto.CouponConditionsRequest'
       description:
         type: string
       discount_type:
@@ -6714,6 +6771,9 @@ definitions:
     properties:
       code:
         type: string
+      item_count:
+        minimum: 1
+        type: integer
       order_total:
         type: number
     required:
@@ -7413,10 +7473,26 @@ definitions:
     type: object
   models.Coupon:
     properties:
+      application_type:
+        enum:
+        - code
+        - automatic
+        - bogo
+        type: string
+      bogo_buy_quantity:
+        type: integer
+      bogo_get_discount_percent:
+        type: number
+      bogo_get_quantity:
+        type: integer
       code:
         maxLength: 50
         minLength: 3
         type: string
+      conditions:
+        items:
+          type: integer
+        type: array
       created_at:
         type: string
       deleted_at:
@@ -8982,6 +9058,10 @@ paths:
       - description: Filter by discount type (percentage/fixed)
         in: query
         name: discount_type
+        type: string
+      - description: Filter by application type (code|automatic|bogo)
+        in: query
+        name: application_type
         type: string
       produces:
       - application/json
@@ -14840,6 +14920,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Update coupon
+      tags:
+      - Coupons
+  /coupons/best-automatic:
+    get:
+      description: Returns the best eligible automatic promotion for the authenticated
+        user's cart total
+      parameters:
+      - description: Order subtotal
+        in: query
+        name: order_total
+        required: true
+        type: number
+      - description: Total cart item quantity
+        in: query
+        name: item_count
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CouponValidateResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get best automatic promotion
       tags:
       - Coupons
   /coupons/my:

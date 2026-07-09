@@ -28,6 +28,15 @@ func CartSubtotal(cartItems []models.CartItem) float64 {
 	return subtotal
 }
 
+// CartItemCount sums line quantities for BOGO and item-based promotions.
+func CartItemCount(cartItems []models.CartItem) int {
+	var count int
+	for _, item := range cartItems {
+		count += item.Quantity
+	}
+	return count
+}
+
 // ValidateCartForCheckout runs domain rules on a loaded cart model.
 func ValidateCartForCheckout(cartDomain *domaincart.Service, userID uint, cart *models.Cart) error {
 	domainItems := make([]domaincart.Item, 0, len(cart.Items))

@@ -162,7 +162,13 @@ func (cc *CouponHandler) Validate(c *gin.Context) {
 		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
 		return
 	}
-	coupon, discount, err := cc.couponService.ValidateCoupon(c.Request.Context(), req.Code, userID, req.OrderTotal)
+	coupon, discount, err := cc.couponService.ValidateCoupon(
+		c.Request.Context(),
+		req.Code,
+		userID,
+		req.OrderTotal,
+		req.ItemCount,
+	)
 	if err != nil {
 		utils.HandleServiceError(c, err, "coupon validation failed")
 		return
@@ -240,7 +246,8 @@ func (cc *CouponHandler) List(c *gin.Context) {
 // @Param        offset        query     int     false  "Offset"  default(0)  minimum(0)
 // @Param        code          query     string  false  "Filter by coupon code (partial match)"
 // @Param        status        query     string  false  "Filter by lifecycle status (active|inactive|expired|exhausted|all)"
-// @Param        discount_type query     string  false  "Filter by discount type (percentage/fixed)"
+// @Param        discount_type     query     string  false  "Filter by discount type (percentage/fixed)"
+// @Param        application_type  query     string  false  "Filter by application type (code|automatic|bogo)"
 // @Success      200           {object}  dto.CouponListResponse
 // @Failure      400           {object}  utils.Response
 // @Failure      401           {object}  utils.Response
@@ -313,6 +320,62 @@ func (cc *CouponHandler) GetMyCoupons(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "available coupons retrieved successfully", coupons)
+}
+
+// GetBestAutomatic returns the highest-value automatic promotion for the user's cart.
+// @Summary      Get best automatic promotion
+// @Description  Returns the best eligible automatic promotion for the authenticated user's cart total
+// @Tags         Coupons
+// @Produce      json
+// @Security     BearerAuth
+// @Param        order_total query number true  "Order subtotal"
+// @Param        item_count  query int    false "Total cart item quantity"
+// @Success      200 {object} dto.CouponValidateResponse
+// @Failure      401 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /coupons/best-automatic [get]
+func (cc *CouponHandler) GetBestAutomatic(c *gin.Context) {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.UnauthorizedResponse(c, constants.ErrUnauthorized)
+		return
+	}
+
+	var query dto.BestAutomaticCouponQuery
+	if !utils.BindAndValidateQuery(c, &query, cc.validate) {
+		return
+	}
+
+	itemCount := query.ItemCount
+	if itemCount <= 0 {
+		itemCount = 1
+	}
+
+	coupon, discount, err := cc.couponService.BestAutomaticCoupon(
+		c.Request.Context(),
+		userID,
+		query.OrderTotal,
+		itemCount,
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to resolve automatic promotion")
+		return
+	}
+
+	resp := dto.CouponValidateResponse{
+		BaseResponse: dto.BaseResponse{
+			Success: true,
+			Message: "automatic promotion found",
+			Code:    http.StatusOK,
+		},
+		Data: dto.CouponValidateData{
+			Coupon:         *coupon,
+			DiscountAmount: discount,
+			FinalTotal:     query.OrderTotal - discount,
+		},
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetCouponByID retrieves a single coupon by ID (admin only).

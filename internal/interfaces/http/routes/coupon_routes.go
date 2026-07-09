@@ -13,6 +13,7 @@ func SetupCouponRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contai
 	{
 		user.POST("/validate", ctrl.Coupon.Validate)
 		user.GET("/my", ctrl.Coupon.GetMyCoupons)
+		user.GET("/best-automatic", ctrl.Coupon.GetBestAutomatic)
 	}
 
 	admin := protected.Group("/coupons")

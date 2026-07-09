@@ -276,6 +276,11 @@ const (
 	SupportAuthorStaff    = "staff"
 	SupportAuthorSystem   = "system"
 
+	// Coupon application types
+	CouponApplicationCode      = "code"
+	CouponApplicationAutomatic = "automatic"
+	CouponApplicationBOGO      = "bogo"
+
 	// Luxe Plus benefit values (enforced in checkout, returns, shipping)
 	PlusAnnualPriceUSD        = 49.99
 	PlusCheckoutDiscountPct   = 10

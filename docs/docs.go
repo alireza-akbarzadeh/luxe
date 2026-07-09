@@ -1425,6 +1425,12 @@ const docTemplate = `{
                         "description": "Filter by discount type (percentage/fixed)",
                         "name": "discount_type",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by application type (code|automatic|bogo)",
+                        "name": "application_type",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -10692,6 +10698,64 @@ const docTemplate = `{
                     },
                     "409": {
                         "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/coupons/best-automatic": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the best eligible automatic promotion for the authenticated user's cart total",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Coupons"
+                ],
+                "summary": "Get best automatic promotion",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Order subtotal",
+                        "name": "order_total",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Total cart item quantity",
+                        "name": "item_count",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CouponValidateResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -24772,6 +24836,38 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CouponConditionsRequest": {
+            "type": "object",
+            "properties": {
+                "category_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "customer_segment": {
+                    "type": "string",
+                    "enum": [
+                        "vip",
+                        "plus",
+                        "new"
+                    ]
+                },
+                "first_order_only": {
+                    "type": "boolean"
+                },
+                "min_item_quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
         "dto.CouponData": {
             "type": "object",
             "properties": {
@@ -25094,15 +25190,38 @@ const docTemplate = `{
         "dto.CreateCouponRequest": {
             "type": "object",
             "required": [
-                "code",
                 "discount_type",
                 "discount_value"
             ],
             "properties": {
+                "application_type": {
+                    "type": "string",
+                    "enum": [
+                        "code",
+                        "automatic",
+                        "bogo"
+                    ]
+                },
+                "bogo_buy_quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "bogo_get_discount_percent": {
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "bogo_get_quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
                 "code": {
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                },
+                "conditions": {
+                    "$ref": "#/definitions/dto.CouponConditionsRequest"
                 },
                 "description": {
                     "type": "string"
@@ -29965,8 +30084,32 @@ const docTemplate = `{
         "dto.UpdateCouponRequest": {
             "type": "object",
             "properties": {
+                "application_type": {
+                    "type": "string",
+                    "enum": [
+                        "code",
+                        "automatic",
+                        "bogo"
+                    ]
+                },
+                "bogo_buy_quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "bogo_get_discount_percent": {
+                    "type": "number",
+                    "maximum": 100,
+                    "minimum": 0
+                },
+                "bogo_get_quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                },
                 "code": {
                     "type": "string"
+                },
+                "conditions": {
+                    "$ref": "#/definitions/dto.CouponConditionsRequest"
                 },
                 "description": {
                     "type": "string"
@@ -30580,6 +30723,10 @@ const docTemplate = `{
             "properties": {
                 "code": {
                     "type": "string"
+                },
+                "item_count": {
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "order_total": {
                     "type": "number"
@@ -31631,10 +31778,33 @@ const docTemplate = `{
                 "code"
             ],
             "properties": {
+                "application_type": {
+                    "type": "string",
+                    "enum": [
+                        "code",
+                        "automatic",
+                        "bogo"
+                    ]
+                },
+                "bogo_buy_quantity": {
+                    "type": "integer"
+                },
+                "bogo_get_discount_percent": {
+                    "type": "number"
+                },
+                "bogo_get_quantity": {
+                    "type": "integer"
+                },
                 "code": {
                     "type": "string",
                     "maxLength": 50,
                     "minLength": 3
+                },
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 },
                 "created_at": {
                     "type": "string"
