@@ -219,16 +219,19 @@ func (s *Service) GetOrderByID(ctx context.Context, orderID uint, userID uint) (
 
 func (s *Service) GetAllOrders(ctx context.Context, filters apporder.AdminOrderFilters, limit, offset int) ([]models.Order, int64, error) {
 	return s.queries.ListAdmin(ctx, apporder.ListFilter{
-		UserID:      filters.UserID,
-		Status:      filters.Status,
-		Search:      filters.Search,
-		FromDate:    filters.FromDate,
-		ToDate:      filters.ToDate,
-		MinAmount:   filters.MinAmount,
-		MaxAmount:   filters.MaxAmount,
-		Limit:       limit,
-		Offset:      offset,
-		PreloadUser: true,
+		UserID:         filters.UserID,
+		Status:         filters.Status,
+		PaymentStatus:  filters.PaymentStatus,
+		ShipmentStatus: filters.ShipmentStatus,
+		Tag:            filters.Tag,
+		Search:         filters.Search,
+		FromDate:       filters.FromDate,
+		ToDate:         filters.ToDate,
+		MinAmount:      filters.MinAmount,
+		MaxAmount:      filters.MaxAmount,
+		Limit:          limit,
+		Offset:         offset,
+		PreloadUser:    true,
 	})
 }
 
@@ -298,6 +301,28 @@ func (s *Service) UpdateOverdueOrders(ctx context.Context) error {
 
 func (s *Service) GetOrderAdmin(ctx context.Context, orderID uint) (*models.Order, error) {
 	return s.queries.GetAdmin(ctx, orderID)
+}
+
+// UpdateOrderNotes replaces admin notes on an order.
+func (s *Service) UpdateOrderNotes(ctx context.Context, orderID uint, notes string) (*models.Order, error) {
+	if _, err := s.GetOrderAdmin(ctx, orderID); err != nil {
+		return nil, err
+	}
+	if err := s.commands.UpdateNotes(ctx, orderID, notes); err != nil {
+		return nil, err
+	}
+	return s.GetOrderAdmin(ctx, orderID)
+}
+
+// UpdateOrderTags replaces all tags on an order.
+func (s *Service) UpdateOrderTags(ctx context.Context, orderID uint, tags []string) (*models.Order, error) {
+	if _, err := s.GetOrderAdmin(ctx, orderID); err != nil {
+		return nil, err
+	}
+	if err := s.commands.ReplaceTags(ctx, orderID, tags); err != nil {
+		return nil, err
+	}
+	return s.GetOrderAdmin(ctx, orderID)
 }
 
 func (s *Service) AvailableTransitions(ctx context.Context, orderID uint) (*models.WorkflowState, []models.WorkflowTransition, error) {

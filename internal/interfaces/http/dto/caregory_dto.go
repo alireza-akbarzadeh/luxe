@@ -7,11 +7,14 @@ import (
 )
 
 type OrderFilters struct {
-	Status    string
-	FromDate  *time.Time
-	ToDate    *time.Time
-	MinAmount *float64
-	MaxAmount *float64
+	Status         string
+	PaymentStatus  string
+	ShipmentStatus string
+	Tag            string
+	FromDate       *time.Time
+	ToDate         *time.Time
+	MinAmount      *float64
+	MaxAmount      *float64
 }
 
 type OrderListFilters struct {

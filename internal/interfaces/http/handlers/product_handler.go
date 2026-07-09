@@ -194,6 +194,7 @@ func (ctrl *ProductHandler) GetOne(c *gin.Context) {
 // @Param        max_reviews query int    false "Maximum review count"
 // @Param        is_digital  query bool   false "Digital products only"
 // @Param        is_new      query bool   false "New products only"
+// @Param        ids         query []int  false "Filter by product IDs"
 // @Param        sort        query string false "Sort order" Enums(rating_desc,rating_asc,newest,reviews_desc,price_asc,price_desc)
 // @Success 200 {object} utils.Response{data=object{products=[]dto.ProductWithLike,total=int,limit=int,offset=int}}
 // @Failure      400 {object} utils.Response

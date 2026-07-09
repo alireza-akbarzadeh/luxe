@@ -56,3 +56,13 @@ func (c *Commands) MarkShipmentShipped(ctx context.Context, orderID uint, tracki
 	}
 	return c.writer.UpdateShipmentByOrderID(ctx, orderID, updates)
 }
+
+// UpdateNotes replaces admin notes on an order.
+func (c *Commands) UpdateNotes(ctx context.Context, orderID uint, notes string) error {
+	return c.writer.UpdateNotes(ctx, orderID, notes)
+}
+
+// ReplaceTags replaces all tags on an order.
+func (c *Commands) ReplaceTags(ctx context.Context, orderID uint, tags []string) error {
+	return c.writer.ReplaceTags(ctx, orderID, tags)
+}

@@ -20,6 +20,8 @@ func SetupOrderRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 		admin.GET("/:id/available-transitions", ctrl.Order.GetAvailableTransitions)
 		admin.POST("/:id/transition", ctrl.Order.PerformTransition)
 		admin.PUT("/:id/status", ctrl.Order.UpdateOrderStatus)
+		admin.PATCH("/:id/notes", ctrl.Order.UpdateOrderNotes)
+		admin.PUT("/:id/tags", ctrl.Order.UpdateOrderTags)
 	}
 
 	protected.GET(constants.RouteOrders+"/:id", ctrl.Order.GetOrder)

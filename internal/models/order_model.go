@@ -16,6 +16,8 @@ type Order struct {
 	OrderNumber     string  `gorm:"uniqueIndex;not null" json:"order_number"`
 	Status          string  `gorm:"not null;default:'pending'" json:"status"`
 	WorkflowStateID *uint   `gorm:"index" json:"workflow_state_id,omitempty"`
+	WorkflowState   *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
+	ParentOrderID   *uint   `gorm:"index" json:"parent_order_id,omitempty"`
 	TotalAmount     float64 `gorm:"type:decimal(10,2);not null" json:"total_amount"`
 	Currency        string  `gorm:"not null;default:'USD'" json:"currency"`
 	Notes           string  `json:"notes,omitempty"`
@@ -33,6 +35,7 @@ type Order struct {
 
 	Payment  *Payment  `gorm:"foreignKey:OrderID" json:"payment,omitempty"`
 	Shipment *Shipment `gorm:"foreignKey:OrderID" json:"shipment,omitempty"`
+	Tags     []OrderTag `gorm:"foreignKey:OrderID" json:"tags,omitempty"`
 }
 
 type OrderItem struct {

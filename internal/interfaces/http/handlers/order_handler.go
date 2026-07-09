@@ -160,8 +160,11 @@ func (ctrl *OrderHandler) GetUserOrders(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        limit       query   int     false  "Items per page"          default(20)
 // @Param        offset      query   int     false  "Offset"                  default(0)
-// @Param        status      query   string  false  "Order status"
-// @Param        from_date   query   string  false  "Start date (RFC3339)"
+// @Param        status          query   string  false  "Order status"
+// @Param        payment_status  query   string  false  "Payment status"
+// @Param        shipment_status query   string  false  "Shipment status"
+// @Param        tag             query   string  false  "Filter by order tag"
+// @Param        from_date       query   string  false  "Start date (RFC3339)"
 // @Param        to_date     query   string  false  "End date (RFC3339)"
 // @Param        min_amount  query   number  false  "Minimum amount"
 // @Param        max_amount  query   number  false  "Maximum amount"
@@ -207,6 +210,15 @@ func (ctrl *OrderHandler) ListAllOrders(c *gin.Context) {
 	}
 	if search := c.Query("search"); search != "" {
 		filters.Search = search
+	}
+	if paymentStatus := c.Query("payment_status"); paymentStatus != "" {
+		filters.PaymentStatus = paymentStatus
+	}
+	if shipmentStatus := c.Query("shipment_status"); shipmentStatus != "" {
+		filters.ShipmentStatus = shipmentStatus
+	}
+	if tag := c.Query("tag"); tag != "" {
+		filters.Tag = tag
 	}
 
 	orders, total, err := ctrl.orderService.GetAllOrders(c.Request.Context(), filters, limit, offset)
@@ -308,6 +320,78 @@ func (ctrl *OrderHandler) UpdateOrderStatus(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "order status updated successfully", nil)
+}
+
+// UpdateOrderNotes updates admin notes on an order.
+// @Summary      Update order notes (admin)
+// @Description  Replaces the notes field on an order.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path    int                          true  "Order ID"
+// @Param        request body    dto.UpdateOrderNotesRequest  true  "Notes update"
+// @Success      200     {object} utils.Response{data=dto.AdminOrderDetailResponse}
+// @Failure      400     {object} utils.Response
+// @Failure      401     {object} utils.Response
+// @Failure      403     {object} utils.Response
+// @Failure      404     {object} utils.Response
+// @Failure      500     {object} utils.Response
+// @Router       /orders/{id}/notes [patch]
+func (ctrl *OrderHandler) UpdateOrderNotes(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateOrderNotesRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	order, err := ctrl.orderService.UpdateOrderNotes(c.Request.Context(), orderID, req.Notes)
+	if err != nil {
+		RespondServiceError(c, err, "failed to update order notes")
+		return
+	}
+
+	utils.SuccessResponse(c, "order notes updated", dto.ToAdminOrderDetail(*order))
+}
+
+// UpdateOrderTags replaces all tags on an order.
+// @Summary      Update order tags (admin)
+// @Description  Replaces all admin tags on an order.
+// @Tags         Orders
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id      path    int                         true  "Order ID"
+// @Param        request body    dto.UpdateOrderTagsRequest  true  "Tags update"
+// @Success      200     {object} utils.Response{data=dto.AdminOrderDetailResponse}
+// @Failure      400     {object} utils.Response
+// @Failure      401     {object} utils.Response
+// @Failure      403     {object} utils.Response
+// @Failure      404     {object} utils.Response
+// @Failure      500     {object} utils.Response
+// @Router       /orders/{id}/tags [put]
+func (ctrl *OrderHandler) UpdateOrderTags(c *gin.Context) {
+	orderID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+
+	var req dto.UpdateOrderTagsRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	order, err := ctrl.orderService.UpdateOrderTags(c.Request.Context(), orderID, req.Tags)
+	if err != nil {
+		RespondServiceError(c, err, "failed to update order tags")
+		return
+	}
+
+	utils.SuccessResponse(c, "order tags updated", dto.ToAdminOrderDetail(*order))
 }
 
 // CancelOrder cancels an order belonging to the current user.

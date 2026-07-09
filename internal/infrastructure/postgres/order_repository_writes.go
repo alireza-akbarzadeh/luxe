@@ -2,27 +2,32 @@ package postgres
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"gorm.io/gorm"
 )
 
 // List implements apporder.Reader.
 func (r *OrderRepository) List(ctx context.Context, filter apporder.ListFilter) ([]models.Order, int64, error) {
 	q := OrderListQuery{
-		UserID:      filter.UserID,
-		StoreID:     filter.StoreID,
-		Status:      filter.Status,
-		Search:      filter.Search,
-		FromDate:    filter.FromDate,
-		ToDate:      filter.ToDate,
-		MinAmount:   filter.MinAmount,
-		MaxAmount:   filter.MaxAmount,
-		Limit:       filter.Limit,
-		Offset:      filter.Offset,
-		PreloadUser: filter.PreloadUser,
+		UserID:         filter.UserID,
+		StoreID:        filter.StoreID,
+		Status:         filter.Status,
+		PaymentStatus:  filter.PaymentStatus,
+		ShipmentStatus: filter.ShipmentStatus,
+		Tag:            filter.Tag,
+		Search:         filter.Search,
+		FromDate:       filter.FromDate,
+		ToDate:         filter.ToDate,
+		MinAmount:      filter.MinAmount,
+		MaxAmount:      filter.MaxAmount,
+		Limit:          filter.Limit,
+		Offset:         filter.Offset,
+		PreloadUser:    filter.PreloadUser,
 	}
 	return r.list(ctx, q)
 }
@@ -48,7 +53,11 @@ func (r *OrderRepository) list(ctx context.Context, q OrderListQuery) ([]models.
 		Preload("Items.Product").
 		Preload("Payment").
 		Preload("Shipment").
-		Order("created_at DESC")
+		Preload("WorkflowState").
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("tag ASC")
+		}).
+		Order("orders.created_at DESC")
 
 	if q.PreloadUser {
 		listQuery = listQuery.Preload("User")
@@ -87,6 +96,46 @@ func (r *OrderRepository) FindOverduePaid(ctx context.Context, cutoff time.Time,
 // Save persists order field changes.
 func (r *OrderRepository) Save(ctx context.Context, order *models.Order) error {
 	return r.db.WithContext(ctx).Save(order).Error
+}
+
+// UpdateNotes sets the notes field on an order.
+func (r *OrderRepository) UpdateNotes(ctx context.Context, orderID uint, notes string) error {
+	return r.db.WithContext(ctx).Model(&models.Order{}).Where("id = ?", orderID).Update("notes", notes).Error
+}
+
+// ReplaceTags replaces all tags on an order.
+func (r *OrderRepository) ReplaceTags(ctx context.Context, orderID uint, tags []string) error {
+	normalized := normalizeOrderTags(tags)
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("order_id = ?", orderID).Delete(&models.OrderTag{}).Error; err != nil {
+			return err
+		}
+		if len(normalized) == 0 {
+			return nil
+		}
+		rows := make([]models.OrderTag, len(normalized))
+		for i, tag := range normalized {
+			rows[i] = models.OrderTag{OrderID: orderID, Tag: tag}
+		}
+		return tx.Create(&rows).Error
+	})
+}
+
+func normalizeOrderTags(tags []string) []string {
+	seen := make(map[string]struct{}, len(tags))
+	out := make([]string, 0, len(tags))
+	for _, raw := range tags {
+		tag := strings.TrimSpace(strings.ToLower(raw))
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		out = append(out, tag)
+	}
+	return out
 }
 
 // UpdateShipmentByOrderID updates shipment columns for the given order.

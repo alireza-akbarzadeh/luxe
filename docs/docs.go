@@ -11490,6 +11490,24 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Payment status",
+                        "name": "payment_status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Shipment status",
+                        "name": "shipment_status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order tag",
+                        "name": "tag",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "description": "Start date (RFC3339)",
                         "name": "from_date",
                         "in": "query"
@@ -11820,6 +11838,94 @@ const docTemplate = `{
                 }
             }
         },
+        "/orders/{id}/notes": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces the notes field on an order.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Update order notes (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Notes update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateOrderNotesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminOrderDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/orders/{id}/status": {
             "put": {
                 "security": [
@@ -11861,6 +11967,94 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/tags": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Replaces all admin tags on an order.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Update order tags (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Tags update",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateOrderTagsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminOrderDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
@@ -12360,6 +12554,16 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "New products only",
                         "name": "is_new",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Filter by product IDs",
+                        "name": "ids",
                         "in": "query"
                     },
                     {
@@ -19718,14 +19922,29 @@ const docTemplate = `{
                 "order_number": {
                     "type": "string"
                 },
+                "parent_order_id": {
+                    "type": "integer"
+                },
                 "payment_method": {
                     "type": "string"
                 },
                 "payment_status": {
                     "type": "string"
                 },
+                "shipment_status": {
+                    "type": "string"
+                },
+                "shipping_address": {
+                    "$ref": "#/definitions/dto.AdminOrderShippingAddress"
+                },
                 "status": {
                     "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "total_amount": {
                     "type": "number"
@@ -19735,6 +19954,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -19817,11 +20039,46 @@ const docTemplate = `{
                 "payment_status": {
                     "type": "string"
                 },
+                "shipment_status": {
+                    "type": "string"
+                },
                 "status": {
                     "type": "string"
                 },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "total_amount": {
                     "type": "number"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
+                }
+            }
+        },
+        "dto.AdminOrderShippingAddress": {
+            "type": "object",
+            "properties": {
+                "address_line1": {
+                    "type": "string"
+                },
+                "address_line2": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
                 }
             }
         },
@@ -28318,6 +28575,27 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateOrderNotesRequest": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "type": "string",
+                    "maxLength": 2000
+                }
+            }
+        },
+        "dto.UpdateOrderTagsRequest": {
+            "type": "object",
+            "properties": {
+                "tags": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "dto.UpdateProductRequest": {
             "type": "object",
             "properties": {
@@ -28969,11 +29247,20 @@ const docTemplate = `{
                 "order_number": {
                     "type": "string"
                 },
+                "parent_order_id": {
+                    "type": "integer"
+                },
                 "payment_method": {
                     "type": "string"
                 },
                 "payment_status": {
                     "type": "string"
+                },
+                "shipment_status": {
+                    "type": "string"
+                },
+                "shipping_address": {
+                    "$ref": "#/definitions/dto.AdminOrderShippingAddress"
                 },
                 "status": {
                     "type": "string"
@@ -28984,6 +29271,12 @@ const docTemplate = `{
                 "store_subtotal": {
                     "type": "number"
                 },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "total_amount": {
                     "type": "number"
                 },
@@ -28992,6 +29285,9 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -29940,6 +30236,9 @@ const docTemplate = `{
                 "order_number": {
                     "type": "string"
                 },
+                "parent_order_id": {
+                    "type": "integer"
+                },
                 "payment": {
                     "$ref": "#/definitions/models.Payment"
                 },
@@ -29958,6 +30257,12 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.OrderTag"
+                    }
+                },
                 "total_amount": {
                     "type": "number"
                 },
@@ -29966,6 +30271,9 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/models.WorkflowState"
                 },
                 "workflow_state_id": {
                     "type": "integer"
@@ -30004,6 +30312,23 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.OrderTag": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "tag": {
                     "type": "string"
                 }
             }

@@ -11,17 +11,20 @@ import (
 
 // OrderListQuery filters order list queries at the persistence layer.
 type OrderListQuery struct {
-	UserID      *uint
-	StoreID     *uint
-	Status      string
-	Search      string
-	FromDate    *time.Time
-	ToDate      *time.Time
-	MinAmount   *float64
-	MaxAmount   *float64
-	Limit       int
-	Offset      int
-	PreloadUser bool
+	UserID         *uint
+	StoreID        *uint
+	Status         string
+	PaymentStatus  string
+	ShipmentStatus string
+	Tag            string
+	Search         string
+	FromDate       *time.Time
+	ToDate         *time.Time
+	MinAmount      *float64
+	MaxAmount      *float64
+	Limit          int
+	Offset         int
+	PreloadUser    bool
 }
 
 // OrderRepository implements order persistence with GORM.
@@ -67,6 +70,10 @@ func (r *OrderRepository) FindAdminByID(ctx context.Context, orderID uint) (*mod
 	var order models.Order
 	err := r.db.WithContext(ctx).
 		Preload("User").
+		Preload("WorkflowState").
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("tag ASC")
+		}).
 		Preload("Items.Product").
 		Preload("Items.Product.Category").
 		Preload("Payment").
@@ -93,7 +100,19 @@ func (r *OrderRepository) applyListFilters(query *gorm.DB, q OrderListQuery) *go
 		query = query.Where("user_id = ?", *q.UserID)
 	}
 	if q.Status != "" {
-		query = query.Where("status = ?", q.Status)
+		query = query.Where("orders.status = ?", q.Status)
+	}
+	if q.PaymentStatus != "" {
+		query = query.Joins("LEFT JOIN payments ON payments.order_id = orders.id AND payments.deleted_at IS NULL").
+			Where("payments.status = ?", q.PaymentStatus)
+	}
+	if q.ShipmentStatus != "" {
+		query = query.Joins("LEFT JOIN shipments ON shipments.order_id = orders.id AND shipments.deleted_at IS NULL").
+			Where("shipments.status = ?", q.ShipmentStatus)
+	}
+	if q.Tag != "" {
+		query = query.Joins("JOIN order_tags ON order_tags.order_id = orders.id").
+			Where("order_tags.tag = ?", q.Tag)
 	}
 	if q.FromDate != nil {
 		query = query.Where("created_at >= ?", q.FromDate)

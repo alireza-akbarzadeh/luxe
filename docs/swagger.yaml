@@ -348,18 +348,30 @@ definitions:
         type: string
       order_number:
         type: string
+      parent_order_id:
+        type: integer
       payment_method:
         type: string
       payment_status:
         type: string
+      shipment_status:
+        type: string
+      shipping_address:
+        $ref: '#/definitions/dto.AdminOrderShippingAddress'
       status:
         type: string
+      tags:
+        items:
+          type: string
+        type: array
       total_amount:
         type: number
       tracking_number:
         type: string
       updated_at:
         type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.AdminOrderItemView:
     properties:
@@ -413,10 +425,33 @@ definitions:
         type: string
       payment_status:
         type: string
+      shipment_status:
+        type: string
       status:
         type: string
+      tags:
+        items:
+          type: string
+        type: array
       total_amount:
         type: number
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.AdminOrderShippingAddress:
+    properties:
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      postal_code:
+        type: string
+      state:
+        type: string
     type: object
   dto.AdminRevenueDailyRow:
     properties:
@@ -6072,6 +6107,20 @@ definitions:
     - icon
     - label
     type: object
+  dto.UpdateOrderNotesRequest:
+    properties:
+      notes:
+        maxLength: 2000
+        type: string
+    type: object
+  dto.UpdateOrderTagsRequest:
+    properties:
+      tags:
+        items:
+          type: string
+        maxItems: 20
+        type: array
+    type: object
   dto.UpdateProductRequest:
     properties:
       allow_backorder:
@@ -6516,22 +6565,34 @@ definitions:
         type: string
       order_number:
         type: string
+      parent_order_id:
+        type: integer
       payment_method:
         type: string
       payment_status:
         type: string
+      shipment_status:
+        type: string
+      shipping_address:
+        $ref: '#/definitions/dto.AdminOrderShippingAddress'
       status:
         type: string
       store_items_count:
         type: integer
       store_subtotal:
         type: number
+      tags:
+        items:
+          type: string
+        type: array
       total_amount:
         type: number
       tracking_number:
         type: string
       updated_at:
         type: string
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.VendorOrderListData:
     properties:
@@ -7160,6 +7221,8 @@ definitions:
         type: string
       order_number:
         type: string
+      parent_order_id:
+        type: integer
       payment:
         $ref: '#/definitions/models.Payment'
       payment_id:
@@ -7172,12 +7235,18 @@ definitions:
         type: integer
       status:
         type: string
+      tags:
+        items:
+          $ref: '#/definitions/models.OrderTag'
+        type: array
       total_amount:
         type: number
       updated_at:
         type: string
       user_id:
         type: integer
+      workflow_state:
+        $ref: '#/definitions/models.WorkflowState'
       workflow_state_id:
         type: integer
     type: object
@@ -7203,6 +7272,17 @@ definitions:
         description: read-only
         type: number
       updated_at:
+        type: string
+    type: object
+  models.OrderTag:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      tag:
         type: string
     type: object
   models.Payment:
@@ -14785,6 +14865,18 @@ paths:
         in: query
         name: status
         type: string
+      - description: Payment status
+        in: query
+        name: payment_status
+        type: string
+      - description: Shipment status
+        in: query
+        name: shipment_status
+        type: string
+      - description: Filter by order tag
+        in: query
+        name: tag
+        type: string
       - description: Start date (RFC3339)
         in: query
         name: from_date
@@ -14941,6 +15033,60 @@ paths:
       summary: Cancel order
       tags:
       - Orders
+  /orders/{id}/notes:
+    patch:
+      consumes:
+      - application/json
+      description: Replaces the notes field on an order.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Notes update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateOrderNotesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminOrderDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update order notes (admin)
+      tags:
+      - Orders
   /orders/{id}/status:
     put:
       consumes:
@@ -14988,6 +15134,60 @@ paths:
       security:
       - BearerAuth: []
       summary: Update order status (admin)
+      tags:
+      - Orders
+  /orders/{id}/tags:
+    put:
+      consumes:
+      - application/json
+      description: Replaces all admin tags on an order.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tags update
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateOrderTagsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminOrderDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update order tags (admin)
       tags:
       - Orders
   /orders/{id}/transition:
@@ -15327,6 +15527,13 @@ paths:
         in: query
         name: is_new
         type: boolean
+      - collectionFormat: csv
+        description: Filter by product IDs
+        in: query
+        items:
+          type: integer
+        name: ids
+        type: array
       - description: Sort order
         enum:
         - rating_desc

@@ -10,17 +10,20 @@ import (
 
 // ListFilter mirrors admin/user order list filters at the application layer.
 type ListFilter struct {
-	UserID      *uint
-	StoreID     *uint
-	Status      string
-	Search      string
-	FromDate    *time.Time
-	ToDate      *time.Time
-	MinAmount   *float64
-	MaxAmount   *float64
-	Limit       int
-	Offset      int
-	PreloadUser bool
+	UserID         *uint
+	StoreID        *uint
+	Status         string
+	PaymentStatus  string
+	ShipmentStatus string
+	Tag            string
+	Search         string
+	FromDate       *time.Time
+	ToDate         *time.Time
+	MinAmount      *float64
+	MaxAmount      *float64
+	Limit          int
+	Offset         int
+	PreloadUser    bool
 }
 
 // VendorOrderStats aggregates order counts for a vendor store.
@@ -49,6 +52,8 @@ type Writer interface {
 	UpdateStatusByIDs(ctx context.Context, orderIDs []uint, status string) (int64, error)
 	FindOverduePaid(ctx context.Context, cutoff time.Time, excludedStatuses []string) ([]models.Order, error)
 	Save(ctx context.Context, order *models.Order) error
+	UpdateNotes(ctx context.Context, orderID uint, notes string) error
+	ReplaceTags(ctx context.Context, orderID uint, tags []string) error
 	UpdateShipmentByOrderID(ctx context.Context, orderID uint, updates map[string]interface{}) error
 }
 

@@ -113,16 +113,19 @@ type OrderResponse struct {
 
 // AdminOrderListItem is a row in the admin orders table.
 type AdminOrderListItem struct {
-	ID            uint      `json:"id"`
-	OrderNumber   string    `json:"order_number"`
-	Status        string    `json:"status"`
-	PaymentStatus string    `json:"payment_status"`
-	TotalAmount   float64   `json:"total_amount"`
-	Currency      string    `json:"currency"`
-	CustomerName  string    `json:"customer_name"`
-	CustomerEmail string    `json:"customer_email"`
-	ItemsCount    int       `json:"items_count"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID              uint       `json:"id"`
+	OrderNumber     string     `json:"order_number"`
+	Status          string     `json:"status"`
+	PaymentStatus   string     `json:"payment_status"`
+	ShipmentStatus  string     `json:"shipment_status,omitempty"`
+	WorkflowState   *StateView `json:"workflow_state,omitempty"`
+	Tags            []string   `json:"tags,omitempty"`
+	TotalAmount     float64    `json:"total_amount"`
+	Currency        string     `json:"currency"`
+	CustomerName    string     `json:"customer_name"`
+	CustomerEmail   string     `json:"customer_email"`
+	ItemsCount      int        `json:"items_count"`
+	CreatedAt       time.Time  `json:"created_at"`
 }
 
 // AdminOrderListData wraps paginated admin order rows.
@@ -145,11 +148,18 @@ func ToAdminOrderListItem(order models.Order) AdminOrderListItem {
 		paymentStatus = order.Payment.Status
 	}
 
-	return AdminOrderListItem{
+	shipmentStatus := ""
+	if order.Shipment != nil {
+		shipmentStatus = order.Shipment.Status
+	}
+
+	item := AdminOrderListItem{
 		ID:            order.ID,
 		OrderNumber:   order.OrderNumber,
 		Status:        order.Status,
 		PaymentStatus: paymentStatus,
+		ShipmentStatus: shipmentStatus,
+		Tags:          orderTagStrings(order.Tags),
 		TotalAmount:   order.TotalAmount,
 		Currency:      order.Currency,
 		CustomerName:  name,
@@ -157,6 +167,23 @@ func ToAdminOrderListItem(order models.Order) AdminOrderListItem {
 		ItemsCount:    len(order.Items),
 		CreatedAt:     order.CreatedAt,
 	}
+	if order.WorkflowState != nil {
+		item.WorkflowState = ToStateView(order.WorkflowState)
+	}
+	return item
+}
+
+func orderTagStrings(tags []models.OrderTag) []string {
+	if len(tags) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		if tag.Tag != "" {
+			out = append(out, tag.Tag)
+		}
+	}
+	return out
 }
 
 // ToAdminOrderListItems maps orders to admin list rows.
@@ -181,24 +208,49 @@ type AdminOrderItemView struct {
 	Category   string  `json:"category,omitempty"`
 }
 
+// AdminOrderShippingAddress is the shipment destination on an order.
+type AdminOrderShippingAddress struct {
+	AddressLine1 string `json:"address_line1"`
+	AddressLine2 string `json:"address_line2,omitempty"`
+	City         string `json:"city"`
+	State        string `json:"state,omitempty"`
+	PostalCode   string `json:"postal_code"`
+	Country      string `json:"country"`
+}
+
 // AdminOrderDetailResponse powers the admin order detail page.
 type AdminOrderDetailResponse struct {
-	ID              uint                 `json:"id"`
-	OrderNumber     string               `json:"order_number"`
-	Status          string               `json:"status"`
-	PaymentStatus   string               `json:"payment_status"`
-	PaymentMethod   string               `json:"payment_method,omitempty"`
-	TotalAmount     float64              `json:"total_amount"`
-	Currency        string               `json:"currency"`
-	Notes           string               `json:"notes,omitempty"`
-	CustomerName    string               `json:"customer_name"`
-	CustomerEmail   string               `json:"customer_email"`
-	TrackingNumber  string               `json:"tracking_number,omitempty"`
-	Carrier         string               `json:"carrier,omitempty"`
-	EstimatedDelivery *time.Time         `json:"estimated_delivery,omitempty"`
-	CreatedAt       time.Time            `json:"created_at"`
-	UpdatedAt       time.Time            `json:"updated_at"`
-	Items           []AdminOrderItemView `json:"items"`
+	ID                uint                       `json:"id"`
+	OrderNumber       string                     `json:"order_number"`
+	Status            string                     `json:"status"`
+	PaymentStatus     string                     `json:"payment_status"`
+	PaymentMethod     string                     `json:"payment_method,omitempty"`
+	ShipmentStatus    string                     `json:"shipment_status,omitempty"`
+	WorkflowState     *StateView                 `json:"workflow_state,omitempty"`
+	Tags              []string                   `json:"tags,omitempty"`
+	ParentOrderID     *uint                      `json:"parent_order_id,omitempty"`
+	TotalAmount       float64                    `json:"total_amount"`
+	Currency          string                     `json:"currency"`
+	Notes             string                     `json:"notes,omitempty"`
+	CustomerName      string                     `json:"customer_name"`
+	CustomerEmail     string                     `json:"customer_email"`
+	TrackingNumber    string                     `json:"tracking_number,omitempty"`
+	Carrier           string                     `json:"carrier,omitempty"`
+	EstimatedDelivery *time.Time                 `json:"estimated_delivery,omitempty"`
+	ShippingAddress   *AdminOrderShippingAddress `json:"shipping_address,omitempty"`
+	CreatedAt         time.Time                  `json:"created_at"`
+	UpdatedAt         time.Time                  `json:"updated_at"`
+	Items             []AdminOrderItemView       `json:"items"`
+}
+
+// UpdateOrderNotesRequest updates admin/customer notes on an order.
+type UpdateOrderNotesRequest struct {
+	Notes string `json:"notes" validate:"max=2000"`
+}
+
+// UpdateOrderTagsRequest replaces admin tags on an order.
+type UpdateOrderTagsRequest struct {
+	Tags []string `json:"tags" validate:"max=20,dive,max=64"`
 }
 
 // ToAdminOrderDetail maps a fully preloaded order to the admin detail response.
@@ -252,6 +304,8 @@ func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
 		Status:        order.Status,
 		PaymentStatus: paymentStatus,
 		PaymentMethod: paymentMethod,
+		Tags:          orderTagStrings(order.Tags),
+		ParentOrderID: order.ParentOrderID,
 		TotalAmount:   order.TotalAmount,
 		Currency:      order.Currency,
 		Notes:         order.Notes,
@@ -261,12 +315,24 @@ func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
 		UpdatedAt:     order.UpdatedAt,
 		Items:         items,
 	}
+	if order.WorkflowState != nil {
+		detail.WorkflowState = ToStateView(order.WorkflowState)
+	}
 
 	if order.Shipment != nil {
+		detail.ShipmentStatus = order.Shipment.Status
 		detail.TrackingNumber = order.Shipment.TrackingNumber
 		detail.Carrier = order.Shipment.Carrier
 		if order.Shipment.EstimatedDelivery != nil {
 			detail.EstimatedDelivery = order.Shipment.EstimatedDelivery
+		}
+		detail.ShippingAddress = &AdminOrderShippingAddress{
+			AddressLine1: order.Shipment.AddressLine1,
+			AddressLine2: order.Shipment.AddressLine2,
+			City:         order.Shipment.City,
+			State:        order.Shipment.State,
+			PostalCode:   order.Shipment.PostalCode,
+			Country:      order.Shipment.Country,
 		}
 	}
 
