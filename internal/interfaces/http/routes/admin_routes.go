@@ -62,4 +62,8 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	roles := admin.Group("")
 	roles.Use(middleware.ModuleGuard("roles"))
 	setupRoleRoutes(roles, ctrl)
+
+	teams := admin.Group("")
+	teams.Use(middleware.ModuleGuard("teams"))
+	setupTeamRoutes(teams, ctrl)
 }

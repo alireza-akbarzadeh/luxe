@@ -46,6 +46,7 @@ type Container struct {
 	Support   *SupportHandler
 	Invoice   *InvoiceHandler
 	Role      *RoleHandler
+	Team      *TeamHandler
 	Inventory *InventoryHandler
 	Push      *PushHandler
 	Ai        *AiHandler
@@ -101,6 +102,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Support:   NewSupportHandler(apps.Support.Commands, apps.Support.Queries),
 		Invoice:   NewInvoiceHandler(apps.Invoice.Commands, apps.Invoice.Queries),
 		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
+		Team:      NewTeamHandler(apps.Team.Commands, apps.Team.Queries),
 		Inventory: NewInventoryHandler(apps.Inventory),
 		Push:      NewPushHandler(apps.Push),
 		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}, apps.UserLike.Queries, shoppingMemoryAdapter{home: postgres.NewHomeRepository(db), wishlist: apps.UserLike.Queries}, replenishmentAdapter{orders: postgres.NewOrderRepository(db)}),

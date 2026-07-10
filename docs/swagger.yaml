@@ -34,6 +34,18 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.AddTeamMemberRequest:
+    properties:
+      role:
+        enum:
+        - lead
+        - member
+        type: string
+      user_id:
+        type: integer
+    required:
+    - user_id
+    type: object
   dto.AddressSingleResponse:
     properties:
       address:
@@ -3956,6 +3968,23 @@ definitions:
     - message
     - subject
     type: object
+  dto.CreateTeamRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 120
+        minLength: 1
+        type: string
+      slug:
+        maxLength: 120
+        minLength: 1
+        type: string
+    required:
+    - name
+    - slug
+    type: object
   dto.CreateWorkflowRequest:
     properties:
       description:
@@ -6792,6 +6821,42 @@ definitions:
         maxItems: 4
         type: array
     type: object
+  dto.TeamMemberResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      last_name:
+        type: string
+      role:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.TeamResponse:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      member_count:
+        type: integer
+      members:
+        items:
+          $ref: '#/definitions/dto.TeamMemberResponse'
+        type: array
+      name:
+        type: string
+      slug:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.ToggleLikeRequest:
     properties:
       like:
@@ -7499,6 +7564,18 @@ definitions:
         type: string
     required:
     - status
+    type: object
+  dto.UpdateTeamRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      name:
+        maxLength: 120
+        minLength: 1
+        type: string
+    required:
+    - name
     type: object
   dto.UpdateUserRoleRequest:
     properties:
@@ -13375,6 +13452,189 @@ paths:
       summary: Suggest AI reply (admin)
       tags:
       - Support
+  /admin/teams:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.TeamResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List teams
+      tags:
+      - Admin Teams
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TeamResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create team
+      tags:
+      - Admin Teams
+  /admin/teams/{id}:
+    delete:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete team
+      tags:
+      - Admin Teams
+    get:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TeamResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get team with members
+      tags:
+      - Admin Teams
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Team data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TeamResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update team
+      tags:
+      - Admin Teams
+  /admin/teams/{id}/members:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Member data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddTeamMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TeamResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Add team member
+      tags:
+      - Admin Teams
+  /admin/teams/{id}/members/{userId}:
+    delete:
+      parameters:
+      - description: Team ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TeamResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Remove team member
+      tags:
+      - Admin Teams
   /admin/users:
     get:
       description: Returns paginated users with optional filters by search term, email,

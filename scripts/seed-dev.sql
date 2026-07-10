@@ -368,6 +368,8 @@ FROM (VALUES
   ('menus.write', 'menus', 'Manage admin and site menus'),
   ('roles.read', 'roles', 'View roles and permissions'),
   ('roles.write', 'roles', 'Manage roles and permissions'),
+  ('teams.read', 'teams', 'View teams and members'),
+  ('teams.write', 'teams', 'Manage teams and membership'),
   ('settings.read', 'settings', 'View platform settings'),
   ('settings.write', 'settings', 'Update platform settings')
 ) AS v(key, module, description)

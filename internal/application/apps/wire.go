@@ -36,6 +36,7 @@ import (
 	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
 	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
 	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
+	appteam "github.com/alireza-akbarzadeh/luxe/internal/application/team"
 	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
@@ -123,6 +124,11 @@ type roleApp struct {
 	Queries  *approle.Queries
 }
 
+type teamApp struct {
+	Commands *appteam.Commands
+	Queries  *appteam.Queries
+}
+
 type invoiceApp struct {
 	Commands *appinvoice.Commands
 	Queries  *appinvoice.Queries
@@ -169,6 +175,7 @@ type Applications struct {
 	Return   returnApp
 	Support  supportApp
 	Role     roleApp
+	Team     teamApp
 	Invoice  invoiceApp
 	Settings settingsApp
 	Coupon   *appcoupon.Service
@@ -247,6 +254,8 @@ func WireApplications(
 	supportRepo := postgres.NewSupportTicketRepository(db)
 	roleRepo := postgres.NewRoleRepository(db)
 	roleQueries := approle.NewQueries(roleRepo)
+	teamRepo := postgres.NewTeamRepository(db)
+	teamQueries := appteam.NewQueries(teamRepo)
 	invoiceRepo := postgres.NewInvoiceRepository(db)
 
 	frontendURL := ""
@@ -324,6 +333,10 @@ func WireApplications(
 		Role: roleApp{
 			Commands: approle.NewCommands(roleRepo, roleQueries),
 			Queries:  roleQueries,
+		},
+		Team: teamApp{
+			Commands: appteam.NewCommands(teamRepo, teamQueries),
+			Queries:  teamQueries,
 		},
 		Invoice: invoiceApp{
 			Commands: appinvoice.NewCommands(invoiceRepo, jobQueue, frontendURL),
