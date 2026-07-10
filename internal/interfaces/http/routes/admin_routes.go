@@ -19,6 +19,7 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 		dashboard.GET("/dashboard/export", ctrl.Admin.ExportDashboardCSV)
 		dashboard.GET("/reports/revenue", ctrl.Admin.GetRevenueReport)
 		dashboard.GET("/analytics/sales", ctrl.Admin.GetSalesAnalytics)
+		dashboard.GET("/ai/business-insights", ctrl.Admin.GetBusinessInsights)
 		dashboard.GET("/sales-feed/snapshot", ctrl.Admin.GetSalesFeedSnapshot)
 		dashboard.GET("/nav/preferences", ctrl.Admin.GetNavPreferences)
 		dashboard.PUT("/nav/preferences", ctrl.Admin.UpdateNavPreferences)

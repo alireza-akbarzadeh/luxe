@@ -679,6 +679,69 @@
                 }
             }
         },
+        "/admin/ai/business-insights": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns revenue trends, product opportunities, churn risks, inventory risks, and suggested actions.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "AI business insights (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Period: 7d, 30d, or 90d (default 30d)",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminBusinessInsightsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/ai/generate": {
             "post": {
                 "security": [
@@ -780,6 +843,69 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/analytics/sales": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns revenue, profit, orders, customers, products, funnel, and cohort metrics for the selected period.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Sales analytics (admin)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Period: 7d, 30d, or 90d (default 30d)",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminSalesAnalyticsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -7269,6 +7395,125 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/vendors/kpis": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns store counts by status and verification for the vendors admin hub",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Vendor KPIs (admin)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminVendorKPIsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/vendors/{id}/performance": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns revenue, orders, products, and chart data for a vendor store",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Vendor performance (admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Store ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Period: 7d, 30d, or 90d (default 30d)",
+                        "name": "period",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.AdminVendorPerformanceResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -21967,6 +22212,58 @@
                 }
             }
         },
+        "dto.AdminBusinessInsight": {
+            "type": "object",
+            "properties": {
+                "action_href": {
+                    "type": "string"
+                },
+                "action_label": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "severity": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AdminBusinessInsightsResponse": {
+            "type": "object",
+            "properties": {
+                "generated_at": {
+                    "type": "string"
+                },
+                "insights": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminBusinessInsight"
+                    }
+                },
+                "opportunity_count": {
+                    "type": "integer"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "revenue_trend": {
+                    "type": "string"
+                },
+                "risk_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.AdminCustomerDetailResponse": {
             "type": "object",
             "properties": {
@@ -22707,6 +23004,99 @@
                 }
             }
         },
+        "dto.AdminSalesAnalyticsKPIs": {
+            "type": "object",
+            "properties": {
+                "avg_order_value": {
+                    "$ref": "#/definitions/dto.AdminDashboardKPI"
+                },
+                "customers": {
+                    "$ref": "#/definitions/dto.AdminDashboardKPI"
+                },
+                "orders": {
+                    "$ref": "#/definitions/dto.AdminDashboardKPI"
+                },
+                "profit": {
+                    "$ref": "#/definitions/dto.AdminDashboardKPI"
+                },
+                "revenue": {
+                    "$ref": "#/definitions/dto.AdminDashboardKPI"
+                }
+            }
+        },
+        "dto.AdminSalesAnalyticsResponse": {
+            "type": "object",
+            "properties": {
+                "cohorts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminSalesCohortRow"
+                    }
+                },
+                "customer_segments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminSalesSegmentCount"
+                    }
+                },
+                "generated_at": {
+                    "type": "string"
+                },
+                "kpis": {
+                    "$ref": "#/definitions/dto.AdminSalesAnalyticsKPIs"
+                },
+                "order_funnel": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminSalesFunnelStep"
+                    }
+                },
+                "orders_by_status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminDashboardStatusCount"
+                    }
+                },
+                "period": {
+                    "type": "string"
+                },
+                "profit_series": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminSalesProfitPoint"
+                    }
+                },
+                "revenue_series": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminDashboardSeriesPoint"
+                    }
+                },
+                "top_products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminDashboardTopProduct"
+                    }
+                }
+            }
+        },
+        "dto.AdminSalesCohortRow": {
+            "type": "object",
+            "properties": {
+                "cohort": {
+                    "type": "string"
+                },
+                "customers": {
+                    "type": "integer"
+                },
+                "repeat_rate": {
+                    "type": "number"
+                },
+                "revenue": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.AdminSalesFeedEvent": {
             "type": "object",
             "properties": {
@@ -22759,6 +23149,48 @@
                 },
                 "total_revenue_today": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.AdminSalesFunnelStep": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "rate": {
+                    "type": "number"
+                },
+                "step": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AdminSalesProfitPoint": {
+            "type": "object",
+            "properties": {
+                "cost": {
+                    "type": "number"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "profit": {
+                    "type": "number"
+                },
+                "revenue": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.AdminSalesSegmentCount": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "segment": {
+                    "type": "string"
                 }
             }
         },
@@ -23005,6 +23437,129 @@
                 },
                 "total_spent": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.AdminVendorDailySales": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "orders": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.AdminVendorKPIsResponse": {
+            "type": "object",
+            "properties": {
+                "active_count": {
+                    "type": "integer"
+                },
+                "pending_count": {
+                    "type": "integer"
+                },
+                "suspended_count": {
+                    "type": "integer"
+                },
+                "total_stores": {
+                    "type": "integer"
+                },
+                "verified_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AdminVendorPerformanceResponse": {
+            "type": "object",
+            "properties": {
+                "current_sales": {
+                    "$ref": "#/definitions/dto.AdminVendorSalesSummary"
+                },
+                "daily_sales": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminVendorDailySales"
+                    }
+                },
+                "generated_at": {
+                    "type": "string"
+                },
+                "low_stock_count": {
+                    "type": "integer"
+                },
+                "order_total": {
+                    "type": "integer"
+                },
+                "orders_by_status": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "period": {
+                    "type": "string"
+                },
+                "previous_sales": {
+                    "$ref": "#/definitions/dto.AdminVendorSalesSummary"
+                },
+                "product_total": {
+                    "type": "integer"
+                },
+                "products_by_status": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                },
+                "store": {
+                    "$ref": "#/definitions/dto.AdminStoreResponse"
+                },
+                "top_products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AdminVendorTopProduct"
+                    }
+                }
+            }
+        },
+        "dto.AdminVendorSalesSummary": {
+            "type": "object",
+            "properties": {
+                "avg_order_value": {
+                    "type": "number"
+                },
+                "order_count": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "number"
+                },
+                "units_sold": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AdminVendorTopProduct": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "revenue": {
+                    "type": "number"
+                },
+                "units": {
+                    "type": "integer"
                 }
             }
         },

@@ -65,6 +65,38 @@ func (q *Queries) ListAdminStores(limit, offset int, filters dto.AdminStoreFilte
 	return stores, total, nil
 }
 
+// GetAdminVendorKPIs returns vendor hub KPI counts for admin.
+func (q *Queries) GetAdminVendorKPIs(ctx context.Context) (*dto.AdminVendorKPIsResponse, error) {
+	total, err := q.repo.CountAll(ctx)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	pending, err := q.repo.CountByStatus(ctx, constants.StoreStatusPending)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	active, err := q.repo.CountByStatus(ctx, constants.StoreStatusActive)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	suspended, err := q.repo.CountByStatus(ctx, constants.StoreStatusSuspended)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+	verified, err := q.repo.CountVerified(ctx)
+	if err != nil {
+		return nil, utils.ErrInternal(err)
+	}
+
+	return &dto.AdminVendorKPIsResponse{
+		TotalStores:    total,
+		PendingCount:   pending,
+		ActiveCount:    active,
+		SuspendedCount: suspended,
+		VerifiedCount:  verified,
+	}, nil
+}
+
 // GetVendorStore returns a store owned by the seller (or any store for admins).
 func (q *Queries) GetVendorStore(ctx context.Context, storeID, userID uint, role string) (*models.Store, error) {
 	isAdmin := role == constants.RoleAdmin || role == constants.RoleModerator

@@ -117,6 +117,27 @@ func (r *StoreRepository) Save(store *models.Store) error {
 	return r.db.Save(store).Error
 }
 
+// CountAll returns total non-deleted stores.
+func (r *StoreRepository) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Store{}).Count(&count).Error
+	return count, err
+}
+
+// CountByStatus returns stores matching a status value.
+func (r *StoreRepository) CountByStatus(ctx context.Context, status string) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Store{}).Where("status = ?", status).Count(&count).Error
+	return count, err
+}
+
+// CountVerified returns stores marked as verified.
+func (r *StoreRepository) CountVerified(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Store{}).Where("is_verified = ?", true).Count(&count).Error
+	return count, err
+}
+
 // DeleteByID soft-deletes a store.
 func (r *StoreRepository) DeleteByID(id uint) (int64, error) {
 	result := r.db.Delete(&models.Store{}, id)

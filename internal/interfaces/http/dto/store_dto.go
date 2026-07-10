@@ -148,6 +148,59 @@ func ToAdminStoreResponse(ctx context.Context, store *models.Store) AdminStoreRe
 	return resp
 }
 
+// AdminVendorKPIsResponse powers the admin vendors hub KPI cards.
+type AdminVendorKPIsResponse struct {
+	TotalStores    int64 `json:"total_stores"`
+	PendingCount   int64 `json:"pending_count"`
+	ActiveCount    int64 `json:"active_count"`
+	SuspendedCount int64 `json:"suspended_count"`
+	VerifiedCount  int64 `json:"verified_count"`
+}
+
+// AdminVendorPerformanceFilters are query params for GET /admin/vendors/{id}/performance.
+type AdminVendorPerformanceFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+}
+
+// AdminVendorSalesSummary is period revenue metrics for a vendor store.
+type AdminVendorSalesSummary struct {
+	Revenue       float64 `json:"revenue"`
+	OrderCount    int64   `json:"order_count"`
+	UnitsSold     int64   `json:"units_sold"`
+	AvgOrderValue float64 `json:"avg_order_value"`
+}
+
+// AdminVendorTopProduct is a top-selling product row for vendor performance.
+type AdminVendorTopProduct struct {
+	ProductID uint    `json:"product_id"`
+	Name      string  `json:"name"`
+	Revenue   float64 `json:"revenue"`
+	Units     int64   `json:"units"`
+}
+
+// AdminVendorDailySales is a daily revenue point for vendor performance charts.
+type AdminVendorDailySales struct {
+	Date    string  `json:"date"`
+	Revenue float64 `json:"revenue"`
+	Orders  int64   `json:"orders"`
+}
+
+// AdminVendorPerformanceResponse powers the admin vendor detail performance tab.
+type AdminVendorPerformanceResponse struct {
+	Period        string                  `json:"period"`
+	GeneratedAt   time.Time               `json:"generated_at"`
+	Store         AdminStoreResponse      `json:"store"`
+	CurrentSales  AdminVendorSalesSummary `json:"current_sales"`
+	PreviousSales AdminVendorSalesSummary `json:"previous_sales"`
+	OrderTotal    int64                   `json:"order_total"`
+	OrdersByStatus map[string]int64       `json:"orders_by_status"`
+	ProductTotal  int64                   `json:"product_total"`
+	ProductsByStatus map[string]int64      `json:"products_by_status"`
+	LowStockCount int64                   `json:"low_stock_count"`
+	TopProducts   []AdminVendorTopProduct `json:"top_products"`
+	DailySales    []AdminVendorDailySales `json:"daily_sales"`
+}
+
 func ToStoreResponse(ctx context.Context, store *models.Store) StoreResponse {
 	cats := make([]CategoryResponse, len(store.Categories))
 	for i := range store.Categories {

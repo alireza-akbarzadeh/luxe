@@ -296,6 +296,66 @@ func (ctrl *StoreHandler) ListStoresAdmin(c *gin.Context) {
 	})
 }
 
+// GetAdminVendorKPIs returns vendor hub KPI counts for admin.
+// @Summary      Vendor KPIs (admin)
+// @Description  Returns store counts by status and verification for the vendors admin hub
+// @Tags         Vendors
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.AdminVendorKPIsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/vendors/kpis [get]
+func (ctrl *StoreHandler) GetAdminVendorKPIs(c *gin.Context) {
+	kpis, err := ctrl.queries.GetAdminVendorKPIs(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get vendor KPIs")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, kpis)
+}
+
+// GetAdminVendorPerformance returns sales and operational metrics for a vendor store.
+// @Summary      Vendor performance (admin)
+// @Description  Returns revenue, orders, products, and chart data for a vendor store
+// @Tags         Vendors
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id     path  int    true  "Store ID"
+// @Param        period query string false "Period: 7d, 30d, or 90d (default 30d)"
+// @Success      200 {object} utils.Response{data=dto.AdminVendorPerformanceResponse}
+// @Failure      400 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/vendors/{id}/performance [get]
+func (ctrl *StoreHandler) GetAdminVendorPerformance(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid store id")
+		return
+	}
+
+	var filters dto.AdminVendorPerformanceFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+
+	days := 30
+	switch filters.Period {
+	case "7d":
+		days = 7
+	case "90d":
+		days = 90
+	}
+
+	report, err := ctrl.vendorInsights.LoadAdminPerformance(c.Request.Context(), uint(id), days)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get vendor performance")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
+}
+
 // CreateStore creates a new store (admin only).
 // @Summary      Create store
 // @Description  Create a new store (admin only)

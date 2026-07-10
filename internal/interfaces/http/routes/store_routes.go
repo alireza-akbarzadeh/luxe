@@ -38,6 +38,13 @@ func SetupStoreRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Contain
 		adminStores.DELETE("/:id", ctrl.Store.DeleteStore)
 	}
 
+	adminVendors := protected.Group("/admin/vendors")
+	adminVendors.Use(middleware.ModuleGuard("products"))
+	{
+		adminVendors.GET("/kpis", ctrl.Store.GetAdminVendorKPIs)
+		adminVendors.GET("/:id/performance", ctrl.Store.GetAdminVendorPerformance)
+	}
+
 	vendorStores := protected.Group("/vendor/stores")
 	{
 		vendorStores.GET("", ctrl.Store.ListVendorStores)

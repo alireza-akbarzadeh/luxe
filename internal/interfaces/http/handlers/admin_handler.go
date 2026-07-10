@@ -246,6 +246,35 @@ func (ctrl *AdminHandler) GetSalesAnalytics(c *gin.Context) {
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
 }
 
+// GetBusinessInsights returns categorized business insights for the admin AI insights page.
+// @Summary      AI business insights (admin)
+// @Description  Returns revenue trends, product opportunities, churn risks, inventory risks, and suggested actions.
+// @Tags         Admin
+// @Produce      json
+// @Security     BearerAuth
+// @Param        period  query  string  false  "Period: 7d, 30d, or 90d (default 30d)"
+// @Success      200 {object} utils.Response{data=dto.AdminBusinessInsightsResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      500 {object} utils.Response
+// @Router       /admin/ai/business-insights [get]
+func (ctrl *AdminHandler) GetBusinessInsights(c *gin.Context) {
+	var filters dto.AdminBusinessInsightsFilters
+	if !utils.BindAndValidateQuery(c, &filters, ctrl.validate) {
+		return
+	}
+	if filters.Period == "" {
+		filters.Period = "30d"
+	}
+
+	report, err := ctrl.adminService.GetBusinessInsights(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to get business insights")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, report)
+}
+
 // GetSalesFeedSnapshot returns today's sales metrics and recent activity for the live feed page.
 // @Summary      Live sales feed snapshot
 // @Description  Returns today's order totals, status breakdown, revenue series, and recent feed events.

@@ -219,6 +219,32 @@ type AdminDashboardInsight struct {
 	ActionHref  string `json:"action_href,omitempty"`
 }
 
+// AdminBusinessInsight is a categorized insight for the AI business insights page.
+type AdminBusinessInsight struct {
+	ID          string `json:"id"`
+	Category    string `json:"category"`
+	Severity    string `json:"severity"`
+	Title       string `json:"title"`
+	Body        string `json:"body"`
+	ActionLabel string `json:"action_label,omitempty"`
+	ActionHref  string `json:"action_href,omitempty"`
+}
+
+// AdminBusinessInsightsFilters are query params for GET /admin/ai/business-insights.
+type AdminBusinessInsightsFilters struct {
+	Period string `form:"period" validate:"omitempty,oneof=7d 30d 90d"`
+}
+
+// AdminBusinessInsightsResponse powers the AI business insights admin page.
+type AdminBusinessInsightsResponse struct {
+	Period             string                 `json:"period"`
+	GeneratedAt        time.Time              `json:"generated_at"`
+	RevenueTrend       string                 `json:"revenue_trend"`
+	RiskCount          int                    `json:"risk_count"`
+	OpportunityCount   int                    `json:"opportunity_count"`
+	Insights           []AdminBusinessInsight `json:"insights"`
+}
+
 // AdminDashboardHealth summarizes platform operational health.
 type AdminDashboardHealth struct {
 	Status       string  `json:"status"`
