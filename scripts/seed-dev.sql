@@ -433,3 +433,9 @@ WHERE r.slug = 'catalog-manager'
   AND NOT EXISTS (
     SELECT 1 FROM role_permissions rp WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
+
+-- Keep catalog search index in sync for demo rows inserted without search_document.
+UPDATE products
+SET search_document = trim(both FROM concat_ws(' ', name, description, sku, barcode, slug, array_to_string(tags, ' ')))
+WHERE (search_document IS NULL OR btrim(search_document) = '')
+  AND slug LIKE 'pdp-demo%';

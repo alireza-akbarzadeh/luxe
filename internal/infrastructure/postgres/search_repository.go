@@ -22,17 +22,44 @@ func NewSearchRepository(db *gorm.DB) *SearchRepository {
 	return &SearchRepository{db: db}
 }
 
-// catalogSearchWhere builds a qualified FTS clause for a single table (products or categories).
-// Columns are table-qualified so JOINs do not produce ambiguous references.
+// productSearchWhere matches storefront products by FTS, indexed document, and raw catalog fields.
+// Falls back to name/description/sku/tags so seeded rows without search_document still match.
+func productSearchWhere(query string) (string, []any) {
+	normalized := i18n.NormalizeSearchQuery(query)
+	if normalized == "" {
+		return "1=0", nil
+	}
+	like := "%" + normalized + "%"
+	return `(
+		products.search_vector @@ plainto_tsquery('simple', ?)
+		OR products.search_vector @@ websearch_to_tsquery('simple', ?)
+		OR COALESCE(products.search_document, '') ILIKE ?
+		OR products.name ILIKE ?
+		OR COALESCE(products.description, '') ILIKE ?
+		OR COALESCE(products.sku, '') ILIKE ?
+		OR COALESCE(array_to_string(products.tags, ' '), '') ILIKE ?
+		OR similarity(COALESCE(NULLIF(products.search_document, ''), products.name), ?) > 0.2
+		OR word_similarity(?, COALESCE(NULLIF(products.search_document, ''), products.name)) > 0.35
+	)`, []any{normalized, normalized, like, like, like, like, like, normalized, normalized}
+}
+
+// catalogSearchWhere builds a qualified FTS clause for categories (and similar catalog tables).
 func catalogSearchWhere(table string, query string) (string, []any) {
 	normalized := i18n.NormalizeSearchQuery(query)
 	if normalized == "" {
 		return "1=0", nil
 	}
 	like := "%" + normalized + "%"
-	return fmt.Sprintf(`(%s.search_vector @@ plainto_tsquery('simple', ?)
-		OR %s.search_document ILIKE ?
-		OR similarity(%s.search_document, ?) > 0.25)`, table, table, table), []any{normalized, like, normalized}
+	return fmt.Sprintf(`(
+		%s.search_vector @@ plainto_tsquery('simple', ?)
+		OR %s.search_vector @@ websearch_to_tsquery('simple', ?)
+		OR COALESCE(%s.search_document, '') ILIKE ?
+		OR %s.name ILIKE ?
+		OR COALESCE(%s.description, '') ILIKE ?
+		OR similarity(COALESCE(NULLIF(%s.search_document, ''), %s.name), ?) > 0.2
+		OR word_similarity(?, COALESCE(NULLIF(%s.search_document, ''), %s.name)) > 0.35
+	)`, table, table, table, table, table, table, table, table, table),
+		[]any{normalized, normalized, like, like, like, normalized, normalized}
 }
 
 func storeSearchWhere(query string) (string, []any) {
@@ -41,15 +68,20 @@ func storeSearchWhere(query string) (string, []any) {
 		return "1=0", nil
 	}
 	like := "%" + normalized + "%"
-	return `search_vector @@ plainto_tsquery('english', ?) OR name ILIKE ?`, []any{normalized, like}
+	return `(
+		search_vector @@ plainto_tsquery('english', ?)
+		OR search_vector @@ websearch_to_tsquery('english', ?)
+		OR name ILIKE ?
+		OR COALESCE(description, '') ILIKE ?
+	)`, []any{normalized, normalized, like, like}
 }
 
 func (r *SearchRepository) applyProductFilters(query *gorm.DB, req dto.SearchRequest) *gorm.DB {
+	query = query.Where("status = ?", constants.ProductStatusActive)
+
 	if req.Query != "" {
-		clause, args := catalogSearchWhere("products", req.Query)
+		clause, args := productSearchWhere(req.Query)
 		query = query.Where(clause, args...)
-	} else {
-		query = query.Where("status = ?", constants.ProductStatusActive)
 	}
 
 	if req.CategorySlug != "" {
@@ -103,7 +135,8 @@ func (r *SearchRepository) applyProductSort(query *gorm.DB, req dto.SearchReques
 		if req.Query != "" {
 			normalized := i18n.NormalizeSearchQuery(req.Query)
 			return query.Order(gorm.Expr(
-				`ts_rank(products.search_vector, plainto_tsquery('simple', ?)) DESC, similarity(products.search_document, ?) DESC`,
+				`ts_rank(products.search_vector, plainto_tsquery('simple', ?)) DESC,
+				 word_similarity(?, COALESCE(NULLIF(products.search_document, ''), products.name)) DESC`,
 				normalized, normalized,
 			))
 		}
@@ -149,7 +182,8 @@ func (r *SearchRepository) FindCategoriesByQuery(query string) ([]*models.Catego
 	var categories []*models.Category
 	err := r.db.Where(clause, args...).
 		Order(gorm.Expr(
-			`ts_rank(categories.search_vector, plainto_tsquery('simple', ?)) DESC, similarity(categories.search_document, ?) DESC`,
+			`ts_rank(categories.search_vector, plainto_tsquery('simple', ?)) DESC,
+			 word_similarity(?, COALESCE(NULLIF(categories.search_document, ''), categories.name)) DESC`,
 			normalized, normalized,
 		)).
 		Limit(searchFacetLimit).
@@ -159,9 +193,12 @@ func (r *SearchRepository) FindCategoriesByQuery(query string) ([]*models.Catego
 
 // FindProductsByCatalogQuery returns products for autocomplete suggestions.
 func (r *SearchRepository) FindProductsByCatalogQuery(query string, limit int) ([]models.Product, error) {
-	clause, args := catalogSearchWhere("products", query)
+	clause, args := productSearchWhere(query)
 	var products []models.Product
-	err := r.db.Where(clause, args...).Limit(limit).Find(&products).Error
+	err := r.db.Where("status = ?", constants.ProductStatusActive).
+		Where(clause, args...).
+		Limit(limit).
+		Find(&products).Error
 	return products, err
 }
 
