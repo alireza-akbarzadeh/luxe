@@ -43,9 +43,12 @@ func (r *OrderRepository) FindByIDAndUserID(ctx context.Context, orderID, userID
 	var order models.Order
 	err := r.db.WithContext(ctx).
 		Where("id = ? AND user_id = ?", orderID, userID).
+		Preload("User").
 		Preload("Items.Product").
+		Preload("Items.Product.Category").
 		Preload("Payment").
 		Preload("Shipment").
+		Preload("Shipment.Provider").
 		First(&order).Error
 	if err != nil {
 		return nil, err

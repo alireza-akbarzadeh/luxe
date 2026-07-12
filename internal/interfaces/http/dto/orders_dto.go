@@ -241,6 +241,7 @@ type AdminOrderDetailResponse struct {
 	CreatedAt         time.Time                  `json:"created_at"`
 	UpdatedAt         time.Time                  `json:"updated_at"`
 	Items             []AdminOrderItemView       `json:"items"`
+	Tracking          *OrderTrackingDetailView   `json:"tracking,omitempty"`
 }
 
 // UpdateOrderNotesRequest updates admin/customer notes on an order.
@@ -335,6 +336,9 @@ func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
 			Country:      order.Shipment.Country,
 		}
 	}
+
+	tracking := BuildOrderTrackingDetail(order)
+	detail.Tracking = &tracking
 
 	return detail
 }

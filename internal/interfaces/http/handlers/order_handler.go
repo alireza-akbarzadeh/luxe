@@ -280,7 +280,7 @@ func (ctrl *OrderHandler) GetOrder(c *gin.Context) {
 		RespondServiceError(c, err, "failed to fetch order")
 		return
 	}
-	utils.SuccessResponse(c, "order retrieved", order)
+	utils.SuccessResponse(c, "order retrieved", dto.ToAdminOrderDetail(*order))
 }
 
 // UpdateOrderStatus updates an order's status (admin only).
