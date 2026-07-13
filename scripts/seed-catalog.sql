@@ -368,18 +368,364 @@ BEGIN
     ARRAY['shirt','linen','summer'], 'public', TRUE, FALSE, 0.21,
     'Linen Camp Collar Shirt', 'Relaxed linen shirt for warm weather.',
     ARRAY['online_store'], NOW() - INTERVAL '9 days'
+  ),
+  -- ── Extra catalog volume (pagination, category filters, empty leaves) ──
+  (
+    'Poplin Wrap Blouse',
+    'poplin-wrap-blouse',
+    'Soft cotton-poplin wrap blouse with self-tie waist and gently puffed sleeves.',
+    210.00, 245.00, 62.00, 36, 'LUX-W-TOP-001', '3700123456009',
+    cat_women_tops, store_luxe, brand_maison, 'active', 4.5, 18, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=900'],
+    '["Ivory","Black","Soft Rose"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['blouse','tops','office'], 'public', TRUE, FALSE, 0.19,
+    'Poplin Wrap Blouse', 'Cotton wrap blouse for work and weekend.',
+    ARRAY['online_store'], NOW() - INTERVAL '4 days'
+  ),
+  (
+    'Silk Cap-Sleeve Shell',
+    'silk-cap-sleeve-shell',
+    'Bias-cut silk shell with clean boat neck and invisible zip. Perfect under blazers.',
+    275.00, 310.00, 78.00, 28, 'LUX-W-TOP-002', '3700123456010',
+    cat_women_tops, store_luxe, brand_maison, 'active', 4.6, 11, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=900'],
+    '["Black","Champagne","Navy"]'::jsonb, '["XS","S","M","L","XL"]'::jsonb,
+    ARRAY['silk','shell','tops'], 'public', TRUE, FALSE, 0.12,
+    'Silk Cap-Sleeve Shell', 'Minimal silk shell in evening neutrals.',
+    ARRAY['online_store'], NOW() - INTERVAL '11 days'
+  ),
+  (
+    'Relaxed Linen Button-Up',
+    'relaxed-linen-button-up',
+    'Oversized linen button-up with mother-of-pearl buttons and curved hem.',
+    185.00, 210.00, 48.00, 40, 'LUX-W-TOP-003', '3700123456011',
+    cat_women_tops, store_urban, brand_atelier, 'active', 4.3, 22, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=900'],
+    '["White","Sage","Sand"]'::jsonb, '["XS","S","M","L","XL"]'::jsonb,
+    ARRAY['linen','shirt','summer','tops'], 'public', TRUE, FALSE, 0.20,
+    'Relaxed Linen Button-Up', 'Oversized linen shirt in soft summer tones.',
+    ARRAY['online_store'], NOW() - INTERVAL '3 days'
+  ),
+  (
+    'Ribbed Mock-Neck Tank',
+    'ribbed-mock-neck-tank',
+    'Fine-rib stretch tank with mock neck. Layer under knits or wear alone.',
+    95.00, 110.00, 24.00, 55, 'LUX-W-TOP-004', '3700123456012',
+    cat_women_tops, store_urban, brand_common, 'active', 4.2, 34, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=900'],
+    '["Black","White","Espresso"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['tank','basics','tops'], 'public', TRUE, TRUE, 0.10,
+    'Ribbed Mock-Neck Tank', 'Everyday ribbed tank in core colors.',
+    ARRAY['online_store','pos'], NOW() - INTERVAL '28 days'
+  ),
+  (
+    'Velvet Column Evening Dress',
+    'velvet-column-evening-dress',
+    'Floor-skimming velvet column with square neckline and open back.',
+    1180.00, 1380.00, 390.00, 12, 'LUX-W-DRESS-002', '3700123456013',
+    cat_women_dresses, store_luxe, brand_maison, 'active', 4.9, 14, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=900'],
+    '["Burgundy","Black","Forest"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['dress','velvet','evening','new-arrival'], 'public', TRUE, FALSE, 0.55,
+    'Velvet Column Evening Dress', 'Statement velvet evening dress.',
+    ARRAY['online_store'], NOW() - INTERVAL '2 days'
+  ),
+  (
+    'Daylight Cotton Shirt Dress',
+    'daylight-cotton-shirt-dress',
+    'Crisp cotton shirt dress with belted waist and side pockets.',
+    340.00, 390.00, 95.00, 32, 'LUX-W-DRESS-003', '3700123456014',
+    cat_women_dresses, store_urban, brand_common, 'active', 4.4, 26, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=900'],
+    '["White","Stripe Navy","Khaki"]'::jsonb, '["XS","S","M","L","XL"]'::jsonb,
+    ARRAY['dress','shirt-dress','daywear'], 'public', TRUE, FALSE, 0.30,
+    'Daylight Cotton Shirt Dress', 'Easy cotton shirt dress for daytime.',
+    ARRAY['online_store'], NOW() - INTERVAL '19 days'
+  ),
+  (
+    'Alpaca Oversized Cardigan',
+    'alpaca-oversized-cardigan',
+    'Brushed alpaca blend cardigan with patch pockets and drop shoulders.',
+    485.00, 545.00, 155.00, 22, 'LUX-W-KNIT-003', '3700123456015',
+    cat_women_knitwear, store_luxe, brand_atelier, 'active', 4.7, 17, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=900'],
+    '["Oatmeal","Smoke","Wine"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['cardigan','alpaca','knitwear'], 'public', TRUE, FALSE, 0.48,
+    'Alpaca Oversized Cardigan', 'Soft oversized cardigan for cool evenings.',
+    ARRAY['online_store'], NOW() - INTERVAL '13 days'
+  ),
+  (
+    'Cropped Cashmere Polo',
+    'cropped-cashmere-polo',
+    'Cropped cashmere polo with mother-of-pearl buttons and rib hem.',
+    395.00, 445.00, 130.00, 25, 'LUX-W-KNIT-004', '3700123456016',
+    cat_women_knitwear, store_luxe, brand_atelier, 'active', 4.6, 13, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=900'],
+    '["Ivory","Dusty Pink","Black"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['polo','cashmere','knitwear'], 'public', TRUE, FALSE, 0.22,
+    'Cropped Cashmere Polo', 'Cropped cashmere polo sweater.',
+    ARRAY['online_store'], NOW() - INTERVAL '17 days'
+  ),
+  (
+    'City Rain Trench',
+    'city-rain-trench',
+    'Water-repellent cotton trench with removable lining and storm flap.',
+    890.00, 990.00, 280.00, 16, 'LUX-W-COAT-002', '3700123456017',
+    cat_women_outerwear, store_luxe, brand_atelier, 'active', 4.8, 21, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1548126032-077a2e8e9e3b?w=900'],
+    '["Stone","Black","Olive"]'::jsonb, '["XS","S","M","L","XL"]'::jsonb,
+    ARRAY['trench','outerwear','rain'], 'public', TRUE, FALSE, 1.10,
+    'City Rain Trench', 'Classic trench for wet city days.',
+    ARRAY['online_store'], NOW() - INTERVAL '33 days'
+  ),
+  (
+    'Soft Leather Biker Jacket',
+    'soft-leather-biker-jacket',
+    'Lambskin biker with asymmetric zip, quilted shoulders, and silver hardware.',
+    1450.00, 1650.00, 480.00, 10, 'LUX-W-COAT-003', '3700123456018',
+    cat_women_outerwear, store_luxe, brand_verona, 'active', 4.9, 9, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1551028719-00167b16eac5?w=900'],
+    '["Black","Cognac"]'::jsonb, '["XS","S","M","L"]'::jsonb,
+    ARRAY['leather','jacket','outerwear','new-arrival'], 'public', TRUE, FALSE, 1.20,
+    'Soft Leather Biker Jacket', 'Lambskin biker jacket with silver hardware.',
+    ARRAY['online_store'], NOW() - INTERVAL '1 day'
+  ),
+  (
+    'Sculptural Leather Pump',
+    'sculptural-leather-pump',
+    'Pointed-toe pump with 75mm sculptural heel and kid leather upper.',
+    480.00, 540.00, 150.00, 27, 'LUX-W-SHOE-002', '3700123456019',
+    cat_women_shoes, store_luxe, brand_verona, 'active', 4.5, 24, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1543163521-1bf539c55dd1?w=900'],
+    '["Black","Nude","Red"]'::jsonb, '["36","37","38","39","40"]'::jsonb,
+    ARRAY['heels','pump','footwear'], 'public', TRUE, FALSE, 0.55,
+    'Sculptural Leather Pump', 'Elegant pointed pump for evening and office.',
+    ARRAY['online_store'], NOW() - INTERVAL '22 days'
+  ),
+  (
+    'Cloud Knit Sneaker',
+    'cloud-knit-sneaker',
+    'Lightweight knit upper sneaker with cushioned foam sole and reflective lace tips.',
+    220.00, 250.00, 65.00, 48, 'LUX-W-SHOE-003', '3700123456020',
+    cat_women_shoes, store_urban, brand_common, 'active', 4.3, 41, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1549298916-b41d501d3772?w=900'],
+    '["White","Black","Grey"]'::jsonb, '["36","37","38","39","40","41"]'::jsonb,
+    ARRAY['sneakers','knit','footwear'], 'public', TRUE, FALSE, 0.45,
+    'Cloud Knit Sneaker', 'Everyday knit sneakers with cloud cushioning.',
+    ARRAY['online_store','pos'], NOW() - INTERVAL '8 days'
+  ),
+  (
+    'Weekend Canvas Tote',
+    'weekend-canvas-tote',
+    'Heavyweight canvas tote with leather handles and interior laptop sleeve.',
+    185.00, 210.00, 48.00, 44, 'LUX-W-BAG-003', '3700123456021',
+    cat_women_bags, store_urban, brand_common, 'active', 4.2, 29, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=900'],
+    '["Natural","Black","Navy"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['tote','canvas','bag'], 'public', TRUE, FALSE, 0.70,
+    'Weekend Canvas Tote', 'Roomy canvas tote for work and travel.',
+    ARRAY['online_store'], NOW() - INTERVAL '27 days'
+  ),
+  (
+    'Evening Satin Clutch',
+    'evening-satin-clutch',
+    'Fold-over satin clutch with magnetic snap and detachable chain.',
+    265.00, 295.00, 72.00, 30, 'LUX-W-BAG-004', '3700123456022',
+    cat_women_bags, store_luxe, brand_maison, 'active', 4.6, 15, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=900'],
+    '["Black","Gold","Emerald"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['clutch','evening','bag'], 'public', TRUE, FALSE, 0.25,
+    'Evening Satin Clutch', 'Compact satin clutch for nights out.',
+    ARRAY['online_store'], NOW() - INTERVAL '6 days'
+  ),
+  (
+    'French Blue Dress Shirt',
+    'french-blue-dress-shirt',
+    'Twisted yarn cotton dress shirt with French cuffs and fused collar.',
+    225.00, 255.00, 58.00, 38, 'LUX-M-SHIRT-003', '3700123456107',
+    cat_men_shirts, store_luxe, brand_maison, 'active', 4.7, 31, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=900'],
+    '["French Blue","White","Lilac"]'::jsonb, '["S","M","L","XL"]'::jsonb,
+    ARRAY['shirt','dress','formal'], 'public', TRUE, FALSE, 0.26,
+    'French Blue Dress Shirt', 'Formal cotton dress shirt with French cuffs.',
+    ARRAY['online_store'], NOW() - INTERVAL '24 days'
+  ),
+  (
+    'Heavyweight Jersey Hoodie',
+    'heavyweight-jersey-hoodie',
+    '450gsm loopback hoodie with kangaroo pocket and tonal drawcord.',
+    165.00, 185.00, 42.00, 52, 'LUX-M-SHIRT-004', '3700123456108',
+    cat_men_shirts, store_urban, brand_common, 'active', 4.4, 67, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=900'],
+    '["Black","Grey","Forest"]'::jsonb, '["S","M","L","XL","XXL"]'::jsonb,
+    ARRAY['hoodie','jersey','casual'], 'public', TRUE, TRUE, 0.65,
+    'Heavyweight Jersey Hoodie', 'Premium heavyweight hoodie for everyday.',
+    ARRAY['online_store','pos'], NOW() - INTERVAL '5 days'
+  ),
+  (
+    'Pleated Wool Trouser',
+    'pleated-wool-trouser',
+    'Single-pleat wool trouser with side adjusters and unfinished hem.',
+    320.00, 360.00, 95.00, 24, 'LUX-M-TROU-002', '3700123456109',
+    cat_men_trousers, store_luxe, brand_maison, 'active', 4.6, 18, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1473966968600-fa801b869a78?w=900'],
+    '["Charcoal","Navy","Camel"]'::jsonb, '["30","32","34","36","38"]'::jsonb,
+    ARRAY['trousers','wool','tailoring'], 'public', TRUE, FALSE, 0.50,
+    'Pleated Wool Trouser', 'Tailored wool trousers with unfinished hem.',
+    ARRAY['online_store'], NOW() - INTERVAL '29 days'
+  ),
+  (
+    'Selvedge Straight Denim',
+    'selvedge-straight-denim',
+    '14oz Japanese selvedge denim with button fly and clean finish.',
+    245.00, 275.00, 72.00, 40, 'LUX-M-TROU-003', '3700123456110',
+    cat_men_trousers, store_urban, brand_common, 'active', 4.5, 52, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1542272454315-7f6b4f5d0f0b?w=900'],
+    '["Indigo","Black"]'::jsonb, '["30","32","34","36"]'::jsonb,
+    ARRAY['denim','jeans','selvedge'], 'public', TRUE, FALSE, 0.70,
+    'Selvedge Straight Denim', 'Straight-leg Japanese selvedge jeans.',
+    ARRAY['online_store'], NOW() - INTERVAL '10 days'
+  ),
+  (
+    'Field Cotton Overshirt',
+    'field-cotton-overshirt',
+    'Garment-dyed cotton overshirt with twin chest pockets and horn buttons.',
+    275.00, 310.00, 78.00, 29, 'LUX-M-OUT-002', '3700123456111',
+    cat_men_outerwear, store_urban, brand_atelier, 'active', 4.4, 20, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=900'],
+    '["Olive","Sand","Navy"]'::jsonb, '["S","M","L","XL"]'::jsonb,
+    ARRAY['overshirt','outerwear','layering'], 'public', TRUE, FALSE, 0.55,
+    'Field Cotton Overshirt', 'Utility overshirt for transitional weather.',
+    ARRAY['online_store'], NOW() - INTERVAL '15 days'
+  ),
+  (
+    'Quilted Packable Vest',
+    'quilted-packable-vest',
+    'Ultralight quilted vest that packs into its own pocket. Wind-resistant shell.',
+    195.00, 225.00, 55.00, 35, 'LUX-M-OUT-003', '3700123456112',
+    cat_men_outerwear, store_urban, brand_atelier, 'active', 4.3, 27, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1551028719-00167b16eac5?w=900'],
+    '["Black","Navy","Burnt Orange"]'::jsonb, '["S","M","L","XL"]'::jsonb,
+    ARRAY['vest','quilted','outerwear'], 'public', TRUE, FALSE, 0.35,
+    'Quilted Packable Vest', 'Lightweight packable quilted vest.',
+    ARRAY['online_store'], NOW() - INTERVAL '7 days'
+  ),
+  (
+    'Hand-Finished Penny Loafer',
+    'hand-finished-penny-loafer',
+    'Burnished calf penny loafer with leather sole and stacked heel.',
+    420.00, 475.00, 125.00, 26, 'LUX-M-SHOE-002', '3700123456113',
+    cat_men_shoes, store_luxe, brand_verona, 'active', 4.7, 22, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1614252369475-531eba835eb1?w=900'],
+    '["Black","Cognac","Burgundy"]'::jsonb, '["40","41","42","43","44","45"]'::jsonb,
+    ARRAY['loafer','leather','footwear'], 'public', TRUE, FALSE, 0.85,
+    'Hand-Finished Penny Loafer', 'Classic penny loafers in burnished calf.',
+    ARRAY['online_store'], NOW() - INTERVAL '31 days'
+  ),
+  (
+    'Court Leather Sneaker',
+    'court-leather-sneaker',
+    'Low-profile leather court sneaker with gum sole and perforated toe.',
+    285.00, 320.00, 82.00, 42, 'LUX-M-SHOE-003', '3700123456114',
+    cat_men_shoes, store_urban, brand_common, 'active', 4.4, 38, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?w=900'],
+    '["White","Navy","Black"]'::jsonb, '["40","41","42","43","44","45"]'::jsonb,
+    ARRAY['sneakers','leather','footwear'], 'public', TRUE, FALSE, 0.60,
+    'Court Leather Sneaker', 'Minimal leather sneakers with gum sole.',
+    ARRAY['online_store','pos'], NOW() - INTERVAL '9 days'
+  ),
+  (
+    'Dive Automatic 42mm',
+    'dive-automatic-42',
+    '200m dive watch with ceramic bezel, lume markers, and screw-down crown.',
+    1099.00, 1249.00, 320.00, 13, 'LUX-A-WATCH-003', '3700123456206',
+    cat_watches, store_gold, brand_stellar, 'active', 4.8, 25, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=900'],
+    '["Black","Blue"]'::jsonb, '["42mm"]'::jsonb,
+    ARRAY['watch','dive','automatic'], 'public', TRUE, FALSE, 0.52,
+    'Dive Automatic 42mm', 'Ceramic-bezel dive watch with 200m rating.',
+    ARRAY['online_store'], NOW() - INTERVAL '14 days'
+  ),
+  (
+    'Minimal Field Watch 36mm',
+    'minimal-field-watch-36',
+    'Slim field watch with matte dial, sapphire crystal, and NATO strap options.',
+    549.00, 629.00, 160.00, 20, 'LUX-A-WATCH-004', '3700123456207',
+    cat_watches, store_gold, brand_stellar, 'active', 4.5, 19, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900'],
+    '["Olive","Sand","Black"]'::jsonb, '["36mm","38mm"]'::jsonb,
+    ARRAY['watch','field','minimal'], 'public', TRUE, FALSE, 0.32,
+    'Minimal Field Watch 36mm', 'Everyday field watch with sapphire crystal.',
+    ARRAY['online_store'], NOW() - INTERVAL '26 days'
+  ),
+  (
+    'Layered Pearl Pendant',
+    'layered-pearl-pendant',
+    'Freshwater pearl on adjustable gold-filled chain with satellite bead.',
+    185.00, 210.00, 48.00, 45, 'LUX-A-JEWEL-002', '3700123456208',
+    cat_jewelry, store_gold, NULL, 'active', 4.4, 28, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=900'],
+    '["Gold","Silver"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['jewelry','necklace','pearl'], 'public', TRUE, FALSE, 0.03,
+    'Layered Pearl Pendant', 'Delicate pearl pendant necklace.',
+    ARRAY['online_store'], NOW() - INTERVAL '12 days'
+  ),
+  (
+    'Stackable Signet Ring',
+    'stackable-signet-ring',
+    'Brushed sterling signet designed for stacking. Engravable face.',
+    145.00, 165.00, 38.00, 50, 'LUX-A-JEWEL-003', '3700123456209',
+    cat_jewelry, store_gold, NULL, 'active', 4.3, 16, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=900'],
+    '["Silver","Gold"]'::jsonb, '["5","6","7","8","9"]'::jsonb,
+    ARRAY['jewelry','ring','signet'], 'public', TRUE, FALSE, 0.02,
+    'Stackable Signet Ring', 'Sterling signet ring for everyday stacking.',
+    ARRAY['online_store'], NOW() - INTERVAL '20 days'
+  ),
+  (
+    'Acetate Square Sunglasses',
+    'acetate-square-sunglasses',
+    'Hand-polished acetate frames with UV400 lenses and metal hinge core.',
+    195.00, 225.00, 52.00, 38, 'LUX-A-SUN-002', '3700123456210',
+    cat_sunglasses, store_luxe, NULL, 'active', 4.5, 23, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=900'],
+    '["Tortoise","Black","Clear"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['sunglasses','acetate','square'], 'public', TRUE, FALSE, 0.05,
+    'Acetate Square Sunglasses', 'Square acetate sunglasses with UV400 lenses.',
+    ARRAY['online_store'], NOW() - INTERVAL '11 days'
+  ),
+  (
+    'Silk Square Scarf 90',
+    'silk-square-scarf-90',
+    '90cm silk twill scarf with hand-rolled edges and archival print.',
+    275.00, 310.00, 70.00, 33, 'LUX-A-BELT-002', '3700123456211',
+    cat_belts, store_luxe, brand_maison, 'active', 4.7, 12, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1601924999987-bde7dbbb1691?w=900'],
+    '["Multicolor","Navy","Ivory"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['scarf','silk','accessory'], 'public', TRUE, FALSE, 0.08,
+    'Silk Square Scarf 90', 'Hand-rolled silk twill scarf.',
+    ARRAY['online_store'], NOW() - INTERVAL '16 days'
+  ),
+  (
+    'Reversible Leather Belt',
+    'reversible-leather-belt',
+    'Reversible black/brown calf belt with rotating buckle. One belt, two looks.',
+    145.00, 165.00, 36.00, 55, 'LUX-A-BELT-003', '3700123456212',
+    cat_belts, store_urban, brand_verona, 'active', 4.4, 30, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1624222247344-550fb60583fd?w=900'],
+    '["Black/Brown"]'::jsonb, '["32","34","36","38","40","42"]'::jsonb,
+    ARRAY['belt','reversible','leather'], 'public', TRUE, FALSE, 0.20,
+    'Reversible Leather Belt', 'Black and brown reversible calfskin belt.',
+    ARRAY['online_store','pos'], NOW() - INTERVAL '38 days'
   )
   ON CONFLICT (slug) DO NOTHING;
 
-  -- ── Product attributes (color / size pickers) ─────────────────────────────
+  -- ── Product attributes (color / size pickers) for all active storefront SKUs ─
   FOR prod_id IN
-    SELECT id FROM products WHERE slug IN (
-      'arielle-silk-midi-dress', 'cloud-cashmere-crew', 'milan-wool-coat',
-      'verona-structured-leather-tote', 'arcadia-suede-ankle-boots',
-      'classic-oxford-shirt', 'navy-slim-wool-blazer', 'everyday-stretch-chino',
-      'urban-chelsea-boot', 'stellar-automatic-38', 'heritage-chronograph-42',
-      'essential-organic-cotton-tee', 'merino-roll-neck-sweater'
-    )
+    SELECT id FROM products
+    WHERE store_id IN (store_luxe, store_gold, store_urban)
+      AND status = 'active'
+      AND visibility = 'public'
   LOOP
     IF NOT EXISTS (SELECT 1 FROM product_attributes WHERE product_id = prod_id AND name = 'color') THEN
       INSERT INTO product_attributes (product_id, name, values, created_at, updated_at)
