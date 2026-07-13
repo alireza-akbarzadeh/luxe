@@ -95,25 +95,9 @@ type OrderTrackingDetailView struct {
 	Courier          *OrderTrackingCourierView        `json:"courier,omitempty"`
 }
 
-type orderTrackingMilestoneDef struct {
-	key         string
-	title       string
-	description string
-}
-
-var orderTrackingMilestoneDefs = []orderTrackingMilestoneDef{
-	{key: "order_confirmed", title: "Order Confirmed", description: "We received your order"},
-	{key: "payment_received", title: "Payment Received", description: "Payment verified successfully"},
-	{key: "warehouse_processing", title: "Warehouse Processing", description: "Items picked from inventory"},
-	{key: "quality_inspection", title: "Quality Inspection", description: "Products checked before packing"},
-	{key: "packaged", title: "Packaged", description: "Order sealed and labeled"},
-	{key: "shipped", title: "Shipped", description: "Handed to carrier"},
-	{key: "out_for_delivery", title: "Out for Delivery", description: "Driver is on the way"},
-	{key: "delivered", title: "Delivered", description: "Package received"},
-}
-
 // BuildOrderTrackingDetail synthesizes tracking UI data from a preloaded order.
-func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
+// Pass workflow states (sorted by SortOrder) to drive milestones — never hardcode steps.
+func BuildOrderTrackingDetail(order models.Order, states []models.WorkflowState) OrderTrackingDetailView {
 	status := strings.ToLower(strings.TrimSpace(order.Status))
 	paymentStatus := constants.PaymentStatusPending
 	paymentMethod := ""
@@ -155,7 +139,10 @@ func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
 		}
 	}
 
-	activeIndex := orderTrackingActiveIndex(status, paymentStatus, shipmentStatus)
+	currentCode := orderTrackingCurrentCode(order, status)
+	milestones := buildMilestonesFromWorkflowStates(states, currentCode)
+	progressPercent := orderTrackingProgressFromMilestones(milestones)
+
 	itemCount := 0
 	subtotal := 0.0
 	for _, item := range order.Items {
@@ -172,11 +159,11 @@ func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
 		tax = 0
 	}
 
-	milestones := buildOrderTrackingMilestones(activeIndex, order.CreatedAt, paymentAt, shippedAt, deliveredAt, estimatedDelivery)
 	events := buildOrderTrackingEvents(order, status, carrier, trackingNumber, paymentAt, shippedAt, deliveredAt)
-
 	statusLabel := orderTrackingStatusLabel(status, shipmentStatus)
-	progressPercent := orderTrackingProgressPercent(activeIndex)
+	if order.WorkflowState != nil && order.WorkflowState.Name != "" {
+		statusLabel = order.WorkflowState.Name
+	}
 
 	recipientName := strings.TrimSpace(order.User.FirstName + " " + order.User.LastName)
 	if recipientName == "" {
@@ -220,7 +207,8 @@ func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
 	}
 
 	var driver *OrderTrackingDriverView
-	if activeIndex >= 6 && status != constants.OrderStatusDelivered {
+	if (currentCode == "shipped" || currentCode == "out_for_delivery" || currentCode == "in_transit" || status == constants.OrderStatusShipped) &&
+		status != constants.OrderStatusDelivered {
 		driver = &OrderTrackingDriverView{
 			Name:             "Michael Brown",
 			Rating:           4.9,
@@ -230,6 +218,8 @@ func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
 			EstimatedArrival: formatEstimatedArrival(estimatedDelivery),
 		}
 	}
+
+	_ = paymentStatus
 
 	return OrderTrackingDetailView{
 		StatusLabel:      statusLabel,
@@ -254,30 +244,100 @@ func BuildOrderTrackingDetail(order models.Order) OrderTrackingDetailView {
 	}
 }
 
-func orderTrackingActiveIndex(orderStatus, paymentStatus, shipmentStatus string) int {
-	switch orderStatus {
-	case constants.OrderStatusDelivered:
-		return 8
-	case constants.OrderStatusCancelled, constants.OrderStatusRefunded:
-		return 0
-	case constants.OrderStatusShipped:
-		if shipmentStatus == "out_for_delivery" || shipmentStatus == "in_transit" {
-			return 7
-		}
-		return 6
-	case constants.OrderStatusPaid, constants.OrderStatusDelayed:
-		if paymentStatus == constants.PaymentStatusSucceeded || paymentStatus == constants.PaymentStatusCompleted {
-			return 3
-		}
-		return 2
-	case constants.OrderStatusPending:
-		if paymentStatus == constants.PaymentStatusSucceeded || paymentStatus == constants.PaymentStatusCompleted {
-			return 2
-		}
-		return 1
-	default:
-		return 1
+func orderTrackingCurrentCode(order models.Order, status string) string {
+	if order.WorkflowState != nil && order.WorkflowState.Code != "" {
+		return strings.ToLower(order.WorkflowState.Code)
 	}
+	switch status {
+	case constants.OrderStatusPaid:
+		return "paid"
+	case constants.OrderStatusShipped:
+		return "shipped"
+	case constants.OrderStatusDelivered:
+		return "delivered"
+	case constants.OrderStatusCancelled:
+		return "cancelled"
+	case constants.OrderStatusRefunded:
+		return "refunded"
+	default:
+		return "pending"
+	}
+}
+
+func buildMilestonesFromWorkflowStates(states []models.WorkflowState, currentCode string) []OrderTrackingMilestoneView {
+	filtered := make([]models.WorkflowState, 0, len(states))
+	for _, s := range states {
+		code := strings.ToLower(s.Code)
+		if code == "cancelled" || code == "refunded" {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+
+	// Sort by SortOrder ascending (stable copy)
+	for i := 0; i < len(filtered); i++ {
+		for j := i + 1; j < len(filtered); j++ {
+			if filtered[j].SortOrder < filtered[i].SortOrder {
+				filtered[i], filtered[j] = filtered[j], filtered[i]
+			}
+		}
+	}
+
+	activeIndex := 0
+	for i, s := range filtered {
+		if strings.ToLower(s.Code) == currentCode {
+			activeIndex = i
+			break
+		}
+	}
+	isFinal := false
+	if activeIndex < len(filtered) && filtered[activeIndex].IsFinal {
+		isFinal = true
+	}
+	if currentCode == constants.OrderStatusDelivered {
+		isFinal = true
+	}
+
+	milestones := make([]OrderTrackingMilestoneView, len(filtered))
+	for i, s := range filtered {
+		status := "upcoming"
+		if isFinal || i < activeIndex {
+			status = "completed"
+		} else if i == activeIndex {
+			status = "active"
+		}
+		milestones[i] = OrderTrackingMilestoneView{
+			Key:         s.Code,
+			Title:       s.Name,
+			Description: s.Description,
+			Status:      status,
+		}
+	}
+	return milestones
+}
+
+func orderTrackingProgressFromMilestones(milestones []OrderTrackingMilestoneView) int {
+	if len(milestones) == 0 {
+		return 8
+	}
+	completed := 0
+	active := 0
+	for _, m := range milestones {
+		if m.Status == "completed" {
+			completed++
+		}
+		if m.Status == "active" {
+			active++
+		}
+	}
+	pct := int(float64(completed+active)*100.0/float64(len(milestones)) + 0.5)
+	if pct < 8 {
+		return 8
+	}
+	if pct > 100 {
+		return 100
+	}
+	return pct
 }
 
 func orderTrackingStatusLabel(orderStatus, shipmentStatus string) string {
@@ -298,69 +358,6 @@ func orderTrackingStatusLabel(orderStatus, shipmentStatus string) string {
 	default:
 		return "Order Placed"
 	}
-}
-
-func orderTrackingProgressPercent(activeIndex int) int {
-	if activeIndex <= 0 {
-		return 8
-	}
-	if activeIndex >= len(orderTrackingMilestoneDefs) {
-		return 100
-	}
-	return int(float64(activeIndex) / float64(len(orderTrackingMilestoneDefs)) * 100)
-}
-
-func buildOrderTrackingMilestones(
-	activeIndex int,
-	createdAt, paymentAt time.Time,
-	shippedAt, deliveredAt, estimatedDelivery *time.Time,
-) []OrderTrackingMilestoneView {
-	milestones := make([]OrderTrackingMilestoneView, len(orderTrackingMilestoneDefs))
-	for i, def := range orderTrackingMilestoneDefs {
-		step := i + 1
-		status := "upcoming"
-		if step < activeIndex {
-			status = "completed"
-		} else if step == activeIndex {
-			status = "active"
-		}
-
-		var occurredAt *time.Time
-		switch def.key {
-		case "order_confirmed":
-			t := createdAt
-			occurredAt = &t
-		case "payment_received":
-			t := paymentAt
-			occurredAt = &t
-		case "warehouse_processing", "quality_inspection", "packaged":
-			if activeIndex > step {
-				t := paymentAt.Add(time.Duration(step) * time.Hour)
-				occurredAt = &t
-			}
-		case "shipped":
-			occurredAt = shippedAt
-		case "out_for_delivery":
-			if shippedAt != nil {
-				t := shippedAt.Add(6 * time.Hour)
-				occurredAt = &t
-			}
-		case "delivered":
-			occurredAt = deliveredAt
-			if occurredAt == nil && estimatedDelivery != nil && activeIndex >= 8 {
-				occurredAt = estimatedDelivery
-			}
-		}
-
-		milestones[i] = OrderTrackingMilestoneView{
-			Key:         def.key,
-			Title:       def.title,
-			Description: def.description,
-			Status:      status,
-			OccurredAt:  occurredAt,
-		}
-	}
-	return milestones
 }
 
 func buildOrderTrackingEvents(

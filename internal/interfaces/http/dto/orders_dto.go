@@ -337,7 +337,7 @@ func ToAdminOrderDetail(order models.Order) AdminOrderDetailResponse {
 		}
 	}
 
-	tracking := BuildOrderTrackingDetail(order)
+	tracking := BuildOrderTrackingDetail(order, nil)
 	detail.Tracking = &tracking
 
 	return detail
