@@ -47,6 +47,7 @@ import (
 	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
 	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
 	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
+	appblog "github.com/alireza-akbarzadeh/luxe/internal/application/blog"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -206,6 +207,7 @@ type Applications struct {
 	Bundle                  *appbundle.Service
 	Promotion               *apppromotion.Service
 	EmailMarketing          *appemailmarketing.Service
+	Blog                    *appblog.Service
 }
 
 type legalSettingReader struct {
@@ -370,6 +372,7 @@ func WireApplications(
 			jobQueue,
 			frontendURL,
 		),
+		Blog: appblog.NewService(db),
 	}
 }
 

@@ -61,6 +61,7 @@ type Container struct {
 	Bundle                  *BundleHandler
 	Promotion               *PromotionHandler
 	EmailMarketing          *EmailMarketingHandler
+	Blog                    *BlogHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
@@ -117,5 +118,6 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Bundle:                NewBundleHandler(apps.Bundle),
 		Promotion:             NewPromotionHandler(apps.Promotion),
 		EmailMarketing:        NewEmailMarketingHandler(apps.EmailMarketing),
+		Blog:                  NewBlogHandler(apps.Blog),
 	}
 }

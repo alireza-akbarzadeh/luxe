@@ -149,8 +149,8 @@ func (g *Gateway) CreatePlusMembershipSession(userID uint, amount float64, curre
 		return "", "", fmt.Errorf("membership price must be greater than zero")
 	}
 
-	successURL := fmt.Sprintf("%s/account?plus=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
-	cancelURL := fmt.Sprintf("%s/plus/landing?plus=cancelled", g.frontendURL)
+	successURL := fmt.Sprintf("%s/account?tab=plans&plus=success&session_id={CHECKOUT_SESSION_ID}", g.frontendURL)
+	cancelURL := fmt.Sprintf("%s/account?tab=plans&plus=cancelled", g.frontendURL)
 
 	params := &stripe.CheckoutSessionParams{
 		Mode:              stripe.String(string(stripe.CheckoutSessionModePayment)),

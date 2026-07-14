@@ -362,7 +362,7 @@ SELECT
       {"title":"Orders","href":"/vendor/panel/orders"}
     ]},
     {"title":"Onboarding","links":[
-      {"title":"Become a vendor","href":"/vendor/onboarding"},
+      {"title":"Become a vendor","href":"/vendor/apply"},
       {"title":"How it works","href":"/vendor#how-it-works"},
       {"title":"Pricing","href":"/vendor#pricing"}
     ]}
@@ -393,7 +393,7 @@ SET
       {"title":"Orders","href":"/vendor/panel/orders"}
     ]},
     {"title":"Onboarding","links":[
-      {"title":"Become a vendor","href":"/vendor/onboarding"},
+      {"title":"Become a vendor","href":"/vendor/apply"},
       {"title":"How it works","href":"/vendor#how-it-works"},
       {"title":"Pricing","href":"/vendor#pricing"}
     ]}
