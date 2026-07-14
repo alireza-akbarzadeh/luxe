@@ -213,11 +213,11 @@ func (s *Service) CreateComment(ctx context.Context, slug string, userID uint, r
 		return dto.BlogCommentResponse{}, err
 	}
 	comment := &models.BlogComment{
-		PostID:  post.ID,
-		UserID:  userID,
-		Content: req.Content,
+		PostID:   post.ID,
+		UserID:   userID,
+		Content:  req.Content,
 		ParentID: req.ParentID,
-		Status:  "approved",
+		Status:   "approved",
 	}
 	if err := s.repo.CreateComment(ctx, comment); err != nil {
 		return dto.BlogCommentResponse{}, err
@@ -427,7 +427,7 @@ func toFullResponse(ctx context.Context, post *models.BlogPost) dto.BlogPostResp
 		SEOScore:         post.SEOScore,
 	}
 	if len(post.ContentBlocks) > 0 {
-		var blocks []map[string]interface{}
+		var blocks []dto.BlogContentBlock
 		_ = json.Unmarshal(post.ContentBlocks, &blocks)
 		resp.ContentBlocks = blocks
 	}
