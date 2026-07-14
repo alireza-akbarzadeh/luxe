@@ -342,6 +342,131 @@ WHERE label = 'Gift Cards';
 
 DELETE FROM nav_menus WHERE label = 'Gift Finder';
 
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Vendor',
+  'mega',
+  NULL,
+  NULL,
+  '{"label":"Explore vendor program","href":"/vendor"}'::jsonb,
+  '[
+    {"title":"Vendor","links":[
+      {"title":"Sell on Luxe","href":"/vendor"},
+      {"title":"Verified vendors","href":"/vendor"},
+      {"title":"Vendor sign in","href":"/vendor/login"}
+    ]},
+    {"title":"Panel","links":[
+      {"title":"Vendor panel","href":"/vendor/panel"},
+      {"title":"Dashboard","href":"/vendor/panel"},
+      {"title":"Products","href":"/vendor/panel/products"},
+      {"title":"Orders","href":"/vendor/panel/orders"}
+    ]},
+    {"title":"Onboarding","links":[
+      {"title":"Become a vendor","href":"/vendor/onboarding"},
+      {"title":"How it works","href":"/vendor#how-it-works"},
+      {"title":"Pricing","href":"/vendor#pricing"}
+    ]}
+  ]'::jsonb,
+  NULL,
+  8,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Vendor');
+
+-- Normalize legacy vendor mega menus created with placeholder links
+UPDATE nav_menus
+SET
+  label = 'Vendor',
+  type = 'mega',
+  href = NULL,
+  view_all = '{"label":"Explore vendor program","href":"/vendor"}'::jsonb,
+  columns = '[
+    {"title":"Vendor","links":[
+      {"title":"Sell on Luxe","href":"/vendor"},
+      {"title":"Verified vendors","href":"/vendor"},
+      {"title":"Vendor sign in","href":"/vendor/login"}
+    ]},
+    {"title":"Panel","links":[
+      {"title":"Vendor panel","href":"/vendor/panel"},
+      {"title":"Dashboard","href":"/vendor/panel"},
+      {"title":"Products","href":"/vendor/panel/products"},
+      {"title":"Orders","href":"/vendor/panel/orders"}
+    ]},
+    {"title":"Onboarding","links":[
+      {"title":"Become a vendor","href":"/vendor/onboarding"},
+      {"title":"How it works","href":"/vendor#how-it-works"},
+      {"title":"Pricing","href":"/vendor#pricing"}
+    ]}
+  ]'::jsonb,
+  featured = NULL,
+  updated_at = NOW()
+WHERE lower(label) = 'vendor'
+  AND type = 'mega'
+  AND columns::text LIKE '%"title":"Link"%';
+
+-- Discover mega menu (flat links live in columns, not parent/child nav rows)
+INSERT INTO nav_menus (label, type, href, badge, view_all, columns, featured, "order", created_at, updated_at)
+SELECT
+  'Discover',
+  'mega',
+  NULL,
+  NULL,
+  '{"label":"Browse all","href":"/products"}'::jsonb,
+  '[
+    {"title":"Explore","links":[
+      {"title":"Explore","href":"/lifestyle"},
+      {"title":"Shop","href":"/shop"},
+      {"title":"Collections","href":"/collections"},
+      {"title":"Browse","href":"/products"}
+    ]},
+    {"title":"Featured","links":[
+      {"title":"Featured","href":"/products/best-sellers"},
+      {"title":"Curated","href":"/public-collections"},
+      {"title":"Luxury Picks","href":"/plus/landing"},
+      {"title":"New & Featured","href":"/shop?sortBy=newest"}
+    ]},
+    {"title":"Marketplace","links":[
+      {"title":"Marketplace","href":"/store"}
+    ]}
+  ]'::jsonb,
+  '[
+    {"title":"New & Featured","description":"Fresh arrivals and editor picks","href":"/shop?sortBy=newest","image":"https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=500&fit=crop","badge":"New"}
+  ]'::jsonb,
+  0,
+  NOW(),
+  NOW()
+WHERE NOT EXISTS (SELECT 1 FROM nav_menus WHERE label = 'Discover');
+
+UPDATE nav_menus
+SET
+  type = 'mega',
+  href = NULL,
+  badge = NULL,
+  view_all = '{"label":"Browse all","href":"/products"}'::jsonb,
+  columns = '[
+    {"title":"Explore","links":[
+      {"title":"Explore","href":"/lifestyle"},
+      {"title":"Shop","href":"/shop"},
+      {"title":"Collections","href":"/collections"},
+      {"title":"Browse","href":"/products"}
+    ]},
+    {"title":"Featured","links":[
+      {"title":"Featured","href":"/products/best-sellers"},
+      {"title":"Curated","href":"/public-collections"},
+      {"title":"Luxury Picks","href":"/plus/landing"},
+      {"title":"New & Featured","href":"/shop?sortBy=newest"}
+    ]},
+    {"title":"Marketplace","links":[
+      {"title":"Marketplace","href":"/store"}
+    ]}
+  ]'::jsonb,
+  featured = '[
+    {"title":"New & Featured","description":"Fresh arrivals and editor picks","href":"/shop?sortBy=newest","image":"https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=500&fit=crop","badge":"New"}
+  ]'::jsonb,
+  "order" = 0,
+  updated_at = NOW()
+WHERE label = 'Discover';
+
 -- Roles & permissions (idempotent)
 INSERT INTO roles (name, slug, description, is_system, created_at, updated_at)
 SELECT 'Administrator', 'admin', 'Full platform access', true, NOW(), NOW()
