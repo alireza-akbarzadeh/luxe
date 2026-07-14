@@ -1021,6 +1021,276 @@
                 }
             }
         },
+        "/admin/blog/posts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all blog posts including drafts (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog-admin"
+                ],
+                "summary": "Admin list blog posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search title or slug",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (draft, published, archived)",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BlogListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new blog post (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog-admin"
+                ],
+                "summary": "Admin create blog post",
+                "parameters": [
+                    {
+                        "description": "Post payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateBlogPostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogPostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/blog/posts/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a blog post by ID for editing (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog-admin"
+                ],
+                "summary": "Admin get blog post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogPostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates an existing blog post (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog-admin"
+                ],
+                "summary": "Admin update blog post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Post payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateBlogPostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogPostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Soft-deletes a blog post (admin only)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog-admin"
+                ],
+                "summary": "Admin delete blog post",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Post ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/campaigns": {
             "get": {
                 "security": [
@@ -10935,6 +11205,490 @@
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/bookmarks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns all articles bookmarked by the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "List bookmarks",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.BlogPostListItem"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/categories": {
+            "get": {
+                "description": "Returns all active blog categories for navigation and landing pages",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "List blog categories",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BlogCategoryListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/categories/{slug}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Get blog category",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Category slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogCategoryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/homepage": {
+            "get": {
+                "description": "Returns featured, trending, and categorized article sections",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Blog homepage",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BlogHomepageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/posts": {
+            "get": {
+                "description": "Returns a paginated list of published articles with optional filters",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "List blog posts",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 12, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search title and excerpt",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category slug",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Section type (buying_guide, product_review, etc.)",
+                        "name": "section_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Tag slug",
+                        "name": "tag",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Author slug",
+                        "name": "author",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort order (newest, popular, oldest, reading_time)",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Featured articles only",
+                        "name": "featured",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Trending articles only",
+                        "name": "trending",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Editor picks only",
+                        "name": "editor_pick",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.BlogListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/posts/{slug}": {
+            "get": {
+                "description": "Returns a full article with content blocks, related products, and related posts",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Get blog post",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogPostResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/posts/{slug}/bookmark": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds or removes an article from the user's bookmarks",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Toggle bookmark",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogBookmarkData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/posts/{slug}/comments": {
+            "get": {
+                "description": "Returns threaded approved comments for an article",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "List article comments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.BlogCommentResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Adds a threaded comment to an article (requires login)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Create comment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Comment payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateBlogCommentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BlogCommentResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/blog/posts/{slug}/helpful": {
+            "post": {
+                "description": "Increments the helpful vote counter for an article",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "blog"
+                ],
+                "summary": "Mark article helpful",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Post slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -23119,6 +23873,9 @@
                 "total_amount": {
                     "type": "number"
                 },
+                "tracking": {
+                    "$ref": "#/definitions/dto.OrderTrackingDetailView"
+                },
                 "tracking_number": {
                     "type": "string"
                 },
@@ -26026,6 +26783,466 @@
                 }
             }
         },
+        "dto.BlogAuthorBrief": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BlogBookmarkData": {
+            "type": "object",
+            "properties": {
+                "bookmarked": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.BlogCategoryBrief": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BlogCategoryListData": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogCategoryResponse"
+                    }
+                }
+            }
+        },
+        "dto.BlogCategoryListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.BlogCategoryListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.BlogCategoryResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "post_count": {
+                    "type": "integer"
+                },
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.BlogCommentResponse": {
+            "type": "object",
+            "properties": {
+                "author_avatar": {
+                    "type": "string"
+                },
+                "author_name": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_pinned": {
+                    "type": "boolean"
+                },
+                "is_verified_purchaser": {
+                    "type": "boolean"
+                },
+                "like_count": {
+                    "type": "integer"
+                },
+                "replies": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogCommentResponse"
+                    }
+                }
+            }
+        },
+        "dto.BlogContentBlock": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "dto.BlogHomepageData": {
+            "type": "object",
+            "properties": {
+                "buying_guides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogCategoryResponse"
+                    }
+                },
+                "comparisons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "editor_picks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "featured": {
+                    "$ref": "#/definitions/dto.BlogPostListItem"
+                },
+                "gift_guides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "industry_news": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "latest": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "most_popular": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "new_technology": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "product_reviews": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "seasonal": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "trending": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "tutorials": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                }
+            }
+        },
+        "dto.BlogHomepageResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.BlogHomepageData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.BlogListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BlogListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.BlogListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.BlogPostListItem": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/dto.BlogAuthorBrief"
+                },
+                "category": {
+                    "$ref": "#/definitions/dto.BlogCategoryBrief"
+                },
+                "content_updated_at": {
+                    "type": "string"
+                },
+                "excerpt": {
+                    "type": "string"
+                },
+                "helpful_votes": {
+                    "type": "integer"
+                },
+                "hero_image_alt": {
+                    "type": "string"
+                },
+                "hero_image_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_editor_pick": {
+                    "type": "boolean"
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
+                "is_trending": {
+                    "type": "boolean"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "reading_time_minutes": {
+                    "type": "integer"
+                },
+                "section_type": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogTagBrief"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BlogPostProductItem": {
+            "type": "object",
+            "properties": {
+                "block_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product": {
+                    "$ref": "#/definitions/dto.HomeProductItem"
+                }
+            }
+        },
+        "dto.BlogPostResponse": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/dto.BlogAuthorBrief"
+                },
+                "canonical_url": {
+                    "type": "string"
+                },
+                "category": {
+                    "$ref": "#/definitions/dto.BlogCategoryBrief"
+                },
+                "content_blocks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogContentBlock"
+                    }
+                },
+                "content_updated_at": {
+                    "type": "string"
+                },
+                "excerpt": {
+                    "type": "string"
+                },
+                "helpful_votes": {
+                    "type": "integer"
+                },
+                "hero_image_alt": {
+                    "type": "string"
+                },
+                "hero_image_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_editor_pick": {
+                    "type": "boolean"
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
+                "is_trending": {
+                    "type": "boolean"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostProductItem"
+                    }
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "reading_time_minutes": {
+                    "type": "integer"
+                },
+                "related_posts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogPostListItem"
+                    }
+                },
+                "section_type": {
+                    "type": "string"
+                },
+                "seo_score": {
+                    "type": "integer"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogTagBrief"
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "view_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.BlogTagBrief": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.BrandListData": {
             "type": "object",
             "properties": {
@@ -27285,6 +28502,100 @@
                     "type": "string"
                 },
                 "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateBlogCommentRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 5000,
+                    "minLength": 1
+                },
+                "parent_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.CreateBlogPostRequest": {
+            "type": "object",
+            "required": [
+                "slug",
+                "title"
+            ],
+            "properties": {
+                "author_id": {
+                    "type": "integer"
+                },
+                "canonical_url": {
+                    "type": "string"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "content_blocks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.BlogContentBlock"
+                    }
+                },
+                "excerpt": {
+                    "type": "string"
+                },
+                "hero_image_alt": {
+                    "type": "string"
+                },
+                "hero_image_url": {
+                    "type": "string"
+                },
+                "is_editor_pick": {
+                    "type": "boolean"
+                },
+                "is_featured": {
+                    "type": "boolean"
+                },
+                "is_trending": {
+                    "type": "boolean"
+                },
+                "meta_description": {
+                    "type": "string"
+                },
+                "meta_title": {
+                    "type": "string"
+                },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "reading_time_minutes": {
+                    "type": "integer"
+                },
+                "scheduled_at": {
+                    "type": "string"
+                },
+                "section_type": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tag_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "title": {
                     "type": "string"
                 }
             }
@@ -30295,6 +31606,221 @@
                 },
                 "total_amount": {
                     "type": "number"
+                }
+            }
+        },
+        "dto.OrderTrackingCourierView": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "service": {
+                    "type": "string"
+                },
+                "total_items": {
+                    "type": "integer"
+                },
+                "tracking_number": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderTrackingDeliveryView": {
+            "type": "object",
+            "properties": {
+                "address_line1": {
+                    "type": "string"
+                },
+                "address_line2": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "destination_lat": {
+                    "type": "number"
+                },
+                "destination_lng": {
+                    "type": "number"
+                },
+                "distance_miles": {
+                    "type": "number"
+                },
+                "hub_lat": {
+                    "type": "number"
+                },
+                "hub_lng": {
+                    "type": "number"
+                },
+                "instructions": {
+                    "type": "string"
+                },
+                "insurance_included": {
+                    "type": "boolean"
+                },
+                "package_dimensions": {
+                    "type": "string"
+                },
+                "package_weight_kg": {
+                    "type": "number"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "postal_code": {
+                    "type": "string"
+                },
+                "recipient_name": {
+                    "type": "string"
+                },
+                "service_name": {
+                    "type": "string"
+                },
+                "signature_required": {
+                    "type": "boolean"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "stops_remaining": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.OrderTrackingDetailView": {
+            "type": "object",
+            "properties": {
+                "courier": {
+                    "$ref": "#/definitions/dto.OrderTrackingCourierView"
+                },
+                "delivery": {
+                    "$ref": "#/definitions/dto.OrderTrackingDeliveryView"
+                },
+                "driver": {
+                    "$ref": "#/definitions/dto.OrderTrackingDriverView"
+                },
+                "estimated_arrival": {
+                    "type": "string"
+                },
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderTrackingEventView"
+                    }
+                },
+                "milestones": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrderTrackingMilestoneView"
+                    }
+                },
+                "payment_summary": {
+                    "$ref": "#/definitions/dto.OrderTrackingPaymentSummaryView"
+                },
+                "progress_percent": {
+                    "type": "integer"
+                },
+                "status_label": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderTrackingDriverView": {
+            "type": "object",
+            "properties": {
+                "carrier": {
+                    "type": "string"
+                },
+                "estimated_arrival": {
+                    "type": "string"
+                },
+                "license_plate": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "rating": {
+                    "type": "number"
+                },
+                "vehicle": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderTrackingEventView": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderTrackingMilestoneView": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "occurred_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.OrderTrackingPaymentSummaryView": {
+            "type": "object",
+            "properties": {
+                "card_last4": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "discount": {
+                    "type": "number"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "shipping": {
+                    "type": "number"
+                },
+                "subtotal": {
+                    "type": "number"
+                },
+                "tax": {
+                    "type": "number"
+                },
+                "total": {
+                    "type": "number"
+                },
+                "transaction_id": {
+                    "type": "string"
                 }
             }
         },
@@ -34201,6 +35727,9 @@
                 },
                 "total_amount": {
                     "type": "number"
+                },
+                "tracking": {
+                    "$ref": "#/definitions/dto.OrderTrackingDetailView"
                 },
                 "tracking_number": {
                     "type": "string"

@@ -466,6 +466,8 @@ definitions:
         type: array
       total_amount:
         type: number
+      tracking:
+        $ref: '#/definitions/dto.OrderTrackingDetailView'
       tracking_number:
         type: string
       updated_at:
@@ -2371,6 +2373,308 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.BlogAuthorBrief:
+    properties:
+      avatar_url:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      role:
+        type: string
+      slug:
+        type: string
+    type: object
+  dto.BlogBookmarkData:
+    properties:
+      bookmarked:
+        type: boolean
+    type: object
+  dto.BlogCategoryBrief:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
+  dto.BlogCategoryListData:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/dto.BlogCategoryResponse'
+        type: array
+    type: object
+  dto.BlogCategoryListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.BlogCategoryListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.BlogCategoryResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      image_url:
+        type: string
+      name:
+        type: string
+      post_count:
+        type: integer
+      posts:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      slug:
+        type: string
+    type: object
+  dto.BlogCommentResponse:
+    properties:
+      author_avatar:
+        type: string
+      author_name:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_pinned:
+        type: boolean
+      is_verified_purchaser:
+        type: boolean
+      like_count:
+        type: integer
+      replies:
+        items:
+          $ref: '#/definitions/dto.BlogCommentResponse'
+        type: array
+    type: object
+  dto.BlogContentBlock:
+    additionalProperties: true
+    type: object
+  dto.BlogHomepageData:
+    properties:
+      buying_guides:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      categories:
+        items:
+          $ref: '#/definitions/dto.BlogCategoryResponse'
+        type: array
+      comparisons:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      editor_picks:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      featured:
+        $ref: '#/definitions/dto.BlogPostListItem'
+      gift_guides:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      industry_news:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      latest:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      most_popular:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      new_technology:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      product_reviews:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      seasonal:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      trending:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      tutorials:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+    type: object
+  dto.BlogHomepageResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.BlogHomepageData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.BlogListData:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      posts:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.BlogListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.BlogListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.BlogPostListItem:
+    properties:
+      author:
+        $ref: '#/definitions/dto.BlogAuthorBrief'
+      category:
+        $ref: '#/definitions/dto.BlogCategoryBrief'
+      content_updated_at:
+        type: string
+      excerpt:
+        type: string
+      helpful_votes:
+        type: integer
+      hero_image_alt:
+        type: string
+      hero_image_url:
+        type: string
+      id:
+        type: integer
+      is_editor_pick:
+        type: boolean
+      is_featured:
+        type: boolean
+      is_trending:
+        type: boolean
+      published_at:
+        type: string
+      reading_time_minutes:
+        type: integer
+      section_type:
+        type: string
+      slug:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/dto.BlogTagBrief'
+        type: array
+      title:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  dto.BlogPostProductItem:
+    properties:
+      block_type:
+        type: string
+      id:
+        type: integer
+      product:
+        $ref: '#/definitions/dto.HomeProductItem'
+    type: object
+  dto.BlogPostResponse:
+    properties:
+      author:
+        $ref: '#/definitions/dto.BlogAuthorBrief'
+      canonical_url:
+        type: string
+      category:
+        $ref: '#/definitions/dto.BlogCategoryBrief'
+      content_blocks:
+        items:
+          $ref: '#/definitions/dto.BlogContentBlock'
+        type: array
+      content_updated_at:
+        type: string
+      excerpt:
+        type: string
+      helpful_votes:
+        type: integer
+      hero_image_alt:
+        type: string
+      hero_image_url:
+        type: string
+      id:
+        type: integer
+      is_editor_pick:
+        type: boolean
+      is_featured:
+        type: boolean
+      is_trending:
+        type: boolean
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/dto.BlogPostProductItem'
+        type: array
+      published_at:
+        type: string
+      reading_time_minutes:
+        type: integer
+      related_posts:
+        items:
+          $ref: '#/definitions/dto.BlogPostListItem'
+        type: array
+      section_type:
+        type: string
+      seo_score:
+        type: integer
+      slug:
+        type: string
+      tags:
+        items:
+          $ref: '#/definitions/dto.BlogTagBrief'
+        type: array
+      title:
+        type: string
+      view_count:
+        type: integer
+    type: object
+  dto.BlogTagBrief:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      slug:
+        type: string
+    type: object
   dto.BrandListData:
     properties:
       brands:
@@ -3212,6 +3516,69 @@ definitions:
     - phone
     - postal_code
     - recipient_name
+    type: object
+  dto.CreateBlogCommentRequest:
+    properties:
+      content:
+        maxLength: 5000
+        minLength: 1
+        type: string
+      parent_id:
+        type: integer
+    required:
+    - content
+    type: object
+  dto.CreateBlogPostRequest:
+    properties:
+      author_id:
+        type: integer
+      canonical_url:
+        type: string
+      category_id:
+        type: integer
+      content_blocks:
+        items:
+          $ref: '#/definitions/dto.BlogContentBlock'
+        type: array
+      excerpt:
+        type: string
+      hero_image_alt:
+        type: string
+      hero_image_url:
+        type: string
+      is_editor_pick:
+        type: boolean
+      is_featured:
+        type: boolean
+      is_trending:
+        type: boolean
+      meta_description:
+        type: string
+      meta_title:
+        type: string
+      product_ids:
+        items:
+          type: integer
+        type: array
+      reading_time_minutes:
+        type: integer
+      scheduled_at:
+        type: string
+      section_type:
+        type: string
+      slug:
+        type: string
+      status:
+        type: string
+      tag_ids:
+        items:
+          type: integer
+        type: array
+      title:
+        type: string
+    required:
+    - slug
+    - title
     type: object
   dto.CreateBrandRequest:
     properties:
@@ -5253,6 +5620,147 @@ definitions:
         type: string
       total_amount:
         type: number
+    type: object
+  dto.OrderTrackingCourierView:
+    properties:
+      name:
+        type: string
+      service:
+        type: string
+      total_items:
+        type: integer
+      tracking_number:
+        type: string
+    type: object
+  dto.OrderTrackingDeliveryView:
+    properties:
+      address_line1:
+        type: string
+      address_line2:
+        type: string
+      city:
+        type: string
+      country:
+        type: string
+      destination_lat:
+        type: number
+      destination_lng:
+        type: number
+      distance_miles:
+        type: number
+      hub_lat:
+        type: number
+      hub_lng:
+        type: number
+      instructions:
+        type: string
+      insurance_included:
+        type: boolean
+      package_dimensions:
+        type: string
+      package_weight_kg:
+        type: number
+      phone:
+        type: string
+      postal_code:
+        type: string
+      recipient_name:
+        type: string
+      service_name:
+        type: string
+      signature_required:
+        type: boolean
+      state:
+        type: string
+      stops_remaining:
+        type: integer
+    type: object
+  dto.OrderTrackingDetailView:
+    properties:
+      courier:
+        $ref: '#/definitions/dto.OrderTrackingCourierView'
+      delivery:
+        $ref: '#/definitions/dto.OrderTrackingDeliveryView'
+      driver:
+        $ref: '#/definitions/dto.OrderTrackingDriverView'
+      estimated_arrival:
+        type: string
+      events:
+        items:
+          $ref: '#/definitions/dto.OrderTrackingEventView'
+        type: array
+      milestones:
+        items:
+          $ref: '#/definitions/dto.OrderTrackingMilestoneView'
+        type: array
+      payment_summary:
+        $ref: '#/definitions/dto.OrderTrackingPaymentSummaryView'
+      progress_percent:
+        type: integer
+      status_label:
+        type: string
+    type: object
+  dto.OrderTrackingDriverView:
+    properties:
+      carrier:
+        type: string
+      estimated_arrival:
+        type: string
+      license_plate:
+        type: string
+      name:
+        type: string
+      rating:
+        type: number
+      vehicle:
+        type: string
+    type: object
+  dto.OrderTrackingEventView:
+    properties:
+      id:
+        type: string
+      message:
+        type: string
+      timestamp:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  dto.OrderTrackingMilestoneView:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      occurred_at:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.OrderTrackingPaymentSummaryView:
+    properties:
+      card_last4:
+        type: string
+      currency:
+        type: string
+      discount:
+        type: number
+      method:
+        type: string
+      shipping:
+        type: number
+      subtotal:
+        type: number
+      tax:
+        type: number
+      total:
+        type: number
+      transaction_id:
+        type: string
     type: object
   dto.OrderTransitionResponse:
     properties:
@@ -7880,6 +8388,8 @@ definitions:
         type: array
       total_amount:
         type: number
+      tracking:
+        $ref: '#/definitions/dto.OrderTrackingDetailView'
       tracking_number:
         type: string
       updated_at:
@@ -9903,6 +10413,169 @@ paths:
       summary: Audit log summary
       tags:
       - Admin Audit
+  /admin/blog/posts:
+    get:
+      description: Returns all blog posts including drafts (admin only)
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search title or slug
+        in: query
+        name: search
+        type: string
+      - description: Filter by status (draft, published, archived)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BlogListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin list blog posts
+      tags:
+      - blog-admin
+    post:
+      consumes:
+      - application/json
+      description: Creates a new blog post (admin only)
+      parameters:
+      - description: Post payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBlogPostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogPostResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin create blog post
+      tags:
+      - blog-admin
+  /admin/blog/posts/{id}:
+    delete:
+      description: Soft-deletes a blog post (admin only)
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin delete blog post
+      tags:
+      - blog-admin
+    get:
+      description: Returns a blog post by ID for editing (admin only)
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogPostResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin get blog post
+      tags:
+      - blog-admin
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing blog post (admin only)
+      parameters:
+      - description: Post ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Post payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBlogPostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogPostResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin update blog post
+      tags:
+      - blog-admin
   /admin/campaigns:
     get:
       parameters:
@@ -15994,6 +16667,304 @@ paths:
       summary: Verify email
       tags:
       - Authentication
+  /blog/bookmarks:
+    get:
+      description: Returns all articles bookmarked by the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.BlogPostListItem'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List bookmarks
+      tags:
+      - blog
+  /blog/categories:
+    get:
+      description: Returns all active blog categories for navigation and landing pages
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BlogCategoryListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List blog categories
+      tags:
+      - blog
+  /blog/categories/{slug}:
+    get:
+      parameters:
+      - description: Category slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogCategoryResponse'
+              type: object
+      summary: Get blog category
+      tags:
+      - blog
+  /blog/homepage:
+    get:
+      description: Returns featured, trending, and categorized article sections
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BlogHomepageResponse'
+      summary: Blog homepage
+      tags:
+      - blog
+  /blog/posts:
+    get:
+      description: Returns a paginated list of published articles with optional filters
+      parameters:
+      - description: Page number (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Items per page (default 12, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Search title and excerpt
+        in: query
+        name: search
+        type: string
+      - description: Category slug
+        in: query
+        name: category
+        type: string
+      - description: Section type (buying_guide, product_review, etc.)
+        in: query
+        name: section_type
+        type: string
+      - description: Tag slug
+        in: query
+        name: tag
+        type: string
+      - description: Author slug
+        in: query
+        name: author
+        type: string
+      - description: Sort order (newest, popular, oldest, reading_time)
+        in: query
+        name: sort
+        type: string
+      - description: Featured articles only
+        in: query
+        name: featured
+        type: boolean
+      - description: Trending articles only
+        in: query
+        name: trending
+        type: boolean
+      - description: Editor picks only
+        in: query
+        name: editor_pick
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BlogListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List blog posts
+      tags:
+      - blog
+  /blog/posts/{slug}:
+    get:
+      description: Returns a full article with content blocks, related products, and
+        related posts
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogPostResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get blog post
+      tags:
+      - blog
+  /blog/posts/{slug}/bookmark:
+    post:
+      description: Adds or removes an article from the user's bookmarks
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogBookmarkData'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Toggle bookmark
+      tags:
+      - blog
+  /blog/posts/{slug}/comments:
+    get:
+      description: Returns threaded approved comments for an article
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.BlogCommentResponse'
+                  type: array
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List article comments
+      tags:
+      - blog
+    post:
+      consumes:
+      - application/json
+      description: Adds a threaded comment to an article (requires login)
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Comment payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBlogCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BlogCommentResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create comment
+      tags:
+      - blog
+  /blog/posts/{slug}/helpful:
+    post:
+      description: Increments the helpful vote counter for an article
+      parameters:
+      - description: Post slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Mark article helpful
+      tags:
+      - blog
   /brands:
     get:
       description: Returns a paginated list of brands with optional search and status
