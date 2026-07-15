@@ -88,7 +88,7 @@ type BlogPost struct {
 
 	Category *BlogCategory     `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 	Author   *BlogAuthor       `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
-	Tags     []BlogTag         `gorm:"many2many:blog_post_tags" json:"tags,omitempty"`
+	Tags     []BlogTag         `gorm:"many2many:blog_post_tags;joinForeignKey:PostID;joinReferences:TagID" json:"tags,omitempty"`
 	Products []BlogPostProduct `gorm:"foreignKey:PostID" json:"products,omitempty"`
 }
 
