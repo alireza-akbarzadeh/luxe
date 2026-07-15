@@ -86,7 +86,7 @@ YELLOW := $(shell tput -Txterm setaf 3)
 WHITE  := $(shell tput -Txterm setaf 7)
 RESET  := $(shell tput -Txterm sgr0)
 
-.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-export-json seed-from-json seed-remote seed-shipping-providers seed-invoices seed-coupons seed-nav-menus-i18n seed-catalog-i18n seed-orders-returns db-info
+.PHONY: help build run clean test test-coverage lint migrate-create migrate-up migrate-up-docker migrate-down migrate-reset migrate-status migrate-force deps tidy install-tools docker-up docker-up-jaeger docker-wait-postgres stripe-listen dev-setup dev-setup-existing seed-dev seed-export-json seed-from-json seed-remote seed-shipping-providers seed-invoices seed-coupons seed-nav-menus-i18n seed-catalog-i18n seed-blog seed-orders-returns db-info
 
 # Default target
 help: ## Show this help message
@@ -222,7 +222,8 @@ SEED_DEV_SQL_FILES := \
 	scripts/seed-invoices.sql \
 	scripts/seed-coupons.sql \
 	scripts/seed-nav-menus-i18n.sql \
-	scripts/seed-catalog-i18n.sql
+	scripts/seed-catalog-i18n.sql \
+	scripts/seed-blog.sql
 
 seed-dev: ## Load dev demo data (local/staging only; psql, docker, or go for Neon)
 	@if [ "$(REMOTE_DATABASE)" = "1" ]; then \
@@ -301,6 +302,18 @@ seed-catalog-i18n: ## Load fa/es translations for products and categories
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog-i18n.sql; \
 	fi
 	@echo "${GREEN}Catalog i18n seed complete${RESET}"
+
+seed-blog: ## Load demo blog posts for /weblog (homepage + article detail)
+	@echo "${GREEN}Seeding blog posts into $(POSTGRES_DB)...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-blog.sql; \
+	elif docker info >/dev/null 2>&1; then \
+		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-blog.sql; \
+	else \
+		echo "${YELLOW}psql/docker unavailable — using go run ./cmd/seed-sql${RESET}"; \
+		SEED_SQL_FILES=scripts/seed-blog.sql go run ./cmd/seed-sql; \
+	fi
+	@echo "${GREEN}Blog seed complete — try /weblog/macbook-air-m4-review${RESET}"
 
 seed-orders-returns: ## Load demo orders + returns only (requires catalog seed)
 	@echo "${GREEN}Seeding orders & returns into $(POSTGRES_DB)...${RESET}"

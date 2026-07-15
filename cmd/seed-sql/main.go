@@ -27,6 +27,7 @@ var defaultSeedFiles = []string{
 	"scripts/seed-coupons.sql",
 	"scripts/seed-nav-menus-i18n.sql",
 	"scripts/seed-catalog-i18n.sql",
+	"scripts/seed-blog.sql",
 }
 
 func main() {
