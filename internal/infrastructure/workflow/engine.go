@@ -37,10 +37,11 @@ var entityConfigs = map[string]entityConfig{
 	constants.WorkflowEntityReturn:   {table: "returns", statusMirror: true},
 	constants.WorkflowEntityUser:     {table: "users", statusMirror: false},
 	constants.WorkflowEntityCategory:  {table: "categories", activeMirror: true},
-	constants.WorkflowEntityBrand:       {table: "brands", statusMirror: true},
-	constants.WorkflowEntityCollection:  {table: "collections", statusMirror: true},
-	constants.WorkflowEntityCoupon:      {table: "coupons", activeMirror: true},
-	constants.WorkflowEntityReview:      {table: "reviews", statusMirror: true},
+	constants.WorkflowEntityBrand:      {table: "brands", statusMirror: true},
+	constants.WorkflowEntityCollection: {table: "collections", statusMirror: true},
+	constants.WorkflowEntityCoupon:     {table: "coupons", activeMirror: true},
+	constants.WorkflowEntityReview:     {table: "reviews", statusMirror: true},
+	constants.WorkflowEntityBlogPost:   {table: "blog_posts", statusMirror: true},
 }
 
 // statusMirrorMaps translate a workflow state code into the legacy status string.

@@ -6,7 +6,9 @@ import (
 	"errors"
 	"time"
 
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	infraworkflow "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
@@ -16,12 +18,23 @@ import (
 
 // Service serves blog content for storefront and admin.
 type Service struct {
-	repo *postgres.BlogRepository
+	repo   *postgres.BlogRepository
+	engine *infraworkflow.Engine
 }
 
 // NewService wires blog use cases.
-func NewService(db *gorm.DB) *Service {
-	return &Service{repo: postgres.NewBlogRepository(db)}
+func NewService(db *gorm.DB, engine *infraworkflow.Engine) *Service {
+	return &Service{
+		repo:   postgres.NewBlogRepository(db),
+		engine: engine,
+	}
+}
+
+func (s *Service) syncBlogPostWorkflow(ctx context.Context, postID uint, status string) {
+	if !appworkflow.ApplyBlogPostWorkflow(ctx, s.engine, postID, status, nil) {
+		utils.Log.WithField("post_id", postID).WithField("status", status).
+			Debug("blog post workflow sync skipped or failed")
+	}
 }
 
 // GetHomepage returns curated sections for the blog landing page.
@@ -283,6 +296,14 @@ func (s *Service) AdminGet(ctx context.Context, id uint) (dto.BlogPostResponse, 
 func (s *Service) AdminCreate(ctx context.Context, req *dto.CreateBlogPostRequest) (dto.BlogPostResponse, error) {
 	blocksJSON, _ := json.Marshal(req.ContentBlocks)
 	now := time.Now()
+	status := req.Status
+	if status == "" {
+		status = "draft"
+	}
+	sectionType := req.SectionType
+	if sectionType == "" {
+		sectionType = "article"
+	}
 	post := &models.BlogPost{
 		Slug:               req.Slug,
 		Title:              req.Title,
@@ -292,8 +313,8 @@ func (s *Service) AdminCreate(ctx context.Context, req *dto.CreateBlogPostReques
 		ContentBlocks:      datatypes.JSON(blocksJSON),
 		CategoryID:         req.CategoryID,
 		AuthorID:           req.AuthorID,
-		SectionType:        req.SectionType,
-		Status:             req.Status,
+		SectionType:        sectionType,
+		Status:             status,
 		IsFeatured:         req.IsFeatured,
 		IsEditorPick:       req.IsEditorPick,
 		IsTrending:         req.IsTrending,
@@ -303,12 +324,13 @@ func (s *Service) AdminCreate(ctx context.Context, req *dto.CreateBlogPostReques
 		CanonicalURL:       req.CanonicalURL,
 		ScheduledAt:        req.ScheduledAt,
 	}
-	if req.Status == "published" {
+	if status == "published" {
 		post.PublishedAt = &now
 	}
 	if err := s.repo.CreatePost(ctx, post); err != nil {
 		return dto.BlogPostResponse{}, err
 	}
+	s.syncBlogPostWorkflow(ctx, post.ID, status)
 	created, err := s.repo.GetPostByID(ctx, post.ID)
 	if err != nil {
 		return dto.BlogPostResponse{}, err
@@ -347,13 +369,19 @@ func (s *Service) AdminUpdate(ctx context.Context, id uint, req *dto.CreateBlogP
 	post.ScheduledAt = req.ScheduledAt
 	post.ContentUpdatedAt = &now
 
-	if req.Status == "published" && post.Status != "published" {
-		post.PublishedAt = &now
+	// Workflow panel owns lifecycle transitions; keep existing status unless explicitly provided.
+	if req.Status != "" && req.Status != post.Status {
+		if req.Status == "published" && post.Status != "published" {
+			post.PublishedAt = &now
+		}
+		post.Status = req.Status
 	}
-	post.Status = req.Status
 
 	if err := s.repo.UpdatePost(ctx, post); err != nil {
 		return dto.BlogPostResponse{}, err
+	}
+	if req.Status != "" {
+		s.syncBlogPostWorkflow(ctx, id, post.Status)
 	}
 	updated, err := s.repo.GetPostByID(ctx, id)
 	if err != nil {
@@ -387,6 +415,7 @@ func toListItem(post *models.BlogPost) dto.BlogPostListItem {
 		HeroImageURL:       post.HeroImageURL,
 		HeroImageAlt:       post.HeroImageAlt,
 		SectionType:        post.SectionType,
+		Status:             post.Status,
 		ReadingTimeMinutes: post.ReadingTimeMinutes,
 		ViewCount:          post.ViewCount,
 		HelpfulVotes:       post.HelpfulVotes,
@@ -395,6 +424,7 @@ func toListItem(post *models.BlogPost) dto.BlogPostListItem {
 		IsTrending:         post.IsTrending,
 		PublishedAt:        post.PublishedAt,
 		ContentUpdatedAt:   post.ContentUpdatedAt,
+		ScheduledAt:        post.ScheduledAt,
 	}
 	if post.Category != nil {
 		item.Category = &dto.BlogCategoryBrief{

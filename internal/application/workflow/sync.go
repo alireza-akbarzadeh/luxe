@@ -360,3 +360,52 @@ func ApplyCouponExhausted(ctx context.Context, engine *infraworkflow.Engine, cou
 		SyncState(ctx, engine, constants.WorkflowEntityCoupon, couponID, "exhausted", "usage_limit_reached", nil)
 	}
 }
+
+var blogPostStatusToStateCode = map[string]string{
+	"draft":      "draft",
+	"in_review":  "in_review",
+	"scheduled":  "scheduled",
+	"published":  "published",
+	"archived":   "archived",
+}
+
+// ApplyBlogPostWorkflow syncs blog post status into the workflow engine (best-effort).
+func ApplyBlogPostWorkflow(
+	ctx context.Context,
+	engine *infraworkflow.Engine,
+	postID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"in_review": {"submit_review"},
+		"scheduled": {"approve_schedule", "schedule"},
+		"published": {"publish", "release"},
+		"archived":  {"archive"},
+		"draft":     {"unpublish", "restore"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityBlogPost,
+				EntityID:    postID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := blogPostStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	SyncState(ctx, engine, constants.WorkflowEntityBlogPost, postID, code, "status_update", actorID)
+	return true
+}

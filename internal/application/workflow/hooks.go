@@ -91,6 +91,10 @@ func RegisterGuardsAndHooks(deps HookDeps) {
 		return repo.SetProductPublishedAt(ctx, productID, time.Now())
 	})
 
+	engine.RegisterHook("blog_post_published", func(ctx context.Context, postID uint, _ map[string]interface{}) error {
+		return repo.SetBlogPostPublishedAt(ctx, postID, time.Now())
+	})
+
 	engine.RegisterHook("order_paid", orderNotifyHook(repo, notification, jobQueue,
 		"order_paid", "Payment Confirmed", "Payment for order #%s has been confirmed."))
 

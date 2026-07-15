@@ -45,6 +45,12 @@ func (r *WorkflowHooksRepository) SetProductPublishedAt(ctx context.Context, pro
 		Where("id = ?", productID).Update("published_at", publishedAt).Error
 }
 
+func (r *WorkflowHooksRepository) SetBlogPostPublishedAt(ctx context.Context, postID uint, publishedAt time.Time) error {
+	return r.db.WithContext(ctx).Model(&models.BlogPost{}).
+		Where("id = ? AND published_at IS NULL", postID).
+		Update("published_at", publishedAt).Error
+}
+
 func (r *WorkflowHooksRepository) SetShipmentDeliveredAt(ctx context.Context, shipmentID uint, deliveredAt time.Time) error {
 	return r.db.WithContext(ctx).Model(&models.Shipment{}).
 		Where("id = ?", shipmentID).Update("delivered_at", deliveredAt).Error

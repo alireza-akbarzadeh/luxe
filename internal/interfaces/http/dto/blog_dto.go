@@ -11,6 +11,7 @@ type BlogPostListItem struct {
 	HeroImageURL       string             `json:"hero_image_url"`
 	HeroImageAlt       string             `json:"hero_image_alt"`
 	SectionType        string             `json:"section_type"`
+	Status             string             `json:"status"`
 	ReadingTimeMinutes int                `json:"reading_time_minutes"`
 	ViewCount          int64              `json:"view_count"`
 	HelpfulVotes       int64              `json:"helpful_votes"`
@@ -19,6 +20,7 @@ type BlogPostListItem struct {
 	IsTrending         bool               `json:"is_trending"`
 	PublishedAt        *time.Time         `json:"published_at,omitempty"`
 	ContentUpdatedAt   *time.Time         `json:"content_updated_at,omitempty"`
+	ScheduledAt        *time.Time         `json:"scheduled_at,omitempty"`
 	Category           *BlogCategoryBrief `json:"category,omitempty"`
 	Author             *BlogAuthorBrief   `json:"author,omitempty"`
 	Tags               []BlogTagBrief     `json:"tags,omitempty"`

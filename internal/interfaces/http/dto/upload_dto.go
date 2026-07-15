@@ -4,7 +4,7 @@ package dto
 type PresignUploadRequest struct {
 	Filename    string `json:"filename" validate:"required,max=255"`
 	ContentType string `json:"content_type" validate:"required,max=128"`
-	Purpose     string `json:"purpose" validate:"required,oneof=product avatar store brand media"`
+	Purpose     string `json:"purpose" validate:"required,oneof=product avatar store brand media blog"`
 }
 
 // PresignUploadResponse is returned to the client for PUT upload to R2.

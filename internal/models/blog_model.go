@@ -70,6 +70,7 @@ type BlogPost struct {
 	AuthorID           *uint          `gorm:"index" json:"author_id,omitempty"`
 	SectionType        string         `gorm:"not null;default:'article';index" json:"section_type"`
 	Status             string         `gorm:"not null;default:'draft';index" json:"status"`
+	WorkflowStateID    *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
 	IsFeatured         bool           `gorm:"not null;default:false;index" json:"is_featured"`
 	IsEditorPick       bool           `gorm:"not null;default:false" json:"is_editor_pick"`
 	IsTrending         bool           `gorm:"not null;default:false;index" json:"is_trending"`
@@ -85,10 +86,10 @@ type BlogPost struct {
 	ScheduledAt        *time.Time     `json:"scheduled_at,omitempty"`
 	SortOrder          int            `gorm:"not null;default:0" json:"sort_order"`
 
-	Category *BlogCategory      `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
-	Author   *BlogAuthor        `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
-	Tags     []BlogTag          `gorm:"many2many:blog_post_tags" json:"tags,omitempty"`
-	Products []BlogPostProduct  `gorm:"foreignKey:PostID" json:"products,omitempty"`
+	Category *BlogCategory     `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Author   *BlogAuthor       `gorm:"foreignKey:AuthorID" json:"author,omitempty"`
+	Tags     []BlogTag         `gorm:"many2many:blog_post_tags" json:"tags,omitempty"`
+	Products []BlogPostProduct `gorm:"foreignKey:PostID" json:"products,omitempty"`
 }
 
 func (BlogPost) TableName() string { return "blog_posts" }

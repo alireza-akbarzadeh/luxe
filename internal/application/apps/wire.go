@@ -372,7 +372,7 @@ func WireApplications(
 			jobQueue,
 			frontendURL,
 		),
-		Blog: appblog.NewService(db),
+		Blog: appblog.NewService(db, engine),
 	}
 }
 

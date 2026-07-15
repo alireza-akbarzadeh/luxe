@@ -332,10 +332,11 @@ const (
 	WorkflowEntityReturn   = "return"
 	WorkflowEntityUser     = "user"
 	WorkflowEntityCategory = "category"
-	WorkflowEntityBrand       = "brand"
-	WorkflowEntityCollection  = "collection"
-	WorkflowEntityCoupon      = "coupon"
-	WorkflowEntityReview      = "review"
+	WorkflowEntityBrand      = "brand"
+	WorkflowEntityCollection = "collection"
+	WorkflowEntityCoupon     = "coupon"
+	WorkflowEntityReview     = "review"
+	WorkflowEntityBlogPost   = "blog_post"
 )
 
 // Inventory adjustment types (ledger).

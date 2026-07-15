@@ -26,6 +26,9 @@ const (
 	TaskProductBrief       = "product_brief"
 	TaskQaReply            = "qa_reply"
 	TaskSupportReply       = "support_reply"
+	TaskBlogArticle        = "blog_article"
+	TaskBlogExcerpt        = "blog_excerpt"
+	TaskBlogSeo            = "blog_seo"
 )
 
 var htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
@@ -352,6 +355,63 @@ If information is missing, ask a clarifying question politely.`
 		)
 		return system, user, nil
 
+	case TaskBlogArticle:
+		title := contextString(ctx, "title")
+		if title == "" {
+			return "", "", utils.ErrBadRequest("context.title is required")
+		}
+		system := `You write luxury ecommerce blog articles as structured content blocks.
+Respond with JSON only: an array of block objects.
+Allowed block types and shapes:
+- {"type":"heading","level":2|3|4,"text":"..."}
+- {"type":"paragraph","text":"..."}
+- {"type":"quote","text":"...","cite":"..."}
+- {"type":"list","style":"unordered"|"ordered","items":[{"text":"..."}]}
+- {"type":"callout","tone":"info"|"tip"|"success"|"warning","title":"...","text":"..."}
+- {"type":"faq","items":[{"question":"...","answer":"..."}]}
+- {"type":"divider"}
+Write 6-12 blocks. Use headings to structure the article. No markdown, no HTML, JSON only.`
+		user := fmt.Sprintf(
+			"Title: %s\nTopic: %s\nSection type: %s\nTone: %s\nKey points: %s",
+			title,
+			contextString(ctx, "topic"),
+			contextString(ctx, "section_type"),
+			contextString(ctx, "tone"),
+			contextString(ctx, "key_points"),
+		)
+		return system, user, nil
+
+	case TaskBlogExcerpt:
+		title := contextString(ctx, "title")
+		if title == "" {
+			return "", "", utils.ErrBadRequest("context.title is required")
+		}
+		system := `You write short blog article excerpts for a luxury ecommerce magazine.
+Output plain text only, one or two sentences, max 160 characters. No quotes around the text.`
+		user := fmt.Sprintf(
+			"Title: %s\nTopic: %s\nSection type: %s",
+			title,
+			contextString(ctx, "topic"),
+			contextString(ctx, "section_type"),
+		)
+		return system, user, nil
+
+	case TaskBlogSeo:
+		title := contextString(ctx, "title")
+		if title == "" {
+			return "", "", utils.ErrBadRequest("context.title is required")
+		}
+		system := `You write SEO metadata for blog articles.
+Respond with JSON only: {"meta_title":"...","meta_description":"..."}
+meta_title max 70 chars, meta_description max 160 chars.`
+		user := fmt.Sprintf(
+			"Title: %s\nExcerpt: %s\nSection type: %s",
+			title,
+			contextString(ctx, "excerpt"),
+			contextString(ctx, "section_type"),
+		)
+		return system, user, nil
+
 	default:
 		return "", "", utils.ErrBadRequest("unsupported AI task")
 	}
@@ -363,7 +423,7 @@ func (s *Service) parseGenerateResponse(task, content string) (*dto.AiGenerateRe
 		return nil, utils.NewAppError(503, "AI returned empty content", nil)
 	}
 
-	if task == TaskSeoMeta {
+	if task == TaskSeoMeta || task == TaskBlogSeo {
 		fields := parseSEOJSON(content)
 		if fields != nil {
 			return &dto.AiGenerateResponse{
@@ -373,7 +433,33 @@ func (s *Service) parseGenerateResponse(task, content string) (*dto.AiGenerateRe
 		}
 	}
 
+	if task == TaskBlogArticle {
+		trimmed := extractJSONArray(content)
+		if trimmed != "" {
+			return &dto.AiGenerateResponse{
+				Text: trimmed,
+				Fields: map[string]string{
+					"content_blocks": trimmed,
+				},
+			}, nil
+		}
+	}
+
 	return &dto.AiGenerateResponse{Text: content}, nil
+}
+
+func extractJSONArray(content string) string {
+	trimmed := strings.TrimSpace(content)
+	if idx := strings.Index(trimmed, "["); idx >= 0 {
+		if end := strings.LastIndex(trimmed, "]"); end > idx {
+			candidate := trimmed[idx : end+1]
+			var blocks []map[string]any
+			if err := json.Unmarshal([]byte(candidate), &blocks); err == nil && len(blocks) > 0 {
+				return candidate
+			}
+		}
+	}
+	return ""
 }
 
 func parseProductBriefJSON(content string) (*dto.AiProductBriefResponse, error) {
