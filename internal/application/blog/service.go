@@ -330,6 +330,9 @@ func (s *Service) AdminCreate(ctx context.Context, req *dto.CreateBlogPostReques
 	if err := s.repo.CreatePost(ctx, post); err != nil {
 		return dto.BlogPostResponse{}, err
 	}
+	if err := s.repo.ReplacePostProducts(ctx, post.ID, req.ProductIDs); err != nil {
+		return dto.BlogPostResponse{}, err
+	}
 	s.syncBlogPostWorkflow(ctx, post.ID, status)
 	created, err := s.repo.GetPostByID(ctx, post.ID)
 	if err != nil {
@@ -379,6 +382,12 @@ func (s *Service) AdminUpdate(ctx context.Context, id uint, req *dto.CreateBlogP
 
 	if err := s.repo.UpdatePost(ctx, post); err != nil {
 		return dto.BlogPostResponse{}, err
+	}
+	// Only sync when the client sends product_ids (omitted → leave existing links).
+	if req.ProductIDs != nil {
+		if err := s.repo.ReplacePostProducts(ctx, id, req.ProductIDs); err != nil {
+			return dto.BlogPostResponse{}, err
+		}
 	}
 	if req.Status != "" {
 		s.syncBlogPostWorkflow(ctx, id, post.Status)

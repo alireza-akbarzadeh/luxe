@@ -213,6 +213,28 @@ func (r *BlogRepository) DeletePost(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&models.BlogPost{}, id).Error
 }
 
+// ReplacePostProducts replaces the catalog products linked to a blog post.
+func (r *BlogRepository) ReplacePostProducts(ctx context.Context, postID uint, productIDs []uint) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("post_id = ?", postID).Delete(&models.BlogPostProduct{}).Error; err != nil {
+			return err
+		}
+		if len(productIDs) == 0 {
+			return nil
+		}
+		rows := make([]models.BlogPostProduct, 0, len(productIDs))
+		for i, productID := range productIDs {
+			rows = append(rows, models.BlogPostProduct{
+				PostID:    postID,
+				ProductID: productID,
+				BlockType: "recommended",
+				SortOrder: i,
+			})
+		}
+		return tx.Create(&rows).Error
+	})
+}
+
 // IncrementHelpfulVote increments helpful votes for a post.
 func (r *BlogRepository) IncrementHelpfulVote(ctx context.Context, postID uint) error {
 	return r.db.WithContext(ctx).Model(&models.BlogPost{}).
