@@ -27109,10 +27109,16 @@ const docTemplate = `{
                 "reading_time_minutes": {
                     "type": "integer"
                 },
+                "scheduled_at": {
+                    "type": "string"
+                },
                 "section_type": {
                     "type": "string"
                 },
                 "slug": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "tags": {
@@ -27212,6 +27218,9 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.BlogPostListItem"
                     }
                 },
+                "scheduled_at": {
+                    "type": "string"
+                },
                 "section_type": {
                     "type": "string"
                 },
@@ -27219,6 +27228,9 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "slug": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "tags": {
@@ -32111,7 +32123,8 @@ const docTemplate = `{
                         "avatar",
                         "store",
                         "brand",
-                        "media"
+                        "media",
+                        "blog"
                     ]
                 }
             }

@@ -2583,9 +2583,13 @@ definitions:
         type: string
       reading_time_minutes:
         type: integer
+      scheduled_at:
+        type: string
       section_type:
         type: string
       slug:
+        type: string
+      status:
         type: string
       tags:
         items:
@@ -2651,11 +2655,15 @@ definitions:
         items:
           $ref: '#/definitions/dto.BlogPostListItem'
         type: array
+      scheduled_at:
+        type: string
       section_type:
         type: string
       seo_score:
         type: integer
       slug:
+        type: string
+      status:
         type: string
       tags:
         items:
@@ -5951,6 +5959,7 @@ definitions:
         - store
         - brand
         - media
+        - blog
         type: string
     required:
     - content_type

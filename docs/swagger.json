@@ -27103,10 +27103,16 @@
                 "reading_time_minutes": {
                     "type": "integer"
                 },
+                "scheduled_at": {
+                    "type": "string"
+                },
                 "section_type": {
                     "type": "string"
                 },
                 "slug": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "tags": {
@@ -27206,6 +27212,9 @@
                         "$ref": "#/definitions/dto.BlogPostListItem"
                     }
                 },
+                "scheduled_at": {
+                    "type": "string"
+                },
                 "section_type": {
                     "type": "string"
                 },
@@ -27213,6 +27222,9 @@
                     "type": "integer"
                 },
                 "slug": {
+                    "type": "string"
+                },
+                "status": {
                     "type": "string"
                 },
                 "tags": {
@@ -32105,7 +32117,8 @@
                         "avatar",
                         "store",
                         "brand",
-                        "media"
+                        "media",
+                        "blog"
                     ]
                 }
             }
