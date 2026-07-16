@@ -9,6 +9,7 @@ import (
 func SetupBrandRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Container) {
 	// Public (no auth needed)
 	public.GET("/brands", ctrl.Brand.ListBrands)
+	public.GET("/brands/slug/:slug", ctrl.Brand.GetBrandBySlug)
 	public.GET("/brands/:id", ctrl.Brand.GetBrand)
 
 	// Protected (any authenticated user)

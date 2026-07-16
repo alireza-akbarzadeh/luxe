@@ -17001,6 +17001,10 @@ paths:
         in: query
         name: featured
         type: boolean
+      - description: 'Sort: newest, popular, name_asc, featured'
+        in: query
+        name: sort
+        type: string
       produces:
       - application/json
       responses:
@@ -17082,13 +17086,13 @@ paths:
       tags:
       - brands
     get:
-      description: Returns a single brand by its unique identifier.
+      description: Returns a single brand. Accepts either a numeric ID or a URL slug.
       parameters:
-      - description: Brand ID
+      - description: Brand ID (numeric) or slug
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
@@ -17101,10 +17105,6 @@ paths:
                 data:
                   $ref: '#/definitions/dto.BrandResponse'
               type: object
-        "400":
-          description: Invalid ID
-          schema:
-            $ref: '#/definitions/utils.Response'
         "404":
           description: Brand not found
           schema:
@@ -17113,7 +17113,7 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.Response'
-      summary: Get a brand by ID
+      summary: Get a brand by ID or slug
       tags:
       - brands
     put:

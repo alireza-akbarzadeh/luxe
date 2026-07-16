@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	domainbrand "github.com/alireza-akbarzadeh/luxe/internal/domain/brand"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
@@ -62,7 +63,27 @@ func (s *Service) GetByID(ctx context.Context, id uint) (*dto.BrandResponse, err
 		}
 		return nil, err
 	}
-	return ToResponse(brand), nil
+	return s.toResponseWithProductCount(ctx, brand)
+}
+
+// GetBySlug returns a brand API response by URL slug.
+func (s *Service) GetBySlug(ctx context.Context, slug string) (*dto.BrandResponse, error) {
+	brand, err := s.queries.GetBySlug(ctx, slug)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("brand not found")
+		}
+		return nil, err
+	}
+	return s.toResponseWithProductCount(ctx, brand)
+}
+
+func (s *Service) toResponseWithProductCount(ctx context.Context, brand *models.Brand) (*dto.BrandResponse, error) {
+	count, err := s.queries.CountProducts(ctx, brand.ID)
+	if err != nil {
+		return nil, err
+	}
+	return ToResponse(brand, count), nil
 }
 
 // List returns paginated brand API responses.

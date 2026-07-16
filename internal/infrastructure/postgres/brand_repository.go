@@ -33,6 +33,24 @@ func (r *BrandRepository) GetByID(ctx context.Context, id uint) (*models.Brand, 
 	return &brand, nil
 }
 
+// GetBySlug loads a brand by URL slug with workflow state.
+func (r *BrandRepository) GetBySlug(ctx context.Context, slug string) (*models.Brand, error) {
+	var brand models.Brand
+	if err := r.db.WithContext(ctx).Preload("WorkflowState").Where("slug = ?", slug).First(&brand).Error; err != nil {
+		return nil, err
+	}
+	return &brand, nil
+}
+
+// CountProducts returns the number of non-deleted products for a brand.
+func (r *BrandRepository) CountProducts(ctx context.Context, brandID uint) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&models.Product{}).
+		Where("brand_id = ? AND deleted_at IS NULL", brandID).
+		Count(&count).Error
+	return count, err
+}
+
 // Create inserts a brand row.
 func (r *BrandRepository) Create(ctx context.Context, brand *models.Brand) error {
 	return r.db.WithContext(ctx).Create(brand).Error
@@ -75,13 +93,23 @@ func (r *BrandRepository) List(ctx context.Context, req *dto.ListBrandsRequest) 
 		ProductCount int64 `gorm:"column:product_count"`
 	}
 
+	orderBy := "brands.created_at DESC"
+	switch req.Sort {
+	case "popular":
+		orderBy = "product_count DESC, brands.name ASC"
+	case "name_asc":
+		orderBy = "brands.name ASC"
+	case "featured":
+		orderBy = "brands.is_featured DESC, brands.featured_sort_order ASC, brands.name ASC"
+	}
+
 	var rows []listRow
 	if err := query.
 		Select(`brands.*, COUNT(products.id) AS product_count`).
 		Joins("LEFT JOIN products ON products.brand_id = brands.id AND products.deleted_at IS NULL").
 		Group("brands.id").
 		Offset(offset).Limit(req.Limit).
-		Order("brands.created_at DESC").
+		Order(orderBy).
 		Preload("WorkflowState").
 		Find(&rows).Error; err != nil {
 		return nil, 0, err

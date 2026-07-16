@@ -11742,6 +11742,12 @@ const docTemplate = `{
                         "description": "Filter by featured flag",
                         "name": "featured",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort: newest, popular, name_asc, featured",
+                        "name": "sort",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -11818,18 +11824,18 @@ const docTemplate = `{
         },
         "/brands/{id}": {
             "get": {
-                "description": "Returns a single brand by its unique identifier.",
+                "description": "Returns a single brand. Accepts either a numeric ID or a URL slug.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "brands"
                 ],
-                "summary": "Get a brand by ID",
+                "summary": "Get a brand by ID or slug",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Brand ID",
+                        "type": "string",
+                        "description": "Brand ID (numeric) or slug",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -11852,12 +11858,6 @@ const docTemplate = `{
                                     }
                                 }
                             ]
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid ID",
-                        "schema": {
-                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {

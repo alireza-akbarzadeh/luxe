@@ -32,6 +32,8 @@ type ListBrandsRequest struct {
 	Search   string `form:"search"`
 	Status   string `form:"status"`
 	Featured *bool  `form:"featured"`
+	// Sort: newest (default), popular, name_asc, featured
+	Sort string `form:"sort"`
 }
 
 type BrandListResponse struct {

@@ -54,7 +54,7 @@ func (ctrl *BrandHandler) CreateBrand(c *gin.Context) {
 
 // GetBrand godoc
 // @Summary      Get a brand by ID
-// @Description  Returns a single brand by its unique identifier.
+// @Description  Returns a single brand by its numeric identifier.
 // @Tags         brands
 // @Produce      json
 // @Param        id   path      int  true  "Brand ID"
@@ -78,6 +78,32 @@ func (ctrl *BrandHandler) GetBrand(c *gin.Context) {
 	utils.SuccessResponse(c, "brand retrieved", brand)
 }
 
+// GetBrandBySlug godoc
+// @Summary      Get a brand by slug
+// @Description  Returns a single brand by its URL slug for storefront pages.
+// @Tags         brands
+// @Produce      json
+// @Param        slug  path      string  true  "Brand slug"
+// @Success      200   {object}  utils.Response{data=dto.BrandResponse}  "Brand found"
+// @Failure      404   {object}  utils.Response  "Brand not found"
+// @Failure      500   {object}  utils.Response  "Internal server error"
+// @Router       /brands/slug/{slug} [get]
+func (ctrl *BrandHandler) GetBrandBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		utils.BadRequestResponse(c, "slug is required")
+		return
+	}
+
+	brand, err := ctrl.brandService.GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to retrieve brand")
+		return
+	}
+
+	utils.SuccessResponse(c, "brand retrieved", brand)
+}
+
 // ListBrands godoc
 // @Summary      List all brands
 // @Description  Returns a paginated list of brands with optional search and status filtering.
@@ -88,6 +114,7 @@ func (ctrl *BrandHandler) GetBrand(c *gin.Context) {
 // @Param        search  query     string  false  "Search by name or slug"
 // @Param        status    query     string  false  "Filter by status"
 // @Param        featured  query     bool    false  "Filter by featured flag"
+// @Param        sort      query     string  false  "Sort: newest, popular, name_asc, featured"
 // @Success      200     {object}  dto.BrandListResponse  "Brand list"
 // @Failure      500     {object}  utils.Response  "Internal server error"
 // @Router       /brands [get]

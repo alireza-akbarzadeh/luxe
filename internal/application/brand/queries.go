@@ -23,6 +23,16 @@ func (q *Queries) GetByID(ctx context.Context, id uint) (*models.Brand, error) {
 	return q.repo.GetByID(ctx, id)
 }
 
+// GetBySlug loads a brand by URL slug with workflow state.
+func (q *Queries) GetBySlug(ctx context.Context, slug string) (*models.Brand, error) {
+	return q.repo.GetBySlug(ctx, slug)
+}
+
+// CountProducts returns product count for a brand.
+func (q *Queries) CountProducts(ctx context.Context, brandID uint) (int64, error) {
+	return q.repo.CountProducts(ctx, brandID)
+}
+
 // List returns paginated brands.
 func (q *Queries) List(ctx context.Context, req *dto.ListBrandsRequest) ([]postgres.BrandListItem, int64, error) {
 	return q.repo.List(ctx, req)
