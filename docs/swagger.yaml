@@ -3112,8 +3112,25 @@ definitions:
       success:
         type: boolean
     type: object
+  dto.CollectionProductOverrideInput:
+    properties:
+      boost_score:
+        type: integer
+      is_hidden:
+        type: boolean
+      is_pinned:
+        type: boolean
+      position:
+        type: integer
+      product_id:
+        type: integer
+    required:
+    - product_id
+    type: object
   dto.CollectionResponse:
     properties:
+      canonical_url:
+        type: string
       collection_type:
         type: string
       created_at:
@@ -3122,9 +3139,15 @@ definitions:
         type: string
       description:
         type: string
+      desktop_image_url:
+        type: string
       ends_at:
         type: string
       eyebrow:
+        type: string
+      hero_description:
+        type: string
+      hero_title:
         type: string
       href:
         type: string
@@ -3132,6 +3155,22 @@ definitions:
         type: integer
       image_url:
         type: string
+      is_indexable:
+        type: boolean
+      meta_keywords:
+        type: string
+      mobile_image_url:
+        type: string
+      mode:
+        type: string
+      og_description:
+        type: string
+      og_image_url:
+        type: string
+      og_title:
+        type: string
+      overlay_opacity:
+        type: number
       preview_category_id:
         type: integer
       preview_is_new:
@@ -3142,7 +3181,21 @@ definitions:
         items:
           type: integer
         type: array
+      product_overrides:
+        items:
+          $ref: '#/definitions/dto.CollectionProductOverrideInput'
+        type: array
+      robots_directives:
+        type: string
+      rules:
+        $ref: '#/definitions/dto.CollectionRules'
+      seo_description:
+        type: string
+      seo_title:
+        type: string
       slug:
+        type: string
+      sort_key:
         type: string
       sort_order:
         type: integer
@@ -3150,14 +3203,62 @@ definitions:
         type: string
       status:
         type: string
+      subtitle:
+        type: string
+      tablet_image_url:
+        type: string
       theme:
         type: string
+      theme_variant:
+        type: string
       title:
+        type: string
+      twitter_description:
+        type: string
+      twitter_image_url:
+        type: string
+      twitter_title:
         type: string
       updated_at:
         type: string
       workflow_state:
         $ref: '#/definitions/dto.StateView'
+    type: object
+  dto.CollectionRuleCondition:
+    properties:
+      field:
+        type: string
+      operator:
+        type: string
+      value: {}
+    type: object
+  dto.CollectionRules:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/dto.CollectionRuleCondition'
+        type: array
+      operator:
+        type: string
+    type: object
+  dto.CollectionRulesValidationRequest:
+    properties:
+      limit:
+        maximum: 24
+        minimum: 1
+        type: integer
+      mode:
+        enum:
+        - manual
+        - dynamic
+        - hybrid
+        type: string
+      overrides:
+        items:
+          $ref: '#/definitions/dto.CollectionProductOverrideInput'
+        type: array
+      rules:
+        $ref: '#/definitions/dto.CollectionRules'
     type: object
   dto.Column:
     properties:
@@ -3682,6 +3783,9 @@ definitions:
     type: object
   dto.CreateCollectionRequest:
     properties:
+      canonical_url:
+        maxLength: 2048
+        type: string
       collection_type:
         enum:
         - manual
@@ -3693,10 +3797,19 @@ definitions:
       description:
         maxLength: 2000
         type: string
+      desktop_image_url:
+        maxLength: 2048
+        type: string
       ends_at:
         type: string
       eyebrow:
         maxLength: 128
+        type: string
+      hero_description:
+        maxLength: 2000
+        type: string
+      hero_title:
+        maxLength: 255
         type: string
       href:
         maxLength: 512
@@ -3704,6 +3817,31 @@ definitions:
       image_url:
         maxLength: 2048
         type: string
+      is_indexable:
+        type: boolean
+      meta_keywords:
+        maxLength: 500
+        type: string
+      mobile_image_url:
+        maxLength: 2048
+        type: string
+      mode:
+        enum:
+        - manual
+        - dynamic
+        - hybrid
+        type: string
+      og_description:
+        maxLength: 500
+        type: string
+      og_image_url:
+        maxLength: 2048
+        type: string
+      og_title:
+        maxLength: 255
+        type: string
+      overlay_opacity:
+        type: number
       preview_category_id:
         type: integer
       preview_is_new:
@@ -3715,9 +3853,27 @@ definitions:
         items:
           type: integer
         type: array
+      product_overrides:
+        items:
+          $ref: '#/definitions/dto.CollectionProductOverrideInput'
+        type: array
+      robots_directives:
+        maxLength: 255
+        type: string
+      rules:
+        $ref: '#/definitions/dto.CollectionRules'
+      seo_description:
+        maxLength: 500
+        type: string
+      seo_title:
+        maxLength: 255
+        type: string
       slug:
         maxLength: 128
         minLength: 2
+        type: string
+      sort_key:
+        maxLength: 64
         type: string
       sort_order:
         type: integer
@@ -3730,12 +3886,30 @@ definitions:
         - inactive
         - archived
         type: string
+      subtitle:
+        maxLength: 255
+        type: string
+      tablet_image_url:
+        maxLength: 2048
+        type: string
       theme:
+        maxLength: 64
+        type: string
+      theme_variant:
         maxLength: 64
         type: string
       title:
         maxLength: 255
         minLength: 2
+        type: string
+      twitter_description:
+        maxLength: 500
+        type: string
+      twitter_image_url:
+        maxLength: 2048
+        type: string
+      twitter_title:
+        maxLength: 255
         type: string
     required:
     - slug
@@ -6171,6 +6345,19 @@ definitions:
       title:
         type: string
     type: object
+  dto.ProductListData:
+    properties:
+      limit:
+        type: integer
+      offset:
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/dto.ProductWithLike'
+        type: array
+      total:
+        type: integer
+    type: object
   dto.ProductQuestionResponse:
     properties:
       answers:
@@ -7609,6 +7796,9 @@ definitions:
     type: object
   dto.UpdateCollectionRequest:
     properties:
+      canonical_url:
+        maxLength: 2048
+        type: string
       collection_type:
         enum:
         - manual
@@ -7620,10 +7810,19 @@ definitions:
       description:
         maxLength: 2000
         type: string
+      desktop_image_url:
+        maxLength: 2048
+        type: string
       ends_at:
         type: string
       eyebrow:
         maxLength: 128
+        type: string
+      hero_description:
+        maxLength: 2000
+        type: string
+      hero_title:
+        maxLength: 255
         type: string
       href:
         maxLength: 512
@@ -7631,6 +7830,31 @@ definitions:
       image_url:
         maxLength: 2048
         type: string
+      is_indexable:
+        type: boolean
+      meta_keywords:
+        maxLength: 500
+        type: string
+      mobile_image_url:
+        maxLength: 2048
+        type: string
+      mode:
+        enum:
+        - manual
+        - dynamic
+        - hybrid
+        type: string
+      og_description:
+        maxLength: 500
+        type: string
+      og_image_url:
+        maxLength: 2048
+        type: string
+      og_title:
+        maxLength: 255
+        type: string
+      overlay_opacity:
+        type: number
       preview_category_id:
         type: integer
       preview_is_new:
@@ -7642,9 +7866,27 @@ definitions:
         items:
           type: integer
         type: array
+      product_overrides:
+        items:
+          $ref: '#/definitions/dto.CollectionProductOverrideInput'
+        type: array
+      robots_directives:
+        maxLength: 255
+        type: string
+      rules:
+        $ref: '#/definitions/dto.CollectionRules'
+      seo_description:
+        maxLength: 500
+        type: string
+      seo_title:
+        maxLength: 255
+        type: string
       slug:
         maxLength: 128
         minLength: 2
+        type: string
+      sort_key:
+        maxLength: 64
         type: string
       sort_order:
         type: integer
@@ -7657,12 +7899,30 @@ definitions:
         - inactive
         - archived
         type: string
+      subtitle:
+        maxLength: 255
+        type: string
+      tablet_image_url:
+        maxLength: 2048
+        type: string
       theme:
+        maxLength: 64
+        type: string
+      theme_variant:
         maxLength: 64
         type: string
       title:
         maxLength: 255
         minLength: 2
+        type: string
+      twitter_description:
+        maxLength: 500
+        type: string
+      twitter_image_url:
+        maxLength: 2048
+        type: string
+      twitter_title:
+        maxLength: 255
         type: string
     type: object
   dto.UpdateCouponRequest:
@@ -17086,13 +17346,13 @@ paths:
       tags:
       - brands
     get:
-      description: Returns a single brand. Accepts either a numeric ID or a URL slug.
+      description: Returns a single brand by its numeric identifier.
       parameters:
-      - description: Brand ID (numeric) or slug
+      - description: Brand ID
         in: path
         name: id
         required: true
-        type: string
+        type: integer
       produces:
       - application/json
       responses:
@@ -17105,6 +17365,10 @@ paths:
                 data:
                   $ref: '#/definitions/dto.BrandResponse'
               type: object
+        "400":
+          description: Invalid ID
+          schema:
+            $ref: '#/definitions/utils.Response'
         "404":
           description: Brand not found
           schema:
@@ -17113,7 +17377,7 @@ paths:
           description: Internal server error
           schema:
             $ref: '#/definitions/utils.Response'
-      summary: Get a brand by ID or slug
+      summary: Get a brand by ID
       tags:
       - brands
     put:
@@ -17157,6 +17421,38 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Update a brand
+      tags:
+      - brands
+  /brands/slug/{slug}:
+    get:
+      description: Returns a single brand by its URL slug for storefront pages.
+      parameters:
+      - description: Brand slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Brand found
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.BrandResponse'
+              type: object
+        "404":
+          description: Brand not found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a brand by slug
       tags:
       - brands
   /bundles/suggest:
@@ -17689,6 +17985,170 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Update a collection
+      tags:
+      - collections
+  /collections/{id}/preview-products:
+    get:
+      parameters:
+      - description: Collection ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductListData'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Preview resolved products for a collection
+      tags:
+      - collections
+  /collections/{id}/validate-rules:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Collection ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Validation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CollectionRulesValidationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductListData'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Validate collection rules and preview products
+      tags:
+      - collections
+  /collections/slug/{slug}:
+    get:
+      parameters:
+      - description: Collection slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CollectionResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get a collection by slug
+      tags:
+      - collections
+  /collections/slug/{slug}/products:
+    get:
+      parameters:
+      - description: Collection slug
+        in: path
+        name: slug
+        required: true
+        type: string
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      - description: Search term
+        in: query
+        name: search
+        type: string
+      - description: Category filter
+        in: query
+        name: category_id
+        type: integer
+      - description: Minimum price
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price
+        in: query
+        name: max_price
+        type: number
+      - description: Minimum rating
+        in: query
+        name: min_rating
+        type: number
+      - description: Sort key
+        in: query
+        name: sort
+        type: string
+      - description: In-stock only
+        in: query
+        name: in_stock
+        type: boolean
+      - description: On-sale only
+        in: query
+        name: on_sale
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductListData'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get resolved collection products by slug
       tags:
       - collections
   /community-lists:

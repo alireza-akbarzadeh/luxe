@@ -11822,20 +11822,73 @@ const docTemplate = `{
                 }
             }
         },
-        "/brands/{id}": {
+        "/brands/slug/{slug}": {
             "get": {
-                "description": "Returns a single brand. Accepts either a numeric ID or a URL slug.",
+                "description": "Returns a single brand by its URL slug for storefront pages.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "brands"
                 ],
-                "summary": "Get a brand by ID or slug",
+                "summary": "Get a brand by slug",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Brand ID (numeric) or slug",
+                        "description": "Brand slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Brand found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.BrandResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Brand not found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/brands/{id}": {
+            "get": {
+                "description": "Returns a single brand by its numeric identifier.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "brands"
+                ],
+                "summary": "Get a brand by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Brand ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -11858,6 +11911,12 @@ const docTemplate = `{
                                     }
                                 }
                             ]
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     },
                     "404": {
@@ -12697,6 +12756,158 @@ const docTemplate = `{
                 }
             }
         },
+        "/collections/slug/{slug}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Get a collection by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Collection slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CollectionResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/collections/slug/{slug}/products": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Get resolved collection products by slug",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Collection slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search term",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Category filter",
+                        "name": "category_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum price",
+                        "name": "min_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Maximum price",
+                        "name": "max_price",
+                        "in": "query"
+                    },
+                    {
+                        "type": "number",
+                        "description": "Minimum rating",
+                        "name": "min_rating",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort key",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "In-stock only",
+                        "name": "in_stock",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "On-sale only",
+                        "name": "on_sale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductListData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/collections/{id}": {
             "get": {
                 "produces": [
@@ -12820,6 +13031,122 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/collections/{id}/preview-products": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Preview resolved products for a collection",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Collection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Pagination offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductListData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/collections/{id}/validate-rules": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Validate collection rules and preview products",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Collection ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Validation payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CollectionRulesValidationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductListData"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "404": {
@@ -27900,9 +28227,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CollectionProductOverrideInput": {
+            "type": "object",
+            "required": [
+                "product_id"
+            ],
+            "properties": {
+                "boost_score": {
+                    "type": "integer"
+                },
+                "is_hidden": {
+                    "type": "boolean"
+                },
+                "is_pinned": {
+                    "type": "boolean"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.CollectionResponse": {
             "type": "object",
             "properties": {
+                "canonical_url": {
+                    "type": "string"
+                },
                 "collection_type": {
                     "type": "string"
                 },
@@ -27915,10 +28268,19 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
+                "desktop_image_url": {
+                    "type": "string"
+                },
                 "ends_at": {
                     "type": "string"
                 },
                 "eyebrow": {
+                    "type": "string"
+                },
+                "hero_description": {
+                    "type": "string"
+                },
+                "hero_title": {
                     "type": "string"
                 },
                 "href": {
@@ -27929,6 +28291,30 @@ const docTemplate = `{
                 },
                 "image_url": {
                     "type": "string"
+                },
+                "is_indexable": {
+                    "type": "boolean"
+                },
+                "meta_keywords": {
+                    "type": "string"
+                },
+                "mobile_image_url": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "og_description": {
+                    "type": "string"
+                },
+                "og_image_url": {
+                    "type": "string"
+                },
+                "og_title": {
+                    "type": "string"
+                },
+                "overlay_opacity": {
+                    "type": "number"
                 },
                 "preview_category_id": {
                     "type": "integer"
@@ -27945,7 +28331,28 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "product_overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionProductOverrideInput"
+                    }
+                },
+                "robots_directives": {
+                    "type": "string"
+                },
+                "rules": {
+                    "$ref": "#/definitions/dto.CollectionRules"
+                },
+                "seo_description": {
+                    "type": "string"
+                },
+                "seo_title": {
+                    "type": "string"
+                },
                 "slug": {
+                    "type": "string"
+                },
+                "sort_key": {
                     "type": "string"
                 },
                 "sort_order": {
@@ -27957,10 +28364,28 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
+                "subtitle": {
+                    "type": "string"
+                },
+                "tablet_image_url": {
+                    "type": "string"
+                },
                 "theme": {
                     "type": "string"
                 },
+                "theme_variant": {
+                    "type": "string"
+                },
                 "title": {
+                    "type": "string"
+                },
+                "twitter_description": {
+                    "type": "string"
+                },
+                "twitter_image_url": {
+                    "type": "string"
+                },
+                "twitter_title": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -27968,6 +28393,59 @@ const docTemplate = `{
                 },
                 "workflow_state": {
                     "$ref": "#/definitions/dto.StateView"
+                }
+            }
+        },
+        "dto.CollectionRuleCondition": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "operator": {
+                    "type": "string"
+                },
+                "value": {}
+            }
+        },
+        "dto.CollectionRules": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionRuleCondition"
+                    }
+                },
+                "operator": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CollectionRulesValidationRequest": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "maximum": 24,
+                    "minimum": 1
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "dynamic",
+                        "hybrid"
+                    ]
+                },
+                "overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionProductOverrideInput"
+                    }
+                },
+                "rules": {
+                    "$ref": "#/definitions/dto.CollectionRules"
                 }
             }
         },
@@ -28755,6 +29233,10 @@ const docTemplate = `{
                 "title"
             ],
             "properties": {
+                "canonical_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "collection_type": {
                     "type": "string",
                     "enum": [
@@ -28770,12 +29252,24 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 2000
                 },
+                "desktop_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "ends_at": {
                     "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
                     "maxLength": 128
+                },
+                "hero_description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "hero_title": {
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "href": {
                     "type": "string",
@@ -28784,6 +29278,40 @@ const docTemplate = `{
                 "image_url": {
                     "type": "string",
                     "maxLength": 2048
+                },
+                "is_indexable": {
+                    "type": "boolean"
+                },
+                "meta_keywords": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "mobile_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "dynamic",
+                        "hybrid"
+                    ]
+                },
+                "og_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "og_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "og_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "overlay_opacity": {
+                    "type": "number"
                 },
                 "preview_category_id": {
                     "type": "integer"
@@ -28801,10 +29329,35 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "product_overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionProductOverrideInput"
+                    }
+                },
+                "robots_directives": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "rules": {
+                    "$ref": "#/definitions/dto.CollectionRules"
+                },
+                "seo_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "seo_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
                     "minLength": 2
+                },
+                "sort_key": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "sort_order": {
                     "type": "integer"
@@ -28821,7 +29374,19 @@ const docTemplate = `{
                         "archived"
                     ]
                 },
+                "subtitle": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "tablet_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "theme": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "theme_variant": {
                     "type": "string",
                     "maxLength": 64
                 },
@@ -28829,6 +29394,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 2
+                },
+                "twitter_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "twitter_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "twitter_title": {
+                    "type": "string",
+                    "maxLength": 255
                 }
             }
         },
@@ -32439,6 +33016,26 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.ProductListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductWithLike"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.ProductQuestionResponse": {
             "type": "object",
             "properties": {
@@ -34609,6 +35206,10 @@ const docTemplate = `{
         "dto.UpdateCollectionRequest": {
             "type": "object",
             "properties": {
+                "canonical_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "collection_type": {
                     "type": "string",
                     "enum": [
@@ -34624,12 +35225,24 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 2000
                 },
+                "desktop_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "ends_at": {
                     "type": "string"
                 },
                 "eyebrow": {
                     "type": "string",
                     "maxLength": 128
+                },
+                "hero_description": {
+                    "type": "string",
+                    "maxLength": 2000
+                },
+                "hero_title": {
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "href": {
                     "type": "string",
@@ -34638,6 +35251,40 @@ const docTemplate = `{
                 "image_url": {
                     "type": "string",
                     "maxLength": 2048
+                },
+                "is_indexable": {
+                    "type": "boolean"
+                },
+                "meta_keywords": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "mobile_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "dynamic",
+                        "hybrid"
+                    ]
+                },
+                "og_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "og_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "og_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "overlay_opacity": {
+                    "type": "number"
                 },
                 "preview_category_id": {
                     "type": "integer"
@@ -34655,10 +35302,35 @@ const docTemplate = `{
                         "type": "integer"
                     }
                 },
+                "product_overrides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionProductOverrideInput"
+                    }
+                },
+                "robots_directives": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "rules": {
+                    "$ref": "#/definitions/dto.CollectionRules"
+                },
+                "seo_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "seo_title": {
+                    "type": "string",
+                    "maxLength": 255
+                },
                 "slug": {
                     "type": "string",
                     "maxLength": 128,
                     "minLength": 2
+                },
+                "sort_key": {
+                    "type": "string",
+                    "maxLength": 64
                 },
                 "sort_order": {
                     "type": "integer"
@@ -34675,7 +35347,19 @@ const docTemplate = `{
                         "archived"
                     ]
                 },
+                "subtitle": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "tablet_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
                 "theme": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "theme_variant": {
                     "type": "string",
                     "maxLength": 64
                 },
@@ -34683,6 +35367,18 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 255,
                     "minLength": 2
+                },
+                "twitter_description": {
+                    "type": "string",
+                    "maxLength": 500
+                },
+                "twitter_image_url": {
+                    "type": "string",
+                    "maxLength": 2048
+                },
+                "twitter_title": {
+                    "type": "string",
+                    "maxLength": 255
                 }
             }
         },

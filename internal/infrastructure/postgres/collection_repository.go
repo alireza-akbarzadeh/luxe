@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -21,7 +22,8 @@ func NewCollectionRepository(db *gorm.DB) *CollectionRepository {
 
 func (r *CollectionRepository) preloadCollectionProducts(db *gorm.DB) *gorm.DB {
 	return db.Preload("Products", func(tx *gorm.DB) *gorm.DB {
-		return tx.Order("sort_order ASC, id ASC")
+		return tx.Order("position ASC, sort_order ASC, id ASC").Preload("Product").Preload("Product.Category").
+			Preload("Product.Brand").Preload("Product.Attributes").Preload("Product.WorkflowState")
 	})
 }
 
@@ -48,6 +50,29 @@ func (r *CollectionRepository) GetByID(ctx context.Context, id uint) (*models.Co
 	return &collection, nil
 }
 
+// GetBySlug loads a collection by current slug.
+func (r *CollectionRepository) GetBySlug(ctx context.Context, slug string) (*models.Collection, error) {
+	var collection models.Collection
+	q := r.preloadCollectionProducts(r.db.WithContext(ctx).Preload("WorkflowState"))
+	if err := q.Where("slug = ?", slug).First(&collection).Error; err != nil {
+		return nil, err
+	}
+	return &collection, nil
+}
+
+// GetByRedirectSlug resolves a collection by an old slug redirect.
+func (r *CollectionRepository) GetByRedirectSlug(ctx context.Context, slug string) (*models.Collection, error) {
+	var redirect models.CollectionSlugRedirect
+	err := r.db.WithContext(ctx).
+		Preload("Collection").
+		Where("old_slug = ?", slug).
+		First(&redirect).Error
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(ctx, redirect.CollectionID)
+}
+
 // Create inserts a collection row.
 func (r *CollectionRepository) Create(ctx context.Context, collection *models.Collection) error {
 	return r.db.WithContext(ctx).Create(collection).Error
@@ -65,7 +90,7 @@ func (r *CollectionRepository) DeleteByID(ctx context.Context, id uint) (int64, 
 }
 
 // ReplaceProducts replaces manual collection membership in sort order.
-func (r *CollectionRepository) ReplaceProducts(ctx context.Context, collectionID uint, productIDs []uint) error {
+func (r *CollectionRepository) ReplaceProducts(ctx context.Context, collectionID uint, productIDs []uint, overrides []dto.CollectionProductOverrideInput) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("collection_id = ?", collectionID).Delete(&models.CollectionProduct{}).Error; err != nil {
 			return err
@@ -73,12 +98,24 @@ func (r *CollectionRepository) ReplaceProducts(ctx context.Context, collectionID
 		if len(productIDs) == 0 {
 			return nil
 		}
+		overrideByProductID := make(map[uint]dto.CollectionProductOverrideInput, len(overrides))
+		for _, override := range overrides {
+			overrideByProductID[override.ProductID] = override
+		}
 		rows := make([]models.CollectionProduct, len(productIDs))
 		for i, productID := range productIDs {
+			override, hasOverride := overrideByProductID[productID]
 			rows[i] = models.CollectionProduct{
 				CollectionID: collectionID,
 				ProductID:    productID,
 				SortOrder:    i,
+				Position:     i,
+			}
+			if hasOverride {
+				rows[i].Position = override.Position
+				rows[i].IsPinned = override.IsPinned
+				rows[i].IsHidden = override.IsHidden
+				rows[i].BoostScore = override.BoostScore
 			}
 		}
 		return tx.Create(&rows).Error
@@ -88,6 +125,26 @@ func (r *CollectionRepository) ReplaceProducts(ctx context.Context, collectionID
 // ClearProducts removes all manual products from a collection.
 func (r *CollectionRepository) ClearProducts(ctx context.Context, collectionID uint) error {
 	return r.db.WithContext(ctx).Where("collection_id = ?", collectionID).Delete(&models.CollectionProduct{}).Error
+}
+
+// UpsertSlugRedirect creates a permanent redirect for a previous collection slug.
+func (r *CollectionRepository) UpsertSlugRedirect(ctx context.Context, collectionID uint, oldSlug string) error {
+	if oldSlug == "" {
+		return nil
+	}
+	var existing models.CollectionSlugRedirect
+	err := r.db.WithContext(ctx).Where("old_slug = ?", oldSlug).First(&existing).Error
+	if err == nil {
+		existing.CollectionID = collectionID
+		return r.db.WithContext(ctx).Save(&existing).Error
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	return r.db.WithContext(ctx).Create(&models.CollectionSlugRedirect{
+		CollectionID: collectionID,
+		OldSlug:      oldSlug,
+	}).Error
 }
 
 func applyCollectionListFilters(query *gorm.DB, req *dto.ListCollectionsRequest) *gorm.DB {
@@ -103,6 +160,9 @@ func applyCollectionListFilters(query *gorm.DB, req *dto.ListCollectionsRequest)
 	}
 	if req.CollectionType != "" {
 		query = query.Where("collection_type = ?", req.CollectionType)
+	}
+	if req.Mode != "" {
+		query = query.Where("mode = ?", req.Mode)
 	}
 	if req.LiveOnly {
 		now := time.Now()

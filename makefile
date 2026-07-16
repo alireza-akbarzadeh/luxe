@@ -208,6 +208,7 @@ dev-setup: ## Wait for Postgres and run migrations (compose stack when USE_COMPO
 # Dev seed scripts in dependency order. Optional files are skipped when absent.
 SEED_DEV_SQL_FILES := \
 	scripts/seed-dev.sql \
+	scripts/seed-discover-nav.sql \
 	scripts/seed-catalog.sql \
 	scripts/seed-shipping-providers.sql \
 	scripts/seed-orders-returns.sql \

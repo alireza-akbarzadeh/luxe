@@ -12,6 +12,7 @@ import (
 
 var defaultSeedFiles = []string{
 	"scripts/seed-dev.sql",
+	"scripts/seed-discover-nav.sql",
 	"scripts/seed-catalog.sql",
 	"scripts/seed-shipping-providers.sql",
 	"scripts/seed-orders-returns.sql",

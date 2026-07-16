@@ -50,22 +50,37 @@ func (c *Commands) Create(ctx context.Context, req *dto.CreateCollectionRequest,
 	if err := c.repo.Create(ctx, collection); err != nil {
 		return nil, err
 	}
-	if err := c.syncProducts(ctx, collection, req.CollectionType, req.ProductIDs); err != nil {
+	if err := c.syncProducts(ctx, collection, collection.Mode, req.ProductIDs, req.ProductOverrides); err != nil {
 		return nil, err
 	}
 	return collection, nil
 }
 
 // Update persists collection field changes and optional manual products.
-func (c *Commands) Update(ctx context.Context, collection *models.Collection, req *dto.UpdateCollectionRequest) error {
+func (c *Commands) Update(ctx context.Context, collection *models.Collection, req *dto.UpdateCollectionRequest, oldSlug string) error {
 	if err := c.repo.Save(ctx, collection); err != nil {
 		return err
 	}
+	if collection.Slug != oldSlug {
+		if err := c.repo.UpsertSlugRedirect(ctx, collection.ID, oldSlug); err != nil {
+			return err
+		}
+	}
 	productIDs := productIDsForUpdate(collection, req)
 	if productIDs != nil {
-		return c.repo.ReplaceProducts(ctx, collection.ID, productIDs)
+		overrides := ProductOverridesFromModel(collection)
+		if req.ProductOverrides != nil {
+			overrides = *req.ProductOverrides
+		}
+		return c.repo.ReplaceProducts(ctx, collection.ID, productIDs, overrides)
 	}
-	if req.CollectionType != nil && *req.CollectionType == "smart" {
+	mode := collection.Mode
+	if req.Mode != nil {
+		mode = *req.Mode
+	} else if req.CollectionType != nil && *req.CollectionType == "smart" {
+		mode = "dynamic"
+	}
+	if mode == "dynamic" {
 		return c.repo.ClearProducts(ctx, collection.ID)
 	}
 	return nil
@@ -80,21 +95,30 @@ func productIDsForUpdate(collection *models.Collection, req *dto.UpdateCollectio
 	if req.ProductIDs != nil {
 		return *req.ProductIDs
 	}
+	if req.Mode != nil && (*req.Mode == "manual" || *req.Mode == "hybrid") {
+		return ProductIDsFromModel(collection)
+	}
 	if req.CollectionType != nil && *req.CollectionType == "manual" {
 		return ProductIDsFromModel(collection)
 	}
 	return nil
 }
 
-func (c *Commands) syncProducts(ctx context.Context, collection *models.Collection, collectionType string, productIDs []uint) error {
-	if collectionType == "" {
-		collectionType = collection.CollectionType
+func (c *Commands) syncProducts(
+	ctx context.Context,
+	collection *models.Collection,
+	mode string,
+	productIDs []uint,
+	overrides []dto.CollectionProductOverrideInput,
+) error {
+	if mode == "" {
+		mode = collection.Mode
 	}
-	if collectionType == "" {
-		collectionType = "smart"
+	if mode == "" {
+		mode = "dynamic"
 	}
-	if collectionType == "manual" {
-		return c.repo.ReplaceProducts(ctx, collection.ID, productIDs)
+	if mode == "manual" || mode == "hybrid" {
+		return c.repo.ReplaceProducts(ctx, collection.ID, productIDs, overrides)
 	}
 	return c.repo.ClearProducts(ctx, collection.ID)
 }

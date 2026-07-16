@@ -10,6 +10,7 @@ import (
 	domaincollection "github.com/alireza-akbarzadeh/luxe/internal/domain/collection"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
@@ -19,6 +20,7 @@ type Service struct {
 	engine   *workflow.Engine
 	commands *Commands
 	queries  *Queries
+	products *postgres.ProductRepository
 }
 
 // NewService wires collection application use cases.
@@ -28,6 +30,7 @@ func NewService(db *gorm.DB, engine *workflow.Engine) *Service {
 		engine:   engine,
 		commands: NewCommands(domaincollection.NewService(), repo),
 		queries:  NewQueries(repo),
+		products: postgres.NewProductRepository(db),
 	}
 }
 
@@ -75,6 +78,18 @@ func (s *Service) GetByID(ctx context.Context, id uint) (*dto.CollectionResponse
 	return ToResponse(collection), nil
 }
 
+// GetBySlug returns a collection API response by current or redirected slug.
+func (s *Service) GetBySlug(ctx context.Context, slug string) (*dto.CollectionResponse, error) {
+	collection, err := s.queries.GetBySlug(ctx, slug)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("collection not found")
+		}
+		return nil, err
+	}
+	return ToResponse(collection), nil
+}
+
 // List returns paginated collection API responses.
 func (s *Service) List(ctx context.Context, req *dto.ListCollectionsRequest) ([]dto.CollectionResponse, int64, error) {
 	collections, total, _, _, err := s.queries.List(ctx, req)
@@ -107,11 +122,12 @@ func (s *Service) Update(ctx context.Context, id uint, req *dto.UpdateCollection
 		newSlug = unique
 	}
 
+	oldSlug := collection.Slug
 	if err := ApplyUpdateDTO(collection, req, newSlug); err != nil {
 		return nil, err
 	}
 
-	if err := s.commands.Update(ctx, collection, req); err != nil {
+	if err := s.commands.Update(ctx, collection, req, oldSlug); err != nil {
 		return nil, err
 	}
 
@@ -136,4 +152,88 @@ func (s *Service) Delete(ctx context.Context, id uint) error {
 		return utils.ErrNotFound("collection not found")
 	}
 	return nil
+}
+
+// ListResolvedProducts resolves the products for a collection slug.
+func (s *Service) ListResolvedProducts(
+	ctx context.Context,
+	slug string,
+	req *dto.CollectionProductsRequest,
+) (*dto.ProductListData, *dto.CollectionResponse, error) {
+	collection, err := s.queries.GetBySlug(ctx, slug)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, utils.ErrNotFound("collection not found")
+		}
+		return nil, nil, err
+	}
+	data, err := s.resolveCollectionProducts(ctx, collection, req)
+	if err != nil {
+		return nil, nil, err
+	}
+	return data, ToResponse(collection), nil
+}
+
+// PreviewProducts resolves products for a saved collection.
+func (s *Service) PreviewProducts(
+	ctx context.Context,
+	id uint,
+	req *dto.CollectionProductsRequest,
+) (*dto.ProductListData, error) {
+	collection, err := s.queries.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("collection not found")
+		}
+		return nil, err
+	}
+	return s.resolveCollectionProducts(ctx, collection, req)
+}
+
+// ValidateRules previews a transient collection rule set without saving it.
+func (s *Service) ValidateRules(
+	ctx context.Context,
+	id uint,
+	req *dto.CollectionRulesValidationRequest,
+) (*dto.ProductListData, error) {
+	collection, err := s.queries.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("collection not found")
+		}
+		return nil, err
+	}
+	if req.Mode != "" {
+		collection.Mode = req.Mode
+		collection.CollectionType = legacyCollectionType(req.Mode, collection.CollectionType)
+	}
+	if req.Rules != nil {
+		rulesJSON, err := marshalRules(req.Rules)
+		if err != nil {
+			return nil, err
+		}
+		collection.RulesJSON = rulesJSON
+	}
+	if len(req.Overrides) > 0 {
+		collection.Products = make([]models.CollectionProduct, 0, len(req.Overrides))
+		for _, override := range req.Overrides {
+			collection.Products = append(collection.Products, models.CollectionProduct{
+				CollectionID: collection.ID,
+				ProductID:    override.ProductID,
+				Position:     override.Position,
+				SortOrder:    override.Position,
+				IsPinned:     override.IsPinned,
+				IsHidden:     override.IsHidden,
+				BoostScore:   override.BoostScore,
+			})
+		}
+	}
+	previewLimit := 4
+	if req.Limit > 0 {
+		previewLimit = req.Limit
+	}
+	return s.resolveCollectionProducts(ctx, collection, &dto.CollectionProductsRequest{
+		Limit:  previewLimit,
+		Offset: 0,
+	})
 }

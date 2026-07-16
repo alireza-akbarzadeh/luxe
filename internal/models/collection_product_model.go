@@ -10,6 +10,10 @@ type CollectionProduct struct {
 	CollectionID uint      `gorm:"not null;index" json:"collection_id"`
 	ProductID    uint      `gorm:"not null;index" json:"product_id"`
 	SortOrder    int       `gorm:"not null;default:0" json:"sort_order"`
+	Position     int       `gorm:"not null;default:0" json:"position"`
+	IsPinned     bool      `gorm:"not null;default:false" json:"is_pinned"`
+	IsHidden     bool      `gorm:"not null;default:false" json:"is_hidden"`
+	BoostScore   int       `gorm:"not null;default:0" json:"boost_score"`
 	Product      *Product  `gorm:"foreignKey:ProductID;references:ID" json:"product,omitempty"`
 }
 

@@ -111,6 +111,12 @@ func (r *ProductRepository) ListDetailed(ctx context.Context, limit, offset int,
 	if filters.IsNew != nil {
 		query = query.Where("is_new = ?", *filters.IsNew)
 	}
+	if filters.InStock != nil && *filters.InStock {
+		query = query.Where("(stock > 0 OR allow_backorder = ?)", true)
+	}
+	if filters.OnSale != nil && *filters.OnSale {
+		query = query.Where("compare_at_price IS NOT NULL AND compare_at_price > price")
+	}
 	if len(filters.IDs) > 0 {
 		query = query.Where("id IN ?", filters.IDs)
 	}
@@ -122,6 +128,18 @@ func (r *ProductRepository) ListDetailed(ctx context.Context, limit, offset int,
 
 	listQ := r.preloadProduct(query, productListPreloads)
 	var products []*models.Product
+	switch filters.Sort {
+	case "newest":
+		listQ = listQ.Order("created_at DESC")
+	case "rating_desc":
+		listQ = listQ.Order("rating DESC, reviews_count DESC")
+	case "reviews_desc":
+		listQ = listQ.Order("reviews_count DESC, rating DESC")
+	case "price_asc":
+		listQ = listQ.Order("price ASC")
+	case "price_desc":
+		listQ = listQ.Order("price DESC")
+	}
 	if err := listQ.Limit(limit).Offset(offset).Find(&products).Error; err != nil {
 		return nil, 0, fmt.Errorf("find products: %w", err)
 	}

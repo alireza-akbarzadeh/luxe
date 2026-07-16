@@ -8,9 +8,13 @@ import (
 
 func SetupCollectionRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Container) {
 	public.GET("/collections", ctrl.Collection.ListCollections)
+	public.GET("/collections/slug/:slug", ctrl.Collection.GetCollectionBySlug)
+	public.GET("/collections/slug/:slug/products", ctrl.Collection.GetCollectionProductsBySlug)
+	public.GET("/collections/:id/preview-products", ctrl.Collection.PreviewCollectionProducts)
 	public.GET("/collections/:id", ctrl.Collection.GetCollection)
 
 	protected.POST("/collections", ctrl.Collection.CreateCollection)
+	protected.POST("/collections/:id/validate-rules", ctrl.Collection.ValidateCollectionRules)
 	protected.PUT("/collections/:id", ctrl.Collection.UpdateCollection)
 
 	admin := protected.Group("/collections")

@@ -2,10 +2,12 @@ package collection
 
 import (
 	"context"
+	"errors"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"gorm.io/gorm"
 )
 
 // Queries orchestrates collection read use cases.
@@ -21,6 +23,18 @@ func NewQueries(repo *postgres.CollectionRepository) *Queries {
 // GetByID loads a collection with workflow state.
 func (q *Queries) GetByID(ctx context.Context, id uint) (*models.Collection, error) {
 	return q.repo.GetByID(ctx, id)
+}
+
+// GetBySlug loads a collection by current slug or historical redirect slug.
+func (q *Queries) GetBySlug(ctx context.Context, slug string) (*models.Collection, error) {
+	collection, err := q.repo.GetBySlug(ctx, slug)
+	if err == nil {
+		return collection, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	return q.repo.GetByRedirectSlug(ctx, slug)
 }
 
 // List returns paginated collections with normalized paging.

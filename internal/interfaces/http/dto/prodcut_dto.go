@@ -110,6 +110,8 @@ type ProductListFilters struct {
 	MaxReviews int     `form:"max_reviews"`
 	IsDigital  *bool   `form:"is_digital"`
 	IsNew      *bool   `form:"is_new"`
+	InStock    *bool   `form:"in_stock"`
+	OnSale     *bool   `form:"on_sale"`
 	Sort       string  `form:"sort"`
 	Search     string  `form:"search"`
 	IDs        []uint  `form:"ids"`

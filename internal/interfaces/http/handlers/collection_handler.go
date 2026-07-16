@@ -74,6 +74,30 @@ func (ctrl *CollectionHandler) GetCollection(c *gin.Context) {
 	utils.SuccessResponse(c, "collection retrieved", collection)
 }
 
+// GetCollectionBySlug godoc
+// @Summary      Get a collection by slug
+// @Tags         collections
+// @Produce      json
+// @Param        slug path string true "Collection slug"
+// @Success      200  {object}  utils.Response{data=dto.CollectionResponse}
+// @Failure      404  {object}  utils.Response
+// @Router       /collections/slug/{slug} [get]
+func (ctrl *CollectionHandler) GetCollectionBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		utils.BadRequestResponse(c, "slug is required")
+		return
+	}
+
+	collection, err := ctrl.collectionService.GetBySlug(c.Request.Context(), slug)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to retrieve collection")
+		return
+	}
+
+	utils.SuccessResponse(c, "collection retrieved", collection)
+}
+
 // ListCollections godoc
 // @Summary      List collections
 // @Description  Returns a paginated list of collections with optional search and status filtering.
@@ -115,6 +139,96 @@ func (ctrl *CollectionHandler) ListCollections(c *gin.Context) {
 		},
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// GetCollectionProductsBySlug godoc
+// @Summary      Get resolved collection products by slug
+// @Tags         collections
+// @Produce      json
+// @Param        slug path string true "Collection slug"
+// @Param        limit query int false "Items per page"
+// @Param        offset query int false "Pagination offset"
+// @Param        search query string false "Search term"
+// @Param        category_id query int false "Category filter"
+// @Param        min_price query number false "Minimum price"
+// @Param        max_price query number false "Maximum price"
+// @Param        min_rating query number false "Minimum rating"
+// @Param        sort query string false "Sort key"
+// @Param        in_stock query bool false "In-stock only"
+// @Param        on_sale query bool false "On-sale only"
+// @Success      200 {object} utils.Response{data=dto.ProductListData}
+// @Failure      404 {object} utils.Response
+// @Router       /collections/slug/{slug}/products [get]
+func (ctrl *CollectionHandler) GetCollectionProductsBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		utils.BadRequestResponse(c, "slug is required")
+		return
+	}
+	var req dto.CollectionProductsRequest
+	if !utils.BindAndValidateQuery(c, &req, ctrl.validate) {
+		return
+	}
+	products, _, err := ctrl.collectionService.ListResolvedProducts(c.Request.Context(), slug, &req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to retrieve collection products")
+		return
+	}
+	utils.SuccessResponse(c, "collection products retrieved", products)
+}
+
+// PreviewCollectionProducts godoc
+// @Summary      Preview resolved products for a collection
+// @Tags         collections
+// @Produce      json
+// @Param        id path int true "Collection ID"
+// @Param        limit query int false "Items per page"
+// @Param        offset query int false "Pagination offset"
+// @Success      200 {object} utils.Response{data=dto.ProductListData}
+// @Failure      404 {object} utils.Response
+// @Router       /collections/{id}/preview-products [get]
+func (ctrl *CollectionHandler) PreviewCollectionProducts(c *gin.Context) {
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.CollectionProductsRequest
+	if !utils.BindAndValidateQuery(c, &req, ctrl.validate) {
+		return
+	}
+	products, err := ctrl.collectionService.PreviewProducts(c.Request.Context(), id, &req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to preview collection products")
+		return
+	}
+	utils.SuccessResponse(c, "collection preview products retrieved", products)
+}
+
+// ValidateCollectionRules godoc
+// @Summary      Validate collection rules and preview products
+// @Tags         collections
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Collection ID"
+// @Param        request body dto.CollectionRulesValidationRequest true "Validation payload"
+// @Success      200 {object} utils.Response{data=dto.ProductListData}
+// @Failure      404 {object} utils.Response
+// @Router       /collections/{id}/validate-rules [post]
+func (ctrl *CollectionHandler) ValidateCollectionRules(c *gin.Context) {
+	id, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	var req dto.CollectionRulesValidationRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	products, err := ctrl.collectionService.ValidateRules(c.Request.Context(), id, &req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to validate collection rules")
+		return
+	}
+	utils.SuccessResponse(c, "collection rules validated", products)
 }
 
 // UpdateCollection godoc
