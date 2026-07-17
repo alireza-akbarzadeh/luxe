@@ -18,6 +18,7 @@ var defaultSeedFiles = []string{
 	"scripts/seed-orders-returns.sql",
 	"scripts/seed-home-personalization.sql",
 	"scripts/seed-home-content.sql",
+	"scripts/seed-storefront-collections.sql",
 	"scripts/seed-shop-looks.sql",
 	"scripts/seed-creators.sql",
 	"scripts/seed-community-lists.sql",

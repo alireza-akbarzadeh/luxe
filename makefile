@@ -214,6 +214,7 @@ SEED_DEV_SQL_FILES := \
 	scripts/seed-orders-returns.sql \
 	scripts/seed-home-personalization.sql \
 	scripts/seed-home-content.sql \
+	scripts/seed-storefront-collections.sql \
 	scripts/seed-shop-looks.sql \
 	scripts/seed-creators.sql \
 	scripts/seed-community-lists.sql \
@@ -303,6 +304,16 @@ seed-catalog-i18n: ## Load fa/es translations for products and categories
 		docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) -v ON_ERROR_STOP=1 < scripts/seed-catalog-i18n.sql; \
 	fi
 	@echo "${GREEN}Catalog i18n seed complete${RESET}"
+
+seed-storefront-collections: ## Load storefront curated collections for /collections/[slug]
+	@echo "${GREEN}Seeding storefront collections...${RESET}"
+	@if command -v psql >/dev/null 2>&1; then \
+		psql "$(DATABASE_URL)" -v ON_ERROR_STOP=1 -f scripts/seed-storefront-collections.sql; \
+	else \
+		echo "${YELLOW}psql/docker unavailable — using go run ./cmd/seed-sql${RESET}"; \
+		SEED_SQL_FILES=scripts/seed-storefront-collections.sql go run ./cmd/seed-sql; \
+	fi
+	@echo "${GREEN}Storefront collections seed complete${RESET}"
 
 seed-blog: ## Load demo blog posts for /weblog (homepage + article detail)
 	@echo "${GREEN}Seeding blog posts into $(POSTGRES_DB)...${RESET}"

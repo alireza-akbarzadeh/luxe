@@ -37,7 +37,7 @@ VALUES
         'https://images.unsplash.com/photo-1483985988355-763728e3685b?w=1200',
         'Shop the edit',
         0,
-        'published',
+        'active',
         NOW(),
         NOW()
     ),
@@ -50,7 +50,7 @@ VALUES
         'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=1200',
         'Explore collection',
         1,
-        'published',
+        'active',
         NOW(),
         NOW()
     ),
@@ -63,7 +63,7 @@ VALUES
         'https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200',
         'View collection',
         2,
-        'published',
+        'active',
         NOW(),
         NOW()
     ),
@@ -76,7 +76,7 @@ VALUES
         'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200',
         'Shop accessories',
         3,
-        'published',
+        'active',
         NOW(),
         NOW()
     )
