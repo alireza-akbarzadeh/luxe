@@ -40,6 +40,7 @@ func NewCronJobs(apps *apps.Applications) *CronJobs {
 func (c *CronJobs) registerJobs() {
 	c.registerCartJobs()
 	c.registerProductJobs()
+	c.registerCollectionJobs()
 	c.registerOrderJobs()
 }
 

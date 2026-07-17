@@ -7,6 +7,7 @@ import (
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 
 const (
@@ -28,40 +29,22 @@ func normalizeLimitOffset(limit, offset int) (int, int) {
 	return limit, offset
 }
 
-func buildProductFilters(collection *models.Collection, req *dto.CollectionProductsRequest) dto.ProductListFilters {
-	filters := dto.ProductListFilters{
-		Status:    "active",
-		Sort:      collection.SortKey,
-		IsNew:     req.IsNew,
-		InStock:   req.InStock,
-		OnSale:    req.OnSale,
-		Search:    req.Search,
-		CategoryID: req.CategoryID,
-		MinPrice:  req.MinPrice,
-		MaxPrice:  req.MaxPrice,
-		MinRating: req.MinRating,
+func mergeRequestOverrides(filters *dto.ProductListFilters, collection *models.Collection, req *dto.CollectionProductsRequest) {
+	if filters.Sort == "" {
+		filters.Sort = collection.SortKey
 	}
-
 	if filters.Sort == "" {
 		filters.Sort = collection.PreviewSort
 	}
 	if req.Sort != "" {
 		filters.Sort = req.Sort
 	}
-
-	if rules := unmarshalRules(collection.RulesJSON); rules != nil {
-		for _, condition := range rules.Conditions {
-			applyRuleCondition(&filters, condition)
-		}
-	}
-
 	if collection.PreviewCategoryID != nil && filters.CategoryID == 0 {
 		filters.CategoryID = *collection.PreviewCategoryID
 	}
 	if collection.PreviewIsNew != nil && filters.IsNew == nil {
 		filters.IsNew = collection.PreviewIsNew
 	}
-
 	if req.CategoryID != 0 {
 		filters.CategoryID = req.CategoryID
 	}
@@ -77,26 +60,69 @@ func buildProductFilters(collection *models.Collection, req *dto.CollectionProdu
 	if req.Search != "" {
 		filters.Search = req.Search
 	}
-	return filters
+	if req.IsNew != nil {
+		filters.IsNew = req.IsNew
+	}
+	if req.InStock != nil {
+		filters.InStock = req.InStock
+	}
+	if req.OnSale != nil {
+		filters.OnSale = req.OnSale
+	}
 }
 
-func applyRuleCondition(filters *dto.ProductListFilters, condition dto.CollectionRuleCondition) {
-	switch condition.Field {
+func applyRuleCondition(filters *dto.ProductListFilters, condition dto.CollectionRuleCondition) error {
+	field := strings.TrimSpace(condition.Field)
+	operator := strings.ToLower(strings.TrimSpace(condition.Operator))
+	if operator == "" {
+		operator = "eq"
+	}
+	switch field {
 	case "category_id":
+		if operator == "in" {
+			values, ok := toUintSlice(condition.Value)
+			if !ok || len(values) == 0 {
+				return utils.ErrBadRequest("category_id in requires ids")
+			}
+			filters.IDs = mergeUintIDs(filters.IDs, values)
+			return nil
+		}
 		if value, ok := toUint(condition.Value); ok && value > 0 {
+			if operator == "neq" {
+				return nil // product list has no neq category; skip silently for resolution
+			}
 			filters.CategoryID = value
 		}
 	case "brand_id":
+		if operator == "in" {
+			values, ok := toUintSlice(condition.Value)
+			if !ok || len(values) == 0 {
+				return utils.ErrBadRequest("brand_id in requires ids")
+			}
+			// Prefer first brand for single-filter path; OR expansion handles multi-brand.
+			filters.BrandID = &values[0]
+			return nil
+		}
 		if value, ok := toUint(condition.Value); ok && value > 0 {
 			filters.BrandID = &value
 		}
 	case "min_price":
 		if value, ok := toFloat(condition.Value); ok {
-			filters.MinPrice = value
+			if operator == "lte" {
+				if filters.MaxPrice == 0 || value < filters.MaxPrice {
+					filters.MaxPrice = value
+				}
+			} else {
+				filters.MinPrice = value
+			}
 		}
 	case "max_price":
 		if value, ok := toFloat(condition.Value); ok {
-			filters.MaxPrice = value
+			if operator == "gte" {
+				filters.MinPrice = value
+			} else {
+				filters.MaxPrice = value
+			}
 		}
 	case "min_rating":
 		if value, ok := toFloat(condition.Value); ok {
@@ -124,9 +150,32 @@ func applyRuleCondition(filters *dto.ProductListFilters, condition dto.Collectio
 		}
 	case "ids":
 		if values, ok := toUintSlice(condition.Value); ok {
-			filters.IDs = values
+			filters.IDs = mergeUintIDs(filters.IDs, values)
+		} else if value, ok := toUint(condition.Value); ok {
+			filters.IDs = mergeUintIDs(filters.IDs, []uint{value})
 		}
 	}
+	return nil
+}
+
+func mergeUintIDs(existing, extra []uint) []uint {
+	seen := make(map[uint]struct{}, len(existing)+len(extra))
+	out := make([]uint, 0, len(existing)+len(extra))
+	for _, id := range existing {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	for _, id := range extra {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
 }
 
 func (s *Service) resolveCollectionProducts(
@@ -136,29 +185,77 @@ func (s *Service) resolveCollectionProducts(
 ) (*dto.ProductListData, error) {
 	limit, offset := normalizeLimitOffset(req.Limit, req.Offset)
 	mode := normalizeMode(collection.Mode, collection.CollectionType)
-	filters := buildProductFilters(collection, req)
+	rules := unmarshalRules(collection.RulesJSON)
+	branches, err := expandRuleBranches(rules)
+	if err != nil {
+		return nil, err
+	}
+	for i := range branches {
+		mergeRequestOverrides(&branches[i], collection, req)
+	}
 
 	switch mode {
 	case "manual":
-		return s.resolveManualProducts(ctx, collection, filters, limit, offset)
+		return s.resolveManualProducts(ctx, collection, branches[0], limit, offset)
 	case "hybrid":
-		return s.resolveHybridProducts(ctx, collection, filters, limit, offset)
+		return s.resolveHybridProducts(ctx, collection, branches, limit, offset)
 	default:
-		return s.resolveDynamicProducts(ctx, filters, limit, offset)
+		return s.resolveDynamicProducts(ctx, branches, limit, offset)
 	}
 }
 
 func (s *Service) resolveDynamicProducts(
 	ctx context.Context,
-	filters dto.ProductListFilters,
+	branches []dto.ProductListFilters,
 	limit int,
 	offset int,
 ) (*dto.ProductListData, error) {
-	products, total, err := s.products.ListDetailed(ctx, limit, offset, filters)
-	if err != nil {
-		return nil, err
+	if len(branches) <= 1 {
+		filters := dto.ProductListFilters{Status: "active"}
+		if len(branches) == 1 {
+			filters = branches[0]
+		}
+		products, total, err := s.products.ListDetailed(ctx, limit, offset, filters)
+		if err != nil {
+			return nil, err
+		}
+		return buildProductListData(ctx, products, total, limit, offset), nil
 	}
-	return buildProductListData(ctx, products, total, limit, offset), nil
+	return s.resolveUnionBranches(ctx, branches, limit, offset)
+}
+
+func (s *Service) resolveUnionBranches(
+	ctx context.Context,
+	branches []dto.ProductListFilters,
+	limit int,
+	offset int,
+) (*dto.ProductListData, error) {
+	merged := make([]*models.Product, 0)
+	seen := make(map[uint]struct{})
+	sortKey := ""
+	for _, filters := range branches {
+		if sortKey == "" {
+			sortKey = filters.Sort
+		}
+		products, _, err := s.products.ListDetailed(ctx, hybridDynamicFetchCap, 0, filters)
+		if err != nil {
+			return nil, err
+		}
+		for _, product := range products {
+			if product == nil {
+				continue
+			}
+			if _, ok := seen[product.ID]; ok {
+				continue
+			}
+			seen[product.ID] = struct{}{}
+			merged = append(merged, product)
+		}
+	}
+	sortLoadedProducts(merged, sortKey)
+	total := int64(len(merged))
+	paged := paginateProducts(merged, limit, offset)
+	return buildProductListData(ctx, paged, total, limit, offset), nil
 }
 
 func (s *Service) resolveManualProducts(
@@ -181,13 +278,27 @@ func (s *Service) resolveManualProducts(
 func (s *Service) resolveHybridProducts(
 	ctx context.Context,
 	collection *models.Collection,
-	filters dto.ProductListFilters,
+	branches []dto.ProductListFilters,
 	limit int,
 	offset int,
 ) (*dto.ProductListData, error) {
-	dynamicProducts, _, err := s.products.ListDetailed(ctx, hybridDynamicFetchCap, 0, filters)
-	if err != nil {
-		return nil, err
+	dynamicProducts := make([]*models.Product, 0)
+	seenDynamic := make(map[uint]struct{})
+	for _, filters := range branches {
+		batch, _, err := s.products.ListDetailed(ctx, hybridDynamicFetchCap, 0, filters)
+		if err != nil {
+			return nil, err
+		}
+		for _, product := range batch {
+			if product == nil {
+				continue
+			}
+			if _, ok := seenDynamic[product.ID]; ok {
+				continue
+			}
+			seenDynamic[product.ID] = struct{}{}
+			dynamicProducts = append(dynamicProducts, product)
+		}
 	}
 	manualProducts, err := s.loadManualProducts(ctx, collection)
 	if err != nil {

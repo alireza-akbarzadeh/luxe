@@ -67,13 +67,40 @@ func unmarshalRules(raw datatypes.JSON) *dto.CollectionRules {
 	if err := json.Unmarshal(raw, &rules); err != nil {
 		return nil
 	}
-	if rules.Operator == "" && len(rules.Conditions) == 0 {
+	if rules.Operator == "" && len(rules.Conditions) == 0 && len(rules.Groups) == 0 {
 		return nil
 	}
 	if rules.Operator == "" {
 		rules.Operator = "and"
 	}
+	normalizeLegacyConditionOperators(&rules)
 	return &rules
+}
+
+// normalizeLegacyConditionOperators maps legacy "op" aliases if present via re-marshal path.
+func normalizeLegacyConditionOperators(rules *dto.CollectionRules) {
+	for i := range rules.Conditions {
+		if rules.Conditions[i].Operator == "" {
+			rules.Conditions[i].Operator = "eq"
+		}
+	}
+	for gi := range rules.Groups {
+		normalizeGroupOperators(&rules.Groups[gi])
+	}
+}
+
+func normalizeGroupOperators(group *dto.CollectionRuleGroup) {
+	if group.Operator == "" {
+		group.Operator = "and"
+	}
+	for i := range group.Conditions {
+		if group.Conditions[i].Operator == "" {
+			group.Conditions[i].Operator = "eq"
+		}
+	}
+	for i := range group.Groups {
+		normalizeGroupOperators(&group.Groups[i])
+	}
 }
 
 // BuildCreateModel maps a create DTO to a collection model.
@@ -100,10 +127,14 @@ func BuildCreateModel(req *dto.CreateCollectionRequest, slug string) (*models.Co
 	if err != nil {
 		return nil, err
 	}
+	if err := ValidateCollectionRules(mode, req.Rules); err != nil {
+		return nil, err
+	}
 	rulesJSON, err := marshalRules(req.Rules)
 	if err != nil {
 		return nil, err
 	}
+	status = normalizePublishStatus(status, startsAt)
 	isIndexable := true
 	if req.IsIndexable != nil {
 		isIndexable = *req.IsIndexable
@@ -211,6 +242,26 @@ func ApplyUpdateDTO(collection *models.Collection, req *dto.UpdateCollectionRequ
 		}
 		collection.EndsAt = endsAt
 	}
+	if req.Rules != nil {
+		mode := collection.Mode
+		if req.Mode != nil {
+			mode = *req.Mode
+		}
+		if err := ValidateCollectionRules(mode, req.Rules); err != nil {
+			return err
+		}
+		rulesJSON, err := marshalRules(req.Rules)
+		if err != nil {
+			return err
+		}
+		collection.RulesJSON = rulesJSON
+	} else if req.Mode != nil {
+		mode := *req.Mode
+		if err := ValidateCollectionRules(mode, unmarshalRules(collection.RulesJSON)); err != nil {
+			return err
+		}
+	}
+	collection.Status = normalizePublishStatus(collection.Status, collection.StartsAt)
 	if req.PreviewSort != nil {
 		collection.PreviewSort = *req.PreviewSort
 	}
@@ -225,13 +276,6 @@ func ApplyUpdateDTO(collection *models.Collection, req *dto.UpdateCollectionRequ
 	}
 	if req.SortKey != nil {
 		collection.SortKey = *req.SortKey
-	}
-	if req.Rules != nil {
-		rulesJSON, err := marshalRules(req.Rules)
-		if err != nil {
-			return err
-		}
-		collection.RulesJSON = rulesJSON
 	}
 	if req.SEOTitle != nil {
 		collection.SEOTitle = *req.SEOTitle

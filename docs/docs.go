@@ -12908,6 +12908,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/collections/validate-rules": {
+            "post": {
+                "description": "Previews products for a transient rule set (create flow).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "collections"
+                ],
+                "summary": "Validate collection rules without a saved collection",
+                "parameters": [
+                    {
+                        "description": "Validation payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CollectionRulesValidationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductListData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/collections/{id}": {
             "get": {
                 "produces": [
@@ -28403,9 +28455,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "operator": {
+                    "description": "eq, neq, gte, lte, contains, in",
                     "type": "string"
                 },
                 "value": {}
+            }
+        },
+        "dto.CollectionRuleGroup": {
+            "type": "object",
+            "properties": {
+                "conditions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionRuleCondition"
+                    }
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionRuleGroup"
+                    }
+                },
+                "operator": {
+                    "description": "and | or",
+                    "type": "string"
+                }
             }
         },
         "dto.CollectionRules": {
@@ -28417,7 +28491,14 @@ const docTemplate = `{
                         "$ref": "#/definitions/dto.CollectionRuleCondition"
                     }
                 },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CollectionRuleGroup"
+                    }
+                },
                 "operator": {
+                    "description": "and | or",
                     "type": "string"
                 }
             }
@@ -29369,6 +29450,7 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "draft",
+                        "scheduled",
                         "active",
                         "inactive",
                         "archived"
@@ -35342,6 +35424,7 @@ const docTemplate = `{
                     "type": "string",
                     "enum": [
                         "draft",
+                        "scheduled",
                         "active",
                         "inactive",
                         "archived"

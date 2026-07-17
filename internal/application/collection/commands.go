@@ -91,6 +91,16 @@ func (c *Commands) Delete(ctx context.Context, id uint) (int64, error) {
 	return c.repo.DeleteByID(ctx, id)
 }
 
+// ActivateDue promotes scheduled collections that should go live.
+func (c *Commands) ActivateDue(ctx context.Context) (int64, error) {
+	return c.repo.ActivateDue(ctx)
+}
+
+// ExpireEnded deactivates collections past their ends_at window.
+func (c *Commands) ExpireEnded(ctx context.Context) (int64, error) {
+	return c.repo.ExpireEnded(ctx)
+}
+
 func productIDsForUpdate(collection *models.Collection, req *dto.UpdateCollectionRequest) []uint {
 	if req.ProductIDs != nil {
 		return *req.ProductIDs

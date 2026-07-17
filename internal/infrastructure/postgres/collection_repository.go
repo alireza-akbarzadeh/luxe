@@ -166,7 +166,8 @@ func applyCollectionListFilters(query *gorm.DB, req *dto.ListCollectionsRequest)
 	}
 	if req.LiveOnly {
 		now := time.Now()
-		query = query.Where("(starts_at IS NULL OR starts_at <= ?)", now).
+		query = query.Where("status = ?", "active").
+			Where("(starts_at IS NULL OR starts_at <= ?)", now).
 			Where("(ends_at IS NULL OR ends_at >= ?)", now)
 	}
 	return query
@@ -191,4 +192,24 @@ func (r *CollectionRepository) List(ctx context.Context, req *dto.ListCollection
 		return nil, 0, err
 	}
 	return collections, total, nil
+}
+
+// ActivateDue promotes scheduled collections whose starts_at has passed.
+func (r *CollectionRepository) ActivateDue(ctx context.Context) (int64, error) {
+	now := time.Now().UTC()
+	result := r.db.WithContext(ctx).Model(&models.Collection{}).
+		Where("status = ?", "scheduled").
+		Where("starts_at IS NOT NULL AND starts_at <= ?", now).
+		Update("status", "active")
+	return result.RowsAffected, result.Error
+}
+
+// ExpireEnded deactivates active collections past ends_at.
+func (r *CollectionRepository) ExpireEnded(ctx context.Context) (int64, error) {
+	now := time.Now().UTC()
+	result := r.db.WithContext(ctx).Model(&models.Collection{}).
+		Where("status = ?", "active").
+		Where("ends_at IS NOT NULL AND ends_at < ?", now).
+		Update("status", "inactive")
+	return result.RowsAffected, result.Error
 }

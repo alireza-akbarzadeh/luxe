@@ -112,7 +112,7 @@ func (r *HomeRepository) ListPublishedCollections(ctx context.Context, limit int
 	var rows []models.Collection
 	now := time.Now()
 	err := r.db.WithContext(ctx).
-		Where("status IN ?", []string{"active", "published"}).
+		Where("status = ?", "active").
 		Where("(starts_at IS NULL OR starts_at <= ?)", now).
 		Where("(ends_at IS NULL OR ends_at >= ?)", now).
 		Order("sort_order ASC").

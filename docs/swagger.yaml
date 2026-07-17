@@ -3229,8 +3229,23 @@ definitions:
       field:
         type: string
       operator:
+        description: eq, neq, gte, lte, contains, in
         type: string
       value: {}
+    type: object
+  dto.CollectionRuleGroup:
+    properties:
+      conditions:
+        items:
+          $ref: '#/definitions/dto.CollectionRuleCondition'
+        type: array
+      groups:
+        items:
+          $ref: '#/definitions/dto.CollectionRuleGroup'
+        type: array
+      operator:
+        description: and | or
+        type: string
     type: object
   dto.CollectionRules:
     properties:
@@ -3238,7 +3253,12 @@ definitions:
         items:
           $ref: '#/definitions/dto.CollectionRuleCondition'
         type: array
+      groups:
+        items:
+          $ref: '#/definitions/dto.CollectionRuleGroup'
+        type: array
       operator:
+        description: and | or
         type: string
     type: object
   dto.CollectionRulesValidationRequest:
@@ -3882,6 +3902,7 @@ definitions:
       status:
         enum:
         - draft
+        - scheduled
         - active
         - inactive
         - archived
@@ -7895,6 +7916,7 @@ definitions:
       status:
         enum:
         - draft
+        - scheduled
         - active
         - inactive
         - archived
@@ -18149,6 +18171,37 @@ paths:
           schema:
             $ref: '#/definitions/utils.Response'
       summary: Get resolved collection products by slug
+      tags:
+      - collections
+  /collections/validate-rules:
+    post:
+      consumes:
+      - application/json
+      description: Previews products for a transient rule set (create flow).
+      parameters:
+      - description: Validation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CollectionRulesValidationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductListData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Validate collection rules without a saved collection
       tags:
       - collections
   /community-lists:

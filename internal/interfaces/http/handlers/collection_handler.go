@@ -231,6 +231,29 @@ func (ctrl *CollectionHandler) ValidateCollectionRules(c *gin.Context) {
 	utils.SuccessResponse(c, "collection rules validated", products)
 }
 
+// ValidateCollectionRulesTransient godoc
+// @Summary      Validate collection rules without a saved collection
+// @Description  Previews products for a transient rule set (create flow).
+// @Tags         collections
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.CollectionRulesValidationRequest true "Validation payload"
+// @Success      200 {object} utils.Response{data=dto.ProductListData}
+// @Failure      400 {object} utils.Response
+// @Router       /collections/validate-rules [post]
+func (ctrl *CollectionHandler) ValidateCollectionRulesTransient(c *gin.Context) {
+	var req dto.CollectionRulesValidationRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	products, err := ctrl.collectionService.ValidateRulesTransient(c.Request.Context(), &req)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to validate collection rules")
+		return
+	}
+	utils.SuccessResponse(c, "collection rules validated", products)
+}
+
 // UpdateCollection godoc
 // @Summary      Update a collection
 // @Tags         collections

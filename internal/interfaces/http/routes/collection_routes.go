@@ -14,6 +14,7 @@ func SetupCollectionRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Co
 	public.GET("/collections/:id", ctrl.Collection.GetCollection)
 
 	protected.POST("/collections", ctrl.Collection.CreateCollection)
+	protected.POST("/collections/validate-rules", ctrl.Collection.ValidateCollectionRulesTransient)
 	protected.POST("/collections/:id/validate-rules", ctrl.Collection.ValidateCollectionRules)
 	protected.PUT("/collections/:id", ctrl.Collection.UpdateCollection)
 

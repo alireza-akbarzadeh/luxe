@@ -277,9 +277,10 @@ func ApplyCollectionWorkflow(
 	}
 
 	eventByStatus := map[string][]string{
-		"active":   {"activate", "reactivate"},
-		"inactive": {"deactivate"},
-		"archived": {"archive"},
+		"active":    {"activate", "reactivate"},
+		"inactive":  {"deactivate"},
+		"archived":  {"archive"},
+		"scheduled": {"schedule"},
 	}
 	if events, ok := eventByStatus[status]; ok {
 		for _, event := range events {
@@ -295,12 +296,20 @@ func ApplyCollectionWorkflow(
 		}
 	}
 
-	code, ok := brandStatusToStateCode[status]
+	code, ok := collectionStatusToStateCode[status]
 	if !ok {
 		code = "draft"
 	}
 	SyncState(ctx, engine, constants.WorkflowEntityCollection, collectionID, code, "status_update", actorID)
 	return true
+}
+
+var collectionStatusToStateCode = map[string]string{
+	"draft":     "draft",
+	"scheduled": "scheduled",
+	"active":    "active",
+	"inactive":  "inactive",
+	"archived":  "archived",
 }
 
 // ApplyCouponWorkflow syncs coupon is_active into the workflow engine (best-effort).

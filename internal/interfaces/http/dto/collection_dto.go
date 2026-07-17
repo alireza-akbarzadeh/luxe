@@ -4,13 +4,21 @@ import "time"
 
 type CollectionRuleCondition struct {
 	Field    string `json:"field"`
-	Operator string `json:"operator"`
+	Operator string `json:"operator"` // eq, neq, gte, lte, contains, in
 	Value    any    `json:"value,omitempty"`
 }
 
-type CollectionRules struct {
-	Operator   string                    `json:"operator"`
+// CollectionRuleGroup is a nested AND/OR group (one nesting level preferred).
+type CollectionRuleGroup struct {
+	Operator   string                    `json:"operator"` // and | or
 	Conditions []CollectionRuleCondition `json:"conditions,omitempty"`
+	Groups     []CollectionRuleGroup     `json:"groups,omitempty"`
+}
+
+type CollectionRules struct {
+	Operator   string                    `json:"operator"` // and | or
+	Conditions []CollectionRuleCondition `json:"conditions,omitempty"`
+	Groups     []CollectionRuleGroup     `json:"groups,omitempty"`
 }
 
 type CollectionProductOverrideInput struct {
@@ -31,7 +39,7 @@ type CreateCollectionRequest struct {
 	ImageURL          string     `json:"image_url" validate:"omitempty,max=2048"`
 	CTALabel          string     `json:"cta_label" validate:"omitempty,max=128"`
 	SortOrder         int        `json:"sort_order"`
-	Status            string     `json:"status" validate:"omitempty,oneof=draft active inactive archived"`
+	Status            string     `json:"status" validate:"omitempty,oneof=draft scheduled active inactive archived"`
 	CollectionType    string   `json:"collection_type" validate:"omitempty,oneof=manual smart"`
 	Mode              string   `json:"mode" validate:"omitempty,oneof=manual dynamic hybrid"`
 	StartsAt          *string  `json:"starts_at"`
@@ -75,7 +83,7 @@ type UpdateCollectionRequest struct {
 	ImageURL          *string    `json:"image_url" validate:"omitempty,max=2048"`
 	CTALabel          *string    `json:"cta_label" validate:"omitempty,max=128"`
 	SortOrder         *int       `json:"sort_order"`
-	Status            *string    `json:"status" validate:"omitempty,oneof=draft active inactive archived"`
+	Status            *string    `json:"status" validate:"omitempty,oneof=draft scheduled active inactive archived"`
 	CollectionType    *string  `json:"collection_type" validate:"omitempty,oneof=manual smart"`
 	Mode              *string  `json:"mode" validate:"omitempty,oneof=manual dynamic hybrid"`
 	StartsAt          *string  `json:"starts_at"`
