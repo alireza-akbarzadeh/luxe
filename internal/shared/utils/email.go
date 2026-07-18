@@ -8,46 +8,27 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 )
 
-// SendPasswordResetEmail sends a reset link to the user.
+// SendPasswordResetEmail sends a branded reset link to the user.
 func SendPasswordResetEmail(to, token string) {
 	if config.AppConfig == nil {
 		Log.Error("config not loaded, cannot send email")
 		return
 	}
 	emailCfg := config.AppConfig.Email
-
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", emailCfg.FrontendURL, token)
-	subject := "Password Reset Request"
-	body := fmt.Sprintf(`
-        <h2>Password Reset</h2>
-        <p>You requested a password reset. Click the link below to reset your password:</p>
-        <a href="%s">%s</a>
-        <p>This link expires in 1 hour.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-    `, resetURL, resetURL)
-
+	subject, body := PasswordResetEmail(emailCfg.FrontendURL, token)
 	if err := sendEmail(to, subject, body, emailCfg); err != nil {
 		Log.WithError(err).Error("Failed to send password reset email")
 	}
 }
 
-// SendVerificationEmail sends an email verification link.
+// SendVerificationEmail sends a branded email verification link.
 func SendVerificationEmail(to, token string) {
 	if config.AppConfig == nil {
 		Log.Error("config not loaded, cannot send email")
 		return
 	}
 	emailCfg := config.AppConfig.Email
-
-	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", emailCfg.FrontendURL, token)
-	subject := "Verify Your Email Address"
-	body := fmt.Sprintf(`
-        <h2>Email Verification</h2>
-        <p>Please verify your email address by clicking the link below:</p>
-        <a href="%s">%s</a>
-        <p>This link expires in 24 hours.</p>
-    `, verifyURL, verifyURL)
-
+	subject, body := VerificationEmail(emailCfg.FrontendURL, token)
 	if err := sendEmail(to, subject, body, emailCfg); err != nil {
 		Log.WithError(err).Error("Failed to send verification email")
 	}

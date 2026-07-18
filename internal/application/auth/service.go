@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
@@ -424,9 +423,7 @@ func (s *Service) enqueueSendPasswordResetEmail(email, token string) {
 	if s.cfg != nil {
 		frontendURL = s.cfg.Email.FrontendURL
 	}
-	resetURL := fmt.Sprintf("%s/reset-password?token=%s", frontendURL, token)
-	subject := "Password Reset Request"
-	body := fmt.Sprintf(`<h2>Password Reset</h2><p>Click the link below to reset your password:</p><a href="%s">%s</a><p>Expires in 1 hour.</p>`, resetURL, resetURL)
+	subject, body := utils.PasswordResetEmail(frontendURL, token)
 	if err := s.jobQueue.EnqueueSendEmail(context.Background(), email, subject, body); err != nil {
 		utils.Log.WithError(err).Warn("failed to enqueue password reset email; sending inline")
 		go utils.SendPasswordResetEmail(email, token)
@@ -474,9 +471,7 @@ func (s *Service) enqueueSendVerificationEmail(email, token string) {
 	if s.cfg != nil {
 		frontendURL = s.cfg.Email.FrontendURL
 	}
-	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", frontendURL, token)
-	subject := "Verify Your Email Address"
-	body := fmt.Sprintf(`<h2>Email Verification</h2><p>Please verify your email by clicking below:</p><a href="%s">%s</a><p>Expires in 24 hours.</p>`, verifyURL, verifyURL)
+	subject, body := utils.VerificationEmail(frontendURL, token)
 	if err := s.jobQueue.EnqueueSendEmail(context.Background(), email, subject, body); err != nil {
 		utils.Log.WithError(err).Warn("failed to enqueue verification email; sending inline")
 		go utils.SendVerificationEmail(email, token)
