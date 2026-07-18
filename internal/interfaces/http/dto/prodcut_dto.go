@@ -115,8 +115,8 @@ type ProductListFilters struct {
 	Sort       string  `form:"sort"`
 	Search     string  `form:"search"`
 	IDs        []uint  `form:"ids"`
-	StoreID    *uint   `json:"store_id,omitempty"`
-	BrandID    *uint   `json:"brand_id,omitempty"`
+	StoreID    *uint   `form:"store_id"`
+	BrandID    *uint   `form:"brand_id"`
 }
 
 // ─── Response DTOs ───────────────────────────────────────────────────────────
