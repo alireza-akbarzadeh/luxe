@@ -111,7 +111,7 @@ func (ctrl *ImportHandler) ImportCategories(c *gin.Context) {
 
 // DownloadTemplate streams a blank Excel template (admin only).
 // @Summary      Download import template (admin)
-// @Description  Returns a pre-formatted .xlsx template for the given entity (products | categories).
+// @Description  Returns a pre-formatted .xlsx template for the given entity (products | categories). Products template includes a Products sheet (exact import headers + samples) and a Column guide sheet.
 // @Tags         Admin, Import
 // @Produce      application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
 // @Security     BearerAuth
@@ -142,7 +142,8 @@ func (ctrl *ImportHandler) DownloadTemplate(c *gin.Context) {
 	}
 
 	filename := fmt.Sprintf("luxe_%s_template_%s.xlsx", entity, time.Now().UTC().Format("20060102"))
-	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Data(http.StatusOK,
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 		data)

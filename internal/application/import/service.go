@@ -40,11 +40,37 @@ func NewService(productSvc ProductCreator, categorySvc CategoryCreator) *Service
 	}
 }
 
-// productColumns defines the expected header row for product imports.
-var productColumns = []string{
-	"name", "sku", "price", "stock", "description",
-	"status", "category_id", "brand_id", "store_id",
-	"compare_at_price", "barcode", "low_stock_threshold", "weight",
+// productColumn describes one Excel header used for bulk product create.
+type productColumn struct {
+	Key         string
+	Required    bool
+	Description string
+	Example     string
+}
+
+// productColumns is the exact header order required by ImportProductsFromExcel.
+var productColumns = []productColumn{
+	{Key: "name", Required: true, Description: "Product display name (min 3 chars)", Example: "Relaxed Linen Button-Up"},
+	{Key: "sku", Required: true, Description: "Unique SKU (3–50 chars)", Example: "LUX-W-TOP-003"},
+	{Key: "price", Required: true, Description: "Sell price (number ≥ 0)", Example: "185"},
+	{Key: "stock", Required: false, Description: "On-hand quantity (integer ≥ 0)", Example: "40"},
+	{Key: "description", Required: false, Description: "Short product description", Example: "Oversized linen button-up with curved hem"},
+	{Key: "status", Required: false, Description: "draft | active | inactive | archived (default: active)", Example: "active"},
+	{Key: "category_id", Required: false, Description: "Existing category ID (number)", Example: "12"},
+	{Key: "brand_id", Required: false, Description: "Existing brand ID (number)", Example: "3"},
+	{Key: "store_id", Required: false, Description: "Existing store ID (number); falls back to query store_id", Example: "1"},
+	{Key: "compare_at_price", Required: false, Description: "Compare-at / MSRP price", Example: "210"},
+	{Key: "barcode", Required: false, Description: "Barcode / UPC", Example: "8901234567890"},
+	{Key: "low_stock_threshold", Required: false, Description: "Low-stock alert threshold", Example: "5"},
+	{Key: "weight", Required: false, Description: "Weight in kg", Example: "0.35"},
+}
+
+func productColumnKeys() []string {
+	keys := make([]string, len(productColumns))
+	for i, col := range productColumns {
+		keys[i] = col.Key
+	}
+	return keys
 }
 
 func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.ImportSummary, error) {
@@ -55,6 +81,12 @@ func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.Impor
 	defer f.Close()
 
 	sheet := f.GetSheetName(0)
+	for _, name := range f.GetSheetList() {
+		if strings.EqualFold(name, "Products") {
+			sheet = name
+			break
+		}
+	}
 	rows, err := f.GetRows(sheet)
 	if err != nil {
 		return nil, utils.ErrBadRequest("cannot read sheet: " + err.Error())
@@ -63,13 +95,17 @@ func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.Impor
 		return nil, utils.ErrBadRequest("file has no data rows (expected header + at least one data row)")
 	}
 
+	if err := validateProductHeader(rows[0]); err != nil {
+		return nil, err
+	}
+
 	summary := &dto.ImportSummary{
-		TotalRows: len(rows) - 1, // exclude header
+		TotalRows: len(rows) - 1,
 		Rows:      make([]dto.ImportRowResult, 0, len(rows)-1),
 	}
 
-	for i, row := range rows[1:] { // skip header row
-		rowNum := i + 2 // Excel row number (1-based, header=1)
+	for i, row := range rows[1:] {
+		rowNum := i + 2
 		cells := padCells(row, len(productColumns))
 
 		name := strings.TrimSpace(cells[0])
@@ -89,7 +125,7 @@ func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.Impor
 			continue
 		}
 
-		stock, _ := strconv.Atoi(cells[3])
+		stock, _ := strconv.Atoi(strings.TrimSpace(cells[3]))
 		status := strings.TrimSpace(cells[5])
 		if status == "" {
 			status = constants.ProductStatusActive
@@ -117,7 +153,6 @@ func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.Impor
 				req.BrandID = &uid
 			}
 		}
-		// Use file-provided store_id if present, otherwise fall back to the one from the route.
 		if v := strings.TrimSpace(cells[8]); v != "" {
 			if id, err := strconv.ParseUint(v, 10, 64); err == nil {
 				uid := uint(id)
@@ -162,6 +197,26 @@ func (s *Service) ImportProductsFromExcel(r io.Reader, storeID uint) (*dto.Impor
 		summary.Created++
 	}
 	return summary, nil
+}
+
+func validateProductHeader(header []string) error {
+	keys := productColumnKeys()
+	if len(header) < len(keys) {
+		return utils.ErrBadRequest(fmt.Sprintf(
+			"header must include columns in order: %s",
+			strings.Join(keys, ", "),
+		))
+	}
+	for i, key := range keys {
+		got := strings.ToLower(strings.TrimSpace(header[i]))
+		if got != key {
+			return utils.ErrBadRequest(fmt.Sprintf(
+				"column %d must be %q (got %q). Download the template for the exact header row.",
+				i+1, key, header[i],
+			))
+		}
+	}
+	return nil
 }
 
 // ─── Category import ──────────────────────────────────────────────────────────
@@ -243,9 +298,25 @@ func (s *Service) ImportCategoriesFromExcel(r io.Reader) (*dto.ImportSummary, er
 // ─── Templates ───────────────────────────────────────────────────────────────
 
 func (s *Service) ProductTemplate() ([]byte, error) {
-	return buildTemplate("Products", productColumns, [][]string{
-		{"Winter Jacket", "WJ-001", "99.99", "50", "Warm jacket for winter", "active", "", "", "", "129.99", "WJ001BAR", "5", "0.8"},
-	})
+	keys := productColumnKeys()
+	examples := [][]string{
+		{
+			"Relaxed Linen Button-Up", "LUX-W-TOP-003", "185", "40",
+			"Oversized linen button-up with curved hem", "active",
+			"", "", "", "210", "8901234567890", "5", "0.35",
+		},
+		{
+			"Merino Crew Neck Sweater", "LUX-W-KNT-014", "220", "25",
+			"Soft merino crew neck in seasonal colors", "active",
+			"", "", "", "260", "", "3", "0.45",
+		},
+		{
+			"Draft Sample Product", "LUX-DRAFT-001", "49.99", "0",
+			"Replace IDs and publish when ready", "draft",
+			"", "", "", "", "", "2", "",
+		},
+	}
+	return buildProductTemplate(keys, examples)
 }
 
 func (s *Service) CategoryTemplate() ([]byte, error) {
@@ -257,7 +328,6 @@ func (s *Service) CategoryTemplate() ([]byte, error) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-// padCells ensures the row slice has at least n elements.
 func padCells(row []string, n int) []string {
 	for len(row) < n {
 		row = append(row, "")
@@ -265,7 +335,6 @@ func padCells(row []string, n int) []string {
 	return row
 }
 
-// serviceErrMsg extracts a human-readable message from a service error.
 func serviceErrMsg(err error) string {
 	if err == nil {
 		return ""
@@ -276,15 +345,102 @@ func serviceErrMsg(err error) string {
 	return err.Error()
 }
 
-// buildTemplate creates an Excel workbook with a header row and optional example rows.
+func buildProductTemplate(headers []string, examples [][]string) ([]byte, error) {
+	f := excelize.NewFile()
+	defer f.Close()
+
+	const productsSheet = "Products"
+	const guideSheet = "Column guide"
+
+	defaultSheet := f.GetSheetName(0)
+	if err := f.SetSheetName(defaultSheet, productsSheet); err != nil {
+		return nil, err
+	}
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"1F6FEB"}, Pattern: 1},
+	})
+	requiredStyle, _ := f.NewStyle(&excelize.Style{
+		Font: &excelize.Font{Bold: true, Color: "FFFFFF"},
+		Fill: excelize.Fill{Type: "pattern", Color: []string{"8B6914"}, Pattern: 1},
+	})
+
+	for col, h := range headers {
+		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
+		_ = f.SetCellValue(productsSheet, cell, h)
+		style := headerStyle
+		if productColumns[col].Required {
+			style = requiredStyle
+		}
+		_ = f.SetCellStyle(productsSheet, cell, cell, style)
+		_ = f.SetColWidth(productsSheet, colLetter(col+1), colLetter(col+1), 20)
+	}
+
+	for rowIdx, row := range examples {
+		for col, val := range row {
+			cell, _ := excelize.CoordinatesToCellName(col+1, rowIdx+2)
+			_ = f.SetCellValue(productsSheet, cell, val)
+		}
+	}
+	_ = f.SetRowHeight(productsSheet, 1, 22)
+	_ = f.AutoFilter(productsSheet, "A1:"+colLetter(len(headers))+"1", nil)
+
+	if _, err := f.NewSheet(guideSheet); err != nil {
+		return nil, err
+	}
+	guideHeaders := []string{"column", "required", "description", "example"}
+	for col, h := range guideHeaders {
+		cell, _ := excelize.CoordinatesToCellName(col+1, 1)
+		_ = f.SetCellValue(guideSheet, cell, h)
+		_ = f.SetCellStyle(guideSheet, cell, cell, headerStyle)
+	}
+	_ = f.SetColWidth(guideSheet, "A", "A", 22)
+	_ = f.SetColWidth(guideSheet, "B", "B", 12)
+	_ = f.SetColWidth(guideSheet, "C", "C", 55)
+	_ = f.SetColWidth(guideSheet, "D", "D", 36)
+
+	for i, col := range productColumns {
+		row := i + 2
+		_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", row), col.Key)
+		reqLabel := "optional"
+		if col.Required {
+			reqLabel = "required"
+		}
+		_ = f.SetCellValue(guideSheet, fmt.Sprintf("B%d", row), reqLabel)
+		_ = f.SetCellValue(guideSheet, fmt.Sprintf("C%d", row), col.Description)
+		_ = f.SetCellValue(guideSheet, fmt.Sprintf("D%d", row), col.Example)
+	}
+
+	noteRow := len(productColumns) + 3
+	_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", noteRow), "Notes")
+	_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", noteRow+1),
+		"1) Keep the Products sheet header row exactly as provided (column order matters).")
+	_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", noteRow+2),
+		"2) Required: name, sku, price. Status defaults to active when blank.")
+	_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", noteRow+3),
+		"3) category_id / brand_id / store_id must reference existing IDs in your catalog.")
+	_ = f.SetCellValue(guideSheet, fmt.Sprintf("A%d", noteRow+4),
+		"4) Delete sample rows before importing your real catalog.")
+
+	f.SetActiveSheet(0)
+
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 func buildTemplate(sheetName string, headers []string, examples [][]string) ([]byte, error) {
 	f := excelize.NewFile()
 	defer f.Close()
 
-	sheet := "Sheet1"
-	_ = f.SetSheetName(sheet, sheetName)
+	defaultSheet := f.GetSheetName(0)
+	if err := f.SetSheetName(defaultSheet, sheetName); err != nil {
+		return nil, err
+	}
 
-	// Header style: bold + light blue background
 	style, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Color: "FFFFFF"},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"1F6FEB"}, Pattern: 1},
@@ -311,7 +467,6 @@ func buildTemplate(sheetName string, headers []string, examples [][]string) ([]b
 	return buf.Bytes(), nil
 }
 
-// colLetter converts a 1-based column index to a letter (1→"A", 26→"Z", 27→"AA").
 func colLetter(n int) string {
 	name, _ := excelize.ColumnNumberToName(n)
 	return name
