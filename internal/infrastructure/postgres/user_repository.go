@@ -74,7 +74,7 @@ func (r *UserRepository) SaveUser(ctx context.Context, user *models.User) error 
 
 // SearchGiftRecipients finds active users for gifting.
 // Empty query returns the first `limit` active members (excluding the actor).
-// Non-empty query filters by email or phone (partial match).
+// Non-empty query filters by name, email, or phone (partial match).
 func (r *UserRepository) SearchGiftRecipients(
 	ctx context.Context,
 	excludeUserID uint,
@@ -95,11 +95,12 @@ func (r *UserRepository) SearchGiftRecipients(
 		if strings.Contains(query, "@") {
 			q = q.Where("LOWER(email) LIKE LOWER(?)", "%"+query+"%")
 		} else {
+			term := "%" + strings.ToLower(query) + "%"
 			normalizedPhone := strings.TrimPrefix(query, "+")
 			q = q.Where(
-				"phone LIKE ? OR LOWER(email) LIKE LOWER(?)",
+				"phone LIKE ? OR LOWER(email) LIKE ? OR LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(CONCAT(first_name, ' ', last_name)) LIKE ?",
 				"%"+normalizedPhone+"%",
-				"%"+query+"%",
+				term, term, term, term,
 			)
 		}
 	}

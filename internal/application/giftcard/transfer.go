@@ -51,7 +51,7 @@ func isGiftCardActor(card *models.GiftCard, userID uint, email string) bool {
 	return strings.EqualFold(strings.TrimSpace(card.RecipientEmail), strings.TrimSpace(email))
 }
 
-// LookupRecipients finds Luxe members to receive a gift card (email or phone search).
+// LookupRecipients finds Luxe members to receive a gift card (name, email, or phone search).
 func (s *Service) LookupRecipients(ctx context.Context, actorUserID uint, query string) ([]dto.GiftRecipientLookupResponse, error) {
 	users, err := s.users.SearchGiftRecipients(ctx, actorUserID, query, 10)
 	if err != nil {

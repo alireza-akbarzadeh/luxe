@@ -178,13 +178,13 @@ func (ctrl *GiftCardHandler) ClaimGiftCard(c *gin.Context) {
 	utils.SuccessResponse(c, "gift card claimed", dto.ToGiftCardResponse(card))
 }
 
-// LookupGiftRecipients searches Luxe members by email or phone for gifting.
+// LookupGiftRecipients searches Luxe members by name, email, or phone for gifting.
 // @Summary      Lookup gift card recipient
-// @Description  Lists active members (up to 10). Optional q filters by email or phone fragment.
+// @Description  Lists active members (up to 10). Optional q filters by name, email, or phone fragment.
 // @Tags         GiftCards
 // @Produce      json
 // @Security     BearerAuth
-// @Param        q query string false "Email or phone fragment (optional; empty returns recent active members)"
+// @Param        q query string false "Name, email, or phone fragment (optional; empty returns active members)"
 // @Success      200 {object} utils.Response{data=[]dto.GiftRecipientLookupResponse}
 // @Router       /gift-cards/recipient-lookup [get]
 func (ctrl *GiftCardHandler) LookupGiftRecipients(c *gin.Context) {
