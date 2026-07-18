@@ -198,3 +198,43 @@ func (r *AuthRepository) FindPasswordResetToken(ctx context.Context, hashed stri
 func (r *AuthRepository) SavePasswordResetToken(ctx context.Context, token *models.PasswordResetToken) error {
 	return r.db.WithContext(ctx).Save(token).Error
 }
+
+// FindUserByPhone loads a user by exact phone match.
+func (r *AuthRepository) FindUserByPhone(ctx context.Context, phone string) (*models.User, error) {
+	var user models.User
+	err := r.db.WithContext(ctx).Where("phone = ?", phone).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+// DeleteUnusedLoginOTPs removes unused login OTP rows for a user.
+func (r *AuthRepository) DeleteUnusedLoginOTPs(ctx context.Context, userID uint) error {
+	return r.db.WithContext(ctx).
+		Where("user_id = ? AND used_at IS NULL", userID).
+		Delete(&models.LoginOTP{}).Error
+}
+
+// CreateLoginOTP inserts a login OTP row.
+func (r *AuthRepository) CreateLoginOTP(ctx context.Context, otp *models.LoginOTP) error {
+	return r.db.WithContext(ctx).Create(otp).Error
+}
+
+// FindValidLoginOTP loads the latest unused, unexpired OTP for a user.
+func (r *AuthRepository) FindValidLoginOTP(ctx context.Context, userID uint, now time.Time) (*models.LoginOTP, error) {
+	var otp models.LoginOTP
+	err := r.db.WithContext(ctx).
+		Where("user_id = ? AND used_at IS NULL AND expires_at > ?", userID, now).
+		Order("created_at DESC").
+		First(&otp).Error
+	if err != nil {
+		return nil, err
+	}
+	return &otp, nil
+}
+
+// SaveLoginOTP persists login OTP changes.
+func (r *AuthRepository) SaveLoginOTP(ctx context.Context, otp *models.LoginOTP) error {
+	return r.db.WithContext(ctx).Save(otp).Error
+}

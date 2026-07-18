@@ -6876,6 +6876,24 @@ definitions:
     required:
     - items
     type: object
+  dto.RequestLoginOTPData:
+    properties:
+      delivery_channel:
+        type: string
+      expires_in_seconds:
+        type: integer
+      masked_destination:
+        type: string
+    type: object
+  dto.RequestLoginOTPRequest:
+    properties:
+      identifier:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - identifier
+    type: object
   dto.ResetPasswordRequest:
     properties:
       new_password:
@@ -8926,6 +8944,18 @@ definitions:
         type: string
       website:
         type: string
+    type: object
+  dto.VerifyLoginOTPRequest:
+    properties:
+      code:
+        type: string
+      identifier:
+        maxLength: 255
+        minLength: 3
+        type: string
+    required:
+    - code
+    - identifier
     type: object
   dto.ViewAll:
     properties:
@@ -16791,6 +16821,68 @@ paths:
           schema:
             $ref: '#/definitions/dto.MessageResponse'
       summary: Login user
+      tags:
+      - Authentication
+  /auth/login/otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Sends a 6-digit code by email. Identifier may be email or E.164
+        phone (phone delivers to the account email).
+      parameters:
+      - description: Email or phone
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RequestLoginOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RequestLoginOTPData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Request login OTP
+      tags:
+      - Authentication
+  /auth/login/otp/verify:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a valid 6-digit code for access and refresh tokens
+      parameters:
+      - description: Identifier + code
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyLoginOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+      summary: Verify login OTP
       tags:
       - Authentication
   /auth/logout:

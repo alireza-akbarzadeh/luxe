@@ -66,3 +66,18 @@ type EmailVerificationToken struct {
 	UsedAt    *time.Time
 	CreatedAt time.Time
 }
+
+// LoginOTP stores a one-time login code (hashed) for passwordless sign-in.
+type LoginOTP struct {
+	ID          uint      `gorm:"primaryKey"`
+	UserID      uint      `gorm:"not null;index"`
+	CodeHash    string    `gorm:"column:code_hash;not null;size:64;index"`
+	Channel     string    `gorm:"not null;size:16"` // email | phone
+	Destination string    `gorm:"not null;size:255"` // original identifier (for audit)
+	ExpiresAt   time.Time `gorm:"not null"`
+	UsedAt      *time.Time
+	Attempts    int       `gorm:"not null;default:0"`
+	CreatedAt   time.Time
+}
+
+func (LoginOTP) TableName() string { return "login_otps" }

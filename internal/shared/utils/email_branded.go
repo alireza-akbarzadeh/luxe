@@ -177,3 +177,27 @@ func VerificationEmail(frontendURL, token string) (subject, body string) {
 	})
 	return subject, body
 }
+
+// LoginOTPEmail builds subject + HTML body for a passwordless login code.
+func LoginOTPEmail(frontendURL, code string) (subject, body string) {
+	safeCode := html.EscapeString(code)
+	subject = "Your Luxe sign-in code"
+	body = BrandedEmailHTML(BrandedEmailContent{
+		Preheader: "Your one-time sign-in code expires in 10 minutes.",
+		Eyebrow:   "Passwordless sign-in",
+		Title:     "Your sign-in code",
+		Intro:     "Use this code to finish signing in to your Luxe account. Do not share it with anyone.",
+		BodyHTML: fmt.Sprintf(`<table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:#faf8f4;border:1px solid #e7e2d8;border-radius:12px;">
+  <tr><td style="padding:22px 16px;text-align:center;">
+    <div style="font-size:32px;letter-spacing:0.35em;font-weight:700;color:#0a0a0b;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">%s</div>
+    <p style="margin:14px 0 0;font-size:13px;line-height:1.55;color:#6b6760;">Expires in <strong style="color:#0a0a0b;">10 minutes</strong></p>
+  </td></tr>
+</table>`, safeCode),
+		CTALabel:  "Open Luxe",
+		CTAURL:    trimFrontendURL(frontendURL) + "/login",
+		Footer:    "If you did not try to sign in, you can ignore this email — your account stays secure.",
+		LogoURL:   LogoURLFromFrontend(frontendURL),
+		BrandName: "Luxe",
+	})
+	return subject, body
+}

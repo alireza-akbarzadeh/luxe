@@ -34,6 +34,19 @@ func SendVerificationEmail(to, token string) {
 	}
 }
 
+// SendLoginOTPEmail sends a branded one-time login code.
+func SendLoginOTPEmail(to, code string) {
+	if config.AppConfig == nil {
+		Log.Error("config not loaded, cannot send email")
+		return
+	}
+	emailCfg := config.AppConfig.Email
+	subject, body := LoginOTPEmail(emailCfg.FrontendURL, code)
+	if err := sendEmail(to, subject, body, emailCfg); err != nil {
+		Log.WithError(err).Error("Failed to send login OTP email")
+	}
+}
+
 // SendEmailDirect sends a pre-composed email using AppConfig. Intended for use
 // by background job handlers where the full body is already built.
 func SendEmailDirect(to, subject, bodyHTML string) {

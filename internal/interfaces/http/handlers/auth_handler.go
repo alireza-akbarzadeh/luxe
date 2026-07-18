@@ -20,6 +20,8 @@ import (
 type authServicer interface {
 	Register(ctx context.Context, req dto.RegisterRequest, meta appauth.SessionMeta) (string, string, *models.User, error)
 	Login(ctx context.Context, req dto.LoginRequest, meta appauth.SessionMeta) (string, string, *models.User, error)
+	RequestLoginOTP(ctx context.Context, identifier string) (dto.RequestLoginOTPData, error)
+	VerifyLoginOTP(ctx context.Context, identifier, code string, meta appauth.SessionMeta) (string, string, *models.User, error)
 	RefreshTokens(ctx context.Context, rawRefreshToken string, meta appauth.SessionMeta) (newAccessToken, newRawRefreshToken string, err error)
 	Logout(ctx context.Context, userID uint, req appauth.LogoutRequest) error
 	ChangePassword(ctx context.Context, userID uint, req dto.ChangePasswordRequest) error
@@ -109,6 +111,69 @@ func (ctrl *AuthHandler) Login(c *gin.Context) {
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
 			User: dto.ToUserResponse(user),
+		},
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// RequestLoginOTP sends a one-time sign-in code to the account email.
+// @Summary      Request login OTP
+// @Description  Sends a 6-digit code by email. Identifier may be email or E.164 phone (phone delivers to the account email).
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.RequestLoginOTPRequest true "Email or phone"
+// @Success      200 {object} utils.Response{data=dto.RequestLoginOTPData}
+// @Failure      400 {object} utils.Response
+// @Router       /auth/login/otp/request [post]
+func (ctrl *AuthHandler) RequestLoginOTP(c *gin.Context) {
+	var req dto.RequestLoginOTPRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+	data, err := ctrl.authService.RequestLoginOTP(c.Request.Context(), req.Identifier)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to send login code")
+		return
+	}
+	utils.SuccessResponse(c, "If an account exists, a sign-in code was sent", data)
+}
+
+// VerifyLoginOTP completes passwordless login with the emailed code.
+// @Summary      Verify login OTP
+// @Description  Exchanges a valid 6-digit code for access and refresh tokens
+// @Tags         Authentication
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.VerifyLoginOTPRequest true "Identifier + code"
+// @Success      200 {object} dto.LoginResponse
+// @Failure      400 {object} dto.MessageResponse
+// @Failure      401 {object} dto.MessageResponse
+// @Router       /auth/login/otp/verify [post]
+func (ctrl *AuthHandler) VerifyLoginOTP(c *gin.Context) {
+	var req dto.VerifyLoginOTPRequest
+	if !utils.BindAndValidate(c, &req, ctrl.validate) {
+		return
+	}
+
+	accessToken, refreshToken, user, err := ctrl.authService.VerifyLoginOTP(
+		c.Request.Context(),
+		req.Identifier,
+		req.Code,
+		sessionMetaFromContext(c),
+	)
+	if err != nil {
+		utils.HandleServiceError(c, err, constants.MsgLoginFailed)
+		return
+	}
+
+	resp := dto.LoginResponse{
+		Success: true,
+		Message: constants.MsgLoginSuccess,
+		Data: dto.LoginResponseData{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+			User:         dto.ToUserResponse(user),
 		},
 	}
 	c.JSON(http.StatusOK, resp)

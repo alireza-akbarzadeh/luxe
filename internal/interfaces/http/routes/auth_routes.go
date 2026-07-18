@@ -13,6 +13,8 @@ func SetupAuthRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Containe
 	{
 		authPublic.POST("/register", ctrl.Auth.Register)
 		authPublic.POST("/login", ctrl.Auth.Login)
+		authPublic.POST("/login/otp/request", ctrl.Auth.RequestLoginOTP)
+		authPublic.POST("/login/otp/verify", ctrl.Auth.VerifyLoginOTP)
 		authPublic.POST("/forgot-password", ctrl.Auth.ForgotPassword)
 		authPublic.POST("/reset-password", ctrl.Auth.ResetPassword)
 		authPublic.POST("/refresh", ctrl.Auth.Refresh)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
@@ -412,6 +413,180 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) error {
 
 	s.enqueueSendPasswordResetEmail(user.Email, token)
 	return nil
+}
+
+const (
+	loginOTPExpiry   = 10 * time.Minute
+	loginOTPDigits   = 6
+	loginOTPMaxTries = 5
+)
+
+// RequestLoginOTP creates a one-time code and emails it (phone looks up user, delivers via email).
+// Always returns a generic success payload so callers cannot enumerate accounts.
+func (s *Service) RequestLoginOTP(ctx context.Context, identifier string) (dto.RequestLoginOTPData, error) {
+	empty := dto.RequestLoginOTPData{
+		DeliveryChannel:   "email",
+		MaskedDestination: "",
+		ExpiresInSeconds:  int(loginOTPExpiry.Seconds()),
+	}
+
+	channel, normalized, err := normalizeLoginIdentifier(identifier)
+	if err != nil {
+		return empty, utils.ErrBadRequest(err.Error())
+	}
+
+	user, err := s.findUserForOTP(ctx, channel, normalized)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return empty, nil
+		}
+		return empty, utils.ErrInternal(err)
+	}
+	if !user.IsActive {
+		return empty, nil
+	}
+
+	if err := s.repo.DeleteUnusedLoginOTPs(ctx, user.ID); err != nil {
+		return empty, utils.ErrInternal(err)
+	}
+
+	code, err := utils.GenerateNumericOTP(loginOTPDigits)
+	if err != nil {
+		return empty, utils.ErrInternal(err)
+	}
+
+	otp := models.LoginOTP{
+		UserID:      user.ID,
+		CodeHash:    utils.HashRefreshToken(code),
+		Channel:     channel,
+		Destination: normalized,
+		ExpiresAt:   time.Now().Add(loginOTPExpiry),
+	}
+	if err := s.repo.CreateLoginOTP(ctx, &otp); err != nil {
+		return empty, utils.ErrInternal(err)
+	}
+
+	s.enqueueSendLoginOTPEmail(user.Email, code)
+
+	return dto.RequestLoginOTPData{
+		DeliveryChannel:   "email",
+		MaskedDestination: maskEmailForOTP(user.Email),
+		ExpiresInSeconds:  int(loginOTPExpiry.Seconds()),
+	}, nil
+}
+
+// VerifyLoginOTP validates the code and returns a session token pair.
+func (s *Service) VerifyLoginOTP(ctx context.Context, identifier, code string, meta SessionMeta) (string, string, *models.User, error) {
+	channel, normalized, err := normalizeLoginIdentifier(identifier)
+	if err != nil {
+		return "", "", nil, utils.ErrBadRequest(err.Error())
+	}
+
+	user, err := s.findUserForOTP(ctx, channel, normalized)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", nil, utils.ErrUnauthorized(constants.ErrInvalidCredentials)
+		}
+		return "", "", nil, utils.ErrInternal(err)
+	}
+	if !user.IsActive {
+		return "", "", nil, utils.ErrUnauthorized(constants.ErrAccountDeactivated)
+	}
+
+	otp, err := s.repo.FindValidLoginOTP(ctx, user.ID, time.Now())
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", "", nil, utils.ErrUnauthorized("invalid or expired code")
+		}
+		return "", "", nil, utils.ErrInternal(err)
+	}
+
+	if otp.Attempts >= loginOTPMaxTries {
+		return "", "", nil, utils.ErrUnauthorized("too many attempts — request a new code")
+	}
+
+	otp.Attempts++
+	if utils.HashRefreshToken(strings.TrimSpace(code)) != otp.CodeHash {
+		_ = s.repo.SaveLoginOTP(ctx, otp)
+		return "", "", nil, utils.ErrUnauthorized("invalid or expired code")
+	}
+
+	now := time.Now()
+	otp.UsedAt = &now
+	if err := s.repo.SaveLoginOTP(ctx, otp); err != nil {
+		return "", "", nil, utils.ErrInternal(err)
+	}
+	_ = s.repo.DeleteUnusedLoginOTPs(ctx, user.ID)
+
+	if err := s.repo.UpdateUserLastLogin(ctx, user.ID, now); err != nil {
+		utils.Log.WithError(err).Warn("failed to update last_login_at")
+	}
+	user.LastLoginAt = &now
+
+	accessToken, refreshToken, err := s.generateTokenPair(ctx, user, meta)
+	if err != nil {
+		return "", "", nil, err
+	}
+	return accessToken, refreshToken, user, nil
+}
+
+func (s *Service) findUserForOTP(ctx context.Context, channel, normalized string) (*models.User, error) {
+	if channel == "phone" {
+		return s.repo.FindUserByPhone(ctx, normalized)
+	}
+	return s.repo.FindUserByEmail(ctx, normalized)
+}
+
+func normalizeLoginIdentifier(raw string) (channel, normalized string, err error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return "", "", errors.New("email or phone is required")
+	}
+	if strings.Contains(value, "@") {
+		return "email", strings.ToLower(value), nil
+	}
+	phone := strings.TrimSpace(value)
+	if !strings.HasPrefix(phone, "+") {
+		return "", "", errors.New("phone must include country code (e.g. +1234567890)")
+	}
+	digits := 0
+	for _, r := range phone[1:] {
+		if r < '0' || r > '9' {
+			return "", "", errors.New("phone must be in E.164 format (e.g. +1234567890)")
+		}
+		digits++
+	}
+	if digits < 8 || digits > 15 {
+		return "", "", errors.New("phone must be in E.164 format (e.g. +1234567890)")
+	}
+	return "phone", phone, nil
+}
+
+func maskEmailForOTP(email string) string {
+	email = strings.TrimSpace(strings.ToLower(email))
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 || parts[0] == "" {
+		return ""
+	}
+	local := parts[0]
+	visible := string(local[0])
+	return visible + "***@" + parts[1]
+}
+
+func (s *Service) enqueueSendLoginOTPEmail(email, code string) {
+	if s.jobQueue == nil {
+		go utils.SendLoginOTPEmail(email, code)
+		return
+	}
+	frontendURL := ""
+	if s.cfg != nil {
+		frontendURL = s.cfg.Email.FrontendURL
+	}
+	subject, body := utils.LoginOTPEmail(frontendURL, code)
+	if err := s.jobQueue.EnqueueSendEmail(context.Background(), email, subject, body); err != nil {
+		utils.Log.WithError(err).Warn("failed to enqueue login OTP email; sending inline")
+		go utils.SendLoginOTPEmail(email, code)
+	}
 }
 
 func (s *Service) enqueueSendPasswordResetEmail(email, token string) {

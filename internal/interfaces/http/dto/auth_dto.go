@@ -33,6 +33,24 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=8"`
 }
 
+// RequestLoginOTPRequest starts passwordless login (email or phone).
+type RequestLoginOTPRequest struct {
+	Identifier string `json:"identifier" validate:"required,min=3,max=255"`
+}
+
+// VerifyLoginOTPRequest completes passwordless login with the 6-digit code.
+type VerifyLoginOTPRequest struct {
+	Identifier string `json:"identifier" validate:"required,min=3,max=255"`
+	Code       string `json:"code" validate:"required,len=6,numeric"`
+}
+
+// RequestLoginOTPData is returned after requesting a login code.
+type RequestLoginOTPData struct {
+	DeliveryChannel   string `json:"delivery_channel"`
+	MaskedDestination string `json:"masked_destination"`
+	ExpiresInSeconds  int    `json:"expires_in_seconds"`
+}
+
 type SessionResponse struct {
 	ID         uint   `json:"id"`
 	UserAgent  string `json:"user_agent"`
