@@ -4197,6 +4197,50 @@ definitions:
     - icon
     - label
     type: object
+  dto.CreatePrivacyRuleRequest:
+    properties:
+      content_markdown:
+        type: string
+      effective_at:
+        type: string
+      key:
+        maxLength: 100
+        minLength: 2
+        type: string
+      locale:
+        maxLength: 10
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      provider:
+        enum:
+        - platform
+        - stripe
+        - paypal
+        - wallet
+        - gift_card
+        - shipping
+        - ai
+        - all
+        type: string
+      status:
+        enum:
+        - draft
+        - active
+        - inactive
+        - archived
+        type: string
+      summary:
+        maxLength: 2000
+        type: string
+    required:
+    - content_markdown
+    - key
+    - name
+    - provider
+    type: object
   dto.CreateProductAnswerRequest:
     properties:
       body:
@@ -6182,6 +6226,59 @@ definitions:
         type: number
       recorded_at:
         type: string
+    type: object
+  dto.PrivacyRuleListData:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      rules:
+        items:
+          $ref: '#/definitions/dto.PrivacyRuleResponse'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.PrivacyRuleListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.PrivacyRuleListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.PrivacyRuleResponse:
+    properties:
+      content_markdown:
+        type: string
+      created_at:
+        type: string
+      effective_at:
+        type: string
+      id:
+        type: integer
+      key:
+        type: string
+      locale:
+        type: string
+      name:
+        type: string
+      provider:
+        type: string
+      status:
+        type: string
+      summary:
+        type: string
+      updated_at:
+        type: string
+      version:
+        type: integer
+      workflow_state:
+        $ref: '#/definitions/dto.StateView'
     type: object
   dto.ProductAlternativeResponse:
     properties:
@@ -8185,6 +8282,47 @@ definitions:
           type: string
         maxItems: 20
         type: array
+    type: object
+  dto.UpdatePrivacyRuleRequest:
+    properties:
+      bump_version:
+        type: boolean
+      content_markdown:
+        type: string
+      effective_at:
+        type: string
+      key:
+        maxLength: 100
+        minLength: 2
+        type: string
+      locale:
+        maxLength: 10
+        type: string
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      provider:
+        enum:
+        - platform
+        - stripe
+        - paypal
+        - wallet
+        - gift_card
+        - shipping
+        - ai
+        - all
+        type: string
+      status:
+        enum:
+        - draft
+        - active
+        - inactive
+        - archived
+        type: string
+      summary:
+        maxLength: 2000
+        type: string
     type: object
   dto.UpdateProductRequest:
     properties:
@@ -12161,7 +12299,8 @@ paths:
   /admin/import/template/{entity}:
     get:
       description: Returns a pre-formatted .xlsx template for the given entity (products
-        | categories).
+        | categories). Products template includes a Products sheet (exact import headers
+        + samples) and a Column guide sheet.
       parameters:
       - description: 'Entity type: products | categories'
         in: path
@@ -13229,6 +13368,177 @@ paths:
       summary: List permissions
       tags:
       - Admin Roles
+  /admin/privacy-rules:
+    get:
+      description: Paginated list of all privacy rules with optional filters.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search name, key, summary
+        in: query
+        name: search
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by provider
+        in: query
+        name: provider
+        type: string
+      - description: Filter by locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PrivacyRuleListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin list privacy rules
+      tags:
+      - privacy-rules
+    post:
+      consumes:
+      - application/json
+      description: Creates a privacy rule with markdown content, provider scope, and
+        optional status (default draft).
+      parameters:
+      - description: Privacy rule payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePrivacyRuleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PrivacyRuleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create privacy rule
+      tags:
+      - privacy-rules
+  /admin/privacy-rules/{id}:
+    delete:
+      parameters:
+      - description: Privacy rule ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete privacy rule
+      tags:
+      - privacy-rules
+    get:
+      parameters:
+      - description: Privacy rule ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PrivacyRuleResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Admin get privacy rule
+      tags:
+      - privacy-rules
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Privacy rule ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePrivacyRuleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PrivacyRuleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update privacy rule
+      tags:
+      - privacy-rules
   /admin/products/export:
     get:
       description: Returns a CSV file of products filtered by status, name, SKU, category,
@@ -20242,6 +20552,121 @@ paths:
       summary: Confirm Stripe Plus payment
       tags:
       - Plus
+  /privacy-rules:
+    get:
+      description: Returns active privacy rules for apps to fetch and parse markdown.
+        Filter by provider, locale, or key.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by provider
+        in: query
+        name: provider
+        type: string
+      - description: Filter by locale
+        in: query
+        name: locale
+        type: string
+      - description: Filter by key
+        in: query
+        name: key
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PrivacyRuleListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List active privacy rules
+      tags:
+      - privacy-rules
+  /privacy-rules/key/{key}:
+    get:
+      description: Returns a single active privacy rule by stable key for cross-app
+        parsing of content_markdown.
+      parameters:
+      - description: Rule key
+        in: path
+        name: key
+        required: true
+        type: string
+      - default: en
+        description: Locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PrivacyRuleResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: Get active privacy rule by key
+      tags:
+      - privacy-rules
+  /privacy-rules/provider/{provider}:
+    get:
+      description: Returns active rules for a provider (includes provider=all). Markdown
+        is returned for client-side parsing.
+      parameters:
+      - description: Provider code
+        in: path
+        name: provider
+        required: true
+        type: string
+      - default: en
+        description: Locale
+        in: query
+        name: locale
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PrivacyRuleResponse'
+                  type: array
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      summary: List active privacy rules by provider
+      tags:
+      - privacy-rules
   /products:
     get:
       consumes:

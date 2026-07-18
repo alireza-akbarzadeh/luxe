@@ -3306,7 +3306,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a pre-formatted .xlsx template for the given entity (products | categories).",
+                "description": "Returns a pre-formatted .xlsx template for the given entity (products | categories). Products template includes a Products sheet (exact import headers + samples) and a Column guide sheet.",
                 "produces": [
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 ],
@@ -5051,6 +5051,287 @@
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/privacy-rules": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Paginated list of all privacy rules with optional filters.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Admin list privacy rules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name, key, summary",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by provider",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PrivacyRuleListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a privacy rule with markdown content, provider scope, and optional status (default draft).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Create privacy rule",
+                "parameters": [
+                    {
+                        "description": "Privacy rule payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreatePrivacyRuleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/privacy-rules/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Admin get privacy rule",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Privacy rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Update privacy rule",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Privacy rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdatePrivacyRuleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Delete privacy rule",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Privacy rule ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
                         }
                     }
                 }
@@ -16501,6 +16782,183 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy-rules": {
+            "get": {
+                "description": "Returns active privacy rules for apps to fetch and parse markdown. Filter by provider, locale, or key.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "List active privacy rules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by provider",
+                        "name": "provider",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by locale",
+                        "name": "locale",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by key",
+                        "name": "key",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PrivacyRuleListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy-rules/key/{key}": {
+            "get": {
+                "description": "Returns a single active privacy rule by stable key for cross-app parsing of content_markdown.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "Get active privacy rule by key",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Rule key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en",
+                        "description": "Locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/privacy-rules/provider/{provider}": {
+            "get": {
+                "description": "Returns active rules for a provider (includes provider=all). Markdown is returned for client-side parsing.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "privacy-rules"
+                ],
+                "summary": "List active privacy rules by provider",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Provider code",
+                        "name": "provider",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "default": "en",
+                        "description": "Locale",
+                        "name": "locale",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/utils.Response"
                         }
@@ -29949,6 +30407,63 @@
                 }
             }
         },
+        "dto.CreatePrivacyRuleRequest": {
+            "type": "object",
+            "required": [
+                "content_markdown",
+                "key",
+                "name",
+                "provider"
+            ],
+            "properties": {
+                "content_markdown": {
+                    "type": "string"
+                },
+                "effective_at": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "locale": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "platform",
+                        "stripe",
+                        "paypal",
+                        "wallet",
+                        "gift_card",
+                        "shipping",
+                        "ai",
+                        "all"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "inactive",
+                        "archived"
+                    ]
+                },
+                "summary": {
+                    "type": "string",
+                    "maxLength": 2000
+                }
+            }
+        },
         "dto.CreateProductAnswerRequest": {
             "type": "object",
             "required": [
@@ -32910,6 +33425,87 @@
                 },
                 "recorded_at": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.PrivacyRuleListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "rules": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PrivacyRuleResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.PrivacyRuleListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.PrivacyRuleListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.PrivacyRuleResponse": {
+            "type": "object",
+            "properties": {
+                "content_markdown": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "effective_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "locale": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "integer"
+                },
+                "workflow_state": {
+                    "$ref": "#/definitions/dto.StateView"
                 }
             }
         },
@@ -35892,6 +36488,60 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "dto.UpdatePrivacyRuleRequest": {
+            "type": "object",
+            "properties": {
+                "bump_version": {
+                    "type": "boolean"
+                },
+                "content_markdown": {
+                    "type": "string"
+                },
+                "effective_at": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "locale": {
+                    "type": "string",
+                    "maxLength": 10
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "provider": {
+                    "type": "string",
+                    "enum": [
+                        "platform",
+                        "stripe",
+                        "paypal",
+                        "wallet",
+                        "gift_card",
+                        "shipping",
+                        "ai",
+                        "all"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "active",
+                        "inactive",
+                        "archived"
+                    ]
+                },
+                "summary": {
+                    "type": "string",
+                    "maxLength": 2000
                 }
             }
         },
