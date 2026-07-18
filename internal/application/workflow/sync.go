@@ -418,3 +418,49 @@ func ApplyBlogPostWorkflow(
 	SyncState(ctx, engine, constants.WorkflowEntityBlogPost, postID, code, "status_update", actorID)
 	return true
 }
+
+var privacyRuleStatusToStateCode = map[string]string{
+	"draft":    "draft",
+	"active":   "active",
+	"inactive": "inactive",
+	"archived": "archived",
+}
+
+// ApplyPrivacyRuleWorkflow syncs privacy rule status into the workflow engine (best-effort).
+func ApplyPrivacyRuleWorkflow(
+	ctx context.Context,
+	engine *infraworkflow.Engine,
+	ruleID uint,
+	status string,
+	actorID *uint,
+) bool {
+	if engine == nil {
+		return false
+	}
+
+	eventByStatus := map[string][]string{
+		"active":   {"activate", "reactivate"},
+		"inactive": {"deactivate"},
+		"archived": {"archive"},
+	}
+	if events, ok := eventByStatus[status]; ok {
+		for _, event := range events {
+			if err := ApplyEvent(ctx, engine, infraworkflow.TransitionRequest{
+				WorkflowKey: constants.WorkflowEntityPrivacyRule,
+				EntityID:    ruleID,
+				Event:       event,
+				ActorID:     actorID,
+				ActorRole:   constants.RoleAdmin,
+			}); err == nil {
+				return true
+			}
+		}
+	}
+
+	code, ok := privacyRuleStatusToStateCode[status]
+	if !ok {
+		code = "draft"
+	}
+	SyncState(ctx, engine, constants.WorkflowEntityPrivacyRule, ruleID, code, "status_update", actorID)
+	return true
+}

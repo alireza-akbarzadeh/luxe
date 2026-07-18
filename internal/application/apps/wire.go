@@ -48,6 +48,7 @@ import (
 	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
 	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
 	appblog "github.com/alireza-akbarzadeh/luxe/internal/application/blog"
+	appprivacyrule "github.com/alireza-akbarzadeh/luxe/internal/application/privacyrule"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
@@ -208,6 +209,7 @@ type Applications struct {
 	Promotion               *apppromotion.Service
 	EmailMarketing          *appemailmarketing.Service
 	Blog                    *appblog.Service
+	PrivacyRule             *appprivacyrule.Service
 }
 
 type legalSettingReader struct {
@@ -373,7 +375,8 @@ func WireApplications(
 			frontendURL,
 		),
 		Blog: appblog.NewService(db, engine),
-	}
+		PrivacyRule: appprivacyrule.NewService(db, engine),
+}
 }
 
 // Log implements middleware.AuditLogger.

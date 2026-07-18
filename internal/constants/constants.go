@@ -336,7 +336,24 @@ const (
 	WorkflowEntityCollection = "collection"
 	WorkflowEntityCoupon     = "coupon"
 	WorkflowEntityReview     = "review"
-	WorkflowEntityBlogPost   = "blog_post"
+	WorkflowEntityBlogPost    = "blog_post"
+	WorkflowEntityPrivacyRule = "privacy_rule"
+
+	// Privacy rule statuses
+	PrivacyRuleStatusDraft    = "draft"
+	PrivacyRuleStatusActive   = "active"
+	PrivacyRuleStatusInactive = "inactive"
+	PrivacyRuleStatusArchived = "archived"
+
+	// Privacy rule providers (which integration / surface the rule applies to)
+	PrivacyRuleProviderPlatform = "platform"
+	PrivacyRuleProviderStripe   = "stripe"
+	PrivacyRuleProviderPaypal   = "paypal"
+	PrivacyRuleProviderWallet   = "wallet"
+	PrivacyRuleProviderGiftCard = "gift_card"
+	PrivacyRuleProviderShipping = "shipping"
+	PrivacyRuleProviderAI       = "ai"
+	PrivacyRuleProviderAll      = "all"
 )
 
 // Inventory adjustment types (ledger).

@@ -62,6 +62,7 @@ type Container struct {
 	Promotion               *PromotionHandler
 	EmailMarketing          *EmailMarketingHandler
 	Blog                    *BlogHandler
+	PrivacyRule             *PrivacyRuleHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
@@ -119,5 +120,6 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Promotion:             NewPromotionHandler(apps.Promotion),
 		EmailMarketing:        NewEmailMarketingHandler(apps.EmailMarketing),
 		Blog:                  NewBlogHandler(apps.Blog),
+		PrivacyRule:           NewPrivacyRuleHandler(apps.PrivacyRule),
 	}
 }
