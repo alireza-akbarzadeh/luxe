@@ -18912,12 +18912,13 @@ paths:
       - GiftCards
   /gift-cards/recipient-lookup:
     get:
-      description: Search active members by email or phone (min 3 characters)
+      description: Lists active members (up to 10). Optional q filters by email or
+        phone fragment.
       parameters:
-      - description: Email or phone fragment
+      - description: Email or phone fragment (optional; empty returns recent active
+          members)
         in: query
         name: q
-        required: true
         type: string
       produces:
       - application/json

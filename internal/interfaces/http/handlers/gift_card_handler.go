@@ -180,11 +180,11 @@ func (ctrl *GiftCardHandler) ClaimGiftCard(c *gin.Context) {
 
 // LookupGiftRecipients searches Luxe members by email or phone for gifting.
 // @Summary      Lookup gift card recipient
-// @Description  Search active members by email or phone (min 3 characters)
+// @Description  Lists active members (up to 10). Optional q filters by email or phone fragment.
 // @Tags         GiftCards
 // @Produce      json
 // @Security     BearerAuth
-// @Param        q query string true "Email or phone fragment"
+// @Param        q query string false "Email or phone fragment (optional; empty returns recent active members)"
 // @Success      200 {object} utils.Response{data=[]dto.GiftRecipientLookupResponse}
 // @Router       /gift-cards/recipient-lookup [get]
 func (ctrl *GiftCardHandler) LookupGiftRecipients(c *gin.Context) {
@@ -194,10 +194,6 @@ func (ctrl *GiftCardHandler) LookupGiftRecipients(c *gin.Context) {
 		return
 	}
 	query := strings.TrimSpace(c.Query("q"))
-	if len(query) < 3 {
-		utils.SuccessResponse(c, constants.MsgFetchSuccess, []dto.GiftRecipientLookupResponse{})
-		return
-	}
 	items, err := ctrl.service.LookupRecipients(c.Request.Context(), userID, query)
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to lookup recipients")

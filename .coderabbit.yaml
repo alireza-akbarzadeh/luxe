@@ -1,0 +1,200 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit configuration for luxe (Go backend)
+# Go 1.25 · Gin · GORM/pgx · Goose migrations · asynq · Redis · Stripe · S3
+# OpenTelemetry · Sentry · Prometheus · swaggo · testcontainers
+# Docs: https://docs.coderabbit.ai/reference/yaml-template
+
+language: en-US
+early_access: false
+tone_instructions: >-
+  Be concise and technical. Prioritize correctness, security, concurrency
+  safety, error handling, and resource cleanup. Assume idiomatic Go and a
+  clean/hexagonal architecture (cmd -> internal/interfaces -> application ->
+  domain -> infrastructure). Skip nitpicks already covered by gofmt/golangci-lint.
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  auto_title_placeholder: "@coderabbitai"
+  review_status: true
+  commit_status: true
+  poem: false
+  collapse_walkthrough: false
+  changed_files_summary: true
+  sequence_diagrams: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  suggested_reviewers: true
+  abort_on_close: true
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - main
+      - develop
+    ignore_title_keywords:
+      - "wip"
+      - "[skip ci]"
+
+  # Files CodeRabbit should not review (generated, vendored, artifacts)
+  path_filters:
+    - "!**/go.sum"
+    - "!**/vendor/**"
+    - "!tmp/**"
+    - "!bin/**"
+    - "!**/*.pb.go"
+    - "!**/*_gen.go"
+    - "!**/mock_*.go"
+    - "!**/mocks/**"
+    # swaggo-generated OpenAPI docs
+    - "!docs/docs.go"
+    - "!docs/swagger.json"
+    - "!docs/swagger.yaml"
+    # static assets & templates
+    - "!views/static/**"
+    - "!**/*.svg"
+    - "!**/*.png"
+    - "!**/*.ico"
+    - "!seed_blog_posts.sql"
+
+  # Targeted, path-scoped review guidance
+  path_instructions:
+    - path: "**/*.go"
+      instructions: >-
+        Idiomatic Go. Every error must be checked and wrapped with context via
+        fmt.Errorf("...: %w", err); never ignore errors or discard them with _.
+        Flag missing defer Close()/Unlock, goroutine leaks, unguarded shared
+        state (require sync primitives), and context.Context that isn't the
+        first parameter or isn't propagated. Ensure ctx cancellation/timeouts
+        are honored on all I/O.
+
+    - path: "cmd/**"
+      instructions: >-
+        Application entrypoints. Check graceful shutdown (signal handling,
+        server.Shutdown with a timeout, draining asynq/cron workers), that DB,
+        Redis, and OTel/Sentry clients are closed, and that fatal startup errors
+        exit non-zero. No business logic here — only wiring.
+
+    - path: "internal/interfaces/**"
+      instructions: >-
+        Gin HTTP/transport layer. Validate all input with
+        go-playground/validator and bind safely (ShouldBindJSON, not MustBind).
+        Return consistent typed error responses, never leak internal errors or
+        stack traces to clients. Confirm auth/authorization middleware guards
+        protected routes, rate limiting where relevant, and that handlers stay
+        thin (delegate to application services).
+
+    - path: "internal/application/**"
+      instructions: >-
+        Use-case/service layer. Enforce transaction boundaries here (not in
+        handlers), keep it free of Gin/HTTP and raw SQL types, and depend on
+        domain interfaces rather than concrete infrastructure. Validate business
+        invariants.
+
+    - path: "internal/domain/**"
+      instructions: >-
+        Domain layer must have no dependencies on Gin, GORM, or other
+        infrastructure. Keep entities/value objects pure and behavior-rich; flag
+        any framework or DB import leaking in.
+
+    - path: "internal/infrastructure/**"
+      instructions: >-
+        Repositories and external clients (Postgres/GORM/pgx, Redis, S3, Stripe,
+        webpush, email). Guard against SQL injection — use parameterized queries
+        / GORM placeholders, never string-concatenated SQL. Ensure rows/results
+        are closed, connection pools are bounded, retries/timeouts exist for
+        network calls, and idempotency for Stripe/webhook operations.
+
+    - path: "internal/models/**"
+      instructions: >-
+        GORM models. Verify column tags, indexes, foreign keys, and soft-delete
+        semantics match the migrations. Avoid exposing GORM models directly as
+        API responses — map to DTOs.
+
+    - path: "internal/migrations/**"
+      instructions: >-
+        Goose SQL migrations. Every migration must have a correct, reversible
+        Down section. Flag destructive changes (DROP/ALTER on populated tables)
+        without a safe rollout, and prefer CREATE INDEX CONCURRENTLY to avoid
+        locking. Check that migration order/numbering has no conflicts.
+
+    - path: "internal/jobs/**"
+      instructions: >-
+        asynq background jobs. Handlers must be idempotent and retry-safe,
+        respect ctx cancellation, and never panic unrecovered (which would crash
+        the worker). Verify task payloads are validated and queues/priorities
+        are sensible.
+
+    - path: "internal/websocket/**"
+      instructions: >-
+        gorilla/websocket usage. Check for concurrent writes to a single
+        connection (must be serialized), read/write deadlines, ping/pong
+        keepalive, and cleanup of connections on disconnect to prevent leaks.
+
+    - path: "**/*_test.go"
+      instructions: >-
+        Go tests use testify and testcontainers-go. Prefer table-driven tests,
+        use require for fatal assertions and assert otherwise, call t.Parallel()
+        where safe, and ensure containers/resources are torn down via t.Cleanup.
+        No real external network dependencies in unit tests.
+
+    - path: "internal/config/**"
+      instructions: >-
+        viper-based configuration. Ensure secrets come from env/secret stores,
+        never hardcoded defaults, and that required settings fail fast on
+        startup when missing.
+
+  # Static analysis / linters CodeRabbit runs alongside its own review
+  tools:
+    golangci-lint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    semgrep:
+      enabled: true
+    actionlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    hadolint:
+      enabled: true
+    checkov:
+      enabled: false
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+chat:
+  auto_reply: true
+  integrations:
+    jira:
+      usage: auto
+    linear:
+      usage: auto
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "**/CLAUDE.md"
+      - "**/.cursor/rules/**"
+      - "**/.golangci.yml"
+      - "**/.golangci.yaml"

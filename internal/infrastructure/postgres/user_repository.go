@@ -72,7 +72,9 @@ func (r *UserRepository) SaveUser(ctx context.Context, user *models.User) error 
 	return r.db.WithContext(ctx).Save(user).Error
 }
 
-// SearchGiftRecipients finds active users by email or phone for gifting (privacy-scoped lookup).
+// SearchGiftRecipients finds active users for gifting.
+// Empty query returns the first `limit` active members (excluding the actor).
+// Non-empty query filters by email or phone (partial match).
 func (r *UserRepository) SearchGiftRecipients(
 	ctx context.Context,
 	excludeUserID uint,
@@ -80,9 +82,6 @@ func (r *UserRepository) SearchGiftRecipients(
 	limit int,
 ) ([]models.User, error) {
 	query = strings.TrimSpace(query)
-	if len(query) < 3 {
-		return nil, nil
-	}
 	if limit <= 0 || limit > 20 {
 		limit = 10
 	}
@@ -92,15 +91,17 @@ func (r *UserRepository) SearchGiftRecipients(
 		Where("is_active = ?", true).
 		Where("id != ?", excludeUserID)
 
-	if strings.Contains(query, "@") {
-		q = q.Where("LOWER(email) LIKE LOWER(?)", "%"+query+"%")
-	} else {
-		normalizedPhone := strings.TrimPrefix(query, "+")
-		q = q.Where(
-			"phone LIKE ? OR LOWER(email) LIKE LOWER(?)",
-			"%"+normalizedPhone+"%",
-			"%"+query+"%",
-		)
+	if query != "" {
+		if strings.Contains(query, "@") {
+			q = q.Where("LOWER(email) LIKE LOWER(?)", "%"+query+"%")
+		} else {
+			normalizedPhone := strings.TrimPrefix(query, "+")
+			q = q.Where(
+				"phone LIKE ? OR LOWER(email) LIKE LOWER(?)",
+				"%"+normalizedPhone+"%",
+				"%"+query+"%",
+			)
+		}
 	}
 
 	var users []models.User

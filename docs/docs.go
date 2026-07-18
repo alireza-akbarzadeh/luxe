@@ -14248,7 +14248,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Search active members by email or phone (min 3 characters)",
+                "description": "Lists active members (up to 10). Optional q filters by email or phone fragment.",
                 "produces": [
                     "application/json"
                 ],
@@ -14259,10 +14259,9 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Email or phone fragment",
+                        "description": "Email or phone fragment (optional; empty returns recent active members)",
                         "name": "q",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
