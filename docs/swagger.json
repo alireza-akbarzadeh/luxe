@@ -14242,7 +14242,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Lists active members (up to 10). Optional q filters by email or phone fragment.",
+                "description": "Lists active members (up to 10). Optional q filters by name, email, or phone fragment.",
                 "produces": [
                     "application/json"
                 ],
@@ -14253,7 +14253,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Email or phone fragment (optional; empty returns recent active members)",
+                        "description": "Name, email, or phone fragment (optional; empty returns active members)",
                         "name": "q",
                         "in": "query"
                     }
