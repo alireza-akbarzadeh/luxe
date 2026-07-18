@@ -7,9 +7,22 @@ import (
 	"gorm.io/gorm"
 )
 
+// createProduct inserts a product, omitting zero store_id so Postgres gets NULL
+// (products.store_id REFERENCES stores(id) — store_id=0 always fails the FK).
+func createProduct(tx *gorm.DB, product *models.Product) error {
+	q := tx
+	if product.StoreID == 0 {
+		q = q.Omit("StoreID")
+	}
+	if len(product.Attributes) == 0 {
+		q = q.Omit("Attributes")
+	}
+	return q.Create(product).Error
+}
+
 // CreateModel inserts a new product row.
 func (r *ProductRepository) CreateModel(ctx context.Context, product *models.Product) error {
-	return r.db.WithContext(ctx).Create(product).Error
+	return createProduct(r.db.WithContext(ctx), product)
 }
 
 // SaveModel persists product field changes.
@@ -39,7 +52,7 @@ func (r *ProductRepository) ReplaceAttributes(ctx context.Context, productID uin
 func (r *ProductRepository) BulkCreateModels(ctx context.Context, products []*models.Product) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		for _, p := range products {
-			if err := tx.Create(p).Error; err != nil {
+			if err := createProduct(tx, p); err != nil {
 				return err
 			}
 		}

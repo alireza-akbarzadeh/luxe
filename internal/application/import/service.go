@@ -340,6 +340,13 @@ func serviceErrMsg(err error) string {
 		return ""
 	}
 	if appErr, ok := err.(*utils.AppError); ok {
+		// Prefer the public message (already mapped for FK/unique); fall back to cause for unknowns.
+		if appErr.Message != "" && appErr.Message != constants.ErrInternalServer.Error() {
+			return appErr.Message
+		}
+		if appErr.Err != nil {
+			return appErr.Err.Error()
+		}
 		return appErr.Message
 	}
 	return err.Error()

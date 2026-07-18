@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	appcategory "github.com/alireza-akbarzadeh/luxe/internal/application/category"
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
@@ -84,7 +85,7 @@ func (s *Service) Create(req dto.CreateProductRequest) (*models.Product, error) 
 	product.SearchDocument = s.queries.BuildSearchDocument(ctx, product)
 
 	if err := s.commands.PersistCreate(ctx, product); err != nil {
-		return nil, utils.ErrInternal(err)
+		return nil, mapProductPersistError(err)
 	}
 	s.setProductState(ctx, product.ID, product.Status, constants.RoleAdmin, nil)
 	if s.inventory != nil {
@@ -197,7 +198,7 @@ func (s *Service) BulkCreate(products []dto.CreateProductRequest) ([]*models.Pro
 
 	ctx := context.Background()
 	if err := s.commands.BulkCreate(ctx, toCreate); err != nil {
-		return nil, utils.ErrInternal(err)
+		return nil, mapProductPersistError(err)
 	}
 	return toCreate, nil
 }
@@ -297,4 +298,30 @@ func (s *Service) PerformTransition(
 		ActorRole:   actorRole,
 		Note:        note,
 	})
+}
+
+// mapProductPersistError turns DB constraint failures into actionable AppErrors for API/import UIs.
+func mapProductPersistError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := strings.ToLower(err.Error())
+	switch {
+	case postgres.IsUniqueViolation(err) && strings.Contains(msg, "sku"):
+		return utils.ErrConflict("SKU already exists")
+	case postgres.IsUniqueViolation(err) && strings.Contains(msg, "slug"):
+		return utils.ErrConflict("product slug already exists")
+	case postgres.IsUniqueViolation(err):
+		return utils.ErrConflict("product already exists")
+	case postgres.IsForeignKeyViolation(err) && strings.Contains(msg, "store"):
+		return utils.ErrBadRequest("invalid store_id — store does not exist")
+	case postgres.IsForeignKeyViolation(err) && strings.Contains(msg, "brand"):
+		return utils.ErrBadRequest("invalid brand_id — brand does not exist")
+	case postgres.IsForeignKeyViolation(err) && strings.Contains(msg, "category"):
+		return utils.ErrBadRequest("invalid category_id — category does not exist")
+	case postgres.IsForeignKeyViolation(err):
+		return utils.ErrBadRequest("invalid category, brand, or store reference")
+	default:
+		return utils.ErrInternal(err)
+	}
 }
