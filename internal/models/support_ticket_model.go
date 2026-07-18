@@ -13,16 +13,16 @@ type SupportTicket struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	UserID        *uint  `gorm:"index" json:"user_id,omitempty"`
-	CustomerName  string `gorm:"not null;default:''" json:"customer_name,omitempty"`
-	CustomerEmail string `gorm:"not null;default:''" json:"customer_email,omitempty"`
-	OrderID       *uint  `gorm:"index" json:"order_id,omitempty"`
-	Subject       string `gorm:"not null" json:"subject"`
-	Status        string `gorm:"not null;default:'open';index" json:"status"`
-	Priority      string `gorm:"not null;default:'normal'" json:"priority"`
-	Channel       string `gorm:"not null;default:'web';index" json:"channel"`
-	AssigneeID    *uint  `gorm:"index" json:"assignee_id,omitempty"`
-	AdminNotes    string `json:"admin_notes,omitempty"`
+	UserID        *uint      `gorm:"index" json:"user_id,omitempty"`
+	CustomerName  string     `gorm:"not null;default:''" json:"customer_name,omitempty"`
+	CustomerEmail string     `gorm:"not null;default:''" json:"customer_email,omitempty"`
+	OrderID       *uint      `gorm:"index" json:"order_id,omitempty"`
+	Subject       string     `gorm:"not null" json:"subject"`
+	Status        string     `gorm:"not null;default:'open';index" json:"status"`
+	Priority      string     `gorm:"not null;default:'normal'" json:"priority"`
+	Channel       string     `gorm:"not null;default:'web';index" json:"channel"`
+	AssigneeID    *uint      `gorm:"index" json:"assignee_id,omitempty"`
+	AdminNotes    string     `json:"admin_notes,omitempty"`
 	LastMessageAt *time.Time `json:"last_message_at,omitempty"`
 
 	User     *User                  `gorm:"foreignKey:UserID" json:"user,omitempty"`

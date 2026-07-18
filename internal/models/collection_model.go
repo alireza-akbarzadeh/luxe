@@ -34,25 +34,25 @@ type Collection struct {
 	Theme             string `gorm:"not null;default:'';index" json:"theme"`
 
 	// CollectionType is a legacy compatibility field retained for existing clients.
-	CollectionType string `gorm:"not null;default:'smart';index" json:"collection_type"`
-	Mode           string `gorm:"not null;default:'dynamic';index" json:"mode"`
-	StartsAt       *time.Time `json:"starts_at,omitempty"`
-	EndsAt         *time.Time `json:"ends_at,omitempty"`
-	SortKey        string `gorm:"not null;default:''" json:"sort_key"`
+	CollectionType string         `gorm:"not null;default:'smart';index" json:"collection_type"`
+	Mode           string         `gorm:"not null;default:'dynamic';index" json:"mode"`
+	StartsAt       *time.Time     `json:"starts_at,omitempty"`
+	EndsAt         *time.Time     `json:"ends_at,omitempty"`
+	SortKey        string         `gorm:"not null;default:''" json:"sort_key"`
 	RulesJSON      datatypes.JSON `gorm:"column:rules_json;type:jsonb;default:'{}'" json:"rules_json,omitempty"`
 
-	SEOTitle         string `gorm:"column:seo_title;not null;default:''" json:"seo_title"`
-	SEODescription   string `gorm:"column:seo_description;not null;default:''" json:"seo_description"`
-	MetaKeywords     string `gorm:"column:meta_keywords;not null;default:''" json:"meta_keywords"`
-	OGTitle          string `gorm:"column:og_title;not null;default:''" json:"og_title"`
-	OGDescription    string `gorm:"column:og_description;not null;default:''" json:"og_description"`
-	OGImageURL       string `gorm:"column:og_image_url;not null;default:''" json:"og_image_url"`
-	TwitterTitle     string `gorm:"column:twitter_title;not null;default:''" json:"twitter_title"`
+	SEOTitle           string `gorm:"column:seo_title;not null;default:''" json:"seo_title"`
+	SEODescription     string `gorm:"column:seo_description;not null;default:''" json:"seo_description"`
+	MetaKeywords       string `gorm:"column:meta_keywords;not null;default:''" json:"meta_keywords"`
+	OGTitle            string `gorm:"column:og_title;not null;default:''" json:"og_title"`
+	OGDescription      string `gorm:"column:og_description;not null;default:''" json:"og_description"`
+	OGImageURL         string `gorm:"column:og_image_url;not null;default:''" json:"og_image_url"`
+	TwitterTitle       string `gorm:"column:twitter_title;not null;default:''" json:"twitter_title"`
 	TwitterDescription string `gorm:"column:twitter_description;not null;default:''" json:"twitter_description"`
-	TwitterImageURL  string `gorm:"column:twitter_image_url;not null;default:''" json:"twitter_image_url"`
-	CanonicalURL     string `gorm:"column:canonical_url;not null;default:''" json:"canonical_url"`
-	RobotsDirectives string `gorm:"column:robots_directives;not null;default:''" json:"robots_directives"`
-	IsIndexable      bool   `gorm:"column:is_indexable;not null;default:true" json:"is_indexable"`
+	TwitterImageURL    string `gorm:"column:twitter_image_url;not null;default:''" json:"twitter_image_url"`
+	CanonicalURL       string `gorm:"column:canonical_url;not null;default:''" json:"canonical_url"`
+	RobotsDirectives   string `gorm:"column:robots_directives;not null;default:''" json:"robots_directives"`
+	IsIndexable        bool   `gorm:"column:is_indexable;not null;default:true" json:"is_indexable"`
 
 	HeroTitle       string  `gorm:"column:hero_title;not null;default:''" json:"hero_title"`
 	HeroDescription string  `gorm:"column:hero_description;not null;default:''" json:"hero_description"`

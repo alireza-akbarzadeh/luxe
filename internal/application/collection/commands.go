@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	domain "github.com/alireza-akbarzadeh/luxe/internal/domain/collection"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
 // Commands orchestrates collection write use cases.

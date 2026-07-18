@@ -3,10 +3,10 @@ package brand
 import (
 	"context"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	domain "github.com/alireza-akbarzadeh/luxe/internal/domain/brand"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
 // Commands orchestrates brand write use cases.

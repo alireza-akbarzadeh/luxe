@@ -7,13 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )

@@ -40,9 +40,9 @@ type User struct {
 	PrivacyVersion    *string    `json:"privacy_version,omitempty"`
 
 	// Luxe Plus membership
-	MembershipTier    string     `gorm:"not null;default:'free';index" json:"membership_tier"`
-	PlusSubscribedAt  *time.Time `json:"plus_subscribed_at,omitempty"`
-	PlusExpiresAt     *time.Time `json:"plus_expires_at,omitempty"`
+	MembershipTier   string     `gorm:"not null;default:'free';index" json:"membership_tier"`
+	PlusSubscribedAt *time.Time `json:"plus_subscribed_at,omitempty"`
+	PlusExpiresAt    *time.Time `json:"plus_expires_at,omitempty"`
 
 	// Admin CRM
 	AdminNotes      string `json:"admin_notes,omitempty"`
@@ -72,11 +72,11 @@ type LoginOTP struct {
 	ID          uint      `gorm:"primaryKey"`
 	UserID      uint      `gorm:"not null;index"`
 	CodeHash    string    `gorm:"column:code_hash;not null;size:64;index"`
-	Channel     string    `gorm:"not null;size:16"` // email | phone
+	Channel     string    `gorm:"not null;size:16"`  // email | phone
 	Destination string    `gorm:"not null;size:255"` // original identifier (for audit)
 	ExpiresAt   time.Time `gorm:"not null"`
 	UsedAt      *time.Time
-	Attempts    int       `gorm:"not null;default:0"`
+	Attempts    int `gorm:"not null;default:0"`
 	CreatedAt   time.Time
 }
 

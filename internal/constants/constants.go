@@ -7,7 +7,6 @@ import (
 	"time"
 )
 
-
 type ContextKey string
 
 // ==================== Defaults ====================
@@ -85,8 +84,8 @@ const (
 )
 
 var (
-	RequestIDKey  ContextKey = "request_id"
-	UserIDKey     ContextKey = "uid"
+	RequestIDKey     ContextKey = "request_id"
+	UserIDKey        ContextKey = "uid"
 	LocaleContextKey ContextKey = "locale"
 )
 
@@ -192,11 +191,11 @@ const (
 	PaymentStatusRefunded  = "refunded"
 
 	// Wallet transaction types
-	WalletTxTypeDeposit     = "deposit"
-	WalletTxTypePayment     = "payment"
-	WalletTxTypeRefund      = "refund"
-	WalletTxTypeAdjustment  = "adjustment"
-	WalletTxTypeMembership  = "membership"
+	WalletTxTypeDeposit    = "deposit"
+	WalletTxTypePayment    = "payment"
+	WalletTxTypeRefund     = "refund"
+	WalletTxTypeAdjustment = "adjustment"
+	WalletTxTypeMembership = "membership"
 
 	// Wallet transaction statuses
 	WalletTxStatusPending   = "pending"
@@ -291,10 +290,10 @@ const (
 	PlusShippingPriorityLabel = "express"
 
 	// Luxe Plus subscription payment methods
-	PlusPaymentWallet        = "wallet"
-	PlusPaymentGiftCard      = "gift_card"
-	PlusPaymentStripe        = "stripe"
-	PlusStripeMetadataType   = "plus_membership"
+	PlusPaymentWallet          = "wallet"
+	PlusPaymentGiftCard        = "gift_card"
+	PlusPaymentStripe          = "stripe"
+	PlusStripeMetadataType     = "plus_membership"
 	PlusPaymentStatusCompleted = "completed"
 	PlusPaymentStatusPending   = "pending"
 
@@ -316,7 +315,7 @@ const (
 	// In-app notification types (customer)
 	NotificationTypeMembershipActivated = "membership_activated"
 	NotificationTypeWalletDeposit       = "wallet_deposit"
-	NotificationTypeGiftCardSent          = "gift_card_sent"
+	NotificationTypeGiftCardSent        = "gift_card_sent"
 	NotificationTypeGiftCardReceived    = "gift_card_received"
 	NotificationTypeGiftCardTransferred = "gift_card_transferred"
 
@@ -326,16 +325,16 @@ const (
 	WebhookStatusFailed    = "failed"
 
 	// Workflow entity types (also the workflow keys for the seeded workflows)
-	WorkflowEntityOrder    = "order"
-	WorkflowEntityProduct  = "product"
-	WorkflowEntityShipment = "shipment"
-	WorkflowEntityReturn   = "return"
-	WorkflowEntityUser     = "user"
-	WorkflowEntityCategory = "category"
-	WorkflowEntityBrand      = "brand"
-	WorkflowEntityCollection = "collection"
-	WorkflowEntityCoupon     = "coupon"
-	WorkflowEntityReview     = "review"
+	WorkflowEntityOrder       = "order"
+	WorkflowEntityProduct     = "product"
+	WorkflowEntityShipment    = "shipment"
+	WorkflowEntityReturn      = "return"
+	WorkflowEntityUser        = "user"
+	WorkflowEntityCategory    = "category"
+	WorkflowEntityBrand       = "brand"
+	WorkflowEntityCollection  = "collection"
+	WorkflowEntityCoupon      = "coupon"
+	WorkflowEntityReview      = "review"
 	WorkflowEntityBlogPost    = "blog_post"
 	WorkflowEntityPrivacyRule = "privacy_rule"
 
@@ -358,15 +357,15 @@ const (
 
 // Inventory adjustment types (ledger).
 const (
-	InventoryAdjSale         = "sale"
-	InventoryAdjOrderCancel  = "order_cancel"
-	InventoryAdjAdminSet     = "admin_set"
-	InventoryAdjAdminDelta   = "admin_delta"
-	InventoryAdjImport       = "import"
-	InventoryAdjInitial      = "initial"
-	InventoryAdjCorrection   = "correction"
-	InventoryAdjDamage       = "damage"
-	InventoryAdjReceive      = "receive"
+	InventoryAdjSale          = "sale"
+	InventoryAdjOrderCancel   = "order_cancel"
+	InventoryAdjAdminSet      = "admin_set"
+	InventoryAdjAdminDelta    = "admin_delta"
+	InventoryAdjImport        = "import"
+	InventoryAdjInitial       = "initial"
+	InventoryAdjCorrection    = "correction"
+	InventoryAdjDamage        = "damage"
+	InventoryAdjReceive       = "receive"
 	InventoryAdjReturnRestock = "return_restock"
 )
 

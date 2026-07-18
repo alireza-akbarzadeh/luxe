@@ -149,14 +149,14 @@ type AdminDashboardStatusCount struct {
 
 // AdminDashboardRecentOrder is a lightweight row for the recent orders table.
 type AdminDashboardRecentOrder struct {
-	ID           uint      `json:"id"`
-	OrderNumber  string    `json:"order_number"`
-	Status       string    `json:"status"`
-	TotalAmount  float64   `json:"total_amount"`
-	Currency     string    `json:"currency"`
-	CustomerName string    `json:"customer_name"`
-	CustomerEmail string   `json:"customer_email"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID            uint      `json:"id"`
+	OrderNumber   string    `json:"order_number"`
+	Status        string    `json:"status"`
+	TotalAmount   float64   `json:"total_amount"`
+	Currency      string    `json:"currency"`
+	CustomerName  string    `json:"customer_name"`
+	CustomerEmail string    `json:"customer_email"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // AdminDashboardTopProduct is a best-seller row for the dashboard table.
@@ -237,12 +237,12 @@ type AdminBusinessInsightsFilters struct {
 
 // AdminBusinessInsightsResponse powers the AI business insights admin page.
 type AdminBusinessInsightsResponse struct {
-	Period             string                 `json:"period"`
-	GeneratedAt        time.Time              `json:"generated_at"`
-	RevenueTrend       string                 `json:"revenue_trend"`
-	RiskCount          int                    `json:"risk_count"`
-	OpportunityCount   int                    `json:"opportunity_count"`
-	Insights           []AdminBusinessInsight `json:"insights"`
+	Period           string                 `json:"period"`
+	GeneratedAt      time.Time              `json:"generated_at"`
+	RevenueTrend     string                 `json:"revenue_trend"`
+	RiskCount        int                    `json:"risk_count"`
+	OpportunityCount int                    `json:"opportunity_count"`
+	Insights         []AdminBusinessInsight `json:"insights"`
 }
 
 // AdminDashboardHealth summarizes platform operational health.
@@ -345,10 +345,10 @@ type AdminSalesFunnelStep struct {
 
 // AdminSalesCohortRow is monthly cohort retention and revenue.
 type AdminSalesCohortRow struct {
-	Cohort      string  `json:"cohort"`
-	Customers   int64   `json:"customers"`
-	RepeatRate  float64 `json:"repeat_rate"`
-	Revenue     float64 `json:"revenue"`
+	Cohort     string  `json:"cohort"`
+	Customers  int64   `json:"customers"`
+	RepeatRate float64 `json:"repeat_rate"`
+	Revenue    float64 `json:"revenue"`
 }
 
 // AdminSalesAnalyticsResponse powers the interactive sales analytics dashboard.
@@ -396,4 +396,3 @@ type UserOrderStats struct {
 	OrderCount int64
 	TotalSpent float64
 }
-

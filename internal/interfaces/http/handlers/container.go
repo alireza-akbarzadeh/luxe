@@ -10,108 +10,109 @@ import (
 )
 
 type Container struct {
-	Health   *HealthHandler
-	Auth     *AuthHandler
-	User     *UserHandler
-	Page     *PageHandler
-	Cart     *CartHandler
-	Product  *ProductHandler
-	Category *CategoryHandler
-	Order    *OrderHandler
-	Shipment *ShipmentHandler
-	Coupon   *CouponHandler
-	Address  *AddressHandler
-	Menu     *MenuHandler
-	Review   *ReviewHandler
-	UserLike *UserLikeHandler
-	Account  *AccountHandler
-	Wallet   *WalletHandler
-	Payment  *PaymentProviderHandler
-	Store    *StoreHandler
-	Search   *SearchHandler
-	Compare  *CompareHandler
-	NavMenu  *NavMenuHandler
-	Brand      *BrandHandler
-	Collection *CollectionHandler
-	Settings   *SettingHandler
-	Pdp      *PdpHandler
-	WebSocket *WebSocketHandler
-	Stripe    *StripeWebhookHandler
-	Audit     *AuditHandler
-	Upload    *UploadHandler
-	Admin     *AdminHandler
-	Import    *ImportHandler
-	Workflow  *WorkflowHandler
-	Return    *ReturnHandler
-	Support   *SupportHandler
-	Invoice   *InvoiceHandler
-	Role      *RoleHandler
-	Team      *TeamHandler
-	Inventory *InventoryHandler
-	Push      *PushHandler
-	Ai        *AiHandler
-	GiftCard  *GiftCardHandler
-	Plus      *PlusHandler
-	Home      *HomeHandler
-	ShopLook          *ShopLookHandler
-	CreatorStorefront       *CreatorStorefrontHandler
-	CommunityShoppingList   *CommunityShoppingListHandler
-	PublicCollection        *PublicCollectionHandler
-	ReverseMarketplace      *ReverseMarketplaceHandler
-	Bundle                  *BundleHandler
-	Promotion               *PromotionHandler
-	EmailMarketing          *EmailMarketingHandler
-	Blog                    *BlogHandler
-	PrivacyRule             *PrivacyRuleHandler
+	Health                *HealthHandler
+	Auth                  *AuthHandler
+	User                  *UserHandler
+	Page                  *PageHandler
+	Cart                  *CartHandler
+	Product               *ProductHandler
+	Category              *CategoryHandler
+	Order                 *OrderHandler
+	Shipment              *ShipmentHandler
+	Coupon                *CouponHandler
+	Address               *AddressHandler
+	Menu                  *MenuHandler
+	Review                *ReviewHandler
+	UserLike              *UserLikeHandler
+	Account               *AccountHandler
+	Wallet                *WalletHandler
+	Payment               *PaymentProviderHandler
+	Store                 *StoreHandler
+	Search                *SearchHandler
+	Compare               *CompareHandler
+	NavMenu               *NavMenuHandler
+	Brand                 *BrandHandler
+	Collection            *CollectionHandler
+	Settings              *SettingHandler
+	Pdp                   *PdpHandler
+	WebSocket             *WebSocketHandler
+	Stripe                *StripeWebhookHandler
+	Audit                 *AuditHandler
+	Upload                *UploadHandler
+	Admin                 *AdminHandler
+	Import                *ImportHandler
+	Workflow              *WorkflowHandler
+	Return                *ReturnHandler
+	Support               *SupportHandler
+	Invoice               *InvoiceHandler
+	Role                  *RoleHandler
+	Team                  *TeamHandler
+	Inventory             *InventoryHandler
+	Push                  *PushHandler
+	Ai                    *AiHandler
+	GiftCard              *GiftCardHandler
+	Plus                  *PlusHandler
+	Home                  *HomeHandler
+	ShopLook              *ShopLookHandler
+	CreatorStorefront     *CreatorStorefrontHandler
+	CommunityShoppingList *CommunityShoppingListHandler
+	PublicCollection      *PublicCollectionHandler
+	ReverseMarketplace    *ReverseMarketplaceHandler
+	Bundle                *BundleHandler
+	Promotion             *PromotionHandler
+	EmailMarketing        *EmailMarketingHandler
+	Blog                  *BlogHandler
+	PrivacyRule           *PrivacyRuleHandler
+	Calendar              *CalendarHandler
 }
 
 // NewContainer initializes all handlers with their dependencies.
 func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.Runtime, cfg *config.Config) *Container {
 	return &Container{
-		Health:   NewHealthHandler(health.NewChecker(db, cfg)),
-		Search:   NewSearchHandler(apps.Search.Commands, apps.Search.Queries),
-		Auth:     NewAuthHandler(apps.Auth),
-		User:     NewUserHandler(apps.User.Commands, apps.User.Queries, apps.Address.Commands, apps.Address.Queries),
-		Cart:     NewCartHandler(apps.Cart.Commands, apps.Cart.Queries),
-		Product:  NewProductHandler(apps.Product, apps.UserLike.Commands, apps.UserLike.Queries, apps.Pdp),
-		Pdp:      NewPdpHandler(apps.Pdp, apps.Product),
-		Compare:  NewCompareHandler(apps.Compare.Commands, apps.Compare.Queries),
-		Category: NewCategoryHandler(apps.Category),
-		Order:    NewOrderHandler(apps.Order, apps.Checkout, apps.Store.Queries),
-		Shipment: NewShipmentHandler(apps.Shipment),
-		Page:     NewPageHandler(),
-		Store:    NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product, apps.AI, vendorDashboardAdapter{stores: apps.Store.Queries, catalog: apps.Product, orders: apps.Order, productRepo: postgres.NewProductRepository(db)}),
-		Account:  NewAccountHandler(apps.Address.Commands, apps.Address.Queries, apps.UserLike.Commands, apps.UserLike.Queries, apps.Order, apps.User.Queries),
-		Coupon:   NewCouponHandler(apps.Coupon),
-		Address:  NewAddressHandler(apps.Address.Commands, apps.Address.Queries),
-		Menu:     NewMenuHandler(apps.Menu.Commands, apps.Menu.Queries),
-		Review:   NewReviewHandler(apps.Review.Commands, apps.Review.Queries),
-		UserLike: NewUserLikeHandler(apps.UserLike.Commands, apps.UserLike.Queries, apps.Product),
-		Wallet:   NewWalletHandler(apps.Wallet),
-		Payment:  NewPaymentMethodHandler(apps.Payment, cfg),
-		NavMenu:  NewNavMenuHandler(apps.NavMenu.Commands, apps.NavMenu.Queries),
-		Brand:      NewBrandHandler(apps.Brand),
-		Collection: NewCollectionHandler(apps.Collection),
-		Settings:   NewSettingHandler(apps.Settings.Commands, apps.Settings.Queries),
-		WebSocket: NewWebSocketHandler(runtime.WebSocketHub, apps.Notification),
-		Stripe:    NewStripeWebhookHandler(apps.Payment, apps.Checkout, apps.Wallet, apps.Membership, apps.GiftCard, apps.Webhook.Commands, cfg),
-		Audit:     NewAuditHandler(apps.Audit.Queries),
-		Upload:    NewUploadHandler(apps.Upload),
-		Admin:     NewAdminHandler(apps.Admin, apps.Order, apps.Webhook.Queries),
-		Import:    NewImportHandler(apps.Import),
-		Workflow:  NewWorkflowHandler(apps.Workflow),
-		Return:    NewReturnHandler(apps.Return.Commands, apps.Return.Queries),
-		Support:   NewSupportHandler(apps.Support.Commands, apps.Support.Queries),
-		Invoice:   NewInvoiceHandler(apps.Invoice.Commands, apps.Invoice.Queries),
-		Role:      NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
-		Team:      NewTeamHandler(apps.Team.Commands, apps.Team.Queries),
-		Inventory: NewInventoryHandler(apps.Inventory),
-		Push:      NewPushHandler(apps.Push),
-		Ai:        NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}, apps.UserLike.Queries, shoppingMemoryAdapter{home: postgres.NewHomeRepository(db), wishlist: apps.UserLike.Queries}, replenishmentAdapter{orders: postgres.NewOrderRepository(db)}),
-		GiftCard:  NewGiftCardHandler(apps.GiftCard),
-		Plus:      NewPlusHandler(apps.Membership),
-		Home:      NewHomeHandler(apps.Home),
-		ShopLook:          NewShopLookHandler(apps.ShopLook),
+		Health:                NewHealthHandler(health.NewChecker(db, cfg)),
+		Search:                NewSearchHandler(apps.Search.Commands, apps.Search.Queries),
+		Auth:                  NewAuthHandler(apps.Auth),
+		User:                  NewUserHandler(apps.User.Commands, apps.User.Queries, apps.Address.Commands, apps.Address.Queries),
+		Cart:                  NewCartHandler(apps.Cart.Commands, apps.Cart.Queries),
+		Product:               NewProductHandler(apps.Product, apps.UserLike.Commands, apps.UserLike.Queries, apps.Pdp),
+		Pdp:                   NewPdpHandler(apps.Pdp, apps.Product),
+		Compare:               NewCompareHandler(apps.Compare.Commands, apps.Compare.Queries),
+		Category:              NewCategoryHandler(apps.Category),
+		Order:                 NewOrderHandler(apps.Order, apps.Checkout, apps.Store.Queries),
+		Shipment:              NewShipmentHandler(apps.Shipment),
+		Page:                  NewPageHandler(),
+		Store:                 NewStoreHandler(apps.Store.Commands, apps.Store.Queries, apps.Product, apps.AI, vendorDashboardAdapter{stores: apps.Store.Queries, catalog: apps.Product, orders: apps.Order, productRepo: postgres.NewProductRepository(db)}),
+		Account:               NewAccountHandler(apps.Address.Commands, apps.Address.Queries, apps.UserLike.Commands, apps.UserLike.Queries, apps.Order, apps.User.Queries),
+		Coupon:                NewCouponHandler(apps.Coupon),
+		Address:               NewAddressHandler(apps.Address.Commands, apps.Address.Queries),
+		Menu:                  NewMenuHandler(apps.Menu.Commands, apps.Menu.Queries),
+		Review:                NewReviewHandler(apps.Review.Commands, apps.Review.Queries),
+		UserLike:              NewUserLikeHandler(apps.UserLike.Commands, apps.UserLike.Queries, apps.Product),
+		Wallet:                NewWalletHandler(apps.Wallet),
+		Payment:               NewPaymentMethodHandler(apps.Payment, cfg),
+		NavMenu:               NewNavMenuHandler(apps.NavMenu.Commands, apps.NavMenu.Queries),
+		Brand:                 NewBrandHandler(apps.Brand),
+		Collection:            NewCollectionHandler(apps.Collection),
+		Settings:              NewSettingHandler(apps.Settings.Commands, apps.Settings.Queries),
+		WebSocket:             NewWebSocketHandler(runtime.WebSocketHub, apps.Notification),
+		Stripe:                NewStripeWebhookHandler(apps.Payment, apps.Checkout, apps.Wallet, apps.Membership, apps.GiftCard, apps.Webhook.Commands, cfg),
+		Audit:                 NewAuditHandler(apps.Audit.Queries),
+		Upload:                NewUploadHandler(apps.Upload),
+		Admin:                 NewAdminHandler(apps.Admin, apps.Order, apps.Webhook.Queries),
+		Import:                NewImportHandler(apps.Import),
+		Workflow:              NewWorkflowHandler(apps.Workflow),
+		Return:                NewReturnHandler(apps.Return.Commands, apps.Return.Queries),
+		Support:               NewSupportHandler(apps.Support.Commands, apps.Support.Queries),
+		Invoice:               NewInvoiceHandler(apps.Invoice.Commands, apps.Invoice.Queries),
+		Role:                  NewRoleHandler(apps.Role.Commands, apps.Role.Queries),
+		Team:                  NewTeamHandler(apps.Team.Commands, apps.Team.Queries),
+		Inventory:             NewInventoryHandler(apps.Inventory),
+		Push:                  NewPushHandler(apps.Push),
+		Ai:                    NewAiHandler(apps.AI, apps.Search.Queries, apps.Compare.Queries, apps.Review.Queries, apps.Return.Queries, pdpPriceHistoryAdapter{svc: apps.Pdp}, shipmentDeliveryStatsAdapter{repo: postgres.NewShipmentRepository(db)}, apps.UserLike.Queries, shoppingMemoryAdapter{home: postgres.NewHomeRepository(db), wishlist: apps.UserLike.Queries}, replenishmentAdapter{orders: postgres.NewOrderRepository(db)}),
+		GiftCard:              NewGiftCardHandler(apps.GiftCard),
+		Plus:                  NewPlusHandler(apps.Membership),
+		Home:                  NewHomeHandler(apps.Home),
+		ShopLook:              NewShopLookHandler(apps.ShopLook),
 		CreatorStorefront:     NewCreatorStorefrontHandler(apps.CreatorStorefront),
 		CommunityShoppingList: NewCommunityShoppingListHandler(apps.CommunityShoppingList),
 		PublicCollection:      NewPublicCollectionHandler(apps.PublicCollection),
@@ -121,5 +122,6 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		EmailMarketing:        NewEmailMarketingHandler(apps.EmailMarketing),
 		Blog:                  NewBlogHandler(apps.Blog),
 		PrivacyRule:           NewPrivacyRuleHandler(apps.PrivacyRule),
+		Calendar:              NewCalendarHandler(apps.Calendar),
 	}
 }

@@ -147,14 +147,14 @@ type TransitionResultView struct {
 
 // WorkflowHistoryEntry is one audit row: who moved the entity from which state to which.
 type WorkflowHistoryEntry struct {
-	ID         uint       `json:"id"`
-	Event      string     `json:"event"`
-	FromState  *StateView `json:"from_state,omitempty"`
-	ToState    *StateView `json:"to_state,omitempty"`
-	UserID     *uint      `json:"user_id,omitempty"`
-	UserName   string     `json:"user_name,omitempty"`
-	Note       string     `json:"note,omitempty"`
-	Success    bool       `json:"success"`
-	ErrorMsg   string     `json:"error_msg,omitempty"`
-	CreatedAt  time.Time  `json:"created_at"`
+	ID        uint       `json:"id"`
+	Event     string     `json:"event"`
+	FromState *StateView `json:"from_state,omitempty"`
+	ToState   *StateView `json:"to_state,omitempty"`
+	UserID    *uint      `json:"user_id,omitempty"`
+	UserName  string     `json:"user_name,omitempty"`
+	Note      string     `json:"note,omitempty"`
+	Success   bool       `json:"success"`
+	ErrorMsg  string     `json:"error_msg,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
 }

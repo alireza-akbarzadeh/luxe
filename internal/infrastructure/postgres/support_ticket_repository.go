@@ -46,7 +46,7 @@ func (r *SupportTicketRepository) AddMessage(ctx context.Context, msg *models.Su
 			Where("id = ?", msg.TicketID).
 			Updates(map[string]any{
 				"last_message_at": msg.CreatedAt,
-				"updated_at":    time.Now(),
+				"updated_at":      time.Now(),
 			}).Error
 	})
 }

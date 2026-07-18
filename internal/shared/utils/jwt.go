@@ -101,5 +101,3 @@ func GenerateNumericOTP(digits int) (string, error) {
 	}
 	return fmt.Sprintf("%0*d", digits, n.Int64()), nil
 }
-
-

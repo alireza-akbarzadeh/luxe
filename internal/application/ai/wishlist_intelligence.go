@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	TaskWishlistIntelligence   = "wishlist_intelligence"
-	defaultWishlistIntelLimit  = 30
-	maxWishlistIntelLimit      = 50
+	TaskWishlistIntelligence  = "wishlist_intelligence"
+	defaultWishlistIntelLimit = 30
+	maxWishlistIntelLimit     = 50
 )
 
 // WishlistIntelligenceQueries loads saved products for AI wishlist analysis.
@@ -125,7 +125,7 @@ func wishlistFacts(products []models.Product) (string, float64) {
 		if product.CompareAtPrice != nil && *product.CompareAtPrice > product.Price {
 			discount := *product.CompareAtPrice - product.Price
 			savings += discount
-			fmt.Fprintf(&b, " | was %.2f (%.0f%% off)", *product.CompareAtPrice, discount/ *product.CompareAtPrice*100)
+			fmt.Fprintf(&b, " | was %.2f (%.0f%% off)", *product.CompareAtPrice, discount / *product.CompareAtPrice * 100)
 		}
 		fmt.Fprintf(&b, " | stock %d | status %s", product.Stock, sanitizeAIText(product.Status))
 		if product.Category != nil && product.Category.Name != "" {
@@ -146,7 +146,7 @@ func parseWishlistIntelligenceJSON(content string, products []models.Product) (*
 	}
 
 	var raw struct {
-		Summary    string `json:"summary"`
+		Summary    string   `json:"summary"`
 		Highlights []string `json:"highlights"`
 		Items      []struct {
 			ProductID   uint   `json:"product_id"`

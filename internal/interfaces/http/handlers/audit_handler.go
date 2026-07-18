@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appaudit "github.com/alireza-akbarzadeh/luxe/internal/application/audit"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type AuditHandler struct {
-	queries *appaudit.Queries
-	validate     *validator.Validate
+	queries  *appaudit.Queries
+	validate *validator.Validate
 }
 
 func NewAuditHandler(queries *appaudit.Queries) *AuditHandler {

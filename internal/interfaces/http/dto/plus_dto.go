@@ -17,13 +17,13 @@ type PlusTierWindow struct {
 
 // PlusBenefitsResponse is the public catalog of Luxe Plus perks.
 type PlusBenefitsResponse struct {
-	PlanName         string             `json:"plan_name"`
-	AnnualPrice      float64            `json:"annual_price"`
-	Currency         string             `json:"currency"`
-	DiscountPercent  int                `json:"discount_percent"`
-	ReturnWindowDays PlusTierWindow     `json:"return_window_days"`
-	PriorityShipping bool               `json:"priority_shipping"`
-	PrioritySupport  bool               `json:"priority_support"`
+	PlanName         string               `json:"plan_name"`
+	AnnualPrice      float64              `json:"annual_price"`
+	Currency         string               `json:"currency"`
+	DiscountPercent  int                  `json:"discount_percent"`
+	ReturnWindowDays PlusTierWindow       `json:"return_window_days"`
+	PriorityShipping bool                 `json:"priority_shipping"`
+	PrioritySupport  bool                 `json:"priority_support"`
 	Features         []PlusBenefitFeature `json:"features"`
 }
 

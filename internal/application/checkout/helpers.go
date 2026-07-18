@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
-	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	domaincart "github.com/alireza-akbarzadeh/luxe/internal/domain/cart"
 	domaincheckout "github.com/alireza-akbarzadeh/luxe/internal/domain/checkout"
 	"github.com/alireza-akbarzadeh/luxe/internal/domain/inventory"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/models"
+	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
 

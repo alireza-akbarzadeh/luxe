@@ -40,24 +40,24 @@ type SupportTicketMessageResponse struct {
 
 // SupportTicketResponse is the public/admin ticket projection.
 type SupportTicketResponse struct {
-	ID              uint                           `json:"id"`
-	CreatedAt       time.Time                      `json:"created_at"`
-	UpdatedAt       time.Time                      `json:"updated_at"`
-	UserID          *uint                          `json:"user_id,omitempty"`
-	CustomerName    string                         `json:"customer_name,omitempty"`
-	CustomerEmail   string                         `json:"customer_email,omitempty"`
-	OrderID         *uint                          `json:"order_id,omitempty"`
-	OrderNumber     string                         `json:"order_number,omitempty"`
-	Subject         string                         `json:"subject"`
-	Status          string                         `json:"status"`
-	Priority        string                         `json:"priority"`
-	Channel         string                         `json:"channel"`
-	AssigneeID      *uint                          `json:"assignee_id,omitempty"`
-	AssigneeName    string                         `json:"assignee_name,omitempty"`
-	AdminNotes      string                         `json:"admin_notes,omitempty"`
-	LastMessageAt   *time.Time                     `json:"last_message_at,omitempty"`
-	MessageCount    int64                          `json:"message_count,omitempty"`
-	Messages        []SupportTicketMessageResponse `json:"messages,omitempty"`
+	ID            uint                           `json:"id"`
+	CreatedAt     time.Time                      `json:"created_at"`
+	UpdatedAt     time.Time                      `json:"updated_at"`
+	UserID        *uint                          `json:"user_id,omitempty"`
+	CustomerName  string                         `json:"customer_name,omitempty"`
+	CustomerEmail string                         `json:"customer_email,omitempty"`
+	OrderID       *uint                          `json:"order_id,omitempty"`
+	OrderNumber   string                         `json:"order_number,omitempty"`
+	Subject       string                         `json:"subject"`
+	Status        string                         `json:"status"`
+	Priority      string                         `json:"priority"`
+	Channel       string                         `json:"channel"`
+	AssigneeID    *uint                          `json:"assignee_id,omitempty"`
+	AssigneeName  string                         `json:"assignee_name,omitempty"`
+	AdminNotes    string                         `json:"admin_notes,omitempty"`
+	LastMessageAt *time.Time                     `json:"last_message_at,omitempty"`
+	MessageCount  int64                          `json:"message_count,omitempty"`
+	Messages      []SupportTicketMessageResponse `json:"messages,omitempty"`
 }
 
 // CreateSupportTicketMessageRequest adds a reply to a ticket.
@@ -84,11 +84,11 @@ type UpdateSupportTicketAssigneeRequest struct {
 
 // AdminSupportStats holds aggregate support desk metrics.
 type AdminSupportStats struct {
-	OpenTickets      int64 `json:"open_tickets"`
-	PendingTickets   int64 `json:"pending_tickets"`
-	ChatTickets      int64 `json:"chat_tickets"`
-	EmailTickets     int64 `json:"email_tickets"`
-	ResolvedToday    int64 `json:"resolved_today"`
+	OpenTickets       int64 `json:"open_tickets"`
+	PendingTickets    int64 `json:"pending_tickets"`
+	ChatTickets       int64 `json:"chat_tickets"`
+	EmailTickets      int64 `json:"email_tickets"`
+	ResolvedToday     int64 `json:"resolved_today"`
 	UnassignedTickets int64 `json:"unassigned_tickets"`
 }
 

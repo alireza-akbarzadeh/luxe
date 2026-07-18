@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	aiint "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
@@ -17,12 +17,12 @@ import (
 
 const (
 	TaskInteractiveViewer = "interactive_viewer"
-	maxViewerHotspots       = 8
+	maxViewerHotspots     = 8
 )
 
 type interactiveViewerPayload struct {
-	Summary  string                      `json:"summary"`
-	Hotspots []interactiveViewerHotspot  `json:"hotspots"`
+	Summary  string                     `json:"summary"`
+	Hotspots []interactiveViewerHotspot `json:"hotspots"`
 }
 
 type interactiveViewerHotspot struct {
@@ -42,7 +42,7 @@ func (s *Service) InteractiveViewer(
 	if !s.Enabled() {
 		return nil, utils.NewAppError(http.StatusServiceUnavailable, "AI is not enabled", nil)
 	}
-	if !s.chatRL.allow("interactive_viewer:"+subjectKey) {
+	if !s.chatRL.allow("interactive_viewer:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

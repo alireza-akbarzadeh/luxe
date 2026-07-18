@@ -8,6 +8,7 @@ import (
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/jackc/pgx/v5/pgconn"
 )
+
 type Queries struct {
 	repo *postgres.UserLikeRepository
 }

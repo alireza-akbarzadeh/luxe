@@ -75,8 +75,8 @@ func (m *mockWriter) CreateModel(_ context.Context, product *models.Product) err
 	product.ID = uint(len(m.created))
 	return nil
 }
-func (m *mockWriter) SaveModel(context.Context, *models.Product) error             { return nil }
-func (m *mockWriter) UpdateStockColumn(context.Context, uint, int) error           { return nil }
+func (m *mockWriter) SaveModel(context.Context, *models.Product) error   { return nil }
+func (m *mockWriter) UpdateStockColumn(context.Context, uint, int) error { return nil }
 func (m *mockWriter) ReplaceAttributes(context.Context, uint, []models.ProductAttribute) error {
 	return nil
 }

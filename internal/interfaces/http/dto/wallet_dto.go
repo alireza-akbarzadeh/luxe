@@ -32,9 +32,9 @@ type WalletDepositReceipt struct {
 
 // ConfirmWalletDepositResponse is returned after confirming a Stripe wallet deposit session.
 type ConfirmWalletDepositResponse struct {
-	Balance   float64              `json:"balance"`
-	Currency  string               `json:"currency"`
-	Receipt   WalletDepositReceipt `json:"receipt"`
+	Balance  float64              `json:"balance"`
+	Currency string               `json:"currency"`
+	Receipt  WalletDepositReceipt `json:"receipt"`
 }
 
 type AdminAdjustRequest struct {
@@ -54,13 +54,13 @@ type WalletResponse struct {
 }
 
 type TransactionResponse struct {
-	ID            uint      `json:"id"`
-	CreatedAt     time.Time `json:"created_at"`
-	Amount        float64   `json:"amount"`
-	Type          string    `json:"type"`
-	ReferenceType string    `json:"reference_type,omitempty"`
-	ReferenceID   *uint     `json:"reference_id,omitempty"`
-	Description   string    `json:"description,omitempty"`
+	ID              uint      `json:"id"`
+	CreatedAt       time.Time `json:"created_at"`
+	Amount          float64   `json:"amount"`
+	Type            string    `json:"type"`
+	ReferenceType   string    `json:"reference_type,omitempty"`
+	ReferenceID     *uint     `json:"reference_id,omitempty"`
+	Description     string    `json:"description,omitempty"`
 	BalanceAfter    float64   `json:"balance_after"`
 	Status          string    `json:"status"`
 	StripeSessionID string    `json:"stripe_session_id,omitempty"`

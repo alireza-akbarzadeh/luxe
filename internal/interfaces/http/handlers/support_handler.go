@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

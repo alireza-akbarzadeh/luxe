@@ -3,8 +3,8 @@ package handlers
 import (
 	"strconv"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

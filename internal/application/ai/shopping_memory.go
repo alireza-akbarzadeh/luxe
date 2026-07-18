@@ -25,10 +25,10 @@ type ShoppingMemoryQueries interface {
 }
 
 type shoppingMemoryPayload struct {
-	Summary    string                       `json:"summary"`
-	StyleNotes []string                     `json:"style_notes"`
-	Signals    []dto.AiShoppingMemorySignal `json:"signals"`
-	SearchQuery string                      `json:"search_query"`
+	Summary     string                       `json:"summary"`
+	StyleNotes  []string                     `json:"style_notes"`
+	Signals     []dto.AiShoppingMemorySignal `json:"signals"`
+	SearchQuery string                       `json:"search_query"`
 }
 
 // ShoppingMemory summarizes taste from recently viewed items, wishlist, and favorite categories.

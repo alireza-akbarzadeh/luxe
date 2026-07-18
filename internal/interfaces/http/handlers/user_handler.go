@@ -4,21 +4,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
 	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type UserHandler struct {
-	userCommands *appuser.Commands
-	userQueries  *appuser.Queries
+	userCommands    *appuser.Commands
+	userQueries     *appuser.Queries
 	addressCommands *appaddress.Commands
 	addressQueries  *appaddress.Queries
-	validate       *validator.Validate
+	validate        *validator.Validate
 }
 
 func NewUserHandler(userCommands *appuser.Commands, userQueries *appuser.Queries, addressCommands *appaddress.Commands, addressQueries *appaddress.Queries) *UserHandler {
@@ -27,7 +27,7 @@ func NewUserHandler(userCommands *appuser.Commands, userQueries *appuser.Queries
 		userQueries:     userQueries,
 		addressCommands: addressCommands,
 		addressQueries:  addressQueries,
-		validate:       validator.New(),
+		validate:        validator.New(),
 	}
 }
 

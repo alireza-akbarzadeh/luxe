@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	domain "github.com/alireza-akbarzadeh/luxe/internal/domain/catalog"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 

@@ -18,12 +18,12 @@ import (
 )
 
 type StoreHandler struct {
-	commands              *appstore.Commands
-	queries               *appstore.Queries
-	productService        *appcatalog.Service
-	aiService             *appai.Service
-	vendorInsights        vendorDashboardAdapter
-	validate              *validator.Validate
+	commands       *appstore.Commands
+	queries        *appstore.Queries
+	productService *appcatalog.Service
+	aiService      *appai.Service
+	vendorInsights vendorDashboardAdapter
+	validate       *validator.Validate
 }
 
 func NewStoreHandler(
@@ -84,7 +84,7 @@ func (ctrl *StoreHandler) ListStores(c *gin.Context) {
 	}
 	responses := make([]dto.StoreResponse, len(stores))
 	for i, s := range stores {
-		responses[i] = dto.ToStoreResponse(c.Request.Context(),s)
+		responses[i] = dto.ToStoreResponse(c.Request.Context(), s)
 	}
 
 	if userID, ok := middleware.GetUserID(c); ok && len(stores) > 0 {
@@ -134,7 +134,7 @@ func (ctrl *StoreHandler) GetStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to fetch store")
 		return
 	}
-	resp := dto.ToStoreResponse(c.Request.Context(),store)
+	resp := dto.ToStoreResponse(c.Request.Context(), store)
 
 	if userID, ok := middleware.GetUserID(c); ok {
 		followed, err := ctrl.queries.IsFollowing(userID, store.ID)
@@ -380,7 +380,7 @@ func (ctrl *StoreHandler) CreateStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to create store")
 		return
 	}
-	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(c.Request.Context(),store))
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToStoreResponse(c.Request.Context(), store))
 }
 
 // UpdateStore updates an existing store (admin only).
@@ -414,7 +414,7 @@ func (ctrl *StoreHandler) UpdateStore(c *gin.Context) {
 		utils.HandleServiceError(c, err, "failed to update store")
 		return
 	}
-	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreResponse(c.Request.Context(),store))
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToStoreResponse(c.Request.Context(), store))
 }
 
 // DeleteStore deletes a store (admin only).

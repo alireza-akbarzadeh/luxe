@@ -5,15 +5,15 @@ import (
 	"strings"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 )
 
 // Queries orchestrates inventory read use cases.
 type Queries struct {
-	repo             *postgres.InventoryRepository
-	revenueStatuses  []string
+	repo            *postgres.InventoryRepository
+	revenueStatuses []string
 }
 
 // NewQueries creates inventory query use cases.

@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	aiint "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"
 )
@@ -41,7 +41,7 @@ func (s *Service) VirtualTryOn(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("virtual_try_on:"+subjectKey) {
+	if !s.chatRL.allow("virtual_try_on:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

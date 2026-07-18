@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	TaskReturnRisk              = "return_risk"
-	minOrdersForReturnRate      = 5
-	maxReviewsForReturnRisk     = 20
+	TaskReturnRisk          = "return_risk"
+	minOrdersForReturnRate  = 5
+	maxReviewsForReturnRisk = 20
 )
 
 // ReturnRiskQueries loads return statistics for AI return-risk insights.

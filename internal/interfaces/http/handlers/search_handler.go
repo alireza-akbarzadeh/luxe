@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
+	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )

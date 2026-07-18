@@ -30,12 +30,12 @@ type orderReader interface {
 
 // Service orchestrates product detail page use cases.
 type Service struct {
-	notifier   Notifier
-	products   ProductReader
-	aiSvc      *appai.Service
-	commands   *Commands
-	queries    *Queries
-	orders     orderReader
+	notifier Notifier
+	products ProductReader
+	aiSvc    *appai.Service
+	commands *Commands
+	queries  *Queries
+	orders   orderReader
 }
 
 // NewService wires PDP commands and queries.
@@ -52,7 +52,7 @@ func NewService(
 		aiSvc:    aiSvc,
 		commands: NewCommands(repo),
 		queries:  NewQueries(repo),
-		orders:     postgres.NewOrderRepository(db),
+		orders:   postgres.NewOrderRepository(db),
 	}
 }
 

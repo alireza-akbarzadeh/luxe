@@ -3,9 +3,9 @@ package handlers
 import (
 	"strconv"
 
+	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -14,7 +14,7 @@ import (
 type MenuHandler struct {
 	commands *appmenu.Commands
 	queries  *appmenu.Queries
-	validate    *validator.Validate
+	validate *validator.Validate
 }
 
 func NewMenuHandler(commands *appmenu.Commands, queries *appmenu.Queries) *MenuHandler {

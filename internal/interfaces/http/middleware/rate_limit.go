@@ -20,10 +20,10 @@ type ipEntry struct {
 
 // IPRateLimiter stores a rate limiter per IP address with TTL-based eviction.
 type IPRateLimiter struct {
-	entries  map[string]*ipEntry
-	mu       sync.Mutex
-	r        rate.Limit
-	b        int
+	entries map[string]*ipEntry
+	mu      sync.Mutex
+	r       rate.Limit
+	b       int
 }
 
 // NewIPRateLimiter creates a new rate limiter.

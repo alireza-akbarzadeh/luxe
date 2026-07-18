@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	aiint "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 

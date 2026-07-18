@@ -8,8 +8,8 @@ import (
 
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
 	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
-	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
+	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
 	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
@@ -54,25 +54,25 @@ type NewsletterRecorder interface {
 
 // Service orchestrates cart-to-order checkout, payment, and fulfillment.
 type Service struct {
-	checkoutRepo     *postgres.CheckoutRepository
-	cartRepo         *postgres.CartRepository
-	notifier         Notifier
-	vendorNotify     VendorStoreNotifier
-	couponService    *appcoupon.Service
-	paymentService   *apppayment.Service
-	shipmentService  *appshipment.Service
-	walletService    *appwallet.Service
-	membershipService *appmembership.Service
-	invoiceCommands  *appinvoice.Commands
-	workerPool       asynq.JobQueue
-	hub              *websocket.Hub
-	salesFeed        *appsalesfeed.Service
-	engine           *workflow.Engine
-	inventoryService *appinventory.Service
-	stripeEnabled    bool
-	cartDomain       *cart.Service
-	checkoutDomain   *checkout.Service
-	orderDomain      *order.Service
+	checkoutRepo       *postgres.CheckoutRepository
+	cartRepo           *postgres.CartRepository
+	notifier           Notifier
+	vendorNotify       VendorStoreNotifier
+	couponService      *appcoupon.Service
+	paymentService     *apppayment.Service
+	shipmentService    *appshipment.Service
+	walletService      *appwallet.Service
+	membershipService  *appmembership.Service
+	invoiceCommands    *appinvoice.Commands
+	workerPool         asynq.JobQueue
+	hub                *websocket.Hub
+	salesFeed          *appsalesfeed.Service
+	engine             *workflow.Engine
+	inventoryService   *appinventory.Service
+	stripeEnabled      bool
+	cartDomain         *cart.Service
+	checkoutDomain     *checkout.Service
+	orderDomain        *order.Service
 	newsletterRecorder NewsletterRecorder
 }
 
@@ -95,25 +95,25 @@ func NewService(
 	stripeEnabled bool,
 ) *Service {
 	return &Service{
-		checkoutRepo:     postgres.NewCheckoutRepository(db),
-		cartRepo:         postgres.NewCartRepository(db),
-		notifier:         notifier,
-		vendorNotify:     vendorNotify,
-		couponService:    couponService,
-		paymentService:   paymentService,
-		shipmentService:  shipmentService,
-		walletService:    walletService,
+		checkoutRepo:      postgres.NewCheckoutRepository(db),
+		cartRepo:          postgres.NewCartRepository(db),
+		notifier:          notifier,
+		vendorNotify:      vendorNotify,
+		couponService:     couponService,
+		paymentService:    paymentService,
+		shipmentService:   shipmentService,
+		walletService:     walletService,
 		membershipService: membershipService,
-		invoiceCommands:  invoiceCommands,
-		workerPool:       workerPool,
-		hub:              hub,
-		salesFeed:        salesFeed,
-		engine:           engine,
-		inventoryService: inventoryService,
-		stripeEnabled:    stripeEnabled,
-		cartDomain:       cart.NewService(),
-		checkoutDomain:   checkout.NewService(),
-		orderDomain:      order.NewService(),
+		invoiceCommands:   invoiceCommands,
+		workerPool:        workerPool,
+		hub:               hub,
+		salesFeed:         salesFeed,
+		engine:            engine,
+		inventoryService:  inventoryService,
+		stripeEnabled:     stripeEnabled,
+		cartDomain:        cart.NewService(),
+		checkoutDomain:    checkout.NewService(),
+		orderDomain:       order.NewService(),
 	}
 }
 

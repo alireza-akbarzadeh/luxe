@@ -29,9 +29,9 @@ func buildKpiSparklines(series []dto.AdminDashboardSeriesPoint) map[string][]flo
 	}
 	if n == 0 {
 		return map[string][]float64{
-			"revenue":       {},
-			"orders":        {},
-			"new_customers": {},
+			"revenue":         {},
+			"orders":          {},
+			"new_customers":   {},
 			"avg_order_value": {},
 		}
 	}

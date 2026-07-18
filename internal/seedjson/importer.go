@@ -37,9 +37,9 @@ var columnRename = map[string]map[string]string{
 }
 
 var jsonbColumns = map[string]map[string]struct{}{
-	"nav_menus":  {"view_all": {}, "columns": {}, "featured": {}, "label_i18n": {}, "badge_i18n": {}},
-	"products":   {"colors": {}, "sizes": {}},
-	"stores":     {"settings": {}},
+	"nav_menus": {"view_all": {}, "columns": {}, "featured": {}, "label_i18n": {}, "badge_i18n": {}},
+	"products":  {"colors": {}, "sizes": {}},
+	"stores":    {"settings": {}},
 }
 
 var textArrayColumns = map[string]map[string]struct{}{

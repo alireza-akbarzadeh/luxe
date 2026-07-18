@@ -16,16 +16,16 @@ import (
 )
 
 type AiHandler struct {
-	aiService       *appai.Service
-	searchQueries   appai.SearchQueries
-	compareQueries  appai.CompareQueries
-	reviewQueries   appai.ReviewSummaryQueries
-	returnQueries   appai.ReturnRiskQueries
-	priceHistory    appai.PriceHistoryQueries
-	deliveryStats          appai.DeliveryStatsQueries
-	wishlistQueries        appai.WishlistIntelligenceQueries
-	shoppingMemoryQueries  appai.ShoppingMemoryQueries
-	replenishmentQueries   appai.ReplenishmentQueries
+	aiService             *appai.Service
+	searchQueries         appai.SearchQueries
+	compareQueries        appai.CompareQueries
+	reviewQueries         appai.ReviewSummaryQueries
+	returnQueries         appai.ReturnRiskQueries
+	priceHistory          appai.PriceHistoryQueries
+	deliveryStats         appai.DeliveryStatsQueries
+	wishlistQueries       appai.WishlistIntelligenceQueries
+	shoppingMemoryQueries appai.ShoppingMemoryQueries
+	replenishmentQueries  appai.ReplenishmentQueries
 }
 
 func NewAiHandler(

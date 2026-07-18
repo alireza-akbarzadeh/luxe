@@ -3,16 +3,16 @@ package checkout
 import "errors"
 
 var (
-	ErrCheckoutFailed = errors.New("checkout failed")
+	ErrCheckoutFailed  = errors.New("checkout failed")
 	ErrPaymentRequired = errors.New("payment required")
 )
 
 // CheckoutInput is the domain checkout command.
 type CheckoutInput struct {
-	UserID     uint
+	UserID         uint
 	CartTotalCents int64
-	Currency   string
-	PaymentMethod string
+	Currency       string
+	PaymentMethod  string
 }
 
 // Service validates checkout invariants.

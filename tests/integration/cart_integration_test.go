@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/stretchr/testify/require"
 )
 

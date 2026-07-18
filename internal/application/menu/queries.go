@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"gorm.io/gorm"
 )

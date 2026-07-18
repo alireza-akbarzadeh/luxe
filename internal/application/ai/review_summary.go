@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	TaskReviewSummary       = "review_summary"
-	minReviewsForAISummary    = 3
-	maxReviewsForAISummary    = 30
+	TaskReviewSummary      = "review_summary"
+	minReviewsForAISummary = 3
+	maxReviewsForAISummary = 30
 )
 
 // ReviewSummaryQueries loads approved product reviews for AI synthesis.

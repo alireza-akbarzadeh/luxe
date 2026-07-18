@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	TaskOutfitBuilder         = "outfit_builder"
-	defaultOutfitSearchLimit  = 3
-	maxOutfitPieces           = 6
+	TaskOutfitBuilder        = "outfit_builder"
+	defaultOutfitSearchLimit = 3
+	maxOutfitPieces          = 6
 )
 
 type outfitBuilderPayload struct {
@@ -47,7 +47,7 @@ func (s *Service) OutfitBuilder(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("outfit_builder:"+subjectKey) {
+	if !s.chatRL.allow("outfit_builder:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

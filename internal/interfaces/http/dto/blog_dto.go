@@ -98,19 +98,19 @@ type BlogListResponse struct {
 
 // BlogHomepageData groups homepage blog sections.
 type BlogHomepageData struct {
-	Featured       *BlogPostListItem  `json:"featured,omitempty"`
-	Trending       []BlogPostListItem `json:"trending"`
-	EditorPicks    []BlogPostListItem `json:"editor_picks"`
-	Latest         []BlogPostListItem `json:"latest"`
-	MostPopular    []BlogPostListItem `json:"most_popular"`
-	BuyingGuides   []BlogPostListItem `json:"buying_guides"`
-	ProductReviews []BlogPostListItem `json:"product_reviews"`
-	Comparisons    []BlogPostListItem `json:"comparisons"`
-	Tutorials      []BlogPostListItem `json:"tutorials"`
-	IndustryNews   []BlogPostListItem `json:"industry_news"`
-	GiftGuides     []BlogPostListItem `json:"gift_guides"`
-	Seasonal       []BlogPostListItem `json:"seasonal"`
-	NewTechnology  []BlogPostListItem `json:"new_technology"`
+	Featured       *BlogPostListItem      `json:"featured,omitempty"`
+	Trending       []BlogPostListItem     `json:"trending"`
+	EditorPicks    []BlogPostListItem     `json:"editor_picks"`
+	Latest         []BlogPostListItem     `json:"latest"`
+	MostPopular    []BlogPostListItem     `json:"most_popular"`
+	BuyingGuides   []BlogPostListItem     `json:"buying_guides"`
+	ProductReviews []BlogPostListItem     `json:"product_reviews"`
+	Comparisons    []BlogPostListItem     `json:"comparisons"`
+	Tutorials      []BlogPostListItem     `json:"tutorials"`
+	IndustryNews   []BlogPostListItem     `json:"industry_news"`
+	GiftGuides     []BlogPostListItem     `json:"gift_guides"`
+	Seasonal       []BlogPostListItem     `json:"seasonal"`
+	NewTechnology  []BlogPostListItem     `json:"new_technology"`
 	Categories     []BlogCategoryResponse `json:"categories"`
 }
 
@@ -139,36 +139,36 @@ type CreateBlogPostRequest struct {
 	HeroImageURL       string             `json:"hero_image_url"`
 	HeroImageAlt       string             `json:"hero_image_alt"`
 	ContentBlocks      []BlogContentBlock `json:"content_blocks"`
-	CategoryID         *uint                    `json:"category_id"`
-	AuthorID           *uint                    `json:"author_id"`
-	SectionType        string                   `json:"section_type"`
-	Status             string                   `json:"status"`
-	IsFeatured         bool                     `json:"is_featured"`
-	IsEditorPick       bool                     `json:"is_editor_pick"`
-	IsTrending         bool                     `json:"is_trending"`
-	ReadingTimeMinutes int                      `json:"reading_time_minutes"`
-	MetaTitle          string                   `json:"meta_title"`
-	MetaDescription    string                   `json:"meta_description"`
-	CanonicalURL       string                   `json:"canonical_url"`
-	TagIDs             []uint                   `json:"tag_ids"`
-	ProductIDs         []uint                   `json:"product_ids"`
-	ScheduledAt        *time.Time               `json:"scheduled_at"`
+	CategoryID         *uint              `json:"category_id"`
+	AuthorID           *uint              `json:"author_id"`
+	SectionType        string             `json:"section_type"`
+	Status             string             `json:"status"`
+	IsFeatured         bool               `json:"is_featured"`
+	IsEditorPick       bool               `json:"is_editor_pick"`
+	IsTrending         bool               `json:"is_trending"`
+	ReadingTimeMinutes int                `json:"reading_time_minutes"`
+	MetaTitle          string             `json:"meta_title"`
+	MetaDescription    string             `json:"meta_description"`
+	CanonicalURL       string             `json:"canonical_url"`
+	TagIDs             []uint             `json:"tag_ids"`
+	ProductIDs         []uint             `json:"product_ids"`
+	ScheduledAt        *time.Time         `json:"scheduled_at"`
 }
 
 // ListBlogPostsRequest filters blog list queries.
 type ListBlogPostsRequest struct {
-	Page         int    `form:"page" validate:"omitempty,min=1"`
-	Limit        int    `form:"limit" validate:"omitempty,min=1,max=100"`
-	Search       string `form:"search"`
-	Category     string `form:"category"`
-	SectionType  string `form:"section_type"`
-	Tag          string `form:"tag"`
-	Author       string `form:"author"`
-	Status       string `form:"status"`
-	Sort         string `form:"sort"`
-	Featured     *bool  `form:"featured"`
-	Trending     *bool  `form:"trending"`
-	EditorPick   *bool  `form:"editor_pick"`
+	Page        int    `form:"page" validate:"omitempty,min=1"`
+	Limit       int    `form:"limit" validate:"omitempty,min=1,max=100"`
+	Search      string `form:"search"`
+	Category    string `form:"category"`
+	SectionType string `form:"section_type"`
+	Tag         string `form:"tag"`
+	Author      string `form:"author"`
+	Status      string `form:"status"`
+	Sort        string `form:"sort"`
+	Featured    *bool  `form:"featured"`
+	Trending    *bool  `form:"trending"`
+	EditorPick  *bool  `form:"editor_pick"`
 }
 
 // BlogCommentResponse is a comment with replies.

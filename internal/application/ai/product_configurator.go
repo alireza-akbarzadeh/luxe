@@ -20,10 +20,10 @@ const (
 )
 
 type productConfiguratorPayload struct {
-	Summary     string                            `json:"summary"`
-	Selections  []productConfiguratorSelection    `json:"selections"`
-	Tips        []string                          `json:"tips"`
-	SearchQuery string                            `json:"search_query"`
+	Summary     string                         `json:"summary"`
+	Selections  []productConfiguratorSelection `json:"selections"`
+	Tips        []string                       `json:"tips"`
+	SearchQuery string                         `json:"search_query"`
 }
 
 type productConfiguratorSelection struct {
@@ -45,7 +45,7 @@ func (s *Service) ProductConfigurator(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("product_configurator:"+subjectKey) {
+	if !s.chatRL.allow("product_configurator:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

@@ -20,8 +20,8 @@ import (
 
 // Service handles newsletter subscribers, templates, and email campaigns.
 type Service struct {
-	repo      *postgres.EmailMarketingRepository
-	jobQueue  asynq.JobQueue
+	repo        *postgres.EmailMarketingRepository
+	jobQueue    asynq.JobQueue
 	frontendURL string
 }
 

@@ -40,7 +40,7 @@ type Service struct {
 	notifier     Notifier
 	vendorNotify VendorStoreNotifier
 	wsHub        *websocket.Hub
-	engine     *workflow.Engine
+	engine       *workflow.Engine
 }
 
 // NewService wires shipment commands and queries.
@@ -60,7 +60,7 @@ func NewService(
 		notifier:     notifier,
 		vendorNotify: vendorNotify,
 		wsHub:        wsHub,
-		engine:     engine,
+		engine:       engine,
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 
 const (
 	TaskDurabilityScore          = "durability_score"
-	maxReviewsForDurabilityScore   = 20
+	maxReviewsForDurabilityScore = 20
 )
 
 // DurabilityScore estimates how well a product should hold up over time.

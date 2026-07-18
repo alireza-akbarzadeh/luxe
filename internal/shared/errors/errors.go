@@ -9,11 +9,11 @@ import (
 
 // Domain sentinel errors — use errors.Is in domain/application layers.
 var (
-	ErrNotFound      = errors.New("not found")
-	ErrInvalidInput  = errors.New("invalid input")
-	ErrConflict      = errors.New("conflict")
-	ErrUnauthorized  = errors.New("unauthorized")
-	ErrForbidden     = errors.New("forbidden")
+	ErrNotFound     = errors.New("not found")
+	ErrInvalidInput = errors.New("invalid input")
+	ErrConflict     = errors.New("conflict")
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrForbidden    = errors.New("forbidden")
 )
 
 // ToAppError maps domain errors to HTTP-layer AppError for handlers.

@@ -56,29 +56,29 @@ type CreateProductRequest struct {
 }
 
 type UpdateProductRequest struct {
-	Name              *string            `json:"name,omitempty" validate:"omitempty,min=3,max=255"`
-	NameI18n          i18n.LocalizedMap  `json:"nameI18n,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	DescriptionI18n   i18n.LocalizedMap  `json:"descriptionI18n,omitempty"`
-	SearchAliases     *[]string          `json:"searchAliases,omitempty"`
-	Price             *float64  `json:"price,omitempty" validate:"omitempty,gte=0"`
-	CompareAtPrice    *float64  `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
-	Cost              *float64  `json:"cost,omitempty" validate:"omitempty,gte=0"`
-	SKU               *string   `json:"sku,omitempty" validate:"omitempty,min=3,max=50"`
-	Barcode           *string   `json:"barcode,omitempty"`
-	Stock             *int      `json:"stock,omitempty" validate:"omitempty,gte=0"`
-	LowStockThreshold *int      `json:"low_stock_threshold,omitempty"`
-	Weight            *float64  `json:"weight,omitempty" validate:"omitempty,gte=0"`
-	IsDigital         *bool     `json:"is_digital,omitempty"`
-	CategoryID        *uint     `json:"category_id,omitempty"`
-	Images            *[]string `json:"images,omitempty"`
-	Status            *string   `json:"status,omitempty" validate:"omitempty,oneof=draft active inactive archived"`
-	MetaTitle         *string   `json:"meta_title,omitempty"`
-	MetaDescription   *string   `json:"meta_description,omitempty"`
-	IsNew             *bool     `json:"is_new,omitempty"`
-	Colors            *[]string `json:"colors,omitempty"`
-	Sizes             *[]string `json:"sizes,omitempty"`
-	StoreID           *uint     `json:"store_id,omitempty"`
+	Name              *string           `json:"name,omitempty" validate:"omitempty,min=3,max=255"`
+	NameI18n          i18n.LocalizedMap `json:"nameI18n,omitempty"`
+	Description       *string           `json:"description,omitempty"`
+	DescriptionI18n   i18n.LocalizedMap `json:"descriptionI18n,omitempty"`
+	SearchAliases     *[]string         `json:"searchAliases,omitempty"`
+	Price             *float64          `json:"price,omitempty" validate:"omitempty,gte=0"`
+	CompareAtPrice    *float64          `json:"compare_at_price,omitempty" validate:"omitempty,gte=0"`
+	Cost              *float64          `json:"cost,omitempty" validate:"omitempty,gte=0"`
+	SKU               *string           `json:"sku,omitempty" validate:"omitempty,min=3,max=50"`
+	Barcode           *string           `json:"barcode,omitempty"`
+	Stock             *int              `json:"stock,omitempty" validate:"omitempty,gte=0"`
+	LowStockThreshold *int              `json:"low_stock_threshold,omitempty"`
+	Weight            *float64          `json:"weight,omitempty" validate:"omitempty,gte=0"`
+	IsDigital         *bool             `json:"is_digital,omitempty"`
+	CategoryID        *uint             `json:"category_id,omitempty"`
+	Images            *[]string         `json:"images,omitempty"`
+	Status            *string           `json:"status,omitempty" validate:"omitempty,oneof=draft active inactive archived"`
+	MetaTitle         *string           `json:"meta_title,omitempty"`
+	MetaDescription   *string           `json:"meta_description,omitempty"`
+	IsNew             *bool             `json:"is_new,omitempty"`
+	Colors            *[]string         `json:"colors,omitempty"`
+	Sizes             *[]string         `json:"sizes,omitempty"`
+	StoreID           *uint             `json:"store_id,omitempty"`
 
 	BrandID    *uint                    `json:"brand_id,omitempty"`
 	Attributes *[]ProductAttributeInput `json:"attributes,omitempty"`
@@ -171,11 +171,11 @@ type ProductResponse struct {
 	Brand      *BrandResponse             `json:"brand,omitempty"`
 	Attributes []ProductAttributeResponse `json:"attributes,omitempty"`
 
-	StoreID           uint                   `json:"store_id,omitempty"`
-	Store             *ProductStoreSummary   `json:"store,omitempty"`
-	TrackInventory    bool                   `json:"track_inventory"`
-	WarehouseLocation string `json:"warehouse_location,omitempty"`
-	AllowBackorder    bool   `json:"allow_backorder"`
+	StoreID           uint                 `json:"store_id,omitempty"`
+	Store             *ProductStoreSummary `json:"store,omitempty"`
+	TrackInventory    bool                 `json:"track_inventory"`
+	WarehouseLocation string               `json:"warehouse_location,omitempty"`
+	AllowBackorder    bool                 `json:"allow_backorder"`
 
 	// Publishing extras
 	Visibility  string     `json:"visibility"`

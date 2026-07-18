@@ -92,5 +92,6 @@ func (r *Router) Setup() {
 		SetupCommunityShoppingListRoutes(public, r.handlerContainer)
 		SetupPublicCollectionRoutes(public, r.handlerContainer)
 		SetupReverseMarketplaceRoutes(public, protected, r.handlerContainer)
+		SetupCalendarRoutes(protected, r.handlerContainer)
 	}
 }

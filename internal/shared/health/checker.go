@@ -12,8 +12,8 @@ import (
 
 // Status is the aggregate health of dependency checks.
 type Status struct {
-	OK     bool              `json:"ok"`
-	Checks map[string]bool   `json:"checks"`
+	OK     bool            `json:"ok"`
+	Checks map[string]bool `json:"checks"`
 }
 
 // Checker runs liveness and readiness probes against configured dependencies.

@@ -4,14 +4,14 @@ package main
 import (
 	"fmt"
 
+	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
 	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
+	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/handlers"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
 	"github.com/alireza-akbarzadeh/luxe/internal/jobs"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/observability"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/routes"
-	"github.com/alireza-akbarzadeh/luxe/internal/application/bootstrap"
-	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 )

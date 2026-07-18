@@ -29,8 +29,8 @@ type ListFilter struct {
 
 // VendorOrderStats aggregates order counts for a vendor store.
 type VendorOrderStats struct {
-	Total     int64            `json:"total"`
-	ByStatus  map[string]int64 `json:"by_status"`
+	Total    int64            `json:"total"`
+	ByStatus map[string]int64 `json:"by_status"`
 }
 
 // Reader loads order models for HTTP handlers and application use cases.

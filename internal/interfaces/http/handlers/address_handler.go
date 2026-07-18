@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -15,14 +15,14 @@ import (
 type AddressHandler struct {
 	commands *appaddress.Commands
 	queries  *appaddress.Queries
-	validate       *validator.Validate
+	validate *validator.Validate
 }
 
 func NewAddressHandler(commands *appaddress.Commands, queries *appaddress.Queries) *AddressHandler {
 	return &AddressHandler{
 		commands: commands,
 		queries:  queries,
-		validate:       validator.New(),
+		validate: validator.New(),
 	}
 }
 

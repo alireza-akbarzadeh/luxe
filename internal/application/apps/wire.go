@@ -6,51 +6,52 @@ import (
 	"strings"
 
 	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
-	appbrand "github.com/alireza-akbarzadeh/luxe/internal/application/brand"
-	appcategory "github.com/alireza-akbarzadeh/luxe/internal/application/category"
-	appcollection "github.com/alireza-akbarzadeh/luxe/internal/application/collection"
-	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
-	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
-	importdata "github.com/alireza-akbarzadeh/luxe/internal/application/import"
-	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
-	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
-	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
-	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
-	apppush "github.com/alireza-akbarzadeh/luxe/internal/application/push"
-	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
-	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
 	appadmin "github.com/alireza-akbarzadeh/luxe/internal/application/admin"
 	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
 	appaudit "github.com/alireza-akbarzadeh/luxe/internal/application/audit"
 	appauth "github.com/alireza-akbarzadeh/luxe/internal/application/auth"
+	appblog "github.com/alireza-akbarzadeh/luxe/internal/application/blog"
+	appbrand "github.com/alireza-akbarzadeh/luxe/internal/application/brand"
+	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
+	appcalendar "github.com/alireza-akbarzadeh/luxe/internal/application/calendar"
 	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appcategory "github.com/alireza-akbarzadeh/luxe/internal/application/category"
+	appcheckout "github.com/alireza-akbarzadeh/luxe/internal/application/checkout"
+	appcollection "github.com/alireza-akbarzadeh/luxe/internal/application/collection"
+	appcommunityshoppinglist "github.com/alireza-akbarzadeh/luxe/internal/application/communityshoppinglist"
 	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	appcoupon "github.com/alireza-akbarzadeh/luxe/internal/application/coupon"
+	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
+	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
 	appgiftcard "github.com/alireza-akbarzadeh/luxe/internal/application/giftcard"
 	apphome "github.com/alireza-akbarzadeh/luxe/internal/application/home"
+	importdata "github.com/alireza-akbarzadeh/luxe/internal/application/import"
+	appinventory "github.com/alireza-akbarzadeh/luxe/internal/application/inventory"
 	appinvoice "github.com/alireza-akbarzadeh/luxe/internal/application/invoice"
-	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	appmembership "github.com/alireza-akbarzadeh/luxe/internal/application/membership"
+	appmenu "github.com/alireza-akbarzadeh/luxe/internal/application/menu"
 	appnavmenu "github.com/alireza-akbarzadeh/luxe/internal/application/navmenu"
+	appnotification "github.com/alireza-akbarzadeh/luxe/internal/application/notification"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
 	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
-	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
-	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
-	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
-	appteam "github.com/alireza-akbarzadeh/luxe/internal/application/team"
-	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
-	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
-	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
-	apppubliccollection "github.com/alireza-akbarzadeh/luxe/internal/application/publiccollection"
-	appreversemarketplace "github.com/alireza-akbarzadeh/luxe/internal/application/reversemarketplace"
-	appcommunityshoppinglist "github.com/alireza-akbarzadeh/luxe/internal/application/communityshoppinglist"
-	appcreatorstorefront "github.com/alireza-akbarzadeh/luxe/internal/application/creatorstorefront"
-	appbundle "github.com/alireza-akbarzadeh/luxe/internal/application/bundle"
-	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
-	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
-	appblog "github.com/alireza-akbarzadeh/luxe/internal/application/blog"
+	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
 	appprivacyrule "github.com/alireza-akbarzadeh/luxe/internal/application/privacyrule"
+	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
+	apppubliccollection "github.com/alireza-akbarzadeh/luxe/internal/application/publiccollection"
+	apppush "github.com/alireza-akbarzadeh/luxe/internal/application/push"
+	appreturn "github.com/alireza-akbarzadeh/luxe/internal/application/returnorder"
+	appreversemarketplace "github.com/alireza-akbarzadeh/luxe/internal/application/reversemarketplace"
+	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
+	approle "github.com/alireza-akbarzadeh/luxe/internal/application/role"
+	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
+	appsearch "github.com/alireza-akbarzadeh/luxe/internal/application/search"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
+	appshipment "github.com/alireza-akbarzadeh/luxe/internal/application/shipment"
+	appshoplook "github.com/alireza-akbarzadeh/luxe/internal/application/shoplook"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
+	appsupport "github.com/alireza-akbarzadeh/luxe/internal/application/supportticket"
+	appteam "github.com/alireza-akbarzadeh/luxe/internal/application/team"
 	appupload "github.com/alireza-akbarzadeh/luxe/internal/application/upload"
 	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
 	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
@@ -158,58 +159,59 @@ type webhookApp struct {
 
 // Applications holds wired application-layer use cases (handlers call these directly).
 type Applications struct {
-	AI       *appai.Service
-	Auth     *appauth.Service
-	Audit    auditApp
-	Search   searchApp
-	Address  addressApp
-	Cart     cartApp
-	Compare  compareApp
-	User     userApp
-	NavMenu  navMenuApp
-	Menu     menuApp
-	Review   reviewApp
-	UserLike userLikeApp
-	Store    storeApp
-	Upload   *appupload.Service
-	Webhook  webhookApp
-	Workflow *appworkflow.Module
-	Return   returnApp
-	Support  supportApp
-	Role     roleApp
-	Team     teamApp
-	Invoice  invoiceApp
-	Settings settingsApp
-	Coupon   *appcoupon.Service
-	Payment  *apppayment.Service
-	Wallet   *appwallet.Service
-	Brand    *appbrand.Service
-	Category *appcategory.Service
-	Collection *appcollection.Service
-	Product      *appcatalog.Service
-	Pdp          *apppdp.Service
-	Inventory    *appinventory.Service
-	Admin        *appadmin.Service
-	Import       *importdata.Service
-	Push         *apppush.WebPushService
-	Notification *appnotification.Service
-	Checkout     *appcheckout.Service
-	Order        *orderfacade.Service
-	Shipment     *appshipment.Service
-	SalesFeed    *appsalesfeed.Service
-	GiftCard     *appgiftcard.Service
-	Membership   *appmembership.Service
-	Home         *apphome.Service
-	ShopLook          *appshoplook.Service
-	CreatorStorefront       *appcreatorstorefront.Service
-	CommunityShoppingList   *appcommunityshoppinglist.Service
-	PublicCollection        *apppubliccollection.Service
-	ReverseMarketplace      *appreversemarketplace.Service
-	Bundle                  *appbundle.Service
-	Promotion               *apppromotion.Service
-	EmailMarketing          *appemailmarketing.Service
-	Blog                    *appblog.Service
-	PrivacyRule             *appprivacyrule.Service
+	AI                    *appai.Service
+	Auth                  *appauth.Service
+	Audit                 auditApp
+	Search                searchApp
+	Address               addressApp
+	Cart                  cartApp
+	Compare               compareApp
+	User                  userApp
+	NavMenu               navMenuApp
+	Menu                  menuApp
+	Review                reviewApp
+	UserLike              userLikeApp
+	Store                 storeApp
+	Upload                *appupload.Service
+	Webhook               webhookApp
+	Workflow              *appworkflow.Module
+	Return                returnApp
+	Support               supportApp
+	Role                  roleApp
+	Team                  teamApp
+	Invoice               invoiceApp
+	Settings              settingsApp
+	Coupon                *appcoupon.Service
+	Payment               *apppayment.Service
+	Wallet                *appwallet.Service
+	Brand                 *appbrand.Service
+	Category              *appcategory.Service
+	Collection            *appcollection.Service
+	Product               *appcatalog.Service
+	Pdp                   *apppdp.Service
+	Inventory             *appinventory.Service
+	Admin                 *appadmin.Service
+	Import                *importdata.Service
+	Push                  *apppush.WebPushService
+	Notification          *appnotification.Service
+	Checkout              *appcheckout.Service
+	Order                 *orderfacade.Service
+	Shipment              *appshipment.Service
+	SalesFeed             *appsalesfeed.Service
+	GiftCard              *appgiftcard.Service
+	Membership            *appmembership.Service
+	Home                  *apphome.Service
+	ShopLook              *appshoplook.Service
+	CreatorStorefront     *appcreatorstorefront.Service
+	CommunityShoppingList *appcommunityshoppinglist.Service
+	PublicCollection      *apppubliccollection.Service
+	ReverseMarketplace    *appreversemarketplace.Service
+	Bundle                *appbundle.Service
+	Promotion             *apppromotion.Service
+	EmailMarketing        *appemailmarketing.Service
+	Blog                  *appblog.Service
+	PrivacyRule           *appprivacyrule.Service
+	Calendar              *appcalendar.Service
 }
 
 type legalSettingReader struct {
@@ -350,19 +352,19 @@ func WireApplications(
 			Commands: settingsCommands,
 			Queries:  settingsQueries,
 		},
-		Coupon:  appcoupon.NewService(postgres.NewCouponRepository(db), engine),
-		Payment: apppayment.NewService(postgres.NewPaymentRepository(db), stripeGateway, stripeEnabled),
-		Wallet:  walletSvc,
-		Brand:       appbrand.NewService(db, engine),
-		Category:    appcategory.NewService(db, engine),
-		Collection:  appcollection.NewService(db, engine),
-		GiftCard:    giftCardSvc,
-		Membership:  membershipSvc,
+		Coupon:     appcoupon.NewService(postgres.NewCouponRepository(db), engine),
+		Payment:    apppayment.NewService(postgres.NewPaymentRepository(db), stripeGateway, stripeEnabled),
+		Wallet:     walletSvc,
+		Brand:      appbrand.NewService(db, engine),
+		Category:   appcategory.NewService(db, engine),
+		Collection: appcollection.NewService(db, engine),
+		GiftCard:   giftCardSvc,
+		Membership: membershipSvc,
 		Home: apphome.NewService(
 			postgres.NewStorefrontRepository(db),
 			postgres.NewHomeRepository(db),
 		),
-		ShopLook:          appshoplook.NewService(db),
+		ShopLook:              appshoplook.NewService(db),
 		CreatorStorefront:     appcreatorstorefront.NewService(db),
 		CommunityShoppingList: appcommunityshoppinglist.NewService(db),
 		PublicCollection:      apppubliccollection.NewService(db),
@@ -374,9 +376,10 @@ func WireApplications(
 			jobQueue,
 			frontendURL,
 		),
-		Blog: appblog.NewService(db, engine),
+		Blog:        appblog.NewService(db, engine),
 		PrivacyRule: appprivacyrule.NewService(db, engine),
-}
+		Calendar:    appcalendar.NewService(db),
+	}
 }
 
 // Log implements middleware.AuditLogger.

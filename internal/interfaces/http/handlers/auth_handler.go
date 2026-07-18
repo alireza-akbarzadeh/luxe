@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
+	appauth "github.com/alireza-akbarzadeh/luxe/internal/application/auth"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appauth "github.com/alireza-akbarzadeh/luxe/internal/application/auth"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
@@ -75,7 +75,7 @@ func (ctrl *AuthHandler) Register(c *gin.Context) {
 		Data: dto.RegisterResponseData{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
-			User: dto.ToUserResponse(user),
+			User:         dto.ToUserResponse(user),
 		},
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -110,7 +110,7 @@ func (ctrl *AuthHandler) Login(c *gin.Context) {
 		Data: dto.LoginResponseData{
 			AccessToken:  accessToken,
 			RefreshToken: refreshToken,
-			User: dto.ToUserResponse(user),
+			User:         dto.ToUserResponse(user),
 		},
 	}
 	c.JSON(http.StatusOK, resp)

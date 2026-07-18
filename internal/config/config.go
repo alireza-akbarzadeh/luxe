@@ -63,12 +63,12 @@ type Config struct {
 
 // AIConfig holds LLM provider settings (Ollama local, Groq/Gemini via OpenAI-compatible API).
 type AIConfig struct {
-	Enabled              bool
-	Provider             string
-	BaseURL              string
-	APIKey               string
-	Model                string
-	MaxRequestsPerHour   int
+	Enabled                bool
+	Provider               string
+	BaseURL                string
+	APIKey                 string
+	Model                  string
+	MaxRequestsPerHour     int
 	ChatMaxRequestsPerHour int
 }
 
@@ -115,17 +115,17 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	URL           string
-	Host          string
-	Port          string
-	User          string
-	Password      string
-	Name          string
-	SSLMode       string
-	MaxOpenConns  int
-	MaxIdleConns  int
-	ConnMaxLife   time.Duration
-	ConnMaxIdle   time.Duration
+	URL          string
+	Host         string
+	Port         string
+	User         string
+	Password     string
+	Name         string
+	SSLMode      string
+	MaxOpenConns int
+	MaxIdleConns int
+	ConnMaxLife  time.Duration
+	ConnMaxIdle  time.Duration
 }
 
 type JWTConfig struct {
@@ -292,17 +292,17 @@ func Load() (*Config, error) {
 			Mode: viper.GetString("GIN_MODE"),
 		},
 		Database: DatabaseConfig{
-			URL:           unquoteEnv(viper.GetString("DATABASE_URL")),
-			Host:          unquoteEnv(viper.GetString("DB_HOST")),
-			Port:          viper.GetString("DB_PORT"),
-			User:          viper.GetString("DB_USER"),
-			Password:      viper.GetString("DB_PASSWORD"),
-			Name:          viper.GetString("DB_NAME"),
-			SSLMode:       viper.GetString("DB_SSLMODE"),
-			MaxOpenConns:  viper.GetInt("DB_MAX_OPEN_CONNS"),
-			MaxIdleConns:  viper.GetInt("DB_MAX_IDLE_CONNS"),
-			ConnMaxLife:   connMaxLife,
-			ConnMaxIdle:   connMaxIdle,
+			URL:          unquoteEnv(viper.GetString("DATABASE_URL")),
+			Host:         unquoteEnv(viper.GetString("DB_HOST")),
+			Port:         viper.GetString("DB_PORT"),
+			User:         viper.GetString("DB_USER"),
+			Password:     viper.GetString("DB_PASSWORD"),
+			Name:         viper.GetString("DB_NAME"),
+			SSLMode:      viper.GetString("DB_SSLMODE"),
+			MaxOpenConns: viper.GetInt("DB_MAX_OPEN_CONNS"),
+			MaxIdleConns: viper.GetInt("DB_MAX_IDLE_CONNS"),
+			ConnMaxLife:  connMaxLife,
+			ConnMaxIdle:  connMaxIdle,
 		},
 		JWT: JWTConfig{
 			Secret:             viper.GetString("JWT_SECRET"),

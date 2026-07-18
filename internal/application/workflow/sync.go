@@ -371,11 +371,11 @@ func ApplyCouponExhausted(ctx context.Context, engine *infraworkflow.Engine, cou
 }
 
 var blogPostStatusToStateCode = map[string]string{
-	"draft":      "draft",
-	"in_review":  "in_review",
-	"scheduled":  "scheduled",
-	"published":  "published",
-	"archived":   "archived",
+	"draft":     "draft",
+	"in_review": "in_review",
+	"scheduled": "scheduled",
+	"published": "published",
+	"archived":  "archived",
 }
 
 // ApplyBlogPostWorkflow syncs blog post status into the workflow engine (best-effort).

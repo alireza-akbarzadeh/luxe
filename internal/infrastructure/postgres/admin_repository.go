@@ -746,10 +746,10 @@ func (r *AdminRepository) OrderFunnelCounts(ctx context.Context, since time.Time
 
 // CohortRow holds monthly cohort metrics.
 type CohortRow struct {
-	Cohort         string
-	Customers      int64
+	Cohort          string
+	Customers       int64
 	RepeatCustomers int64
-	Revenue        float64
+	Revenue         float64
 }
 
 // MonthlyCohorts returns cohort metrics for customers whose first order was since start.
@@ -807,4 +807,3 @@ func (r *AdminRepository) MonthlyCohorts(ctx context.Context, since time.Time, l
 	`, since, revenueOrderStatuses, limit).Scan(&rows).Error
 	return rows, err
 }
-

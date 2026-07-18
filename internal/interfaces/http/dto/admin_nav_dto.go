@@ -4,9 +4,9 @@ import "time"
 
 // AdminNavRecentPage is a recently visited admin page entry.
 type AdminNavRecentPage struct {
-	Href       string    `json:"href" validate:"required"`
-	Label      string    `json:"label" validate:"required"`
-	VisitedAt  time.Time `json:"visited_at"`
+	Href      string    `json:"href" validate:"required"`
+	Label     string    `json:"label" validate:"required"`
+	VisitedAt time.Time `json:"visited_at"`
 }
 
 // AdminNavPreferencesResponse is the persisted nav preferences for an admin user.

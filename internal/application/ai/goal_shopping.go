@@ -35,7 +35,7 @@ func (s *Service) GoalShopping(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("goal_shopping:"+subjectKey) {
+	if !s.chatRL.allow("goal_shopping:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	aiint "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"gorm.io/gorm"

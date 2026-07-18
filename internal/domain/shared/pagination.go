@@ -8,8 +8,8 @@ type PageParams struct {
 
 // PageResult holds paginated list metadata.
 type PageResult struct {
-	Total int64
-	Limit int
+	Total  int64
+	Limit  int
 	Offset int
 }
 

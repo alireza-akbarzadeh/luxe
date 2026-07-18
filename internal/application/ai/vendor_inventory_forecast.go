@@ -61,12 +61,12 @@ func (s *Service) VendorInventoryForecast(
 
 	forecasts := buildInventoryForecasts(snapshot.Products, days)
 	response := &dto.AiVendorInventoryForecastResponse{
-		PeriodDays:      days,
-		LowStockCount:   snapshot.LowStockCount,
-		Forecasts:       forecasts,
-		CriticalCount:   countUrgency(forecasts, "critical"),
-		WarningCount:    countUrgency(forecasts, "warning"),
-		Sources:         []string{"products", "orders", "order_items"},
+		PeriodDays:    days,
+		LowStockCount: snapshot.LowStockCount,
+		Forecasts:     forecasts,
+		CriticalCount: countUrgency(forecasts, "critical"),
+		WarningCount:  countUrgency(forecasts, "warning"),
+		Sources:       []string{"products", "orders", "order_items"},
 	}
 
 	if !s.Enabled() {
@@ -139,12 +139,12 @@ func buildInventoryForecasts(products []VendorProductDemand, days int) []dto.Ven
 	for _, product := range products {
 		dailyVelocity := float64(product.UnitsSold) / periodDays
 		item := dto.VendorInventoryForecastItem{
-			ProductID:   product.ProductID,
-			Name:        product.Name,
-			Stock:       product.Stock,
-			UnitsSold:   product.UnitsSold,
+			ProductID:     product.ProductID,
+			Name:          product.Name,
+			Stock:         product.Stock,
+			UnitsSold:     product.UnitsSold,
 			DailyVelocity: math.Round(dailyVelocity*100) / 100,
-			Urgency:     "no_demand",
+			Urgency:       "no_demand",
 		}
 
 		targetStock := product.LowStockThreshold * 2

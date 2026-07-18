@@ -29,7 +29,7 @@ func (s *Service) SizeRecommendation(
 	if !s.Enabled() {
 		return nil, utils.NewAppError(503, "AI is not enabled", nil)
 	}
-	if !s.chatRL.allow("size_recommendation:"+subjectKey) {
+	if !s.chatRL.allow("size_recommendation:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

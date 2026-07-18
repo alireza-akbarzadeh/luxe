@@ -65,7 +65,7 @@ func buildStockHeatmap(product models.Product, adjustments []models.InventoryAdj
 	adjIdx := 0
 	for offset := 0; offset < days; offset++ {
 		day := start.AddDate(0, 0, offset)
-		dayEnd := day.Add(24*time.Hour).Add(-time.Nanosecond)
+		dayEnd := day.Add(24 * time.Hour).Add(-time.Nanosecond)
 
 		for adjIdx < len(adjustments) && !adjustments[adjIdx].CreatedAt.After(dayEnd) {
 			runningStock = adjustments[adjIdx].QuantityAfter

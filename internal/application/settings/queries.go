@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 )
 
 // ErrNotFound is returned when a setting key does not exist.

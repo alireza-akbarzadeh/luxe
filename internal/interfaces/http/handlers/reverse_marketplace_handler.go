@@ -13,9 +13,9 @@ import (
 
 // ReverseMarketplaceHandler serves buyer and vendor reverse marketplace endpoints.
 type ReverseMarketplaceHandler struct {
-	svc           *appreversemarketplace.Service
-	storeQueries  *appstore.Queries
-	validate      *validator.Validate
+	svc          *appreversemarketplace.Service
+	storeQueries *appstore.Queries
+	validate     *validator.Validate
 }
 
 // NewReverseMarketplaceHandler creates a reverse marketplace handler.

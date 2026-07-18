@@ -3,15 +3,15 @@ package dto
 import "time"
 
 type RoleResponse struct {
-	ID              uint     `json:"id"`
-	Name            string   `json:"name"`
-	Slug            string   `json:"slug"`
-	Description     *string  `json:"description,omitempty"`
-	IsSystem        bool     `json:"is_system"`
-	UserCount       int64    `json:"user_count"`
-	PermissionCount int64    `json:"permission_count"`
-	PermissionKeys  []string `json:"permission_keys,omitempty"`
-	PermissionIDs   []uint   `json:"permission_ids,omitempty"`
+	ID              uint      `json:"id"`
+	Name            string    `json:"name"`
+	Slug            string    `json:"slug"`
+	Description     *string   `json:"description,omitempty"`
+	IsSystem        bool      `json:"is_system"`
+	UserCount       int64     `json:"user_count"`
+	PermissionCount int64     `json:"permission_count"`
+	PermissionKeys  []string  `json:"permission_keys,omitempty"`
+	PermissionIDs   []uint    `json:"permission_ids,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

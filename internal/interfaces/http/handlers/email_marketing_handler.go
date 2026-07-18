@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appemailmarketing "github.com/alireza-akbarzadeh/luxe/internal/application/emailmarketing"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"

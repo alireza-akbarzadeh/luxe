@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	r2integration "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/r2"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/google/uuid"
 )

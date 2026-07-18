@@ -183,20 +183,20 @@ func (q *Queries) GetDashboardOverview(ctx context.Context, filters dto.AdminDas
 	}
 
 	return &dto.AdminDashboardOverviewResponse{
-		Period:         periodLabel,
-		GeneratedAt:    now,
-		KPIs:           kpis,
-		Conversion:     toDashboardKPI(conversionCurrent, conversionPrevious),
-		KpiSparklines:  buildKpiSparklines(revenueSeries),
-		RevenueSeries:  revenueSeries,
-		OrdersByStatus: statusRows,
-		RecentActivity: buildRecentActivity(activityOrders, auditLogs),
-		AiInsights:     buildAiInsights(kpis, toDashboardKPI(conversionCurrent, conversionPrevious), *platform),
-		PlatformHealth: platformHealth,
-		RecentOrders:   recent,
-		TopProducts:    topProducts,
+		Period:           periodLabel,
+		GeneratedAt:      now,
+		KPIs:             kpis,
+		Conversion:       toDashboardKPI(conversionCurrent, conversionPrevious),
+		KpiSparklines:    buildKpiSparklines(revenueSeries),
+		RevenueSeries:    revenueSeries,
+		OrdersByStatus:   statusRows,
+		RecentActivity:   buildRecentActivity(activityOrders, auditLogs),
+		AiInsights:       buildAiInsights(kpis, toDashboardKPI(conversionCurrent, conversionPrevious), *platform),
+		PlatformHealth:   platformHealth,
+		RecentOrders:     recent,
+		TopProducts:      topProducts,
 		LowStockProducts: lowStockProducts,
-		Platform:       *platform,
+		Platform:         *platform,
 	}, nil
 }
 

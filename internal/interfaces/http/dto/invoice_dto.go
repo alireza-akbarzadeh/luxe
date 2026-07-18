@@ -47,28 +47,28 @@ type AdminInvoiceListData struct {
 
 // InvoiceDetailResponse powers the admin invoice detail page.
 type InvoiceDetailResponse struct {
-	ID              uint                 `json:"id"`
-	InvoiceNumber   string               `json:"invoice_number"`
-	OrderID         uint                 `json:"order_id"`
-	OrderNumber     string               `json:"order_number,omitempty"`
-	UserID          uint                 `json:"user_id"`
-	Status          string               `json:"status"`
-	Subtotal        float64              `json:"subtotal"`
-	TaxAmount       float64              `json:"tax_amount"`
-	ShippingAmount  float64              `json:"shipping_amount"`
-	TotalAmount     float64              `json:"total_amount"`
-	Currency        string               `json:"currency"`
-	BillingName     string               `json:"billing_name,omitempty"`
-	BillingEmail    string               `json:"billing_email,omitempty"`
-	Notes           string               `json:"notes,omitempty"`
-	PaymentStatus   string               `json:"payment_status,omitempty"`
-	PaymentMethod   string               `json:"payment_method,omitempty"`
-	IssuedAt        *time.Time           `json:"issued_at,omitempty"`
-	DueAt           *time.Time           `json:"due_at,omitempty"`
-	PaidAt          *time.Time           `json:"paid_at,omitempty"`
-	CreatedAt       time.Time            `json:"created_at"`
-	UpdatedAt       time.Time            `json:"updated_at"`
-	Items           []AdminOrderItemView `json:"items"`
+	ID             uint                 `json:"id"`
+	InvoiceNumber  string               `json:"invoice_number"`
+	OrderID        uint                 `json:"order_id"`
+	OrderNumber    string               `json:"order_number,omitempty"`
+	UserID         uint                 `json:"user_id"`
+	Status         string               `json:"status"`
+	Subtotal       float64              `json:"subtotal"`
+	TaxAmount      float64              `json:"tax_amount"`
+	ShippingAmount float64              `json:"shipping_amount"`
+	TotalAmount    float64              `json:"total_amount"`
+	Currency       string               `json:"currency"`
+	BillingName    string               `json:"billing_name,omitempty"`
+	BillingEmail   string               `json:"billing_email,omitempty"`
+	Notes          string               `json:"notes,omitempty"`
+	PaymentStatus  string               `json:"payment_status,omitempty"`
+	PaymentMethod  string               `json:"payment_method,omitempty"`
+	IssuedAt       *time.Time           `json:"issued_at,omitempty"`
+	DueAt          *time.Time           `json:"due_at,omitempty"`
+	PaidAt         *time.Time           `json:"paid_at,omitempty"`
+	CreatedAt      time.Time            `json:"created_at"`
+	UpdatedAt      time.Time            `json:"updated_at"`
+	Items          []AdminOrderItemView `json:"items"`
 }
 
 // UpdateInvoiceStatusRequest updates an invoice status (admin).

@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	apppromotion "github.com/alireza-akbarzadeh/luxe/internal/application/promotion"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"

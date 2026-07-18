@@ -9,12 +9,12 @@ import (
 // --- KPIs ---
 
 type EmailMarketingKPIData struct {
-	TotalSubscribers    int64 `json:"total_subscribers"`
-	ActiveSubscribers   int64 `json:"active_subscribers"`
-	UnsubscribedCount   int64 `json:"unsubscribed_count"`
-	TemplateCount       int64 `json:"template_count"`
-	CampaignsSent       int64 `json:"campaigns_sent"`
-	CampaignsScheduled  int64 `json:"campaigns_scheduled"`
+	TotalSubscribers     int64 `json:"total_subscribers"`
+	ActiveSubscribers    int64 `json:"active_subscribers"`
+	UnsubscribedCount    int64 `json:"unsubscribed_count"`
+	TemplateCount        int64 `json:"template_count"`
+	CampaignsSent        int64 `json:"campaigns_sent"`
+	CampaignsScheduled   int64 `json:"campaigns_scheduled"`
 	TotalEmailsDelivered int64 `json:"total_emails_delivered"`
 }
 
@@ -119,12 +119,12 @@ type AdminEmailCampaignListFilters struct {
 }
 
 type CreateEmailCampaignRequest struct {
-	Name       string     `json:"name" validate:"required,min=2,max=255"`
-	Subject    string     `json:"subject" validate:"required,min=2,max=512"`
-	BodyHTML   string     `json:"body_html"`
-	TemplateID *uint      `json:"template_id,omitempty" validate:"omitempty,gt=0"`
-	Segment    string     `json:"segment" validate:"omitempty,oneof=all checkout footer home register vip loyal new at_risk"`
-	Status     string     `json:"status" validate:"omitempty,oneof=draft scheduled"`
+	Name        string     `json:"name" validate:"required,min=2,max=255"`
+	Subject     string     `json:"subject" validate:"required,min=2,max=512"`
+	BodyHTML    string     `json:"body_html"`
+	TemplateID  *uint      `json:"template_id,omitempty" validate:"omitempty,gt=0"`
+	Segment     string     `json:"segment" validate:"omitempty,oneof=all checkout footer home register vip loyal new at_risk"`
+	Status      string     `json:"status" validate:"omitempty,oneof=draft scheduled"`
 	ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
 }
 
@@ -169,8 +169,8 @@ type EmailCampaignSendResponse struct {
 }
 
 type EmailCampaignSendData struct {
-	CampaignID    uint `json:"campaign_id"`
-	RecipientCount int `json:"recipient_count"`
-	EnqueuedCount  int `json:"enqueued_count"`
-	FailedCount    int `json:"failed_count"`
+	CampaignID     uint `json:"campaign_id"`
+	RecipientCount int  `json:"recipient_count"`
+	EnqueuedCount  int  `json:"enqueued_count"`
+	FailedCount    int  `json:"failed_count"`
 }

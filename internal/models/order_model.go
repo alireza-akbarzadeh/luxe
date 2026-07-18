@@ -12,15 +12,15 @@ type Order struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 
-	UserID          uint    `gorm:"not null;index" json:"user_id"`
-	OrderNumber     string  `gorm:"uniqueIndex;not null" json:"order_number"`
-	Status          string  `gorm:"not null;default:'pending'" json:"status"`
-	WorkflowStateID *uint   `gorm:"index" json:"workflow_state_id,omitempty"`
+	UserID          uint           `gorm:"not null;index" json:"user_id"`
+	OrderNumber     string         `gorm:"uniqueIndex;not null" json:"order_number"`
+	Status          string         `gorm:"not null;default:'pending'" json:"status"`
+	WorkflowStateID *uint          `gorm:"index" json:"workflow_state_id,omitempty"`
 	WorkflowState   *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
-	ParentOrderID   *uint   `gorm:"index" json:"parent_order_id,omitempty"`
-	TotalAmount     float64 `gorm:"type:decimal(10,2);not null" json:"total_amount"`
-	Currency        string  `gorm:"not null;default:'USD'" json:"currency"`
-	Notes           string  `json:"notes,omitempty"`
+	ParentOrderID   *uint          `gorm:"index" json:"parent_order_id,omitempty"`
+	TotalAmount     float64        `gorm:"type:decimal(10,2);not null" json:"total_amount"`
+	Currency        string         `gorm:"not null;default:'USD'" json:"currency"`
+	Notes           string         `json:"notes,omitempty"`
 
 	// Address IDs (separate addresses table could be added later)
 	BillingAddressID  *uint `json:"billing_address_id,omitempty"`
@@ -33,8 +33,8 @@ type Order struct {
 	User  User        `gorm:"foreignKey:UserID" json:"-"`
 	Items []OrderItem `json:"items,omitempty"`
 
-	Payment  *Payment  `gorm:"foreignKey:OrderID" json:"payment,omitempty"`
-	Shipment *Shipment `gorm:"foreignKey:OrderID" json:"shipment,omitempty"`
+	Payment  *Payment   `gorm:"foreignKey:OrderID" json:"payment,omitempty"`
+	Shipment *Shipment  `gorm:"foreignKey:OrderID" json:"shipment,omitempty"`
 	Tags     []OrderTag `gorm:"foreignKey:OrderID" json:"tags,omitempty"`
 }
 

@@ -39,7 +39,7 @@ func (q *memoryQueue) EnqueueProcessOrder(_ context.Context, orderID uint, cardI
 	}
 	card := cardInfo
 	q.pool.Enqueue(Job{
-		ID: fmt.Sprintf("fulfill_%d", orderID),
+		ID:      fmt.Sprintf("fulfill_%d", orderID),
 		Payload: ProcessOrderPayload{OrderID: orderID, CardInfo: card},
 		Handler: func(payload interface{}) error {
 			p, ok := payload.(ProcessOrderPayload)

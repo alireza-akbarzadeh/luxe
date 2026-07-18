@@ -37,7 +37,7 @@ func (c *ttlCache) Set(key string, value any, ttl time.Duration) {
 }
 
 const (
-	publicCacheTTL  = 5 * time.Minute
+	publicCacheTTL   = 5 * time.Minute
 	personalCacheTTL = 1 * time.Minute
-	defaultLimit    = 12
+	defaultLimit     = 12
 )

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	TaskSustainabilityScore        = "sustainability_score"
+	TaskSustainabilityScore          = "sustainability_score"
 	maxReviewsForSustainabilityScore = 20
 )
 
@@ -175,10 +175,10 @@ func parseSustainabilityScoreJSON(content string) (*dto.AiSustainabilityScoreRes
 	}
 
 	var raw struct {
-		Score      int    `json:"score"`
-		Rating     string `json:"rating"`
-		Summary    string `json:"summary"`
-		Pillars    []struct {
+		Score   int    `json:"score"`
+		Rating  string `json:"rating"`
+		Summary string `json:"summary"`
+		Pillars []struct {
 			Key   string `json:"key"`
 			Label string `json:"label"`
 			Score int    `json:"score"`

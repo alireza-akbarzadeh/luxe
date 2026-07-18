@@ -3,9 +3,9 @@ package search
 import (
 	"context"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/i18n"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )

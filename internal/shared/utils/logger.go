@@ -14,9 +14,9 @@ var Log *logrus.Logger
 
 // LoggerConfig configures structured application logging.
 type LoggerConfig struct {
-	Level         string
-	AppEnv        string
-	ServiceName   string
+	Level          string
+	AppEnv         string
+	ServiceName    string
 	ServiceVersion string
 }
 

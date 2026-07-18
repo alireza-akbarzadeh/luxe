@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
+	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appcart "github.com/alireza-akbarzadeh/luxe/internal/application/cart"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -16,7 +16,7 @@ import (
 type CartHandler struct {
 	commands *appcart.Commands
 	queries  *appcart.Queries
-	validate    *validator.Validate
+	validate *validator.Validate
 }
 
 func NewCartHandler(commands *appcart.Commands, queries *appcart.Queries) *CartHandler {

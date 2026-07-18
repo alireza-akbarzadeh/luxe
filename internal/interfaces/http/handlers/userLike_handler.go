@@ -3,27 +3,27 @@ package handlers
 import (
 	"strconv"
 
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
-	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type UserLikeHandler struct {
-	commands *appuserlike.Commands
-	queries  *appuserlike.Queries
+	commands       *appuserlike.Commands
+	queries        *appuserlike.Queries
 	productService *appcatalog.Service
 	validate       *validator.Validate
 }
 
 func NewUserLikeHandler(commands *appuserlike.Commands, queries *appuserlike.Queries, productServices *appcatalog.Service) *UserLikeHandler {
 	return &UserLikeHandler{
-		commands: commands,
-		queries:  queries,
+		commands:       commands,
+		queries:        queries,
 		productService: productServices,
 		validate:       validator.New(),
 	}

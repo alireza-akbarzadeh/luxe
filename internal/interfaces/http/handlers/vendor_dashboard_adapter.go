@@ -7,8 +7,8 @@ import (
 
 	appai "github.com/alireza-akbarzadeh/luxe/internal/application/ai"
 	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
-	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
 	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
+	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
 	appstore "github.com/alireza-akbarzadeh/luxe/internal/application/store"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"

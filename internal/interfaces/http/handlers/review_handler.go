@@ -3,10 +3,10 @@ package handlers
 import (
 	"strconv"
 
+	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appreview "github.com/alireza-akbarzadeh/luxe/internal/application/review"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -15,17 +15,16 @@ import (
 type ReviewHandler struct {
 	commands *appreview.Commands
 	queries  *appreview.Queries
-	validate      *validator.Validate
+	validate *validator.Validate
 }
 
 func NewReviewHandler(commands *appreview.Commands, queries *appreview.Queries) *ReviewHandler {
 	return &ReviewHandler{
 		commands: commands,
 		queries:  queries,
-		validate:      validator.New(),
+		validate: validator.New(),
 	}
 }
-
 
 // Create a review
 // @Summary      Create product review

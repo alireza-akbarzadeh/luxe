@@ -9,17 +9,17 @@ import (
 )
 
 type NavItemResponse struct {
-	ID        uint           `json:"id"`
-	Type      string         `json:"type"`
-	Label     string         `json:"label"`
+	ID        uint              `json:"id"`
+	Type      string            `json:"type"`
+	Label     string            `json:"label"`
 	LabelI18n i18n.LocalizedMap `json:"labelI18n,omitempty"`
-	Href      *string        `json:"href,omitempty"`
-	Badge     *string        `json:"badge,omitempty"`
+	Href      *string           `json:"href,omitempty"`
+	Badge     *string           `json:"badge,omitempty"`
 	BadgeI18n i18n.LocalizedMap `json:"badgeI18n,omitempty"`
-	Order     int            `json:"order"`
-	ViewAll   *ViewAll       `json:"viewAll,omitempty"`
-	Columns   []Column       `json:"columns,omitempty"`
-	Featured  []FeaturedItem `json:"featured,omitempty"`
+	Order     int               `json:"order"`
+	ViewAll   *ViewAll          `json:"viewAll,omitempty"`
+	Columns   []Column          `json:"columns,omitempty"`
+	Featured  []FeaturedItem    `json:"featured,omitempty"`
 }
 
 type ReorderNavMenuItem struct {

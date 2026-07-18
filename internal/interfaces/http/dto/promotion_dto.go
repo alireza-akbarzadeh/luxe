@@ -168,8 +168,8 @@ type PromotionsKPIResponse struct {
 }
 
 type PromotionsKPIData struct {
-	ActiveFlashDeals      int64 `json:"active_flash_deals"`
-	PublishedBanners      int64 `json:"published_banners"`
-	ActiveCampaigns       int64 `json:"active_campaigns"`
-	ScheduledCampaigns    int64 `json:"scheduled_campaigns"`
+	ActiveFlashDeals   int64 `json:"active_flash_deals"`
+	PublishedBanners   int64 `json:"published_banners"`
+	ActiveCampaigns    int64 `json:"active_campaigns"`
+	ScheduledCampaigns int64 `json:"scheduled_campaigns"`
 }

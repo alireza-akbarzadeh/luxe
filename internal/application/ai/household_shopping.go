@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	TaskHouseholdShopping      = "household_shopping"
-	maxHouseholdMembers        = 8
+	TaskHouseholdShopping       = "household_shopping"
+	maxHouseholdMembers         = 8
 	defaultHouseholdSearchLimit = 5
 )
 
@@ -44,7 +44,7 @@ func (s *Service) HouseholdShopping(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("household_shopping:"+subjectKey) {
+	if !s.chatRL.allow("household_shopping:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 
@@ -138,9 +138,9 @@ Household facts:
 	}
 
 	utils.Log.WithFields(map[string]any{
-		"user_id":  userID,
-		"task":     TaskHouseholdShopping,
-		"members":  len(members),
+		"user_id": userID,
+		"task":    TaskHouseholdShopping,
+		"members": len(members),
 	}).Info("ai household shopping completed")
 
 	return response, nil

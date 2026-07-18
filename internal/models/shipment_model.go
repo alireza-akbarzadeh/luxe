@@ -33,10 +33,10 @@ type Shipment struct {
 	ProviderID    *uint   `gorm:"index" json:"provider_id,omitempty"`
 	ShippingPrice float64 `gorm:"type:decimal(10,2);not null;default:0" json:"shipping_price"`
 
-	Order    Order              `gorm:"foreignKey:OrderID" json:"-"`
-	User     User               `gorm:"foreignKey:UserID" json:"-"`
-	Provider *ShippingProviders `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
-	WorkflowState *WorkflowState `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
+	Order         Order              `gorm:"foreignKey:OrderID" json:"-"`
+	User          User               `gorm:"foreignKey:UserID" json:"-"`
+	Provider      *ShippingProviders `gorm:"foreignKey:ProviderID" json:"provider,omitempty"`
+	WorkflowState *WorkflowState     `gorm:"foreignKey:WorkflowStateID;references:ID" json:"workflow_state,omitempty"`
 }
 
 type ShippingProviders struct {

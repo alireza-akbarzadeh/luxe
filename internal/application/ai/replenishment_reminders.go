@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	TaskReplenishmentReminders   = "replenishment_reminders"
-	defaultReplenishmentOrders   = 12
-	maxReplenishmentOrders       = 20
-	defaultReplenishmentLimit    = 6
-	maxReplenishmentLimit        = 8
-	defaultReplenishmentSearch   = 6
+	TaskReplenishmentReminders = "replenishment_reminders"
+	defaultReplenishmentOrders = 12
+	maxReplenishmentOrders     = 20
+	defaultReplenishmentLimit  = 6
+	maxReplenishmentLimit      = 8
+	defaultReplenishmentSearch = 6
 )
 
 // ReplenishmentQueries loads recent purchase history for reorder suggestions.
@@ -28,7 +28,7 @@ type ReplenishmentQueries interface {
 }
 
 type replenishmentPayload struct {
-	Summary   string                      `json:"summary"`
+	Summary   string                        `json:"summary"`
 	Reminders []dto.AiReplenishmentReminder `json:"reminders"`
 }
 
@@ -53,7 +53,7 @@ func (s *Service) ReplenishmentReminders(
 	if search == nil {
 		return nil, utils.ErrInternal(fmt.Errorf("search not configured"))
 	}
-	if !s.chatRL.allow("replenishment_reminders:"+subjectKey) {
+	if !s.chatRL.allow("replenishment_reminders:" + subjectKey) {
 		return nil, utils.ErrTooManyRequests()
 	}
 

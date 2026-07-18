@@ -31,9 +31,9 @@ type ProductQuestion struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	User    User             `gorm:"foreignKey:UserID" json:"-"`
-	Answers []ProductAnswer  `gorm:"foreignKey:QuestionID" json:"-"`
-	Product Product          `gorm:"foreignKey:ProductID" json:"-"`
+	User    User            `gorm:"foreignKey:UserID" json:"-"`
+	Answers []ProductAnswer `gorm:"foreignKey:QuestionID" json:"-"`
+	Product Product         `gorm:"foreignKey:ProductID" json:"-"`
 }
 
 func (ProductQuestion) TableName() string { return "product_questions" }
@@ -63,9 +63,9 @@ type ProductDiscussion struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 
-	User    User                      `gorm:"foreignKey:UserID" json:"-"`
-	Replies []ProductDiscussionReply  `gorm:"foreignKey:DiscussionID" json:"-"`
-	Product Product                   `gorm:"foreignKey:ProductID" json:"-"`
+	User    User                     `gorm:"foreignKey:UserID" json:"-"`
+	Replies []ProductDiscussionReply `gorm:"foreignKey:DiscussionID" json:"-"`
+	Product Product                  `gorm:"foreignKey:ProductID" json:"-"`
 }
 
 func (ProductDiscussion) TableName() string { return "product_discussions" }

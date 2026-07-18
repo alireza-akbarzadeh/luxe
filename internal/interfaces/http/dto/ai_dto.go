@@ -267,11 +267,11 @@ type AiShoppingMemorySignal struct {
 
 // AiShoppingMemoryResponse summarizes taste and picks from browsing history.
 type AiShoppingMemoryResponse struct {
-	Summary         string                 `json:"summary"`
-	StyleNotes      []string               `json:"style_notes,omitempty"`
+	Summary         string                   `json:"summary"`
+	StyleNotes      []string                 `json:"style_notes,omitempty"`
 	Signals         []AiShoppingMemorySignal `json:"signals,omitempty"`
-	Recommendations []AiRecommendedProduct `json:"recommendations,omitempty"`
-	Sources         []string               `json:"sources,omitempty"`
+	Recommendations []AiRecommendedProduct   `json:"recommendations,omitempty"`
+	Sources         []string                 `json:"sources,omitempty"`
 }
 
 // AiGoalShoppingRequest finds products for a stated shopping goal.
@@ -384,9 +384,9 @@ type AiHouseholdMemberProfile struct {
 // AiHouseholdShoppingRequest finds catalog picks tailored to household members.
 type AiHouseholdShoppingRequest struct {
 	Members   []AiHouseholdMemberProfile `json:"members" binding:"required,min=1,max=8,dive"`
-	Context   string                   `json:"context,omitempty"`
-	BudgetMin float64                  `json:"budget_min,omitempty"`
-	BudgetMax float64                  `json:"budget_max,omitempty"`
+	Context   string                     `json:"context,omitempty"`
+	BudgetMin float64                    `json:"budget_min,omitempty"`
+	BudgetMax float64                    `json:"budget_max,omitempty"`
 }
 
 // AiHouseholdMemberPick pairs one member with personalized product suggestions.
@@ -423,10 +423,10 @@ type AiRoomPreviewResponse struct {
 
 // AiVirtualTryOnRequest analyzes how a wearable product suits a shopper photo.
 type AiVirtualTryOnRequest struct {
-	ProductID    uint   `json:"product_id" binding:"required,gt=0"`
-	PhotoBase64  string `json:"photo_base64" binding:"required"`
-	SizeProfile  string `json:"size_profile,omitempty"`
-	Context      string `json:"context,omitempty"`
+	ProductID   uint   `json:"product_id" binding:"required,gt=0"`
+	PhotoBase64 string `json:"photo_base64" binding:"required"`
+	SizeProfile string `json:"size_profile,omitempty"`
+	Context     string `json:"context,omitempty"`
 }
 
 // AiVirtualTryOnResponse returns style and fit guidance from a try-on photo.
@@ -539,13 +539,13 @@ type AiGiftFinderFollowUpAnswer struct {
 
 // AiGiftFinderRequest is a structured gift recommendation wizard submission.
 type AiGiftFinderRequest struct {
-	Recipient        string                       `json:"recipient" binding:"required"`
-	Occasion         string                       `json:"occasion" binding:"required"`
-	BudgetMin        float64                      `json:"budget_min,omitempty"`
-	BudgetMax        float64                      `json:"budget_max,omitempty"`
-	Interests        string                       `json:"interests,omitempty"`
-	AdditionalNotes  string                       `json:"additional_notes,omitempty"`
-	FollowUpAnswers  []AiGiftFinderFollowUpAnswer `json:"follow_up_answers,omitempty"`
+	Recipient       string                       `json:"recipient" binding:"required"`
+	Occasion        string                       `json:"occasion" binding:"required"`
+	BudgetMin       float64                      `json:"budget_min,omitempty"`
+	BudgetMax       float64                      `json:"budget_max,omitempty"`
+	Interests       string                       `json:"interests,omitempty"`
+	AdditionalNotes string                       `json:"additional_notes,omitempty"`
+	FollowUpAnswers []AiGiftFinderFollowUpAnswer `json:"follow_up_answers,omitempty"`
 }
 
 // AiGiftFinderResponse returns gift guidance, optional follow-ups, and product picks.
@@ -706,14 +706,14 @@ type VendorPricingSuggestion struct {
 
 // AiVendorPricingAssistantResponse powers vendor dynamic pricing recommendations.
 type AiVendorPricingAssistantResponse struct {
-	AiEnabled       bool                    `json:"ai_enabled"`
-	PeriodDays      int                     `json:"period_days"`
-	Summary         string                  `json:"summary"`
-	Highlights      []string                `json:"highlights"`
-	Recommendations []string                `json:"recommendations"`
-	Warnings        []string                `json:"warnings,omitempty"`
+	AiEnabled       bool                      `json:"ai_enabled"`
+	PeriodDays      int                       `json:"period_days"`
+	Summary         string                    `json:"summary"`
+	Highlights      []string                  `json:"highlights"`
+	Recommendations []string                  `json:"recommendations"`
+	Warnings        []string                  `json:"warnings,omitempty"`
 	Suggestions     []VendorPricingSuggestion `json:"suggestions"`
-	Sources         []string                `json:"sources,omitempty"`
+	Sources         []string                  `json:"sources,omitempty"`
 }
 
 // VendorCustomerSegmentSummary groups customers by behavioral segment.

@@ -133,16 +133,16 @@ func resolvedCategoryResponse(ctx context.Context, c *models.Category) CategoryR
 	nameMap := decodeCatalogNameI18n(c.NameI18n, c.Name)
 	descMap := decodeCatalogDescriptionI18n(c.DescriptionI18n, c.Description)
 	return CategoryResponse{
-		ID:             c.ID,
-		Name:           nameMap.Resolve(ctx, c.Name),
-		NameI18n:       nameMap,
-		Slug:           c.Slug,
-		Description:    descMap.Resolve(ctx, c.Description),
+		ID:              c.ID,
+		Name:            nameMap.Resolve(ctx, c.Name),
+		NameI18n:        nameMap,
+		Slug:            c.Slug,
+		Description:     descMap.Resolve(ctx, c.Description),
 		DescriptionI18n: descMap,
-		Level:          c.Level,
-		Path:           c.Path,
-		IsActive:       c.IsActive,
-		ParentID:       c.ParentID,
+		Level:           c.Level,
+		Path:            c.Path,
+		IsActive:        c.IsActive,
+		ParentID:        c.ParentID,
 	}
 }
 

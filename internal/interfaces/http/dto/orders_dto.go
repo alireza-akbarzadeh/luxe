@@ -113,19 +113,19 @@ type OrderResponse struct {
 
 // AdminOrderListItem is a row in the admin orders table.
 type AdminOrderListItem struct {
-	ID              uint       `json:"id"`
-	OrderNumber     string     `json:"order_number"`
-	Status          string     `json:"status"`
-	PaymentStatus   string     `json:"payment_status"`
-	ShipmentStatus  string     `json:"shipment_status,omitempty"`
-	WorkflowState   *StateView `json:"workflow_state,omitempty"`
-	Tags            []string   `json:"tags,omitempty"`
-	TotalAmount     float64    `json:"total_amount"`
-	Currency        string     `json:"currency"`
-	CustomerName    string     `json:"customer_name"`
-	CustomerEmail   string     `json:"customer_email"`
-	ItemsCount      int        `json:"items_count"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID             uint       `json:"id"`
+	OrderNumber    string     `json:"order_number"`
+	Status         string     `json:"status"`
+	PaymentStatus  string     `json:"payment_status"`
+	ShipmentStatus string     `json:"shipment_status,omitempty"`
+	WorkflowState  *StateView `json:"workflow_state,omitempty"`
+	Tags           []string   `json:"tags,omitempty"`
+	TotalAmount    float64    `json:"total_amount"`
+	Currency       string     `json:"currency"`
+	CustomerName   string     `json:"customer_name"`
+	CustomerEmail  string     `json:"customer_email"`
+	ItemsCount     int        `json:"items_count"`
+	CreatedAt      time.Time  `json:"created_at"`
 }
 
 // AdminOrderListData wraps paginated admin order rows.
@@ -154,18 +154,18 @@ func ToAdminOrderListItem(order models.Order) AdminOrderListItem {
 	}
 
 	item := AdminOrderListItem{
-		ID:            order.ID,
-		OrderNumber:   order.OrderNumber,
-		Status:        order.Status,
-		PaymentStatus: paymentStatus,
+		ID:             order.ID,
+		OrderNumber:    order.OrderNumber,
+		Status:         order.Status,
+		PaymentStatus:  paymentStatus,
 		ShipmentStatus: shipmentStatus,
-		Tags:          orderTagStrings(order.Tags),
-		TotalAmount:   order.TotalAmount,
-		Currency:      order.Currency,
-		CustomerName:  name,
-		CustomerEmail: order.User.Email,
-		ItemsCount:    len(order.Items),
-		CreatedAt:     order.CreatedAt,
+		Tags:           orderTagStrings(order.Tags),
+		TotalAmount:    order.TotalAmount,
+		Currency:       order.Currency,
+		CustomerName:   name,
+		CustomerEmail:  order.User.Email,
+		ItemsCount:     len(order.Items),
+		CreatedAt:      order.CreatedAt,
 	}
 	if order.WorkflowState != nil {
 		item.WorkflowState = ToStateView(order.WorkflowState)

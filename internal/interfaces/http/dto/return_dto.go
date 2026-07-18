@@ -9,10 +9,10 @@ const (
 
 // CreateReturnRequest is submitted by a customer to open a return/refund case.
 type CreateReturnRequest struct {
-	OrderID        uint   `json:"order_id" validate:"required,gt=0"`
-	Reason         string `json:"reason" validate:"required,min=3,max=512"`
-	ReturnType     string `json:"return_type" validate:"omitempty,oneof=refund exchange"`
-	ExchangeNotes  string `json:"exchange_notes" validate:"omitempty,max=512"`
+	OrderID       uint   `json:"order_id" validate:"required,gt=0"`
+	Reason        string `json:"reason" validate:"required,min=3,max=512"`
+	ReturnType    string `json:"return_type" validate:"omitempty,oneof=refund exchange"`
+	ExchangeNotes string `json:"exchange_notes" validate:"omitempty,max=512"`
 }
 
 // ReturnResponse is the API view of a return request.

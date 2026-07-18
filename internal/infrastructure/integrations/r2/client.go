@@ -23,9 +23,9 @@ type PresignResult struct {
 
 // Client generates presigned upload URLs for Cloudflare R2 (S3-compatible API).
 type Client struct {
-	bucket       string
-	publicBase   string
-	presignTTL   time.Duration
+	bucket        string
+	publicBase    string
+	presignTTL    time.Duration
 	presignClient *s3.PresignClient
 }
 

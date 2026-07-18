@@ -131,6 +131,18 @@ func (r *StoreRepository) CountByStatus(ctx context.Context, status string) (int
 	return count, err
 }
 
+// ListActiveLite returns id/name for active stores — used by the store working calendar
+// to compute today's status and KPIs without loading full store records.
+func (r *StoreRepository) ListActiveLite(ctx context.Context) ([]models.Store, error) {
+	var stores []models.Store
+	err := r.db.WithContext(ctx).Model(&models.Store{}).
+		Where("status = ?", constants.StoreStatusActive).
+		Select("id", "name").
+		Order("name ASC").
+		Find(&stores).Error
+	return stores, err
+}
+
 // CountVerified returns stores marked as verified.
 func (r *StoreRepository) CountVerified(ctx context.Context) (int64, error) {
 	var count int64

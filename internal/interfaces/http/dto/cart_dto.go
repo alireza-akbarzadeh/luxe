@@ -39,7 +39,7 @@ type CartItemDetail struct {
 	// New fields
 	Image         string   `json:"image,omitempty"`
 	OriginalPrice float64  `json:"original_price,omitempty"`
-	Color         []string `json:"color,omitempty"`	
+	Color         []string `json:"color,omitempty"`
 	Size          []string `json:"size,omitempty"`
 	Discount      float64  `json:"discount"`
 

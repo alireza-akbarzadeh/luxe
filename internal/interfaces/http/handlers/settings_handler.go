@@ -3,8 +3,8 @@ package handlers
 import (
 	"errors"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	appsettings "github.com/alireza-akbarzadeh/luxe/internal/application/settings"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -13,7 +13,7 @@ import (
 type SettingHandler struct {
 	commands *appsettings.Commands
 	queries  *appsettings.Queries
-	validate       *validator.Validate
+	validate *validator.Validate
 }
 
 func NewSettingHandler(commands *appsettings.Commands, queries *appsettings.Queries) *SettingHandler {

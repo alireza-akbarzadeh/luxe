@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
+	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"

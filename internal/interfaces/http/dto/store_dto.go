@@ -34,20 +34,20 @@ type CreateStoreRequest struct {
 
 // VendorCreateStoreRequest is the self-service seller onboarding payload.
 type VendorCreateStoreRequest struct {
-	Name              string `json:"name" validate:"required"`
-	Description       string `json:"description" validate:"required"`
-	LogoURL           string `json:"logo_url"`
-	BannerURL         string `json:"banner_url"`
-	Location          string `json:"location" validate:"required"`
-	ShippingInfo      string `json:"shipping_info" validate:"required"`
-	ReturnPolicy      string `json:"return_policy" validate:"required"`
-	BusinessLegalName string `json:"business_legal_name" validate:"required"`
-	BusinessType      string `json:"business_type" validate:"required,oneof=individual company brand"`
-	Country           string `json:"country" validate:"required"`
-	Website           string `json:"website"`
-	TaxID             string `json:"tax_id"`
-	FulfillmentModel  string  `json:"fulfillment_model" validate:"required,oneof=self platform hybrid"`
-	CategoryIDs       []uint  `json:"category_ids"`
+	Name              string   `json:"name" validate:"required"`
+	Description       string   `json:"description" validate:"required"`
+	LogoURL           string   `json:"logo_url"`
+	BannerURL         string   `json:"banner_url"`
+	Location          string   `json:"location" validate:"required"`
+	ShippingInfo      string   `json:"shipping_info" validate:"required"`
+	ReturnPolicy      string   `json:"return_policy" validate:"required"`
+	BusinessLegalName string   `json:"business_legal_name" validate:"required"`
+	BusinessType      string   `json:"business_type" validate:"required,oneof=individual company brand"`
+	Country           string   `json:"country" validate:"required"`
+	Website           string   `json:"website"`
+	TaxID             string   `json:"tax_id"`
+	FulfillmentModel  string   `json:"fulfillment_model" validate:"required,oneof=self platform hybrid"`
+	CategoryIDs       []uint   `json:"category_ids"`
 	Latitude          *float64 `json:"latitude,omitempty"`
 	Longitude         *float64 `json:"longitude,omitempty"`
 }
@@ -187,18 +187,18 @@ type AdminVendorDailySales struct {
 
 // AdminVendorPerformanceResponse powers the admin vendor detail performance tab.
 type AdminVendorPerformanceResponse struct {
-	Period        string                  `json:"period"`
-	GeneratedAt   time.Time               `json:"generated_at"`
-	Store         AdminStoreResponse      `json:"store"`
-	CurrentSales  AdminVendorSalesSummary `json:"current_sales"`
-	PreviousSales AdminVendorSalesSummary `json:"previous_sales"`
-	OrderTotal    int64                   `json:"order_total"`
-	OrdersByStatus map[string]int64       `json:"orders_by_status"`
-	ProductTotal  int64                   `json:"product_total"`
-	ProductsByStatus map[string]int64      `json:"products_by_status"`
-	LowStockCount int64                   `json:"low_stock_count"`
-	TopProducts   []AdminVendorTopProduct `json:"top_products"`
-	DailySales    []AdminVendorDailySales `json:"daily_sales"`
+	Period           string                  `json:"period"`
+	GeneratedAt      time.Time               `json:"generated_at"`
+	Store            AdminStoreResponse      `json:"store"`
+	CurrentSales     AdminVendorSalesSummary `json:"current_sales"`
+	PreviousSales    AdminVendorSalesSummary `json:"previous_sales"`
+	OrderTotal       int64                   `json:"order_total"`
+	OrdersByStatus   map[string]int64        `json:"orders_by_status"`
+	ProductTotal     int64                   `json:"product_total"`
+	ProductsByStatus map[string]int64        `json:"products_by_status"`
+	LowStockCount    int64                   `json:"low_stock_count"`
+	TopProducts      []AdminVendorTopProduct `json:"top_products"`
+	DailySales       []AdminVendorDailySales `json:"daily_sales"`
 }
 
 func ToStoreResponse(ctx context.Context, store *models.Store) StoreResponse {

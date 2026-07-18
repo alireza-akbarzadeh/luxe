@@ -18,7 +18,7 @@ const (
 )
 
 type personalizedNotificationsPayload struct {
-	Summary     string                           `json:"summary"`
+	Summary     string                         `json:"summary"`
 	Suggestions []dto.AiNotificationSuggestion `json:"suggestions"`
 }
 
@@ -155,12 +155,12 @@ func parsePersonalizedNotificationsJSON(raw string, limit int) (*personalizedNot
 	}
 
 	allowedTypes := map[string]struct{}{
-		"order_updates":    {},
-		"price_drops":      {},
-		"back_in_stock":    {},
-		"style_picks":      {},
-		"promotions":       {},
-		"wishlist_alerts":  {},
+		"order_updates":   {},
+		"price_drops":     {},
+		"back_in_stock":   {},
+		"style_picks":     {},
+		"promotions":      {},
+		"wishlist_alerts": {},
 	}
 	allowedPriority := map[string]struct{}{
 		"high":   {},

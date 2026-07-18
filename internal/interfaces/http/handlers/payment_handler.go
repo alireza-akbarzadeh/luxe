@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
+	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	"github.com/alireza-akbarzadeh/luxe/internal/config"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
-	apppayment "github.com/alireza-akbarzadeh/luxe/internal/application/payment"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

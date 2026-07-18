@@ -8,14 +8,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	aiint "github.com/alireza-akbarzadeh/luxe/internal/infrastructure/integrations/ai"
+	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 )
 
 const (
-	TaskVisualSearch     = "visual_search"
-	maxVisualImageBytes  = 5 << 20 // 5 MiB decoded
+	TaskVisualSearch    = "visual_search"
+	maxVisualImageBytes = 5 << 20 // 5 MiB decoded
 )
 
 type visualSearchIntent struct {

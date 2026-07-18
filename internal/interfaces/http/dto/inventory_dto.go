@@ -48,12 +48,12 @@ type ListInventoryHistoryRequest struct {
 }
 
 type InventoryOverviewResponse struct {
-	LowStockCount     int64 `json:"low_stock_count"`
-	OutOfStockCount   int64 `json:"out_of_stock_count"`
-	NotTrackedCount   int64 `json:"not_tracked_count"`
-	TrackedSKUCount   int64 `json:"tracked_sku_count"`
-	TotalUnitsOnHand  int64 `json:"total_units_on_hand"`
-	WaitlistTotal     int64 `json:"waitlist_total"`
+	LowStockCount    int64 `json:"low_stock_count"`
+	OutOfStockCount  int64 `json:"out_of_stock_count"`
+	NotTrackedCount  int64 `json:"not_tracked_count"`
+	TrackedSKUCount  int64 `json:"tracked_sku_count"`
+	TotalUnitsOnHand int64 `json:"total_units_on_hand"`
+	WaitlistTotal    int64 `json:"waitlist_total"`
 }
 
 type InventoryItemResponse struct {

@@ -23,14 +23,14 @@ func TestCouponWorkflow_ActivePauseResume(t *testing.T) {
 	now := time.Now().UTC()
 	isActive := true
 	createResp, err := authRequest(http.MethodPost, server.URL+"/api/v1/coupons", adminToken, dto.CreateCouponRequest{
-		Code:           code,
-		Description:    "integration coupon",
-		DiscountType:   "percentage",
-		DiscountValue:  10,
-		UsageLimit:     100,
-		IsActive:       &isActive,
-		StartDate:      now,
-		EndDate:        now.Add(30 * 24 * time.Hour),
+		Code:          code,
+		Description:   "integration coupon",
+		DiscountType:  "percentage",
+		DiscountValue: 10,
+		UsageLimit:    100,
+		IsActive:      &isActive,
+		StartDate:     now,
+		EndDate:       now.Add(30 * 24 * time.Hour),
 	})
 	require.NoError(t, err)
 	defer createResp.Body.Close()

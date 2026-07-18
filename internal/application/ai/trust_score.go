@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	TaskTrustScore           = "trust_score"
-	maxReviewsForTrustScore  = 15
+	TaskTrustScore          = "trust_score"
+	maxReviewsForTrustScore = 15
 )
 
 // TrustScore synthesizes buyer trust signals into a 0–100 score with factor notes.

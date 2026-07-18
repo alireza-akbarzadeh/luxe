@@ -2845,6 +2845,59 @@ definitions:
     - order_ids
     - status
     type: object
+  dto.CalendarDayDetailResponse:
+    properties:
+      date:
+        type: string
+      day_type:
+        type: string
+      holidays:
+        items:
+          $ref: '#/definitions/dto.StoreHolidayResponse'
+        type: array
+      is_working_day:
+        type: boolean
+      off_days:
+        items:
+          $ref: '#/definitions/dto.VendorOffDayResponse'
+        type: array
+      schedule:
+        $ref: '#/definitions/dto.StoreWorkingScheduleResponse'
+    type: object
+  dto.CalendarDayEventResponse:
+    properties:
+      badges:
+        items:
+          type: string
+        type: array
+      date:
+        type: string
+      day_type:
+        type: string
+      holiday_ids:
+        items:
+          type: integer
+        type: array
+      off_day_ids:
+        items:
+          type: integer
+        type: array
+    type: object
+  dto.CalendarSummaryResponse:
+    properties:
+      active_stores:
+        type: integer
+      closed_today:
+        type: integer
+      next_delivery_delay_days:
+        type: integer
+      total_stores:
+        type: integer
+      upcoming_holidays:
+        type: integer
+      working_capacity_percent:
+        type: number
+    type: object
   dto.CampaignData:
     properties:
       campaign:
@@ -4480,6 +4533,62 @@ definitions:
     required:
     - name
     type: object
+  dto.CreateStoreHolidayRequest:
+    properties:
+      apply_to:
+        enum:
+        - all
+        - stores
+        - vendor
+        - region
+        type: string
+      description:
+        type: string
+      end_date:
+        type: string
+      holiday_type:
+        enum:
+        - national
+        - regional
+        - store
+        - vendor
+        type: string
+      is_recurring:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      notes:
+        type: string
+      priority:
+        type: integer
+      recurrence_rule:
+        maxLength: 50
+        type: string
+      region:
+        maxLength: 100
+        type: string
+      start_date:
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        type: string
+      store_ids:
+        items:
+          type: integer
+        type: array
+      vendor_id:
+        type: integer
+    required:
+    - apply_to
+    - end_date
+    - holiday_type
+    - name
+    - start_date
+    type: object
   dto.CreateStoreRequest:
     properties:
       banner_url:
@@ -4528,6 +4637,47 @@ definitions:
     required:
     - comment
     - rating
+    type: object
+  dto.CreateStoreWorkingScheduleRequest:
+    properties:
+      break_end:
+        maxLength: 5
+        type: string
+      break_start:
+        maxLength: 5
+        type: string
+      close_time:
+        maxLength: 5
+        type: string
+      delivery_buffer_hours:
+        minimum: 0
+        type: integer
+      max_deliveries_per_day:
+        minimum: 0
+        type: integer
+      max_orders_per_day:
+        minimum: 0
+        type: integer
+      open_time:
+        maxLength: 5
+        type: string
+      prep_lead_hours:
+        minimum: 0
+        type: integer
+      processing_lead_hours:
+        minimum: 0
+        type: integer
+      store_id:
+        type: integer
+      timezone:
+        maxLength: 64
+        type: string
+      working_days:
+        additionalProperties:
+          type: boolean
+        type: object
+    required:
+    - store_id
     type: object
   dto.CreateSupportTicketMessageRequest:
     properties:
@@ -4598,6 +4748,40 @@ definitions:
     required:
     - name
     - slug
+    type: object
+  dto.CreateVendorOffDayRequest:
+    properties:
+      end_date:
+        type: string
+      notes:
+        type: string
+      off_type:
+        enum:
+        - vacation
+        - inventory_count
+        - maintenance
+        - emergency_close
+        - personal_leave
+        type: string
+      start_date:
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
+      vendor_id:
+        type: integer
+    required:
+    - end_date
+    - off_type
+    - start_date
+    - title
+    - vendor_id
     type: object
   dto.CreateWorkflowRequest:
     properties:
@@ -4811,6 +4995,32 @@ definitions:
         type: string
     required:
     - endpoint
+    type: object
+  dto.DeliveryCalendarRuleResponse:
+    properties:
+      description:
+        type: string
+      enabled:
+        type: boolean
+      id:
+        type: integer
+      label:
+        type: string
+      rule_key:
+        type: string
+      sort_order:
+        type: integer
+    type: object
+  dto.DeliveryTimelineStep:
+    properties:
+      date:
+        type: string
+      days:
+        type: integer
+      label:
+        type: string
+      step:
+        type: string
     type: object
   dto.DepositRequest:
     properties:
@@ -5669,6 +5879,71 @@ definitions:
         type: string
       titleI18n:
         $ref: '#/definitions/i18n.LocalizedMap'
+    type: object
+  dto.ListCalendarEventsResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.CalendarDayEventResponse'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.ListDeliveryCalendarRulesResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.DeliveryCalendarRuleResponse'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.ListStoreWorkingSchedulesResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.StoreWorkingScheduleResponse'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.ListStoresStatusTodayResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.StoreStatusTodayResponse'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.ListUpcomingEventsResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        items:
+          $ref: '#/definitions/dto.UpcomingEventResponse'
+        type: array
+      message:
+        type: string
+      success:
+        type: boolean
     type: object
   dto.LoginRequest:
     properties:
@@ -7321,6 +7596,57 @@ definitions:
       label:
         type: string
     type: object
+  dto.SimulateDeliveryRequest:
+    properties:
+      city:
+        maxLength: 100
+        type: string
+      order_date:
+        type: string
+      region:
+        maxLength: 100
+        type: string
+      shipping_days:
+        minimum: 0
+        type: integer
+      shipping_method:
+        enum:
+        - standard
+        - express
+        - pickup
+        type: string
+      store_id:
+        type: integer
+      vendor_id:
+        type: integer
+    required:
+    - order_date
+    - shipping_method
+    - store_id
+    type: object
+  dto.SimulateDeliveryResponse:
+    properties:
+      delay_reason:
+        type: string
+      delivery_date:
+        type: string
+      processing_start:
+        type: string
+      skipped_holidays:
+        items:
+          type: string
+        type: array
+      skipped_weekends:
+        items:
+          type: string
+        type: array
+      timeline:
+        items:
+          $ref: '#/definitions/dto.DeliveryTimelineStep'
+        type: array
+      vendor_available:
+        type: boolean
+    type: object
   dto.SmartBundleItem:
     properties:
       compatibility_score:
@@ -7405,6 +7731,71 @@ definitions:
       subscribed:
         type: boolean
     type: object
+  dto.StoreHolidayListData:
+    properties:
+      holidays:
+        items:
+          $ref: '#/definitions/dto.StoreHolidayResponse'
+        type: array
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.StoreHolidayListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.StoreHolidayListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.StoreHolidayResponse:
+    properties:
+      apply_to:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        type: integer
+      description:
+        type: string
+      end_date:
+        type: string
+      holiday_type:
+        type: string
+      id:
+        type: integer
+      is_recurring:
+        type: boolean
+      name:
+        type: string
+      notes:
+        type: string
+      priority:
+        type: integer
+      recurrence_rule:
+        type: string
+      region:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      store_ids:
+        items:
+          type: integer
+        type: array
+      updated_at:
+        type: string
+      vendor_id:
+        type: integer
+    type: object
   dto.StoreResponse:
     properties:
       banner_url:
@@ -7441,6 +7832,52 @@ definitions:
         type: string
       slug:
         type: string
+    type: object
+  dto.StoreStatusTodayResponse:
+    properties:
+      is_working_today:
+        type: boolean
+      reason:
+        type: string
+      store_id:
+        type: integer
+      store_name:
+        type: string
+    type: object
+  dto.StoreWorkingScheduleResponse:
+    properties:
+      break_end:
+        type: string
+      break_start:
+        type: string
+      close_time:
+        type: string
+      created_at:
+        type: string
+      delivery_buffer_hours:
+        type: integer
+      id:
+        type: integer
+      max_deliveries_per_day:
+        type: integer
+      max_orders_per_day:
+        type: integer
+      open_time:
+        type: string
+      prep_lead_hours:
+        type: integer
+      processing_lead_hours:
+        type: integer
+      store_id:
+        type: integer
+      timezone:
+        type: string
+      updated_at:
+        type: string
+      working_days:
+        additionalProperties:
+          type: boolean
+        type: object
     type: object
   dto.StripeConfigResponse:
     properties:
@@ -7799,6 +8236,21 @@ definitions:
     required:
     - token
     type: object
+  dto.UpcomingEventResponse:
+    properties:
+      end_date:
+        type: string
+      id:
+        type: integer
+      scope:
+        type: string
+      start_date:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
   dto.UpdateAddressRequest:
     properties:
       address_line1:
@@ -8118,6 +8570,25 @@ definitions:
         - new
         - at_risk
         type: string
+    type: object
+  dto.UpdateDeliveryCalendarRuleItem:
+    properties:
+      enabled:
+        type: boolean
+      rule_key:
+        type: string
+    required:
+    - rule_key
+    type: object
+  dto.UpdateDeliveryCalendarRulesRequest:
+    properties:
+      rules:
+        items:
+          $ref: '#/definitions/dto.UpdateDeliveryCalendarRuleItem'
+        minItems: 1
+        type: array
+    required:
+    - rules
     type: object
   dto.UpdateEmailCampaignRequest:
     properties:
@@ -8460,6 +8931,56 @@ definitions:
         minimum: 0
         type: number
     type: object
+  dto.UpdateStoreHolidayRequest:
+    properties:
+      apply_to:
+        enum:
+        - all
+        - stores
+        - vendor
+        - region
+        type: string
+      description:
+        type: string
+      end_date:
+        type: string
+      holiday_type:
+        enum:
+        - national
+        - regional
+        - store
+        - vendor
+        type: string
+      is_recurring:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 2
+        type: string
+      notes:
+        type: string
+      priority:
+        type: integer
+      recurrence_rule:
+        maxLength: 50
+        type: string
+      region:
+        maxLength: 100
+        type: string
+      start_date:
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        type: string
+      store_ids:
+        items:
+          type: integer
+        type: array
+      vendor_id:
+        type: integer
+    type: object
   dto.UpdateStoreRequest:
     properties:
       banner_url:
@@ -8495,6 +9016,43 @@ definitions:
         maximum: 5
         minimum: 1
         type: integer
+    type: object
+  dto.UpdateStoreWorkingScheduleRequest:
+    properties:
+      break_end:
+        maxLength: 5
+        type: string
+      break_start:
+        maxLength: 5
+        type: string
+      close_time:
+        maxLength: 5
+        type: string
+      delivery_buffer_hours:
+        minimum: 0
+        type: integer
+      max_deliveries_per_day:
+        minimum: 0
+        type: integer
+      max_orders_per_day:
+        minimum: 0
+        type: integer
+      open_time:
+        maxLength: 5
+        type: string
+      prep_lead_hours:
+        minimum: 0
+        type: integer
+      processing_lead_hours:
+        minimum: 0
+        type: integer
+      timezone:
+        maxLength: 64
+        type: string
+      working_days:
+        additionalProperties:
+          type: boolean
+        type: object
     type: object
   dto.UpdateSupportTicketAssigneeRequest:
     properties:
@@ -8540,6 +9098,32 @@ definitions:
         type: string
     required:
     - role
+    type: object
+  dto.UpdateVendorOffDayRequest:
+    properties:
+      end_date:
+        type: string
+      notes:
+        type: string
+      off_type:
+        enum:
+        - vacation
+        - inventory_count
+        - maintenance
+        - emergency_close
+        - personal_leave
+        type: string
+      start_date:
+        type: string
+      status:
+        enum:
+        - draft
+        - published
+        type: string
+      title:
+        maxLength: 255
+        minLength: 2
+        type: string
     type: object
   dto.UpdateWorkflowRequest:
     properties:
@@ -8788,6 +9372,53 @@ definitions:
         type: integer
       urgency:
         type: string
+    type: object
+  dto.VendorOffDayListData:
+    properties:
+      limit:
+        type: integer
+      off_days:
+        items:
+          $ref: '#/definitions/dto.VendorOffDayResponse'
+        type: array
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  dto.VendorOffDayListResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/dto.VendorOffDayListData'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+  dto.VendorOffDayResponse:
+    properties:
+      created_at:
+        type: string
+      end_date:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      off_type:
+        type: string
+      start_date:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      vendor_id:
+        type: integer
     type: object
   dto.VendorOrderDetailResponse:
     properties:
@@ -11035,6 +11666,706 @@ paths:
       summary: Admin update blog post
       tags:
       - blog-admin
+  /admin/calendar/day/{date}:
+    get:
+      description: Returns holidays, off days, and schedule detail for a single calendar
+        day.
+      parameters:
+      - description: Date (YYYY-MM-DD)
+        in: path
+        name: date
+        required: true
+        type: string
+      - description: Store id
+        in: query
+        name: store_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CalendarDayDetailResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Day detail
+      tags:
+      - admin-calendar
+  /admin/calendar/events:
+    get:
+      description: Returns per-day status/badges for the calendar month grid.
+      parameters:
+      - description: Year
+        in: query
+        name: year
+        required: true
+        type: integer
+      - description: Month (1-12)
+        in: query
+        name: month
+        required: true
+        type: integer
+      - description: Filter by store
+        in: query
+        name: store_id
+        type: integer
+      - description: Filter by region
+        in: query
+        name: region
+        type: string
+      - description: Filter by holiday status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListCalendarEventsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Month calendar grid
+      tags:
+      - admin-calendar
+  /admin/calendar/holidays:
+    get:
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search name/description
+        in: query
+        name: search
+        type: string
+      - description: national|regional|store|vendor
+        in: query
+        name: holiday_type
+        type: string
+      - description: draft|published
+        in: query
+        name: status
+        type: string
+      - description: Filter by scoped store
+        in: query
+        name: store_id
+        type: integer
+      - description: Filter by region
+        in: query
+        name: region
+        type: string
+      - description: Filter by year
+        in: query
+        name: year
+        type: integer
+      - description: Filter by month
+        in: query
+        name: month
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.StoreHolidayListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List store holidays
+      tags:
+      - admin-calendar
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Holiday payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreHolidayRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreHolidayResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a store holiday
+      tags:
+      - admin-calendar
+  /admin/calendar/holidays/{id}:
+    delete:
+      parameters:
+      - description: Holiday id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a store holiday
+      tags:
+      - admin-calendar
+    get:
+      parameters:
+      - description: Holiday id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreHolidayResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get a store holiday
+      tags:
+      - admin-calendar
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Holiday id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreHolidayRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreHolidayResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a store holiday
+      tags:
+      - admin-calendar
+  /admin/calendar/holidays/{id}/duplicate:
+    post:
+      parameters:
+      - description: Holiday id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreHolidayResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Duplicate a store holiday
+      tags:
+      - admin-calendar
+  /admin/calendar/holidays/{id}/publish:
+    post:
+      parameters:
+      - description: Holiday id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreHolidayResponse'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Publish a store holiday
+      tags:
+      - admin-calendar
+  /admin/calendar/rules:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListDeliveryCalendarRulesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List delivery calendar rules
+      tags:
+      - admin-calendar
+    put:
+      consumes:
+      - application/json
+      description: Toggles the enabled flag for one or more rule keys.
+      parameters:
+      - description: Rule toggles
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateDeliveryCalendarRulesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListDeliveryCalendarRulesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Bulk update delivery calendar rules
+      tags:
+      - admin-calendar
+  /admin/calendar/schedules:
+    get:
+      parameters:
+      - description: Filter by store
+        in: query
+        name: store_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListStoreWorkingSchedulesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List store working schedules
+      tags:
+      - admin-calendar
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Schedule payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreWorkingScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreWorkingScheduleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a store working schedule
+      tags:
+      - admin-calendar
+  /admin/calendar/schedules/{id}:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Schedule id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreWorkingScheduleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreWorkingScheduleResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a store working schedule
+      tags:
+      - admin-calendar
+  /admin/calendar/simulate:
+    post:
+      consumes:
+      - application/json
+      description: Runs the delivery calculator against vendor schedule, holidays,
+        off days, and courier rules.
+      parameters:
+      - description: Simulation input
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SimulateDeliveryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SimulateDeliveryResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Simulate earliest delivery date
+      tags:
+      - admin-calendar
+  /admin/calendar/stores-status-today:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListStoresStatusTodayResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Store open/closed status today
+      tags:
+      - admin-calendar
+  /admin/calendar/summary:
+    get:
+      description: Returns store working calendar dashboard KPIs (active stores, closures,
+        delivery delay, capacity).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CalendarSummaryResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Calendar summary KPIs
+      tags:
+      - admin-calendar
+  /admin/calendar/upcoming-events:
+    get:
+      parameters:
+      - default: 10
+        description: Max results
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ListUpcomingEventsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Upcoming holidays and off days
+      tags:
+      - admin-calendar
+  /admin/calendar/vendor-off-days:
+    get:
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by vendor
+        in: query
+        name: vendor_id
+        type: integer
+      - description: draft|published
+        in: query
+        name: status
+        type: string
+      - description: Filter by off type
+        in: query
+        name: off_type
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.VendorOffDayListResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List vendor off days
+      tags:
+      - admin-calendar
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Off day payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateVendorOffDayRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOffDayResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Create a vendor off day
+      tags:
+      - admin-calendar
+  /admin/calendar/vendor-off-days/{id}:
+    delete:
+      parameters:
+      - description: Off day id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Delete a vendor off day
+      tags:
+      - admin-calendar
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Off day id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateVendorOffDayRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.VendorOffDayResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Update a vendor off day
+      tags:
+      - admin-calendar
   /admin/campaigns:
     get:
       parameters:

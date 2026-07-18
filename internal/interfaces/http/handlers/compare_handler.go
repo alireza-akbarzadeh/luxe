@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
-	appcompare "github.com/alireza-akbarzadeh/luxe/internal/application/compare"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -13,14 +13,14 @@ import (
 type CompareHandler struct {
 	commands *appcompare.Commands
 	queries  *appcompare.Queries
-	validate       *validator.Validate
+	validate *validator.Validate
 }
 
 func NewCompareHandler(commands *appcompare.Commands, queries *appcompare.Queries) *CompareHandler {
 	return &CompareHandler{
 		commands: commands,
 		queries:  queries,
-		validate:       validator.New(),
+		validate: validator.New(),
 	}
 }
 

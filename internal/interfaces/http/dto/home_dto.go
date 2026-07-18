@@ -31,11 +31,11 @@ type HomeProductRail struct {
 // HomeProductItem extends product card data for homepage sections.
 type HomeProductItem struct {
 	ProductResponse
-	UnitsSold      int64      `json:"units_sold,omitempty"`
-	WishlistCount  int64      `json:"wishlist_count,omitempty"`
-	FlashEndsAt    *time.Time `json:"flash_ends_at,omitempty"`
-	QuantityLimit  *int       `json:"quantity_limit,omitempty"`
-	DiscountPercent *int      `json:"discount_percent,omitempty"`
+	UnitsSold       int64      `json:"units_sold,omitempty"`
+	WishlistCount   int64      `json:"wishlist_count,omitempty"`
+	FlashEndsAt     *time.Time `json:"flash_ends_at,omitempty"`
+	QuantityLimit   *int       `json:"quantity_limit,omitempty"`
+	DiscountPercent *int       `json:"discount_percent,omitempty"`
 }
 
 // HomeBrandItem is a brand card for the homepage.
@@ -51,10 +51,10 @@ type HomeBrandItem struct {
 
 // HomeFlashDealItem is a flash deal with product details.
 type HomeFlashDealItem struct {
-	ID            uint       `json:"id"`
+	ID            uint            `json:"id"`
 	Product       HomeProductItem `json:"product"`
-	EndsAt        time.Time  `json:"ends_at"`
-	QuantityLimit *int       `json:"quantity_limit,omitempty"`
+	EndsAt        time.Time       `json:"ends_at"`
+	QuantityLimit *int            `json:"quantity_limit,omitempty"`
 }
 
 // HomeStoreItem is a featured store card.
@@ -94,11 +94,11 @@ type HomeSectionItem struct {
 
 // HomeShopByPriceItem is a price bucket card linking to filtered shop.
 type HomeShopByPriceItem struct {
-	Key       string  `json:"key"`
-	Title     string  `json:"title"`
-	MaxPrice  float64 `json:"max_price"`
-	Href      string  `json:"href"`
-	PreviewCount int64 `json:"preview_count,omitempty"`
+	Key          string  `json:"key"`
+	Title        string  `json:"title"`
+	MaxPrice     float64 `json:"max_price"`
+	Href         string  `json:"href"`
+	PreviewCount int64   `json:"preview_count,omitempty"`
 }
 
 // HomeManifestResponse lists available homepage section keys (lightweight).

@@ -136,10 +136,10 @@ func buildVendorSalesMetrics(snapshot *VendorSalesSnapshot) dto.VendorSalesMetri
 		return dto.VendorSalesMetrics{}
 	}
 	return dto.VendorSalesMetrics{
-		Revenue:         snapshot.Current.Revenue,
-		OrderCount:      snapshot.Current.OrderCount,
-		UnitsSold:       snapshot.Current.UnitsSold,
-		AvgOrderValue:   snapshot.Current.AvgOrderValue,
+		Revenue:          snapshot.Current.Revenue,
+		OrderCount:       snapshot.Current.OrderCount,
+		UnitsSold:        snapshot.Current.UnitsSold,
+		AvgOrderValue:    snapshot.Current.AvgOrderValue,
 		RevenueChangePct: pctChange(snapshot.Current.Revenue, snapshot.Prior.Revenue),
 		OrdersChangePct:  pctChange(float64(snapshot.Current.OrderCount), float64(snapshot.Prior.OrderCount)),
 	}

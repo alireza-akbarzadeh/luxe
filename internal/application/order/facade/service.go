@@ -6,8 +6,8 @@ import (
 	"time"
 
 	apporder "github.com/alireza-akbarzadeh/luxe/internal/application/order"
-	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	appsalesfeed "github.com/alireza-akbarzadeh/luxe/internal/application/salesfeed"
+	appworkflow "github.com/alireza-akbarzadeh/luxe/internal/application/workflow"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	domainorder "github.com/alireza-akbarzadeh/luxe/internal/domain/order"
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/asynq"
@@ -37,14 +37,14 @@ type VendorStoreNotifier interface {
 
 // Service orchestrates order queries, status updates, and workflow transitions.
 type Service struct {
-	notifier      Notifier
-	vendorNotify  VendorStoreNotifier
-	hub           *websocket.Hub
-	salesFeed *appsalesfeed.Service
-	jobQueue  asynq.JobQueue
-	engine    *workflow.Engine
-	queries   *apporder.Queries
-	commands  *apporder.Commands
+	notifier     Notifier
+	vendorNotify VendorStoreNotifier
+	hub          *websocket.Hub
+	salesFeed    *appsalesfeed.Service
+	jobQueue     asynq.JobQueue
+	engine       *workflow.Engine
+	queries      *apporder.Queries
+	commands     *apporder.Commands
 }
 
 // NewService wires order queries and commands.
@@ -62,11 +62,11 @@ func NewService(
 		notifier:     notifier,
 		vendorNotify: vendorNotify,
 		hub:          hub,
-		salesFeed: salesFeed,
-		jobQueue:  jobQueue,
-		engine:    engine,
-		queries:   apporder.NewQueries(repo),
-		commands:  apporder.NewCommands(repo),
+		salesFeed:    salesFeed,
+		jobQueue:     jobQueue,
+		engine:       engine,
+		queries:      apporder.NewQueries(repo),
+		commands:     apporder.NewCommands(repo),
 	}
 }
 

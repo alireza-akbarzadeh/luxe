@@ -24,11 +24,11 @@ type UserFilter struct {
 
 // UpdateProfileRequest is the HTTP payload for profile updates.
 type UpdateProfileRequest struct {
-	FirstName string `json:"first_name" validate:"required,min=1,max=100"`
-	LastName  string `json:"last_name" validate:"required,min=1,max=100"`
-	Phone     string `json:"phone" validate:"omitempty,e164"`
+	FirstName string  `json:"first_name" validate:"required,min=1,max=100"`
+	LastName  string  `json:"last_name" validate:"required,min=1,max=100"`
+	Phone     string  `json:"phone" validate:"omitempty,e164"`
 	AvatarURL *string `json:"avatar_url,omitempty" validate:"omitempty,max=2048,url"`
-	Role      string `form:"role" binding:"omitempty,oneof=user admin moderator"`
+	Role      string  `form:"role" binding:"omitempty,oneof=user admin moderator"`
 }
 
 // UpdateProfileInput updates non-sensitive user fields.

@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	appaddress "github.com/alireza-akbarzadeh/luxe/internal/application/address"
-	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
 	orderfacade "github.com/alireza-akbarzadeh/luxe/internal/application/order/facade"
+	appuser "github.com/alireza-akbarzadeh/luxe/internal/application/user"
 	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
+	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -39,6 +39,7 @@ func NewAccountHandler(
 		userQueries:     userQueries,
 	}
 }
+
 // GetAccountSummary returns combined user dashboard data.
 // @Summary      Get user dashboard summary
 // @Description  Returns user profile, default addresses, address count, liked products count, and recent orders (max 3)

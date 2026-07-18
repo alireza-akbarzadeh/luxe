@@ -1297,6 +1297,1167 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/calendar/day/{date}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns holidays, off days, and schedule detail for a single calendar day.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Day detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Date (YYYY-MM-DD)",
+                        "name": "date",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Store id",
+                        "name": "store_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CalendarDayDetailResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns per-day status/badges for the calendar month grid.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Month calendar grid",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Year",
+                        "name": "year",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Month (1-12)",
+                        "name": "month",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by store",
+                        "name": "store_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by region",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by holiday status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListCalendarEventsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/holidays": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "List store holidays",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name/description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "national|regional|store|vendor",
+                        "name": "holiday_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "draft|published",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by scoped store",
+                        "name": "store_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by region",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by year",
+                        "name": "year",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by month",
+                        "name": "month",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.StoreHolidayListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Create a store holiday",
+                "parameters": [
+                    {
+                        "description": "Holiday payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateStoreHolidayRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreHolidayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/holidays/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Get a store holiday",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Holiday id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreHolidayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Update a store holiday",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Holiday id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateStoreHolidayRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreHolidayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Delete a store holiday",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Holiday id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/holidays/{id}/duplicate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Duplicate a store holiday",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Holiday id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreHolidayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/holidays/{id}/publish": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Publish a store holiday",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Holiday id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreHolidayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/rules": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "List delivery calendar rules",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListDeliveryCalendarRulesResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Toggles the enabled flag for one or more rule keys.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Bulk update delivery calendar rules",
+                "parameters": [
+                    {
+                        "description": "Rule toggles",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateDeliveryCalendarRulesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListDeliveryCalendarRulesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/schedules": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "List store working schedules",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter by store",
+                        "name": "store_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListStoreWorkingSchedulesResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Create a store working schedule",
+                "parameters": [
+                    {
+                        "description": "Schedule payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateStoreWorkingScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreWorkingScheduleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/schedules/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Update a store working schedule",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Schedule id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateStoreWorkingScheduleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoreWorkingScheduleResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/simulate": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Runs the delivery calculator against vendor schedule, holidays, off days, and courier rules.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Simulate earliest delivery date",
+                "parameters": [
+                    {
+                        "description": "Simulation input",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.SimulateDeliveryRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SimulateDeliveryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/stores-status-today": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Store open/closed status today",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListStoresStatusTodayResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/summary": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns store working calendar dashboard KPIs (active stores, closures, delivery delay, capacity).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Calendar summary KPIs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.CalendarSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/upcoming-events": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Upcoming holidays and off days",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Max results",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ListUpcomingEventsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/vendor-off-days": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "List vendor off days",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by vendor",
+                        "name": "vendor_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "draft|published",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by off type",
+                        "name": "off_type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.VendorOffDayListResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Create a vendor off day",
+                "parameters": [
+                    {
+                        "description": "Off day payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateVendorOffDayRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.VendorOffDayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/calendar/vendor-off-days/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Update a vendor off day",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Off day id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateVendorOffDayRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.VendorOffDayResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "admin-calendar"
+                ],
+                "summary": "Delete a vendor off day",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Off day id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/admin/campaigns": {
             "get": {
                 "security": [
@@ -28434,6 +29595,87 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CalendarDayDetailResponse": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "day_type": {
+                    "type": "string"
+                },
+                "holidays": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.StoreHolidayResponse"
+                    }
+                },
+                "is_working_day": {
+                    "type": "boolean"
+                },
+                "off_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.VendorOffDayResponse"
+                    }
+                },
+                "schedule": {
+                    "$ref": "#/definitions/dto.StoreWorkingScheduleResponse"
+                }
+            }
+        },
+        "dto.CalendarDayEventResponse": {
+            "type": "object",
+            "properties": {
+                "badges": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "date": {
+                    "type": "string"
+                },
+                "day_type": {
+                    "type": "string"
+                },
+                "holiday_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "off_day_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.CalendarSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "active_stores": {
+                    "type": "integer"
+                },
+                "closed_today": {
+                    "type": "integer"
+                },
+                "next_delivery_delay_days": {
+                    "type": "integer"
+                },
+                "total_stores": {
+                    "type": "integer"
+                },
+                "upcoming_holidays": {
+                    "type": "integer"
+                },
+                "working_capacity_percent": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.CampaignData": {
             "type": "object",
             "properties": {
@@ -30810,6 +32052,83 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.CreateStoreHolidayRequest": {
+            "type": "object",
+            "required": [
+                "apply_to",
+                "end_date",
+                "holiday_type",
+                "name",
+                "start_date"
+            ],
+            "properties": {
+                "apply_to": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "stores",
+                        "vendor",
+                        "region"
+                    ]
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "holiday_type": {
+                    "type": "string",
+                    "enum": [
+                        "national",
+                        "regional",
+                        "store",
+                        "vendor"
+                    ]
+                },
+                "is_recurring": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "recurrence_rule": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "region": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published"
+                    ]
+                },
+                "store_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "vendor_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.CreateStoreRequest": {
             "type": "object",
             "required": [
@@ -30878,6 +32197,63 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
+                }
+            }
+        },
+        "dto.CreateStoreWorkingScheduleRequest": {
+            "type": "object",
+            "required": [
+                "store_id"
+            ],
+            "properties": {
+                "break_end": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "break_start": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "close_time": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "delivery_buffer_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_deliveries_per_day": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_orders_per_day": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "open_time": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "prep_lead_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "processing_lead_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "working_days": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
                 }
             }
         },
@@ -30973,6 +32349,52 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 120,
                     "minLength": 1
+                }
+            }
+        },
+        "dto.CreateVendorOffDayRequest": {
+            "type": "object",
+            "required": [
+                "end_date",
+                "off_type",
+                "start_date",
+                "title",
+                "vendor_id"
+            ],
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "off_type": {
+                    "type": "string",
+                    "enum": [
+                        "vacation",
+                        "inventory_count",
+                        "maintenance",
+                        "emergency_close",
+                        "personal_leave"
+                    ]
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "vendor_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -31283,6 +32705,46 @@ const docTemplate = `{
             ],
             "properties": {
                 "endpoint": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.DeliveryCalendarRuleResponse": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "rule_key": {
+                    "type": "string"
+                },
+                "sort_order": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.DeliveryTimelineStep": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "days": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "step": {
                     "type": "string"
                 }
             }
@@ -32592,6 +34054,106 @@ const docTemplate = `{
                 },
                 "titleI18n": {
                     "$ref": "#/definitions/i18n.LocalizedMap"
+                }
+            }
+        },
+        "dto.ListCalendarEventsResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CalendarDayEventResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ListDeliveryCalendarRulesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DeliveryCalendarRuleResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ListStoreWorkingSchedulesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.StoreWorkingScheduleResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ListStoresStatusTodayResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.StoreStatusTodayResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.ListUpcomingEventsResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UpcomingEventResponse"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -35092,6 +36654,80 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SimulateDeliveryRequest": {
+            "type": "object",
+            "required": [
+                "order_date",
+                "shipping_method",
+                "store_id"
+            ],
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "order_date": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "shipping_days": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "shipping_method": {
+                    "type": "string",
+                    "enum": [
+                        "standard",
+                        "express",
+                        "pickup"
+                    ]
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "vendor_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.SimulateDeliveryResponse": {
+            "type": "object",
+            "properties": {
+                "delay_reason": {
+                    "type": "string"
+                },
+                "delivery_date": {
+                    "type": "string"
+                },
+                "processing_start": {
+                    "type": "string"
+                },
+                "skipped_holidays": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "skipped_weekends": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "timeline": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.DeliveryTimelineStep"
+                    }
+                },
+                "vendor_available": {
+                    "type": "boolean"
+                }
+            }
+        },
         "dto.SmartBundleItem": {
             "type": "object",
             "properties": {
@@ -35221,6 +36857,105 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.StoreHolidayListData": {
+            "type": "object",
+            "properties": {
+                "holidays": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.StoreHolidayResponse"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.StoreHolidayListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.StoreHolidayListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.StoreHolidayResponse": {
+            "type": "object",
+            "properties": {
+                "apply_to": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "type": "integer"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "holiday_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_recurring": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "recurrence_rule": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "store_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "vendor_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.StoreResponse": {
             "type": "object",
             "properties": {
@@ -35274,6 +37009,76 @@ const docTemplate = `{
                 },
                 "slug": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.StoreStatusTodayResponse": {
+            "type": "object",
+            "properties": {
+                "is_working_today": {
+                    "type": "boolean"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "store_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.StoreWorkingScheduleResponse": {
+            "type": "object",
+            "properties": {
+                "break_end": {
+                    "type": "string"
+                },
+                "break_start": {
+                    "type": "string"
+                },
+                "close_time": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "delivery_buffer_hours": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "max_deliveries_per_day": {
+                    "type": "integer"
+                },
+                "max_orders_per_day": {
+                    "type": "integer"
+                },
+                "open_time": {
+                    "type": "string"
+                },
+                "prep_lead_hours": {
+                    "type": "integer"
+                },
+                "processing_lead_hours": {
+                    "type": "integer"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "timezone": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "working_days": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
                 }
             }
         },
@@ -35818,6 +37623,29 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpcomingEventResponse": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.UpdateAddressRequest": {
             "type": "object",
             "required": [
@@ -36264,6 +38092,35 @@ const docTemplate = `{
                         "new",
                         "at_risk"
                     ]
+                }
+            }
+        },
+        "dto.UpdateDeliveryCalendarRuleItem": {
+            "type": "object",
+            "required": [
+                "rule_key"
+            ],
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "rule_key": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateDeliveryCalendarRulesRequest": {
+            "type": "object",
+            "required": [
+                "rules"
+            ],
+            "properties": {
+                "rules": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "$ref": "#/definitions/dto.UpdateDeliveryCalendarRuleItem"
+                    }
                 }
             }
         },
@@ -36748,6 +38605,76 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.UpdateStoreHolidayRequest": {
+            "type": "object",
+            "properties": {
+                "apply_to": {
+                    "type": "string",
+                    "enum": [
+                        "all",
+                        "stores",
+                        "vendor",
+                        "region"
+                    ]
+                },
+                "description": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "holiday_type": {
+                    "type": "string",
+                    "enum": [
+                        "national",
+                        "regional",
+                        "store",
+                        "vendor"
+                    ]
+                },
+                "is_recurring": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "recurrence_rule": {
+                    "type": "string",
+                    "maxLength": 50
+                },
+                "region": {
+                    "type": "string",
+                    "maxLength": 100
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published"
+                    ]
+                },
+                "store_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "vendor_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.UpdateStoreRequest": {
             "type": "object",
             "properties": {
@@ -36798,6 +38725,57 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 5,
                     "minimum": 1
+                }
+            }
+        },
+        "dto.UpdateStoreWorkingScheduleRequest": {
+            "type": "object",
+            "properties": {
+                "break_end": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "break_start": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "close_time": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "delivery_buffer_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_deliveries_per_day": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "max_orders_per_day": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "open_time": {
+                    "type": "string",
+                    "maxLength": 5
+                },
+                "prep_lead_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "processing_lead_hours": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "timezone": {
+                    "type": "string",
+                    "maxLength": 64
+                },
+                "working_days": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "boolean"
+                    }
                 }
             }
         },
@@ -36863,6 +38841,42 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 80,
                     "minLength": 1
+                }
+            }
+        },
+        "dto.UpdateVendorOffDayRequest": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "off_type": {
+                    "type": "string",
+                    "enum": [
+                        "vacation",
+                        "inventory_count",
+                        "maintenance",
+                        "emergency_close",
+                        "personal_leave"
+                    ]
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "draft",
+                        "published"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2
                 }
             }
         },
@@ -37228,6 +39242,78 @@ const docTemplate = `{
                 },
                 "urgency": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.VendorOffDayListData": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer"
+                },
+                "off_days": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.VendorOffDayResponse"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.VendorOffDayListResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/dto.VendorOffDayListData"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.VendorOffDayResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "end_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "off_type": {
+                    "type": "string"
+                },
+                "start_date": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "vendor_id": {
+                    "type": "integer"
                 }
             }
         },

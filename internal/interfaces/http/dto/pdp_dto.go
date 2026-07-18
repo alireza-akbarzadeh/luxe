@@ -176,13 +176,13 @@ type ProductDiscussionReplyResponse struct {
 }
 
 type ProductDiscussionResponse struct {
-	ID        uint                           `json:"id"`
-	ProductID uint                           `json:"product_id"`
-	Author    string                         `json:"author"`
-	Title     string                         `json:"title"`
-	Body      string                         `json:"body"`
-	CreatedAt time.Time                      `json:"created_at"`
-	IsOwner   bool                           `json:"is_owner,omitempty"`
+	ID        uint                             `json:"id"`
+	ProductID uint                             `json:"product_id"`
+	Author    string                           `json:"author"`
+	Title     string                           `json:"title"`
+	Body      string                           `json:"body"`
+	CreatedAt time.Time                        `json:"created_at"`
+	IsOwner   bool                             `json:"is_owner,omitempty"`
 	Replies   []ProductDiscussionReplyResponse `json:"replies"`
 }
 

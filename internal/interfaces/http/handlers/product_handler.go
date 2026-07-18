@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
+	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
+	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
+	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/middleware"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
-	appcatalog "github.com/alireza-akbarzadeh/luxe/internal/application/catalog"
-	apppdp "github.com/alireza-akbarzadeh/luxe/internal/application/pdp"
-	appuserlike "github.com/alireza-akbarzadeh/luxe/internal/application/userlike"
 	"github.com/alireza-akbarzadeh/luxe/internal/shared/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -21,7 +21,7 @@ type ProductHandler struct {
 	likeCommands   *appuserlike.Commands
 	likeQueries    *appuserlike.Queries
 	pdpService     *apppdp.Service
-	validate        *validator.Validate
+	validate       *validator.Validate
 }
 
 func NewProductHandler(ps *appcatalog.Service, likeCommands *appuserlike.Commands, likeQueries *appuserlike.Queries, pdp *apppdp.Service) *ProductHandler {
@@ -29,8 +29,8 @@ func NewProductHandler(ps *appcatalog.Service, likeCommands *appuserlike.Command
 		productService: ps,
 		likeCommands:   likeCommands,
 		likeQueries:    likeQueries,
-		pdpService:      pdp,
-		validate:        validator.New(),
+		pdpService:     pdp,
+		validate:       validator.New(),
 	}
 }
 
@@ -59,7 +59,7 @@ func (ctrl *ProductHandler) Create(c *gin.Context) {
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToProductResponse(c.Request.Context(),*product))
+	utils.CreatedResponse(c, constants.MsgCreateSuccess, dto.ToProductResponse(c.Request.Context(), *product))
 }
 
 // Update product (admin only)
@@ -95,7 +95,7 @@ func (ctrl *ProductHandler) Update(c *gin.Context) {
 		return
 	}
 	_ = ctrl.pdpService.RecordPriceSnapshot(product)
-	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(c.Request.Context(),*product))
+	utils.SuccessResponse(c, constants.MsgUpdateSuccess, dto.ToProductResponse(c.Request.Context(), *product))
 }
 
 // Delete product (admin only)
@@ -167,9 +167,9 @@ func (ctrl *ProductHandler) GetOne(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, gin.H{
-		"product":           dto.ToProductResponse(c.Request.Context(),*product),
-		"is_liked":          isLiked,
-		"stock_subscribed":  stockSubscribed,
+		"product":          dto.ToProductResponse(c.Request.Context(), *product),
+		"is_liked":         isLiked,
+		"stock_subscribed": stockSubscribed,
 	})
 }
 
@@ -239,7 +239,7 @@ func (ctrl *ProductHandler) List(c *gin.Context) {
 	productsWithLike := make([]dto.ProductWithLike, len(products))
 	for i, p := range products {
 		productsWithLike[i] = dto.ProductWithLike{
-			ProductResponse: dto.ToProductResponse(c.Request.Context(),*p),
+			ProductResponse: dto.ToProductResponse(c.Request.Context(), *p),
 			IsLiked:         likedMap[p.ID],
 		}
 	}
@@ -280,7 +280,7 @@ func (ctrl *ProductHandler) BulkCreate(c *gin.Context) {
 	}
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(), *p)
 	}
 	utils.CreatedResponse(c, "products created successfully", responses)
 }
@@ -347,7 +347,7 @@ func (ctrl *ProductHandler) GetRelated(c *gin.Context) {
 	}
 	responses := make([]dto.ProductResponse, len(products))
 	for i, p := range products {
-		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(), *p)
 	}
 	utils.SuccessResponse(c, constants.MsgFetchSuccess, responses)
 }
@@ -378,7 +378,7 @@ func (ctrl *ProductHandler) GetProductSuggestions(c *gin.Context) {
 
 	responses := make([]dto.ProductResponse, len(suggestions))
 	for i, p := range suggestions {
-		responses[i] = dto.ToProductResponse(c.Request.Context(),*p)
+		responses[i] = dto.ToProductResponse(c.Request.Context(), *p)
 	}
 	utils.SuccessResponse(c, "suggestions fetched", responses)
 }
@@ -464,6 +464,6 @@ func (ctrl *ProductHandler) PerformTransition(c *gin.Context) {
 
 	utils.SuccessResponse(c, "transition applied", dto.ProductTransitionResponse{
 		Transition: toTransitionResultView(result),
-		Product:    dto.ToProductResponse(c.Request.Context(),*product),
+		Product:    dto.ToProductResponse(c.Request.Context(), *product),
 	})
 }

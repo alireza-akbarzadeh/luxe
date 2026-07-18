@@ -13,8 +13,8 @@ var (
 )
 
 const (
-	StatusDelivered = "delivered"
-	StatusCompleted = "completed"
+	StatusDelivered    = "delivered"
+	StatusCompleted    = "completed"
 	ReturnTypeRefund   = "refund"
 	ReturnTypeExchange = "exchange"
 )
