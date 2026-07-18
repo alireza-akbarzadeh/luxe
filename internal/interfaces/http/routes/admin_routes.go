@@ -10,6 +10,10 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	admin := protected.Group("/admin")
 	admin.Use(middleware.RequireStaff())
 
+	// Personal nav prefs — any staff user (not scoped to a module).
+	admin.GET("/nav/preferences", ctrl.Admin.GetNavPreferences)
+	admin.PUT("/nav/preferences", ctrl.Admin.UpdateNavPreferences)
+
 	dashboard := admin.Group("")
 	dashboard.Use(middleware.ModuleGuard("orders"))
 	{
@@ -21,8 +25,6 @@ func SetupAdminRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 		dashboard.GET("/analytics/sales", ctrl.Admin.GetSalesAnalytics)
 		dashboard.GET("/ai/business-insights", ctrl.Admin.GetBusinessInsights)
 		dashboard.GET("/sales-feed/snapshot", ctrl.Admin.GetSalesFeedSnapshot)
-		dashboard.GET("/nav/preferences", ctrl.Admin.GetNavPreferences)
-		dashboard.PUT("/nav/preferences", ctrl.Admin.UpdateNavPreferences)
 	}
 
 	users := admin.Group("")
