@@ -89,7 +89,7 @@ func NewContainer(db *gorm.DB, apps *bootstrap.Applications, runtime *bootstrap.
 		Review:                NewReviewHandler(apps.Review.Commands, apps.Review.Queries),
 		UserLike:              NewUserLikeHandler(apps.UserLike.Commands, apps.UserLike.Queries, apps.Product),
 		Wallet:                NewWalletHandler(apps.Wallet),
-		Payment:               NewPaymentMethodHandler(apps.Payment, cfg),
+		Payment:               NewPaymentMethodHandler(apps.Payment, apps.Wallet, cfg),
 		NavMenu:               NewNavMenuHandler(apps.NavMenu.Commands, apps.NavMenu.Queries),
 		Brand:                 NewBrandHandler(apps.Brand),
 		Collection:            NewCollectionHandler(apps.Collection),

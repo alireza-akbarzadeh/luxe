@@ -429,3 +429,76 @@ func (w *Service) CancelPendingDeposit(ctx context.Context, userID, txID uint) e
 		return w.repo.SaveTransactionTx(tx, record)
 	})
 }
+
+// ListAdminTransactions returns paginated wallet transactions for the admin ledger view.
+func (w *Service) ListAdminTransactions(ctx context.Context, filters dto.AdminWalletTxListFilters) ([]models.WalletTransaction, int64, error) {
+	page := filters.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := filters.Limit
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	filters.Page = page
+	filters.Limit = limit
+	offset := (page - 1) * limit
+
+	total, err := w.repo.CountAdminTransactions(ctx, filters)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	transactions, err := w.repo.ListAdminTransactions(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	return transactions, total, nil
+}
+
+// GetTransactionByIDAdmin loads a wallet transaction with relations for the admin detail view.
+func (w *Service) GetTransactionByIDAdmin(ctx context.Context, txID uint) (*models.WalletTransaction, error) {
+	record, err := w.repo.FindTransactionByIDAdmin(ctx, txID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("transaction not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return record, nil
+}
+
+// GetTransactionsSummaryAdmin returns admin KPI counters for the wallet ledger.
+func (w *Service) GetTransactionsSummaryAdmin(ctx context.Context) (dto.WalletTxSummaryResponse, error) {
+	total, err := w.repo.CountAllTransactions(ctx)
+	if err != nil {
+		return dto.WalletTxSummaryResponse{}, utils.ErrInternal(err)
+	}
+	statusCounts, err := w.repo.TransactionStatusCounts(ctx)
+	if err != nil {
+		return dto.WalletTxSummaryResponse{}, utils.ErrInternal(err)
+	}
+	typeCounts, err := w.repo.TransactionTypeCounts(ctx)
+	if err != nil {
+		return dto.WalletTxSummaryResponse{}, utils.ErrInternal(err)
+	}
+	netVolume, err := w.repo.SumAbsAmountByStatus(ctx, constants.WalletTxStatusCompleted)
+	if err != nil {
+		return dto.WalletTxSummaryResponse{}, utils.ErrInternal(err)
+	}
+
+	summary := dto.WalletTxSummaryResponse{TotalCount: total, NetVolume: netVolume, ByType: typeCounts}
+	for _, row := range statusCounts {
+		switch row.Status {
+		case constants.WalletTxStatusCompleted:
+			summary.CompletedCount += row.Count
+		case constants.WalletTxStatusPending:
+			summary.PendingCount += row.Count
+		case constants.WalletTxStatusFailed:
+			summary.FailedCount += row.Count
+		}
+	}
+	return summary, nil
+}

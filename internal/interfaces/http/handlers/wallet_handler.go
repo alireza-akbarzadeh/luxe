@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"net/http"
+
 	appwallet "github.com/alireza-akbarzadeh/luxe/internal/application/wallet"
 	"github.com/alireza-akbarzadeh/luxe/internal/constants"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -285,4 +287,92 @@ func (ctrl *WalletHandler) CancelPendingDeposit(c *gin.Context) {
 	}
 
 	utils.SuccessResponse(c, "deposit cancelled", nil)
+}
+
+// ListWalletTransactionsAdmin lists wallet ledger transactions for admin review.
+// @Summary      List wallet transactions (admin)
+// @Description  Paginated, filterable list of wallet ledger transactions for admin transaction management.
+// @Tags         Admin Transactions
+// @Produce      json
+// @Security     BearerAuth
+// @Param        page      query int    false "Page number" default(1)
+// @Param        limit     query int    false "Items per page" default(20)
+// @Param        search    query string false "Search description, Stripe session ID, or customer"
+// @Param        type      query string false "Filter by type (deposit|payment|refund|adjustment|membership)"
+// @Param        status    query string false "Filter by status"
+// @Param        user_id   query int    false "Filter by user ID"
+// @Param        date_from query string false "Start date (YYYY-MM-DD)"
+// @Param        date_to   query string false "End date (YYYY-MM-DD)"
+// @Success      200 {object} utils.Response{data=dto.AdminWalletTxListData}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Router       /admin/wallet/transactions [get]
+func (ctrl *WalletHandler) ListWalletTransactionsAdmin(c *gin.Context) {
+	var filters dto.AdminWalletTxListFilters
+	if err := c.ShouldBindQuery(&filters); err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid query parameters")
+		return
+	}
+	filters.Page, filters.Limit = pageLimitParams(c, constants.DefaultLimit)
+
+	transactions, total, err := ctrl.walletService.ListAdminTransactions(c.Request.Context(), filters)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to list wallet transactions")
+		return
+	}
+
+	items := make([]dto.AdminWalletTxListItem, 0, len(transactions))
+	for i := range transactions {
+		items = append(items, dto.ToAdminWalletTxListItem(&transactions[i]))
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.AdminWalletTxListData{
+		Transactions: items,
+		Total:        total,
+		Page:         filters.Page,
+		Limit:        filters.Limit,
+	})
+}
+
+// GetWalletTransactionAdmin returns a single wallet ledger transaction for admin review.
+// @Summary      Get wallet transaction by ID (admin)
+// @Description  Returns full wallet ledger transaction details for admin review.
+// @Tags         Admin Transactions
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id path int true "Transaction ID"
+// @Success      200 {object} utils.Response{data=dto.AdminWalletTxDetailResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Failure      404 {object} utils.Response
+// @Router       /admin/wallet/transactions/{id} [get]
+func (ctrl *WalletHandler) GetWalletTransactionAdmin(c *gin.Context) {
+	txID, ok := parseUintParam(c, "id")
+	if !ok {
+		return
+	}
+	record, err := ctrl.walletService.GetTransactionByIDAdmin(c.Request.Context(), txID)
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to load wallet transaction")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, dto.ToAdminWalletTxDetail(record))
+}
+
+// GetWalletTransactionsSummaryAdmin returns KPI counters for the admin wallet ledger view.
+// @Summary      Get wallet transactions summary (admin)
+// @Description  Returns aggregate counters (by status and type) and net completed volume for the wallet ledger.
+// @Tags         Admin Transactions
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200 {object} utils.Response{data=dto.WalletTxSummaryResponse}
+// @Failure      401 {object} utils.Response
+// @Failure      403 {object} utils.Response
+// @Router       /admin/wallet/transactions/summary [get]
+func (ctrl *WalletHandler) GetWalletTransactionsSummaryAdmin(c *gin.Context) {
+	summary, err := ctrl.walletService.GetTransactionsSummaryAdmin(c.Request.Context())
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to load wallet summary")
+		return
+	}
+	utils.SuccessResponse(c, constants.MsgFetchSuccess, summary)
 }

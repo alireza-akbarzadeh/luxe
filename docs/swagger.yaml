@@ -555,6 +555,84 @@ definitions:
       state:
         type: string
     type: object
+  dto.AdminPaymentDetailResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      gateway_response:
+        additionalProperties: true
+        type: object
+      id:
+        type: integer
+      method:
+        type: string
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      transaction_id:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.AdminPaymentListData:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      payments:
+        items:
+          $ref: '#/definitions/dto.AdminPaymentListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.AdminPaymentListItem:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      currency:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      id:
+        type: integer
+      method:
+        type: string
+      order_id:
+        type: integer
+      order_number:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      transaction_id:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
   dto.AdminReturnStats:
     properties:
       by_status:
@@ -980,6 +1058,82 @@ definitions:
       revenue:
         type: number
       units:
+        type: integer
+    type: object
+  dto.AdminWalletTxDetailResponse:
+    properties:
+      amount:
+        type: number
+      balance_after:
+        type: number
+      created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      metadata:
+        additionalProperties: true
+        type: object
+      reference_id:
+        type: integer
+      reference_type:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      type:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  dto.AdminWalletTxListData:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+      transactions:
+        items:
+          $ref: '#/definitions/dto.AdminWalletTxListItem'
+        type: array
+    type: object
+  dto.AdminWalletTxListItem:
+    properties:
+      amount:
+        type: number
+      balance_after:
+        type: number
+      created_at:
+        type: string
+      customer_email:
+        type: string
+      customer_name:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      reference_id:
+        type: integer
+      reference_type:
+        type: string
+      status:
+        type: string
+      stripe_session_id:
+        type: string
+      type:
+        type: string
+      user_id:
         type: integer
     type: object
   dto.AiChatMessage:
@@ -6304,6 +6458,21 @@ definitions:
       requires_card:
         type: boolean
     type: object
+  dto.PaymentsSummaryResponse:
+    properties:
+      completed_count:
+        type: integer
+      failed_count:
+        type: integer
+      pending_count:
+        type: integer
+      refunded_count:
+        type: integer
+      total_count:
+        type: integer
+      total_volume:
+        type: number
+    type: object
   dto.PerformOrderTransitionRequest:
     properties:
       event:
@@ -8172,6 +8341,21 @@ definitions:
       type:
         type: string
     type: object
+  dto.TransactionsHubSummaryResponse:
+    properties:
+      failed_payments:
+        type: integer
+      payments_total:
+        type: integer
+      payments_volume:
+        type: number
+      pending_payments:
+        type: integer
+      wallet_tx_total:
+        type: integer
+      wallet_volume:
+        type: number
+    type: object
   dto.TransferGiftCardRequest:
     properties:
       recipient_user_id:
@@ -9768,6 +9952,30 @@ definitions:
         items:
           $ref: '#/definitions/dto.TransactionResponse'
         type: array
+    type: object
+  dto.WalletTxSummaryResponse:
+    properties:
+      by_type:
+        items:
+          $ref: '#/definitions/dto.WalletTxTypeCount'
+        type: array
+      completed_count:
+        type: integer
+      failed_count:
+        type: integer
+      net_volume:
+        type: number
+      pending_count:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  dto.WalletTxTypeCount:
+    properties:
+      count:
+        type: integer
+      type:
+        type: string
     type: object
   dto.WishlistItemDTO:
     properties:
@@ -14678,6 +14886,142 @@ paths:
       summary: Export orders CSV (admin)
       tags:
       - Admin
+  /admin/payments:
+    get:
+      description: Paginated, filterable list of order payments for admin transaction
+        management.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search transaction ID, Stripe session ID, or order number
+        in: query
+        name: search
+        type: string
+      - description: Filter by payment status
+        in: query
+        name: status
+        type: string
+      - description: Filter by payment method
+        in: query
+        name: method
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Filter by order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminPaymentListData'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List payments (admin)
+      tags:
+      - Admin Transactions
+  /admin/payments/{id}:
+    get:
+      description: Returns full payment details including gateway response for admin
+        review.
+      parameters:
+      - description: Payment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminPaymentDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get payment by ID (admin)
+      tags:
+      - Admin Transactions
+  /admin/payments/summary:
+    get:
+      description: Returns aggregate counters (by status) and total completed volume
+        for order payments.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaymentsSummaryResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get payments summary (admin)
+      tags:
+      - Admin Transactions
   /admin/permissions:
     get:
       produces:
@@ -16270,6 +16614,34 @@ paths:
       summary: Remove team member
       tags:
       - Admin Teams
+  /admin/transactions/summary:
+    get:
+      description: Combined KPIs across order payments and wallet ledger transactions.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TransactionsHubSummaryResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get transactions hub summary (admin)
+      tags:
+      - Admin Transactions
   /admin/users:
     get:
       description: Returns paginated users with optional filters by search term, email,
@@ -16754,6 +17126,137 @@ paths:
       summary: Admin adjust wallet
       tags:
       - Admin Wallet
+  /admin/wallet/transactions:
+    get:
+      description: Paginated, filterable list of wallet ledger transactions for admin
+        transaction management.
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search description, Stripe session ID, or customer
+        in: query
+        name: search
+        type: string
+      - description: Filter by type (deposit|payment|refund|adjustment|membership)
+        in: query
+        name: type
+        type: string
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by user ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Start date (YYYY-MM-DD)
+        in: query
+        name: date_from
+        type: string
+      - description: End date (YYYY-MM-DD)
+        in: query
+        name: date_to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminWalletTxListData'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: List wallet transactions (admin)
+      tags:
+      - Admin Transactions
+  /admin/wallet/transactions/{id}:
+    get:
+      description: Returns full wallet ledger transaction details for admin review.
+      parameters:
+      - description: Transaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AdminWalletTxDetailResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get wallet transaction by ID (admin)
+      tags:
+      - Admin Transactions
+  /admin/wallet/transactions/summary:
+    get:
+      description: Returns aggregate counters (by status and type) and net completed
+        volume for the wallet ledger.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.WalletTxSummaryResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.Response'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/utils.Response'
+      security:
+      - BearerAuth: []
+      summary: Get wallet transactions summary (admin)
+      tags:
+      - Admin Transactions
   /admin/webhooks:
     get:
       description: Returns paginated Stripe webhook events with optional filters by

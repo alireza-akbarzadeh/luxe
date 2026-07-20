@@ -22,4 +22,13 @@ func SetupWalletRoutes(protected *gin.RouterGroup, ctrl *handlers.Container) {
 	{
 		admin.POST("/adjust", ctrl.Wallet.AdminAdjust)
 	}
+
+	// Admin wallet ledger (transactions management)
+	adminTx := protected.Group("/admin/wallet/transactions")
+	adminTx.Use(middleware.RequireAdmin())
+	{
+		adminTx.GET("", ctrl.Wallet.ListWalletTransactionsAdmin)
+		adminTx.GET("/summary", ctrl.Wallet.GetWalletTransactionsSummaryAdmin)
+		adminTx.GET("/:id", ctrl.Wallet.GetWalletTransactionAdmin)
+	}
 }

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
 	"github.com/alireza-akbarzadeh/luxe/internal/models"
@@ -165,4 +166,105 @@ func (r *WalletRepository) FindTransactionForUserTx(tx *gorm.DB, userID, txID ui
 		return nil, err
 	}
 	return &record, nil
+}
+
+// applyAdminListFilters scopes a wallet transactions query using admin list filters.
+func (r *WalletRepository) applyAdminListFilters(query *gorm.DB, filters dto.AdminWalletTxListFilters) *gorm.DB {
+	if filters.Type != "" {
+		query = query.Where("wallet_transactions.type = ?", filters.Type)
+	}
+	if filters.Status != "" {
+		query = query.Where("wallet_transactions.status = ?", filters.Status)
+	}
+	if filters.UserID != nil {
+		query = query.Where("wallet_transactions.user_id = ?", *filters.UserID)
+	}
+	if filters.DateFrom != "" {
+		if t, err := time.Parse("2006-01-02", filters.DateFrom); err == nil {
+			query = query.Where("wallet_transactions.created_at >= ?", t)
+		}
+	}
+	if filters.DateTo != "" {
+		if t, err := time.Parse("2006-01-02", filters.DateTo); err == nil {
+			query = query.Where("wallet_transactions.created_at < ?", t.Add(24*time.Hour))
+		}
+	}
+	if filters.Search != "" {
+		term := "%" + filters.Search + "%"
+		query = query.
+			Joins("LEFT JOIN users ON users.id = wallet_transactions.user_id").
+			Where(
+				"wallet_transactions.description ILIKE ? OR wallet_transactions.stripe_session_id ILIKE ? OR users.email ILIKE ? OR users.first_name ILIKE ? OR users.last_name ILIKE ?",
+				term, term, term, term, term,
+			)
+	}
+	return query
+}
+
+// CountAdminTransactions counts wallet transactions matching admin filters.
+func (r *WalletRepository) CountAdminTransactions(ctx context.Context, filters dto.AdminWalletTxListFilters) (int64, error) {
+	q := r.applyAdminListFilters(r.db.WithContext(ctx).Model(&models.WalletTransaction{}), filters)
+	var total int64
+	err := q.Count(&total).Error
+	return total, err
+}
+
+// ListAdminTransactions returns paginated wallet transactions with relations for the admin ledger view.
+func (r *WalletRepository) ListAdminTransactions(ctx context.Context, filters dto.AdminWalletTxListFilters, limit, offset int) ([]models.WalletTransaction, error) {
+	q := r.applyAdminListFilters(r.db.WithContext(ctx).Model(&models.WalletTransaction{}), filters)
+	var transactions []models.WalletTransaction
+	err := q.
+		Preload("User").
+		Order("wallet_transactions.created_at DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&transactions).Error
+	return transactions, err
+}
+
+// FindTransactionByIDAdmin loads a wallet transaction with relations for the admin detail view.
+func (r *WalletRepository) FindTransactionByIDAdmin(ctx context.Context, txID uint) (*models.WalletTransaction, error) {
+	var record models.WalletTransaction
+	err := r.db.WithContext(ctx).Preload("User").First(&record, txID).Error
+	if err != nil {
+		return nil, err
+	}
+	return &record, nil
+}
+
+// CountAllTransactions counts all wallet transactions regardless of filters.
+func (r *WalletRepository) CountAllTransactions(ctx context.Context) (int64, error) {
+	var total int64
+	err := r.db.WithContext(ctx).Model(&models.WalletTransaction{}).Count(&total).Error
+	return total, err
+}
+
+// TransactionStatusCounts returns wallet transaction counts grouped by status.
+func (r *WalletRepository) TransactionStatusCounts(ctx context.Context) ([]dto.AdminDashboardStatusCount, error) {
+	var rows []dto.AdminDashboardStatusCount
+	err := r.db.WithContext(ctx).Model(&models.WalletTransaction{}).
+		Select("status, COUNT(*) as count").
+		Group("status").
+		Scan(&rows).Error
+	return rows, err
+}
+
+// TransactionTypeCounts returns wallet transaction counts grouped by type.
+func (r *WalletRepository) TransactionTypeCounts(ctx context.Context) ([]dto.WalletTxTypeCount, error) {
+	var rows []dto.WalletTxTypeCount
+	err := r.db.WithContext(ctx).Model(&models.WalletTransaction{}).
+		Select("type, COUNT(*) as count").
+		Group("type").
+		Scan(&rows).Error
+	return rows, err
+}
+
+// SumAbsAmountByStatus sums the absolute wallet transaction amounts for a status.
+func (r *WalletRepository) SumAbsAmountByStatus(ctx context.Context, status string) (float64, error) {
+	var total float64
+	err := r.db.WithContext(ctx).Model(&models.WalletTransaction{}).
+		Select("COALESCE(SUM(ABS(amount)), 0)").
+		Where("status = ?", status).
+		Scan(&total).Error
+	return total, err
 }

@@ -44,6 +44,28 @@ func paginationParams(c *gin.Context, defaultLimit int) (limit, offset int) {
 	return limit, offset
 }
 
+// pageLimitParams extracts and clamps page/limit from query params for
+// admin listing endpoints that paginate by page number instead of offset.
+func pageLimitParams(c *gin.Context, defaultLimit int) (page, limit int) {
+	if defaultLimit <= 0 {
+		defaultLimit = constants.DefaultLimit
+	}
+
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err = strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
+	if err != nil || limit < constants.MinLimit {
+		limit = defaultLimit
+	}
+	if limit > constants.MaxLimit {
+		limit = constants.MaxLimit
+	}
+	return page, limit
+}
+
 // parseUintParam reads a named URL parameter as uint. Returns (0, false) on failure
 // and writes a 400 response so the caller can just `return`.
 func parseUintParam(c *gin.Context, param string) (uint, bool) {

@@ -149,6 +149,77 @@ func (s *Service) GetPaymentProvider(ctx context.Context, isActive bool) ([]mode
 	return s.repo.ListActiveProviders(ctx, isActive)
 }
 
+// ListAdmin returns paginated payments for the admin transactions list.
+func (s *Service) ListAdmin(ctx context.Context, filters dto.AdminPaymentListFilters) ([]models.Payment, int64, error) {
+	page := filters.Page
+	if page < 1 {
+		page = 1
+	}
+	limit := filters.Limit
+	if limit < 1 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	filters.Page = page
+	filters.Limit = limit
+	offset := (page - 1) * limit
+
+	total, err := s.repo.CountAdmin(ctx, filters)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	payments, err := s.repo.ListAdmin(ctx, filters, limit, offset)
+	if err != nil {
+		return nil, 0, utils.ErrInternal(err)
+	}
+	return payments, total, nil
+}
+
+// GetByIDAdmin loads a payment with relations for the admin detail view.
+func (s *Service) GetByIDAdmin(ctx context.Context, paymentID uint) (*models.Payment, error) {
+	payment, err := s.repo.FindByIDAdmin(ctx, paymentID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.ErrNotFound("payment not found")
+		}
+		return nil, utils.ErrInternal(err)
+	}
+	return payment, nil
+}
+
+// GetSummaryAdmin returns admin KPI counters for payments.
+func (s *Service) GetSummaryAdmin(ctx context.Context) (dto.PaymentsSummaryResponse, error) {
+	total, err := s.repo.CountAll(ctx)
+	if err != nil {
+		return dto.PaymentsSummaryResponse{}, utils.ErrInternal(err)
+	}
+	statusCounts, err := s.repo.StatusCounts(ctx)
+	if err != nil {
+		return dto.PaymentsSummaryResponse{}, utils.ErrInternal(err)
+	}
+	volume, err := s.repo.SumAmountByStatuses(ctx, []string{constants.PaymentStatusSucceeded, constants.PaymentStatusCompleted})
+	if err != nil {
+		return dto.PaymentsSummaryResponse{}, utils.ErrInternal(err)
+	}
+
+	summary := dto.PaymentsSummaryResponse{TotalCount: total, TotalVolume: volume}
+	for _, row := range statusCounts {
+		switch row.Status {
+		case constants.PaymentStatusSucceeded, constants.PaymentStatusCompleted:
+			summary.CompletedCount += row.Count
+		case constants.PaymentStatusPending:
+			summary.PendingCount += row.Count
+		case constants.PaymentStatusFailed:
+			summary.FailedCount += row.Count
+		case constants.PaymentStatusRefunded:
+			summary.RefundedCount += row.Count
+		}
+	}
+	return summary, nil
+}
+
 func (s *Service) mockGateway(cardInfo dto.CardInfo) error {
 	time.Sleep(1 * time.Second)
 
