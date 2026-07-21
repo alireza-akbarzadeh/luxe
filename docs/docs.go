@@ -16720,6 +16720,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/home/hero-slides": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Home"
+                ],
+                "summary": "Hero slides",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max items",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.HomeHeroSlidesResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/home/most-wishlisted": {
             "get": {
                 "produces": [
@@ -34093,6 +34132,43 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.HomeFlashDealItem"
+                    }
+                },
+                "promo": {
+                    "$ref": "#/definitions/dto.HomeFlashPromoConfig"
+                }
+            }
+        },
+        "dto.HomeFlashPromoConfig": {
+            "type": "object",
+            "properties": {
+                "badge": {
+                    "type": "string"
+                },
+                "cta_href": {
+                    "type": "string"
+                },
+                "cta_label": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.HomeHeroSlidesResponse": {
+            "type": "object",
+            "properties": {
+                "slides": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.HomeSectionItem"
                     }
                 }
             }

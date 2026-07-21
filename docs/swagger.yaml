@@ -5586,6 +5586,30 @@ definitions:
         items:
           $ref: '#/definitions/dto.HomeFlashDealItem'
         type: array
+      promo:
+        $ref: '#/definitions/dto.HomeFlashPromoConfig'
+    type: object
+  dto.HomeFlashPromoConfig:
+    properties:
+      badge:
+        type: string
+      cta_href:
+        type: string
+      cta_label:
+        type: string
+      description:
+        type: string
+      ends_at:
+        type: string
+      title:
+        type: string
+    type: object
+  dto.HomeHeroSlidesResponse:
+    properties:
+      slides:
+        items:
+          $ref: '#/definitions/dto.HomeSectionItem'
+        type: array
     type: object
   dto.HomeManifestResponse:
     properties:
@@ -21355,6 +21379,28 @@ paths:
                   $ref: '#/definitions/dto.HomeFlashDealsResponse'
               type: object
       summary: Flash deals
+      tags:
+      - Home
+  /home/hero-slides:
+    get:
+      parameters:
+      - description: Max items
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeHeroSlidesResponse'
+              type: object
+      summary: Hero slides
       tags:
       - Home
   /home/most-wishlisted:

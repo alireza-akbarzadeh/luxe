@@ -1,27 +1,171 @@
--- Homepage merchandising demo data: published collections + active flash deals.
+-- Homepage merchandising demo data: hero slides, flash promo band, flash deals, collections.
 -- Run after seed-catalog.sql. Idempotent.
 
--- Active flash deal (powers PromoSection on the storefront home page)
-INSERT INTO flash_deals (product_id, ends_at, quantity_limit, sort_order, status, created_at, updated_at)
+-- ── Flash-deals promo copy (powers PromoSection headline + countdown) ───────────
+INSERT INTO homepage_sections (
+    section_key, title, href, image_url, sort_order, status, filters, created_at, updated_at
+)
+VALUES (
+    'flash-deals-promo',
+    '18% off your first order',
+    '/shop',
+    '',
+    0,
+    'published',
+    jsonb_build_object(
+        'badge', 'Limited time',
+        'description', 'Unlock 18% off your first order — plus early access to private sales, new drops, and member-only styling sessions. Use code WELCOME30 at checkout.',
+        'cta_label', 'Shop the sale',
+        'ends_at', to_char((NOW() + INTERVAL '5 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+    ),
+    NOW(),
+    NOW()
+)
+ON CONFLICT (section_key) DO UPDATE SET
+    title = EXCLUDED.title,
+    href = EXCLUDED.href,
+    image_url = EXCLUDED.image_url,
+    sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
+    filters = EXCLUDED.filters,
+    updated_at = NOW();
+
+-- ── Hero carousel slides (section_key must start with hero-) ──────────────────
+INSERT INTO homepage_sections (
+    section_key, title, href, image_url, sort_order, status, filters, created_at, updated_at
+)
+VALUES
+    (
+        'hero-slide-1',
+        'Up to 40% off selected pieces',
+        '/shop',
+        'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1200&h=900&fit=crop',
+        0,
+        'published',
+        '{"eyebrow":"Seasonal edit","description":"Curated luxury for everyday life"}'::jsonb,
+        NOW(),
+        NOW()
+    ),
+    (
+        'hero-slide-2',
+        'The Fall Edit is here',
+        '/shop?sortBy=newest',
+        'https://images.unsplash.com/photo-1483985988355-763728e3685b?w=1200&h=900&fit=crop',
+        1,
+        'published',
+        '{"eyebrow":"New arrivals","description":"Layered tailoring and rich textures"}'::jsonb,
+        NOW(),
+        NOW()
+    ),
+    (
+        'hero-slide-3',
+        'Evening essentials',
+        '/collections',
+        'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=1200&h=900&fit=crop',
+        2,
+        'published',
+        '{"eyebrow":"Occasion wear","description":"Silk, satin, and statement pieces"}'::jsonb,
+        NOW(),
+        NOW()
+    )
+ON CONFLICT (section_key) DO UPDATE SET
+    title = EXCLUDED.title,
+    href = EXCLUDED.href,
+    image_url = EXCLUDED.image_url,
+    sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
+    filters = EXCLUDED.filters,
+    updated_at = NOW();
+
+-- ── Seasonal pick banners (shown in SeasonalPicksSection) ─────────────────────
+INSERT INTO homepage_sections (
+    section_key, title, href, image_url, sort_order, status, filters, created_at, updated_at
+)
+VALUES
+    (
+        'seasonal-gifts',
+        'Gift-worthy finds',
+        '/shop',
+        'https://images.unsplash.com/photo-1513883049090-d0b7439799a8?w=1200',
+        10,
+        'published',
+        '{}'::jsonb,
+        NOW(),
+        NOW()
+    ),
+    (
+        'seasonal-outerwear',
+        'Outerwear spotlight',
+        '/shop',
+        'https://images.unsplash.com/photo-1548126032-077a2e8e9e3b?w=1200',
+        11,
+        'published',
+        '{}'::jsonb,
+        NOW(),
+        NOW()
+    )
+ON CONFLICT (section_key) DO UPDATE SET
+    title = EXCLUDED.title,
+    href = EXCLUDED.href,
+    image_url = EXCLUDED.image_url,
+    sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
+    filters = EXCLUDED.filters,
+    updated_at = NOW();
+
+-- ── Flash deals product rail (powers PromoSection product cards) ──────────────
+INSERT INTO flash_deals (product_id, title, ends_at, quantity_limit, sort_order, status, created_at, updated_at)
 SELECT
     p.id,
-    NOW() + INTERVAL '14 days',
+    '',
+    NOW() + INTERVAL '5 days',
     50,
-    0,
+    ord.sort_order,
     'active',
     NOW(),
     NOW()
-FROM products p
-WHERE p.deleted_at IS NULL
-  AND p.status = 'active'
-  AND p.images IS NOT NULL
-  AND p.images::text <> '[]'
+FROM (
+    VALUES
+        ('arielle-silk-midi-dress', 0),
+        ('soft-leather-biker-jacket', 1),
+        ('heritage-chronograph-42', 2),
+        ('cloud-cashmere-crew', 3),
+        ('stellar-automatic-38', 4),
+        ('sculptural-leather-pump', 5),
+        ('solstice-gold-vermeil-hoops', 6),
+        ('city-rain-trench', 7)
+) AS ord(slug, sort_order)
+INNER JOIN products p ON p.slug = ord.slug AND p.deleted_at IS NULL
+WHERE p.status = 'active'
   AND NOT EXISTS (
-    SELECT 1 FROM flash_deals fd
-    WHERE fd.product_id = p.id AND fd.status = 'active' AND fd.ends_at > NOW()
-  )
-ORDER BY p.compare_at_price DESC NULLS LAST, p.id ASC
-LIMIT 1;
+    SELECT 1
+    FROM flash_deals fd
+    WHERE fd.product_id = p.id
+      AND fd.status = 'active'
+      AND fd.ends_at > NOW()
+  );
+
+-- Refresh ends_at on existing active demo deals so countdown stays current
+UPDATE flash_deals fd
+SET
+    ends_at = NOW() + INTERVAL '5 days',
+    sort_order = ord.sort_order,
+    updated_at = NOW()
+FROM products p
+INNER JOIN (
+    VALUES
+        ('arielle-silk-midi-dress', 0),
+        ('soft-leather-biker-jacket', 1),
+        ('heritage-chronograph-42', 2),
+        ('cloud-cashmere-crew', 3),
+        ('stellar-automatic-38', 4),
+        ('sculptural-leather-pump', 5),
+        ('solstice-gold-vermeil-hoops', 6),
+        ('city-rain-trench', 7)
+) AS ord(slug, sort_order) ON p.slug = ord.slug
+WHERE fd.product_id = p.id
+  AND fd.status = 'active'
+  AND fd.ends_at > NOW();
 
 -- Published collections (powers CollectionBanner on the storefront home page)
 INSERT INTO collections (
