@@ -6,6 +6,10 @@ DECLARE
   cat_women INT;
   cat_men INT;
   cat_accessories INT;
+  cat_beauty INT;
+  cat_home INT;
+  cat_sport INT;
+  cat_kids INT;
   cat_women_dresses INT;
   cat_women_tops INT;
   cat_women_knitwear INT;
@@ -16,10 +20,16 @@ DECLARE
   cat_men_trousers INT;
   cat_men_outerwear INT;
   cat_men_shoes INT;
+  cat_men_jackets INT;
   cat_watches INT;
   cat_jewelry INT;
   cat_sunglasses INT;
   cat_belts INT;
+  cat_beauty_skincare INT;
+  cat_beauty_fragrance INT;
+  cat_home_decor INT;
+  cat_sport_active INT;
+  cat_kids_wear INT;
   brand_maison INT;
   brand_verona INT;
   brand_stellar INT;
@@ -116,6 +126,26 @@ BEGIN
     'Watches, jewelry, eyewear, and leather accessories.',
     NULL
   );
+  cat_beauty := pg_temp.seed_category(
+    'Beauty', 'beauty',
+    'Skincare, fragrance, and grooming essentials.',
+    NULL
+  );
+  cat_home := pg_temp.seed_category(
+    'Home', 'home',
+    'Decor, textiles, and objects for elevated living.',
+    NULL
+  );
+  cat_sport := pg_temp.seed_category(
+    'Sport', 'sport',
+    'Performance wear and active lifestyle essentials.',
+    NULL
+  );
+  cat_kids := pg_temp.seed_category(
+    'Kids', 'kids',
+    'Mini fashion — soft knits, playwear, and tiny accessories.',
+    NULL
+  );
 
   cat_women_dresses := pg_temp.seed_category('Dresses', 'women-dresses', 'Midi, maxi, and occasion dresses.', cat_women);
   cat_women_tops := pg_temp.seed_category('Tops & Blouses', 'women-tops', 'Shirts, blouses, and lightweight layers.', cat_women);
@@ -128,11 +158,18 @@ BEGIN
   cat_men_trousers := pg_temp.seed_category('Trousers', 'men-trousers', 'Chinos, wool trousers, and denim.', cat_men);
   cat_men_outerwear := pg_temp.seed_category('Outerwear', 'men-outerwear', 'Blazers, coats, and overshirts.', cat_men);
   cat_men_shoes := pg_temp.seed_category('Shoes', 'men-shoes', 'Loafers, boots, and sneakers.', cat_men);
+  cat_men_jackets := pg_temp.seed_category('Men''s Jackets', 'mens-jackets', 'Bombers, field jackets, and layered outerwear.', cat_men);
 
   cat_watches := pg_temp.seed_category('Watches', 'watches', 'Automatic, chronograph, and dress watches.', cat_accessories);
   cat_jewelry := pg_temp.seed_category('Jewelry', 'jewelry', 'Earrings, necklaces, and bracelets.', cat_accessories);
   cat_sunglasses := pg_temp.seed_category('Sunglasses', 'sunglasses', 'Polarized and UV-protective eyewear.', cat_accessories);
   cat_belts := pg_temp.seed_category('Belts & Scarves', 'belts-scarves', 'Leather belts and silk scarves.', cat_accessories);
+
+  cat_beauty_skincare := pg_temp.seed_category('Skincare', 'beauty-skincare', 'Serums, creams, and daily rituals.', cat_beauty);
+  cat_beauty_fragrance := pg_temp.seed_category('Fragrance', 'beauty-fragrance', 'Eau de parfum and body mists.', cat_beauty);
+  cat_home_decor := pg_temp.seed_category('Decor', 'home-decor', 'Vases, candles, and sculptural objects.', cat_home);
+  cat_sport_active := pg_temp.seed_category('Activewear', 'sport-activewear', 'Sets, jackets, and performance layers.', cat_sport);
+  cat_kids_wear := pg_temp.seed_category('Kidswear', 'kids-wear', 'Soft everyday pieces for little ones.', cat_kids);
 
   -- ── Products ────────────────────────────────────────────────────────────
   INSERT INTO products (
@@ -717,6 +754,87 @@ BEGIN
     ARRAY['belt','reversible','leather'], 'public', TRUE, FALSE, 0.20,
     'Reversible Leather Belt', 'Black and brown reversible calfskin belt.',
     ARRAY['online_store','pos'], NOW() - INTERVAL '38 days'
+  )
+  ON CONFLICT (slug) DO NOTHING;
+
+  -- Extra story-rail products so Beauty / Home / Sport / Kids / Jackets appear
+  INSERT INTO products (
+    name, slug, description, price, compare_at_price, cost, stock, sku, barcode,
+    category_id, store_id, brand_id, status, rating, reviews_count, is_new,
+    images, colors, sizes, tags, visibility, track_inventory, allow_backorder, weight,
+    meta_title, meta_description, channels, published_at
+  ) VALUES
+  (
+    'Field Bomber Jacket',
+    'field-bomber-jacket',
+    'Lightweight cotton-nylon bomber with ribbed collar and zip-through front.',
+    485.00, 540.00, 160.00, 22, 'LUX-M-JACK-001', '3700123456301',
+    cat_men_jackets, store_luxe, brand_atelier, 'active', 4.6, 18, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=900'],
+    '["Olive","Black","Navy"]'::jsonb, '["S","M","L","XL"]'::jsonb,
+    ARRAY['jacket','bomber','mens'], 'public', TRUE, FALSE, 0.55,
+    'Field Bomber Jacket', 'Cotton-nylon bomber jacket for layered dressing.',
+    ARRAY['online_store'], NOW() - INTERVAL '7 days'
+  ),
+  (
+    'Velvet Night Serum',
+    'velvet-night-serum',
+    'Peptide-rich night serum for overnight firmness and glow.',
+    128.00, 148.00, 32.00, 60, 'LUX-B-SKIN-001', '3700123456302',
+    cat_beauty_skincare, store_gold, NULL, 'active', 4.8, 54, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1620916568859-e6e0b0a3d8f0?w=900'],
+    '["Clear"]'::jsonb, '["30ml"]'::jsonb,
+    ARRAY['skincare','serum','beauty'], 'public', TRUE, FALSE, 0.08,
+    'Velvet Night Serum', 'Peptide night serum for firmness and glow.',
+    ARRAY['online_store'], NOW() - INTERVAL '5 days'
+  ),
+  (
+    'Amber Fig Eau de Parfum',
+    'amber-fig-edp',
+    'Warm amber and fig eau de parfum with sandalwood dry-down.',
+    210.00, 240.00, 55.00, 40, 'LUX-B-FRAG-001', '3700123456303',
+    cat_beauty_fragrance, store_gold, brand_maison, 'active', 4.7, 27, FALSE,
+    ARRAY['https://images.unsplash.com/photo-1541643600914-78b084683601?w=900'],
+    '["Amber"]'::jsonb, '["50ml","100ml"]'::jsonb,
+    ARRAY['fragrance','perfume','beauty'], 'public', TRUE, FALSE, 0.25,
+    'Amber Fig Eau de Parfum', 'Warm amber and fig perfume.',
+    ARRAY['online_store'], NOW() - INTERVAL '12 days'
+  ),
+  (
+    'Travertine Candle Vessel',
+    'travertine-candle-vessel',
+    'Hand-poured soy candle in a sculptural travertine vessel.',
+    95.00, 110.00, 28.00, 35, 'LUX-H-DECOR-001', '3700123456304',
+    cat_home_decor, store_luxe, brand_atelier, 'active', 4.5, 21, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1603006905003-be475563bc59?w=900'],
+    '["Stone"]'::jsonb, '["One Size"]'::jsonb,
+    ARRAY['home','candle','decor'], 'public', TRUE, FALSE, 0.9,
+    'Travertine Candle Vessel', 'Soy candle in sculptural travertine.',
+    ARRAY['online_store'], NOW() - INTERVAL '9 days'
+  ),
+  (
+    'Performance Track Jacket',
+    'performance-track-jacket',
+    'Breathable stretch track jacket with reflective piping.',
+    165.00, 190.00, 48.00, 44, 'LUX-S-ACT-001', '3700123456305',
+    cat_sport_active, store_urban, brand_common, 'active', 4.4, 33, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900'],
+    '["Black","Ivory","Cobalt"]'::jsonb, '["XS","S","M","L","XL"]'::jsonb,
+    ARRAY['sport','activewear','jacket'], 'public', TRUE, FALSE, 0.35,
+    'Performance Track Jacket', 'Stretch track jacket with reflective piping.',
+    ARRAY['online_store'], NOW() - INTERVAL '4 days'
+  ),
+  (
+    'Cloud Soft Kids Tee',
+    'cloud-soft-kids-tee',
+    'Organic cotton kids tee with rolled hem and gentle hand-feel.',
+    48.00, 58.00, 12.00, 70, 'LUX-K-WEAR-001', '3700123456306',
+    cat_kids_wear, store_urban, brand_common, 'active', 4.6, 19, TRUE,
+    ARRAY['https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=900'],
+    '["Ivory","Sage","Clay"]'::jsonb, '["2Y","4Y","6Y","8Y"]'::jsonb,
+    ARRAY['kids','tee','organic'], 'public', TRUE, FALSE, 0.12,
+    'Cloud Soft Kids Tee', 'Organic cotton tee for little ones.',
+    ARRAY['online_store'], NOW() - INTERVAL '6 days'
   )
   ON CONFLICT (slug) DO NOTHING;
 

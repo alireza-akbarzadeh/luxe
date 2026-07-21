@@ -123,7 +123,8 @@ type homeCategoryRow struct {
 	ProductCount int64 `gorm:"column:product_count"`
 }
 
-// ListHomeCategories returns active top-level categories ranked by catalog size.
+// ListHomeCategories returns active categories ranked by catalog size.
+// Includes nested departments so the homepage stories rail can fill out.
 func (r *StorefrontRepository) ListHomeCategories(ctx context.Context, limit int) ([]homeCategoryRow, error) {
 	var rows []homeCategoryRow
 	err := r.db.WithContext(ctx).Table("categories").
@@ -131,8 +132,8 @@ func (r *StorefrontRepository) ListHomeCategories(ctx context.Context, limit int
 		Joins("LEFT JOIN products ON products.category_id = categories.id AND products.deleted_at IS NULL AND products.status = ?", constants.ProductStatusActive).
 		Where("categories.is_active = ?", true).
 		Where("categories.deleted_at IS NULL").
-		Where("categories.parent_id IS NULL").
 		Group("categories.id").
+		Having("COUNT(products.id) > 0").
 		Order("product_count DESC").
 		Order("categories.name ASC").
 		Limit(limit).

@@ -98,13 +98,45 @@ func (r *HomeRepository) ListActiveFlashDeals(ctx context.Context, limit int) ([
 
 // ListPublishedHomepageSections returns published homepage section config rows.
 func (r *HomeRepository) ListPublishedHomepageSections(ctx context.Context, limit int) ([]models.HomepageSection, error) {
+	return r.listPublishedHomepageSections(ctx, limit, false)
+}
+
+// ListPublishedSeasonalSections returns published sections excluding hero slides and flash promo config.
+func (r *HomeRepository) ListPublishedSeasonalSections(ctx context.Context, limit int) ([]models.HomepageSection, error) {
+	return r.listPublishedHomepageSections(ctx, limit, true)
+}
+
+func (r *HomeRepository) listPublishedHomepageSections(ctx context.Context, limit int, excludeHeroAndPromo bool) ([]models.HomepageSection, error) {
+	var rows []models.HomepageSection
+	query := r.db.WithContext(ctx).Where("status = ?", "published")
+	if excludeHeroAndPromo {
+		query = query.Where("section_key NOT LIKE ? AND section_key <> ?", "hero-%", "flash-deals-promo")
+	}
+	err := query.Order("sort_order ASC").Limit(limit).Find(&rows).Error
+	return rows, err
+}
+
+// ListPublishedHeroSlides returns homepage sections for the hero carousel.
+func (r *HomeRepository) ListPublishedHeroSlides(ctx context.Context, limit int) ([]models.HomepageSection, error) {
 	var rows []models.HomepageSection
 	err := r.db.WithContext(ctx).
-		Where("status = ?", "published").
+		Where("status = ? AND section_key LIKE ?", "published", "hero-%").
 		Order("sort_order ASC").
 		Limit(limit).
 		Find(&rows).Error
 	return rows, err
+}
+
+// FindPublishedHomepageSectionByKey returns one published section by exact key.
+func (r *HomeRepository) FindPublishedHomepageSectionByKey(ctx context.Context, key string) (*models.HomepageSection, error) {
+	var row models.HomepageSection
+	err := r.db.WithContext(ctx).
+		Where("status = ? AND section_key = ?", "published", key).
+		First(&row).Error
+	if err != nil {
+		return nil, err
+	}
+	return &row, nil
 }
 
 // ListPublishedCollections returns active collections within their schedule window for homepage.

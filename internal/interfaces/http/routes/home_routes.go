@@ -14,6 +14,7 @@ func SetupHomeRoutes(public, protected *gin.RouterGroup, ctrl *handlers.Containe
 	public.GET("/home/trending-products", ctrl.Home.GetTrendingProducts)
 	public.GET("/home/new-arrivals", ctrl.Home.GetNewArrivals)
 	public.GET("/home/flash-deals", ctrl.Home.GetFlashDeals)
+	public.GET("/home/hero-slides", ctrl.Home.GetHeroSlides)
 	public.GET("/home/most-wishlisted", ctrl.Home.GetMostWishlisted)
 	public.GET("/home/customer-favorites", ctrl.Home.GetCustomerFavorites)
 	public.GET("/home/popular-collections", ctrl.Home.GetPopularCollections)

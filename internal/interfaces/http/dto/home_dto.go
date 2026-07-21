@@ -57,6 +57,27 @@ type HomeFlashDealItem struct {
 	QuantityLimit *int            `json:"quantity_limit,omitempty"`
 }
 
+// HomeFlashPromoConfig is admin-driven copy for the homepage flash-deals band.
+type HomeFlashPromoConfig struct {
+	Badge       string     `json:"badge,omitempty"`
+	Title       string     `json:"title,omitempty"`
+	Description string     `json:"description,omitempty"`
+	CtaLabel    string     `json:"cta_label,omitempty"`
+	CtaHref     string     `json:"cta_href,omitempty"`
+	EndsAt      *time.Time `json:"ends_at,omitempty"`
+}
+
+// HomeFlashDealsResponse wraps flash deals and optional promo copy.
+type HomeFlashDealsResponse struct {
+	Deals []HomeFlashDealItem  `json:"deals"`
+	Promo *HomeFlashPromoConfig `json:"promo,omitempty"`
+}
+
+// HomeHeroSlidesResponse wraps hero carousel slides from admin homepage sections.
+type HomeHeroSlidesResponse struct {
+	Slides []HomeSectionItem `json:"slides"`
+}
+
 // HomeStoreItem is a featured store card.
 type HomeStoreItem struct {
 	ID           uint    `json:"id"`
@@ -125,11 +146,6 @@ type HomeProductsResponse struct {
 // HomeBrandsResponse wraps brand list for homepage.
 type HomeBrandsResponse struct {
 	Brands []HomeBrandItem `json:"brands"`
-}
-
-// HomeFlashDealsResponse wraps flash deals.
-type HomeFlashDealsResponse struct {
-	Deals []HomeFlashDealItem `json:"deals"`
 }
 
 // HomeStoresResponse wraps featured stores.

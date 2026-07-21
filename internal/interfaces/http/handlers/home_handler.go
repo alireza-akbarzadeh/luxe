@@ -135,12 +135,28 @@ func (h *HomeHandler) GetNewArrivals(c *gin.Context) {
 // @Success      200 {object} utils.Response{data=dto.HomeFlashDealsResponse}
 // @Router       /home/flash-deals [get]
 func (h *HomeHandler) GetFlashDeals(c *gin.Context) {
-	deals, err := h.svc.GetFlashDeals(c.Request.Context(), parseHomeLimit(c))
+	data, err := h.svc.GetFlashDeals(c.Request.Context(), parseHomeLimit(c))
 	if err != nil {
 		utils.HandleServiceError(c, err, "failed to load flash deals")
 		return
 	}
-	utils.SuccessResponse(c, "flash deals", dto.HomeFlashDealsResponse{Deals: deals})
+	utils.SuccessResponse(c, "flash deals", data)
+}
+
+// GetHeroSlides returns admin-published hero carousel slides.
+// @Summary      Hero slides
+// @Tags         Home
+// @Produce      json
+// @Param        limit query int false "Max items"
+// @Success      200 {object} utils.Response{data=dto.HomeHeroSlidesResponse}
+// @Router       /home/hero-slides [get]
+func (h *HomeHandler) GetHeroSlides(c *gin.Context) {
+	slides, err := h.svc.GetHeroSlides(c.Request.Context(), parseHomeLimit(c))
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to load hero slides")
+		return
+	}
+	utils.SuccessResponse(c, "hero slides", dto.HomeHeroSlidesResponse{Slides: slides})
 }
 
 // GetRecommended returns personalized recommendations for the logged-in user.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/alireza-akbarzadeh/luxe/internal/infrastructure/postgres"
 	"github.com/alireza-akbarzadeh/luxe/internal/interfaces/http/dto"
@@ -31,7 +32,7 @@ func (s *Service) Manifest() dto.HomeManifestResponse {
 	return dto.HomeManifestResponse{
 		Sections: []string{
 			"categories", "top-brands", "top-products", "trending-products",
-			"new-arrivals", "flash-deals", "recommended", "recently-viewed",
+			"new-arrivals", "flash-deals", "hero-slides", "recommended", "recently-viewed",
 			"most-wishlisted", "customer-favorites", "popular-collections",
 			"featured-stores", "shop-by-price", "seasonal-picks", "recently-restocked",
 		},
@@ -295,12 +296,12 @@ func (s *Service) GetNewArrivals(ctx context.Context, limit int) ([]dto.HomeProd
 	return out, nil
 }
 
-// GetFlashDeals returns active flash deals.
-func (s *Service) GetFlashDeals(ctx context.Context, limit int) ([]dto.HomeFlashDealItem, error) {
+// GetFlashDeals returns active flash deals and optional admin promo copy.
+func (s *Service) GetFlashDeals(ctx context.Context, limit int) (dto.HomeFlashDealsResponse, error) {
 	limit = clampLimit(limit)
 	deals, err := s.home.ListActiveFlashDeals(ctx, limit)
 	if err != nil {
-		return nil, err
+		return dto.HomeFlashDealsResponse{}, err
 	}
 	out := make([]dto.HomeFlashDealItem, 0, len(deals))
 	for _, d := range deals {
@@ -318,6 +319,28 @@ func (s *Service) GetFlashDeals(ctx context.Context, limit int) ([]dto.HomeFlash
 		item.Product.QuantityLimit = d.QuantityLimit
 		out = append(out, item)
 	}
+	return dto.HomeFlashDealsResponse{
+		Deals: out,
+		Promo: s.loadFlashPromoConfig(ctx),
+	}, nil
+}
+
+// GetHeroSlides returns admin-published hero carousel slides.
+func (s *Service) GetHeroSlides(ctx context.Context, limit int) ([]dto.HomeSectionItem, error) {
+	limit = clampLimit(limit)
+	cacheKey := fmt.Sprintf("home:hero-slides:%d", limit)
+	if cached, ok := s.cache.Get(cacheKey); ok {
+		return cached.([]dto.HomeSectionItem), nil
+	}
+	rows, err := s.home.ListPublishedHeroSlides(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]dto.HomeSectionItem, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, homepageSectionToItem(row))
+	}
+	s.cache.Set(cacheKey, out, publicCacheTTL)
 	return out, nil
 }
 
@@ -421,22 +444,16 @@ func (s *Service) GetShopByPrice(ctx context.Context) ([]dto.HomeShopByPriceItem
 	return out, nil
 }
 
-// GetSeasonalPicks returns published homepage sections.
+// GetSeasonalPicks returns published homepage sections (excluding hero slides and flash promo config).
 func (s *Service) GetSeasonalPicks(ctx context.Context, limit int) ([]dto.HomeSectionItem, error) {
 	limit = clampLimit(limit)
-	rows, err := s.home.ListPublishedHomepageSections(ctx, limit)
+	rows, err := s.home.ListPublishedSeasonalSections(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]dto.HomeSectionItem, 0, len(rows))
 	for _, row := range rows {
-		filters := map[string]interface{}{}
-		if len(row.Filters) > 0 {
-			_ = json.Unmarshal(row.Filters, &filters)
-		}
-		out = append(out, dto.HomeSectionItem{
-			Key: row.SectionKey, Title: row.Title, Href: row.Href, ImageURL: row.ImageURL, Filters: filters,
-		})
+		out = append(out, homepageSectionToItem(row))
 	}
 	return out, nil
 }
@@ -555,4 +572,47 @@ func (s *Service) GetFavoriteCategories(ctx context.Context, userID uint) ([]dto
 // SetFavoriteCategories replaces favorite categories for a user.
 func (s *Service) SetFavoriteCategories(ctx context.Context, userID uint, categoryIDs []uint) error {
 	return s.home.ReplaceFavoriteCategories(ctx, userID, categoryIDs)
+}
+
+func homepageSectionToItem(row models.HomepageSection) dto.HomeSectionItem {
+	filters := map[string]interface{}{}
+	if len(row.Filters) > 0 {
+		_ = json.Unmarshal(row.Filters, &filters)
+	}
+	return dto.HomeSectionItem{
+		Key: row.SectionKey, Title: row.Title, Href: row.Href, ImageURL: row.ImageURL, Filters: filters,
+	}
+}
+
+func (s *Service) loadFlashPromoConfig(ctx context.Context) *dto.HomeFlashPromoConfig {
+	row, err := s.home.FindPublishedHomepageSectionByKey(ctx, "flash-deals-promo")
+	if err != nil || row == nil {
+		return nil
+	}
+	filters := map[string]interface{}{}
+	if len(row.Filters) > 0 {
+		_ = json.Unmarshal(row.Filters, &filters)
+	}
+	cfg := &dto.HomeFlashPromoConfig{
+		Title:   row.Title,
+		CtaHref: row.Href,
+	}
+	if v, ok := filters["badge"].(string); ok {
+		cfg.Badge = v
+	}
+	if v, ok := filters["description"].(string); ok {
+		cfg.Description = v
+	}
+	if v, ok := filters["cta_label"].(string); ok {
+		cfg.CtaLabel = v
+	}
+	if v, ok := filters["ends_at"].(string); ok {
+		if endsAt, parseErr := time.Parse(time.RFC3339, v); parseErr == nil {
+			cfg.EndsAt = &endsAt
+		}
+	}
+	if cfg.Badge == "" && cfg.Title == "" && cfg.Description == "" && cfg.CtaLabel == "" && cfg.CtaHref == "" {
+		return nil
+	}
+	return cfg
 }
