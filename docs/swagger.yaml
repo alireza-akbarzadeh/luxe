@@ -5620,6 +5620,26 @@ definitions:
           type: string
         type: array
     type: object
+  dto.HomeMarketingBand:
+    properties:
+      deals:
+        items:
+          $ref: '#/definitions/dto.HomeFlashDealItem'
+        type: array
+      key:
+        type: string
+      promo:
+        $ref: '#/definitions/dto.HomeFlashPromoConfig'
+      theme:
+        type: string
+    type: object
+  dto.HomeMarketingBandsResponse:
+    properties:
+      bands:
+        items:
+          $ref: '#/definitions/dto.HomeMarketingBand'
+        type: array
+    type: object
   dto.HomeProductItem:
     properties:
       allow_backorder:
@@ -21401,6 +21421,28 @@ paths:
                   $ref: '#/definitions/dto.HomeHeroSlidesResponse'
               type: object
       summary: Hero slides
+      tags:
+      - Home
+  /home/marketing-bands:
+    get:
+      parameters:
+      - description: Max flash deals per band
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/utils.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.HomeMarketingBandsResponse'
+              type: object
+      summary: Marketing bands
       tags:
       - Home
   /home/most-wishlisted:

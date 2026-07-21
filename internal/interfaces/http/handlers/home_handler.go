@@ -159,6 +159,22 @@ func (h *HomeHandler) GetHeroSlides(c *gin.Context) {
 	utils.SuccessResponse(c, "hero slides", dto.HomeHeroSlidesResponse{Slides: slides})
 }
 
+// GetMarketingBands returns admin-configured promo bands for the storefront home page.
+// @Summary      Marketing bands
+// @Tags         Home
+// @Produce      json
+// @Param        limit query int false "Max flash deals per band"
+// @Success      200 {object} utils.Response{data=dto.HomeMarketingBandsResponse}
+// @Router       /home/marketing-bands [get]
+func (h *HomeHandler) GetMarketingBands(c *gin.Context) {
+	bands, err := h.svc.GetMarketingBands(c.Request.Context(), parseHomeLimit(c))
+	if err != nil {
+		utils.HandleServiceError(c, err, "failed to load marketing bands")
+		return
+	}
+	utils.SuccessResponse(c, "marketing bands", dto.HomeMarketingBandsResponse{Bands: bands})
+}
+
 // GetRecommended returns personalized recommendations for the logged-in user.
 // @Summary      Recommended products
 // @Tags         Home

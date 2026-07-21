@@ -110,7 +110,10 @@ func (r *HomeRepository) listPublishedHomepageSections(ctx context.Context, limi
 	var rows []models.HomepageSection
 	query := r.db.WithContext(ctx).Where("status = ?", "published")
 	if excludeHeroAndPromo {
-		query = query.Where("section_key NOT LIKE ? AND section_key <> ?", "hero-%", "flash-deals-promo")
+		query = query.Where(
+			"section_key NOT LIKE ? AND section_key NOT LIKE ? AND section_key <> ?",
+			"hero-%", "marketing-band-%", "flash-deals-promo",
+		)
 	}
 	err := query.Order("sort_order ASC").Limit(limit).Find(&rows).Error
 	return rows, err
@@ -137,6 +140,18 @@ func (r *HomeRepository) FindPublishedHomepageSectionByKey(ctx context.Context, 
 		return nil, err
 	}
 	return &row, nil
+}
+
+// ListPublishedMarketingBands returns promo band config rows for the storefront home page.
+func (r *HomeRepository) ListPublishedMarketingBands(ctx context.Context, limit int) ([]models.HomepageSection, error) {
+	var rows []models.HomepageSection
+	err := r.db.WithContext(ctx).
+		Where("status = ?", "published").
+		Where("section_key = ? OR section_key LIKE ?", "flash-deals-promo", "marketing-band-%").
+		Order("sort_order ASC").
+		Limit(limit).
+		Find(&rows).Error
+	return rows, err
 }
 
 // ListPublishedCollections returns active collections within their schedule window for homepage.

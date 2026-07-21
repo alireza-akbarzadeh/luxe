@@ -78,6 +78,19 @@ type HomeHeroSlidesResponse struct {
 	Slides []HomeSectionItem `json:"slides"`
 }
 
+// HomeMarketingBand is one admin-configurable promo band with linked flash deals.
+type HomeMarketingBand struct {
+	Key   string                `json:"key"`
+	Promo HomeFlashPromoConfig `json:"promo"`
+	Deals []HomeFlashDealItem   `json:"deals"`
+	Theme string                `json:"theme,omitempty"`
+}
+
+// HomeMarketingBandsResponse wraps storefront marketing promo bands.
+type HomeMarketingBandsResponse struct {
+	Bands []HomeMarketingBand `json:"bands"`
+}
+
 // HomeStoreItem is a featured store card.
 type HomeStoreItem struct {
 	ID           uint    `json:"id"`

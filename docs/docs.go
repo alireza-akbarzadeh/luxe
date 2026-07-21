@@ -16759,6 +16759,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/home/marketing-bands": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Home"
+                ],
+                "summary": "Marketing bands",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Max flash deals per band",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/utils.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.HomeMarketingBandsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/home/most-wishlisted": {
             "get": {
                 "produces": [
@@ -34183,6 +34222,37 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.HomeMarketingBand": {
+            "type": "object",
+            "properties": {
+                "deals": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.HomeFlashDealItem"
+                    }
+                },
+                "key": {
+                    "type": "string"
+                },
+                "promo": {
+                    "$ref": "#/definitions/dto.HomeFlashPromoConfig"
+                },
+                "theme": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.HomeMarketingBandsResponse": {
+            "type": "object",
+            "properties": {
+                "bands": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.HomeMarketingBand"
                     }
                 }
             }

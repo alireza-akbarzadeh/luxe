@@ -16,7 +16,46 @@ VALUES (
         'badge', 'Limited time',
         'description', 'Unlock 18% off your first order — plus early access to private sales, new drops, and member-only styling sessions. Use code WELCOME30 at checkout.',
         'cta_label', 'Shop the sale',
-        'ends_at', to_char((NOW() + INTERVAL '5 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+        'ends_at', to_char((NOW() + INTERVAL '5 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+        'theme', 'dark'
+    ),
+    NOW(),
+    NOW()
+)
+ON CONFLICT (section_key) DO UPDATE SET
+    title = EXCLUDED.title,
+    href = EXCLUDED.href,
+    image_url = EXCLUDED.image_url,
+    sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
+    filters = EXCLUDED.filters,
+    updated_at = NOW();
+
+-- ── Second marketing band (section_key must start with marketing-band-) ───────
+INSERT INTO homepage_sections (
+    section_key, title, href, image_url, sort_order, status, filters, created_at, updated_at
+)
+VALUES (
+    'marketing-band-new-members',
+    'Members save 15% on tailoring',
+    '/shop?category=tailoring',
+    '',
+    1,
+    'published',
+    jsonb_build_object(
+        'badge', 'New members',
+        'description', 'Join Luxe Plus for exclusive pricing on made-to-measure pieces and complimentary alterations.',
+        'cta_label', 'Explore tailoring',
+        'ends_at', to_char((NOW() + INTERVAL '7 days') AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+        'theme', 'light',
+        'flash_deal_ids', (
+            SELECT COALESCE(jsonb_agg(fd.id ORDER BY fd.sort_order), '[]'::jsonb)
+            FROM flash_deals fd
+            INNER JOIN products p ON p.id = fd.product_id
+            WHERE fd.status = 'active'
+              AND fd.ends_at > NOW()
+              AND p.slug IN ('heritage-chronograph-42', 'stellar-automatic-38', 'solstice-gold-vermeil-hoops', 'sculptural-leather-pump')
+        )
     ),
     NOW(),
     NOW()

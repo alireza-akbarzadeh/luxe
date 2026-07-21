@@ -303,26 +303,56 @@ func (s *Service) GetFlashDeals(ctx context.Context, limit int) (dto.HomeFlashDe
 	if err != nil {
 		return dto.HomeFlashDealsResponse{}, err
 	}
-	out := make([]dto.HomeFlashDealItem, 0, len(deals))
-	for _, d := range deals {
-		if d.Product == nil {
-			continue
-		}
-		ends := d.EndsAt
-		item := dto.HomeFlashDealItem{
-			ID:            d.ID,
-			EndsAt:        ends,
-			QuantityLimit: d.QuantityLimit,
-			Product:       toHomeProduct(ctx, d.Product, 0, 0),
-		}
-		item.Product.FlashEndsAt = &ends
-		item.Product.QuantityLimit = d.QuantityLimit
-		out = append(out, item)
-	}
+	out := flashDealsToHomeItems(ctx, deals)
 	return dto.HomeFlashDealsResponse{
 		Deals: out,
 		Promo: s.loadFlashPromoConfig(ctx),
 	}, nil
+}
+
+// GetMarketingBands returns admin-configured promo bands with linked flash deals.
+func (s *Service) GetMarketingBands(ctx context.Context, dealLimit int) ([]dto.HomeMarketingBand, error) {
+	dealLimit = clampLimit(dealLimit)
+	sections, err := s.home.ListPublishedMarketingBands(ctx, 12)
+	if err != nil {
+		return nil, err
+	}
+	if len(sections) == 0 {
+		return nil, nil
+	}
+	allDeals, err := s.home.ListActiveFlashDeals(ctx, dealLimit)
+	if err != nil {
+		return nil, err
+	}
+	dealItems := flashDealsToHomeItems(ctx, allDeals)
+	dealByID := make(map[uint]dto.HomeFlashDealItem, len(dealItems))
+	for _, d := range dealItems {
+		dealByID[d.ID] = d
+	}
+
+	out := make([]dto.HomeMarketingBand, 0, len(sections))
+	for _, row := range sections {
+		filters := map[string]interface{}{}
+		if len(row.Filters) > 0 {
+			_ = json.Unmarshal(row.Filters, &filters)
+		}
+		promo := promoConfigFromSection(row, filters)
+		if promo == nil {
+			continue
+		}
+		deals := pickDealsForBand(filters, dealItems, dealByID)
+		if len(deals) == 0 {
+			continue
+		}
+		theme, _ := filters["theme"].(string)
+		out = append(out, dto.HomeMarketingBand{
+			Key:   row.SectionKey,
+			Promo: *promo,
+			Deals: deals,
+			Theme: theme,
+		})
+	}
+	return out, nil
 }
 
 // GetHeroSlides returns admin-published hero carousel slides.
@@ -593,6 +623,10 @@ func (s *Service) loadFlashPromoConfig(ctx context.Context) *dto.HomeFlashPromoC
 	if len(row.Filters) > 0 {
 		_ = json.Unmarshal(row.Filters, &filters)
 	}
+	return promoConfigFromSection(*row, filters)
+}
+
+func promoConfigFromSection(row models.HomepageSection, filters map[string]interface{}) *dto.HomeFlashPromoConfig {
 	cfg := &dto.HomeFlashPromoConfig{
 		Title:   row.Title,
 		CtaHref: row.Href,
@@ -615,4 +649,67 @@ func (s *Service) loadFlashPromoConfig(ctx context.Context) *dto.HomeFlashPromoC
 		return nil
 	}
 	return cfg
+}
+
+func flashDealsToHomeItems(ctx context.Context, deals []models.FlashDeal) []dto.HomeFlashDealItem {
+	out := make([]dto.HomeFlashDealItem, 0, len(deals))
+	for _, d := range deals {
+		if d.Product == nil {
+			continue
+		}
+		ends := d.EndsAt
+		item := dto.HomeFlashDealItem{
+			ID:            d.ID,
+			EndsAt:        ends,
+			QuantityLimit: d.QuantityLimit,
+			Product:       toHomeProduct(ctx, d.Product, 0, 0),
+		}
+		item.Product.FlashEndsAt = &ends
+		item.Product.QuantityLimit = d.QuantityLimit
+		out = append(out, item)
+	}
+	return out
+}
+
+func pickDealsForBand(
+	filters map[string]interface{},
+	all []dto.HomeFlashDealItem,
+	byID map[uint]dto.HomeFlashDealItem,
+) []dto.HomeFlashDealItem {
+	ids := parseUintSliceFilter(filters["flash_deal_ids"])
+	if len(ids) == 0 {
+		return all
+	}
+	out := make([]dto.HomeFlashDealItem, 0, len(ids))
+	for _, id := range ids {
+		if deal, ok := byID[id]; ok {
+			out = append(out, deal)
+		}
+	}
+	return out
+}
+
+func parseUintSliceFilter(raw interface{}) []uint {
+	arr, ok := raw.([]interface{})
+	if !ok || len(arr) == 0 {
+		return nil
+	}
+	out := make([]uint, 0, len(arr))
+	for _, v := range arr {
+		switch n := v.(type) {
+		case float64:
+			if n > 0 {
+				out = append(out, uint(n))
+			}
+		case int:
+			if n > 0 {
+				out = append(out, uint(n))
+			}
+		case int64:
+			if n > 0 {
+				out = append(out, uint(n))
+			}
+		}
+	}
+	return out
 }
